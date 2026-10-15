@@ -766,7 +766,11 @@ export const judgingPlacements = pgTable(
     scope: text("scope").notNull().default("overall"),
     scopeLabel: text("scope_label").notNull().default("Overall"),
     placement: integer("placement").notNull(),
+    // Calibrated for judge bias: what the placing is ranked on.
     score: numeric("score", { precision: 4, scale: 2 }),
+    // The plain mean of the same evaluations. Null on rows computed before
+    // calibration existed.
+    rawScore: numeric("raw_score", { precision: 4, scale: 2 }),
     evaluationCount: integer("evaluation_count").notNull().default(0),
     publishedAt: timestamp("published_at"),
     computedAt: timestamp("computed_at").defaultNow().notNull(),

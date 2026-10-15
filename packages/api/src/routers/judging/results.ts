@@ -37,6 +37,7 @@ import { assertHackathonExists } from "../../services/judging/config";
 import { reconcileDueDrafts } from "../../services/judging/evaluation-store";
 import type { JudgingDb } from "../../services/judging/config";
 import { lockJudgingConfig } from "../../services/judging/claims";
+import { calibrate } from "../../services/judging/calibration";
 import { checkInFlagsForEntries } from "../../services/check-in-flags";
 import {
   notifyResultsPublished,
@@ -81,6 +82,123 @@ async function ratingsOf(db: JudgingDb, evaluationIds: string[]) {
       .from(judgingEvaluationRatings)
       .where(inArray(judgingEvaluationRatings.evaluationId, evaluationIds)),
   );
+}
+
+/**
+ * Every complete evaluation in the edition with its ratings: what compute ranks
+ * and the judge calibration summary reads. The ratings are joined rather than
+ * listed by id, since an edition's evaluations run to thousands.
+ */
+async function completeEvaluations(db: JudgingDb, hackathonId: string) {
+  const evaluations = await db
+    .select({
+      id: judgingEvaluations.id,
+      entryId: judgingEvaluations.entryId,
+      challengeId: judgingEvaluations.challengeId,
+      judgeId: judgingEvaluations.judgeId,
+      submittedAt: judgingEvaluations.submittedAt,
+      isComplete: judgingEvaluations.isComplete,
+    })
+    .from(judgingEvaluations)
+    .where(
+      and(
+        eq(judgingEvaluations.hackathonId, hackathonId),
+        eq(judgingEvaluations.isComplete, true),
+      ),
+    );
+  const ratingRows = await db
+    .select({
+      evaluationId: judgingEvaluationRatings.evaluationId,
+      value: judgingEvaluationRatings.value,
+    })
+    .from(judgingEvaluationRatings)
+    .innerJoin(
+      judgingEvaluations,
+      eq(judgingEvaluations.id, judgingEvaluationRatings.evaluationId),
+    )
+    .where(
+      and(
+        eq(judgingEvaluations.hackathonId, hackathonId),
+        eq(judgingEvaluations.isComplete, true),
+      ),
+    );
+  const ratings = groupRatings(ratingRows);
+  return evaluations.map((evaluation) => ({
+    ...evaluation,
+    ratings: ratings.get(evaluation.id) ?? [],
+  }));
+}
+
+// Two decimals, and never a negative zero.
+const round2 = (value: number) => Math.round(value * 100) / 100 || 0;
+
+/**
+ * How each judge's scores are being adjusted, grouped by challenge: the
+ * organiser's window onto what compute does. Read from the current evaluations
+ * of live, prize-eligible entries, the same ones compute calibrates. Judges and
+ * hackers never get this; only the organiser's results list returns it.
+ */
+async function judgeCalibrations(db: JudgingDb, hackathonId: string) {
+  const evaluations = await completeEvaluations(db, hackathonId);
+  const entries = await db
+    .select({ id: judgingEntries.id })
+    .from(judgingEntries)
+    .where(
+      and(
+        eq(judgingEntries.hackathonId, hackathonId),
+        isNull(judgingEntries.deletedAt),
+        isNull(judgingEntries.prizeIneligibleAt),
+      ),
+    );
+  const live = new Set(entries.map((entry) => entry.id));
+  const { judges: calibrated } = calibrate(
+    evaluations.filter((evaluation) => live.has(evaluation.entryId)),
+  );
+  if (calibrated.length === 0) return [];
+
+  const [judges, challenges] = await Promise.all([
+    db
+      .select({
+        id: judgingJudges.id,
+        displayName: judgingJudges.displayName,
+        kind: judgingJudges.kind,
+      })
+      .from(judgingJudges)
+      .where(eq(judgingJudges.hackathonId, hackathonId)),
+    db
+      .select({ id: judgingChallenges.id, label: judgingChallenges.label })
+      .from(judgingChallenges)
+      .where(eq(judgingChallenges.hackathonId, hackathonId))
+      .orderBy(
+        asc(judgingChallenges.displayOrder),
+        asc(judgingChallenges.label),
+      ),
+  ]);
+  const judgeOf = new Map(judges.map((judge) => [judge.id, judge]));
+
+  return challenges
+    .map((challenge) => ({
+      challengeId: challenge.id,
+      challenge: challenge.label,
+      judges: calibrated
+        .filter(
+          (row) => row.challengeId === challenge.id && judgeOf.has(row.judgeId),
+        )
+        .map((row) => {
+          const judge = judgeOf.get(row.judgeId)!;
+          return {
+            judgeId: row.judgeId,
+            judgeName: judge.displayName,
+            kind: judge.kind,
+            grades: row.evaluations,
+            offset: round2(row.offset),
+            spread: round2(row.spread),
+            drift: round2(row.drift),
+          };
+        })
+        .sort((a, b) => a.judgeName.localeCompare(b.judgeName)),
+    }))
+    .filter((challenge) => challenge.judges.length > 0);
 }
 
 // Computing and publishing placements, and the organiser's view of what each
@@ -145,48 +263,14 @@ export const judgingResultsRouter = createTRPCRouter({
           asc(judgingChallenges.displayOrder),
           asc(judgingChallenges.label),
         );
-      const evaluations = await tx
-        .select({
-          id: judgingEvaluations.id,
-          entryId: judgingEvaluations.entryId,
-          challengeId: judgingEvaluations.challengeId,
-          isComplete: judgingEvaluations.isComplete,
-        })
-        .from(judgingEvaluations)
-        .where(
-          and(
-            eq(judgingEvaluations.hackathonId, input.hackathonId),
-            eq(judgingEvaluations.isComplete, true),
-          ),
-        );
-      // Joined rather than listed by id: an edition's evaluations run to
-      // thousands, and the filter is the same one as above.
-      const ratingRows = await tx
-        .select({
-          evaluationId: judgingEvaluationRatings.evaluationId,
-          value: judgingEvaluationRatings.value,
-        })
-        .from(judgingEvaluationRatings)
-        .innerJoin(
-          judgingEvaluations,
-          eq(judgingEvaluations.id, judgingEvaluationRatings.evaluationId),
-        )
-        .where(
-          and(
-            eq(judgingEvaluations.hackathonId, input.hackathonId),
-            eq(judgingEvaluations.isComplete, true),
-          ),
-        );
-      const ratings = groupRatings(ratingRows);
+      const evaluations = await completeEvaluations(tx, input.hackathonId);
 
+      // Each evaluation is calibrated for its judge before it is scored.
       const placements = computePlacements({
         entryIds: entries.map((entry) => entry.id),
         memberships,
         challenges,
-        evaluations: evaluations.map((evaluation) => ({
-          ...evaluation,
-          ratings: ratings.get(evaluation.id) ?? [],
-        })),
+        evaluations,
       });
 
       await tx
@@ -201,6 +285,7 @@ export const judgingResultsRouter = createTRPCRouter({
             scopeLabel: placement.scopeLabel,
             placement: placement.placement,
             score: formatScore(placement.score),
+            rawScore: formatScore(placement.rawScore),
             evaluationCount: placement.evaluationCount,
             computedAt: now,
           })),
@@ -311,6 +396,7 @@ export const judgingResultsRouter = createTRPCRouter({
         scopeLabel: judgingPlacements.scopeLabel,
         placement: judgingPlacements.placement,
         score: judgingPlacements.score,
+        rawScore: judgingPlacements.rawScore,
         evaluationCount: judgingPlacements.evaluationCount,
         publishedAt: judgingPlacements.publishedAt,
         computedAt: judgingPlacements.computedAt,
@@ -376,7 +462,10 @@ export const judgingResultsRouter = createTRPCRouter({
           entryId: string;
           title: string;
           placement: number;
+          /** Adjusted for judge bias; this is what the placing ranks on. */
           score: number | null;
+          /** The plain mean of the same evaluations. Null on older rows. */
+          rawScore: number | null;
           evaluationCount: number;
           /** Pulled from judging since; getResults already hides it. */
           withdrawn: boolean;
@@ -399,6 +488,7 @@ export const judgingResultsRouter = createTRPCRouter({
         title: row.title,
         placement: row.placement,
         score: toScore(row.score),
+        rawScore: toScore(row.rawScore),
         evaluationCount: row.evaluationCount,
         withdrawn: !!row.deletedAt,
         openCheckInFlags: openFlags.get(row.entryId) ?? 0,
@@ -411,6 +501,9 @@ export const judgingResultsRouter = createTRPCRouter({
       computedAt,
       publishedAt,
       evaluationsSinceCompute,
+      calibration: computedAt
+        ? await judgeCalibrations(db, input.hackathonId)
+        : [],
       scopes: [...scopes.values()].sort(
         (a, b) =>
           Number(b.scope === OVERALL_SCOPE) -
