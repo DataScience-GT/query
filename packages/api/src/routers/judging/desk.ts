@@ -24,6 +24,7 @@ import {
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import type { JudgingTx as Tx } from "../../services/judging/config";
+import { flaggedEntryIds } from "../../services/check-in-flags";
 import { createTRPCRouter, publicProcedure } from "../../trpc";
 import { isUniqueViolation } from "../../middleware/db-errors";
 import {
@@ -1052,6 +1053,9 @@ export const judgingDeskRouter = createTRPCRouter({
           ),
         );
       const tags = await tagsOf(db, judge, challenges, entryIds);
+      // One yes or no per project and nothing else. Who was flagged and why
+      // is for organisers; this list is polled by every judge, guests included.
+      const flagged = await flaggedEntryIds(db, input.hackathonId, entryIds);
 
       const presentationOf = new Map(presentations.map((p) => [p.entryId, p]));
       const evaluationOf = new Map(mine.map((e) => [e.entryId, e]));
@@ -1081,6 +1085,7 @@ export const judgingDeskRouter = createTRPCRouter({
           return {
             ...entry,
             challenges: tags.get(entry.id) ?? [],
+            flagged: flagged.has(entry.id),
             presentation: presentation
               ? {
                   id: presentation.id,
@@ -1150,6 +1155,8 @@ export const judgingDeskRouter = createTRPCRouter({
           asc(judgingEntryMembers.createdAt),
         );
       const tags = await tagsOf(db, judge, challenges, [entry.id]);
+      // A bare marker, as in the project list: never who or why.
+      const flagged = await flaggedEntryIds(db, input.hackathonId, [entry.id]);
       const rubric = await loadRubric(db, input.hackathonId);
       const switches = await judgingSwitches(db, input.hackathonId);
 
@@ -1246,6 +1253,7 @@ export const judgingDeskRouter = createTRPCRouter({
           ...entry,
           members: members.map((member) => member.name),
           challenges: tags.get(entry.id) ?? [],
+          flagged: flagged.has(entry.id),
         },
         challenge: {
           id: challenge.id,

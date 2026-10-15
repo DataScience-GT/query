@@ -430,6 +430,17 @@ function EvaluationForm({
 
       <AccessNotice data={data} opensIn={opensIn} onPickRoom={onPickRoom} />
 
+      {entry.flagged && (
+        <div className="mt-6">
+          <p className={deskStatus("warning")}>Flagged by organisers</p>
+          <p className={`mt-1 ${body}`}>
+            This team was flagged for a check-in rule. Judge the project as you
+            normally would. Organisers decide whether the team stays in the
+            prize running.
+          </p>
+        </div>
+      )}
+
       <form
         className="mt-8"
         onSubmit={(e) => {
