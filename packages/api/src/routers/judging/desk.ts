@@ -48,6 +48,7 @@ import {
   seatOf,
   writeEvaluation,
 } from "../../services/judging/evaluation-store";
+import { DEADLINE_GRACE_MS } from "../../services/judging/timing";
 import type { ChallengeRow } from "../../services/judging/evaluation-store";
 import {
   checkAnswers,
@@ -1404,7 +1405,7 @@ export const judgingDeskRouter = createTRPCRouter({
               code: "CONFLICT",
               message:
                 evaluation && !draft
-                  ? "Time ran out, so your answers were submitted for you. Reload to see them; you can still edit."
+                  ? "Time ran out, so your saved answers were submitted for you. Reload to see them."
                   : "Your answers changed in another window. Reload to pick up the latest before you keep going.",
             });
           }
@@ -1416,6 +1417,7 @@ export const judgingDeskRouter = createTRPCRouter({
             challenge,
             challenges,
             evaluation: evaluation ?? null,
+            graceMs: DEADLINE_GRACE_MS,
           });
           if (!timing.canEdit) {
             throw new TRPCError({
@@ -1555,7 +1557,7 @@ export const judgingDeskRouter = createTRPCRouter({
               code: "CONFLICT",
               message:
                 existing?.autoSubmittedAt && input.expectedRevision === 0
-                  ? "Time ran out, so your answers were submitted for you. Reload to see them; you can still edit."
+                  ? "Time ran out, so your saved answers were submitted for you. Reload to see them."
                   : "This evaluation changed in another window. Reload to see the latest before you submit.",
             });
           }
@@ -1567,6 +1569,7 @@ export const judgingDeskRouter = createTRPCRouter({
             challenge,
             challenges,
             evaluation: existing ?? null,
+            graceMs: DEADLINE_GRACE_MS,
           });
           if (!timing.canEdit) {
             throw new TRPCError({
