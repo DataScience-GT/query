@@ -43,16 +43,41 @@ describe("evaluationTiming", () => {
     }
   });
 
-  it("keeps a submitted evaluation editable, whatever the clock says", () => {
+  it("keeps a submitted evaluation editable until the deadline", () => {
+    for (const now of [before, during]) {
+      expect(
+        evaluationTiming(
+          scheduled({
+            evaluation: { appointmentId: "appt-1" },
+            presenceChallengeId: null,
+          }),
+          now,
+        ),
+      ).toEqual({ canEdit: true, deadlineAt: null, appointmentId: "appt-1" });
+    }
+  });
+
+  it("locks a submitted evaluation once the deadline passes", () => {
+    for (const now of [deadlineAt, afterDeadline]) {
+      const timing = evaluationTiming(
+        scheduled({ evaluation: { appointmentId: "appt-1" } }),
+        now,
+      );
+      expect(timing).toMatchObject({ canEdit: false, ended: true });
+      if (!timing.canEdit) expect(timing.reason).toMatch(/final/);
+    }
+  });
+
+  it("keeps an untimed evaluation editable after any clock", () => {
     expect(
       evaluationTiming(
         scheduled({
-          evaluation: { appointmentId: "appt-1" },
-          presenceChallengeId: null,
+          mode: "remote",
+          evaluation: { appointmentId: null },
         }),
-        before,
+        afterDeadline,
       ),
-    ).toEqual({ canEdit: true, deadlineAt: null, appointmentId: "appt-1" });
+    ).toEqual({ canEdit: true, deadlineAt: null, appointmentId: null });
   });
 
   it("runs against the deadline during the presentation", () => {
@@ -67,15 +92,18 @@ describe("evaluationTiming", () => {
     });
   });
 
-  it("drops the deadline once it has passed, still tied to the slot", () => {
-    expect(evaluationTiming(scheduled(), afterDeadline)).toEqual({
-      canEdit: true,
-      deadlineAt: null,
-      appointmentId: "appt-1",
-    });
-    expect(evaluationTiming(scheduled(), deadlineAt)).toMatchObject({
-      deadlineAt: null,
-    });
+  it("refuses a first evaluation once the deadline passes", () => {
+    for (const now of [deadlineAt, afterDeadline]) {
+      expect(evaluationTiming(scheduled(), now)).toMatchObject({
+        canEdit: false,
+        opensAt: null,
+        ended: true,
+      });
+    }
+    // The deadline wins over the room: there is nothing left to join.
+    expect(
+      evaluationTiming(scheduled({ presenceChallengeId: null }), afterDeadline),
+    ).toMatchObject({ canEdit: false, ended: true });
   });
 
   it("waits for the presentation to start", () => {
@@ -89,7 +117,7 @@ describe("evaluationTiming", () => {
     for (const presenceChallengeId of [null, "mlh"]) {
       expect(
         evaluationTiming(scheduled({ presenceChallengeId }), during),
-      ).toMatchObject({ canEdit: false, opensAt: null });
+      ).toMatchObject({ canEdit: false, opensAt: null, ended: false });
     }
   });
 

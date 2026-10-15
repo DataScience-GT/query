@@ -1301,10 +1301,16 @@ export const judgingDeskRouter = createTRPCRouter({
               : timing.reason,
           deadlineAt: timing.canEdit ? timing.deadlineAt : null,
           opensAt: timing.canEdit ? null : timing.opensAt,
+          // Shut because the presentation's deadline passed: scores are final.
+          ended: open && !timing.canEdit && timing.ended,
           // Shut only because the judge is not in the room that serves this
           // challenge: a slot exists and has no start to wait for.
           needsRoom:
-            open && !timing.canEdit && !timing.opensAt && presentation !== null,
+            open &&
+            !timing.canEdit &&
+            !timing.opensAt &&
+            !timing.ended &&
+            presentation !== null,
         },
         presentation:
           presentation && presentationRoom
