@@ -57,6 +57,7 @@ Edition-scoped event operations. Everything hangs off `hackathon`.
 - Judge roster (`judge`, `judge_assignment`): applications and approval
 - Judging: room-based judging with Devpost import — `judging_*` tables (`judging.ts`). The older pool-dispatch tables (`judging_project`, `judge_vote`, `judge_queue`, `hackathon_result`) are retired and kept for past editions' results
 - Points: `hackathon_event` points, staff adjustments and the point store (`points.ts`)
+- Event check-in rules: nobody is checked into two events that run at the same time, or into two less than 30 minutes apart (meals are exempt). `recordEventAttendance` enforces this for pass scans, event codes and manual check-in
 - Announcements and acceptance waves
 
 Hackathon participation is **open to non-members**. Membership is not a registration requirement.

@@ -272,7 +272,9 @@ async function checkInParticipant(
 
   // 4. Record attendance. The unique index is the real guard, and
   // recordEventAttendance turns a racing scanner's 23505 into the same
-  // conflict as the read above.
+  // conflict as the read above. It also refuses an event that overlaps, or
+  // comes too soon after, one this person is already in; that refusal ends the
+  // scan before the promotion below.
   // Attendance and the roster promotion are one transaction. Split, a promotion
   // failing after the attendance row committed left the scan half-done — and
   // the retry hits the duplicate guard, so that attendee could never submit.
@@ -1313,7 +1315,14 @@ export const hackathonAdminRouter = createTRPCRouter({
             eq(hackathonEvents.id, input.eventId),
             eq(hackathonEvents.hackathonId, input.hackathonId),
           ),
-          columns: { id: true, name: true, points: true, endTime: true },
+          columns: {
+            id: true,
+            name: true,
+            type: true,
+            points: true,
+            startTime: true,
+            endTime: true,
+          },
         }),
       ]);
 

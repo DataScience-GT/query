@@ -240,6 +240,81 @@ export function selfCheckInWindow(
 // ---------------------------------------------------------------------------
 // Attendance
 
+// Two events at once, or two check-ins in quick succession, mean somebody is
+// collecting points for events they are not at. Meals are the exception: people
+// eat alongside whatever else is on, and a meal scan only counts food.
+export const CHECK_IN_GAP_MS = 30 * 60 * 1000;
+
+type AttendedEvent = {
+  id: string;
+  type: string;
+  startTime: Date;
+  endTime: Date;
+};
+
+/** One of the participant's existing check-ins, with the event it was for. */
+export type EarlierAttendance = {
+  event: AttendedEvent & { name: string };
+  checkedInAt: Date;
+};
+
+export type AttendanceConflict = {
+  /** overlap: the events run at the same time. too_soon: under the gap. */
+  kind: "overlap" | "too_soon";
+  other: { name: string };
+  /** Whole minutes since the earlier check-in. Only on too_soon. */
+  minutesAgo?: number;
+};
+
+/**
+ * Why `event` cannot be checked into now, given the participant's earlier
+ * check-ins, or null when it can. Overlap is reported before too_soon because
+ * it is the firmer answer: waiting does not fix it. Pure, so the rule is
+ * testable without a database.
+ */
+export function attendanceConflict(
+  event: AttendedEvent,
+  earlier: readonly EarlierAttendance[],
+  now: Date,
+): AttendanceConflict | null {
+  if (event.type === "meal") return null;
+
+  // Already in this event: the duplicate case, which the unique index answers
+  // with "already checked in". Checking the others too would answer a repeat
+  // code with "try again in 20 minutes" after a later check-in elsewhere.
+  if (earlier.some((row) => row.event.id === event.id)) return null;
+
+  const others = earlier.filter((row) => row.event.type !== "meal");
+
+  // Strict, so an event that ends at 2:00 does not clash with one that starts
+  // at 2:00.
+  const overlapping = others.find(
+    (row) =>
+      row.event.startTime < event.endTime &&
+      event.startTime < row.event.endTime,
+  );
+  if (overlapping) {
+    return { kind: "overlap", other: { name: overlapping.event.name } };
+  }
+
+  let latest: EarlierAttendance | null = null;
+  for (const row of others) {
+    if (now.getTime() - row.checkedInAt.getTime() >= CHECK_IN_GAP_MS) continue;
+    if (!latest || row.checkedInAt > latest.checkedInAt) latest = row;
+  }
+  if (!latest) return null;
+
+  return {
+    kind: "too_soon",
+    other: { name: latest.event.name },
+    // A clock a little behind the database can put the check-in in the future.
+    minutesAgo: Math.max(
+      0,
+      Math.floor((now.getTime() - latest.checkedInAt.getTime()) / 60_000),
+    ),
+  };
+}
+
 /**
  * The one writer of attendance rows: pass scans, event codes and manual
  * check-in all come through here, so every row carries the event's points at
@@ -248,25 +323,80 @@ export function selfCheckInWindow(
  * attend. The unique index on (event, participant) is the duplicate guard;
  * two stations racing both pass any earlier read, and the loser gets the same
  * sentence a single duplicate would.
+ *
+ * It also holds the bad-actor rules (see attendanceConflict): nobody is in two
+ * events that run at the same time, or in two within CHECK_IN_GAP_MS of each
+ * other. Those are read-then-write, so the participant's row is locked first:
+ * two check-ins for one person at the same moment (two tabs, two stations)
+ * queue up, and the second one sees the first. A refusal is FORBIDDEN, not
+ * CONFLICT: the self check-in page reads CONFLICT as "already checked in".
  */
 export async function recordEventAttendance(
   db: PointsDb,
   input: {
-    event: { id: string; name: string; points: number };
+    event: {
+      id: string;
+      name: string;
+      points: number;
+      type: string;
+      startTime: Date;
+      endTime: Date;
+    };
     participant: { id: string; name: string };
     method: AttendanceMethod;
     actorId: string | null;
   },
 ): Promise<{ pointsAwarded: number }> {
   const { event, participant, method, actorId } = input;
+  // One clock for the rule and the row it writes. Left to the database's
+  // now(), checked_in_at (no time zone) follows the session's TimeZone and
+  // would not compare with this one.
+  const now = new Date();
 
   try {
-    await db.insert(hackathonEventAttendees).values({
-      eventId: event.id,
-      participantId: participant.id,
-      pointsAwarded: event.points,
-      method,
-      checkedInById: actorId,
+    await db.transaction(async (tx) => {
+      // No key update: enough to queue this person's check-ins behind each
+      // other without holding up other writes that reference the row.
+      await tx
+        .select({ id: hackathonParticipants.id })
+        .from(hackathonParticipants)
+        .where(eq(hackathonParticipants.id, participant.id))
+        .for("no key update");
+
+      const earlier = await tx
+        .select({
+          event: {
+            id: hackathonEvents.id,
+            name: hackathonEvents.name,
+            type: hackathonEvents.type,
+            startTime: hackathonEvents.startTime,
+            endTime: hackathonEvents.endTime,
+          },
+          checkedInAt: hackathonEventAttendees.checkedInAt,
+        })
+        .from(hackathonEventAttendees)
+        .innerJoin(
+          hackathonEvents,
+          eq(hackathonEvents.id, hackathonEventAttendees.eventId),
+        )
+        .where(eq(hackathonEventAttendees.participantId, participant.id));
+
+      const conflict = attendanceConflict(event, earlier, now);
+      if (conflict) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: attendanceConflictMessage(input, conflict),
+        });
+      }
+
+      await tx.insert(hackathonEventAttendees).values({
+        eventId: event.id,
+        participantId: participant.id,
+        pointsAwarded: event.points,
+        method,
+        checkedInById: actorId,
+        checkedInAt: now,
+      });
     });
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -291,6 +421,39 @@ export function alreadyCheckedInMessage(input: {
   return input.method === "code"
     ? `You are already checked into ${input.event.name}.`
     : `${input.participant.name} is already checked into ${input.event.name}.`;
+}
+
+const minutesLabel = (n: number) => `${n} minute${n === 1 ? "" : "s"}`;
+
+/** The refusal sentence for an attendanceConflict, worded like the one above. */
+export function attendanceConflictMessage(
+  input: {
+    event: { name: string };
+    participant: { name: string };
+    method: AttendanceMethod;
+  },
+  conflict: AttendanceConflict,
+): string {
+  const { event, participant, method } = input;
+  const other = conflict.other.name;
+  const self = method === "code";
+
+  if (conflict.kind === "overlap") {
+    return self
+      ? `You're already checked into ${other}, which runs at the same time as ${event.name}. You can check into one event at a time.`
+      : `${participant.name} is already checked into ${other}, which runs at the same time as ${event.name}. If that was a mistake, remove them from ${other} first.`;
+  }
+
+  const ago = conflict.minutesAgo ?? 0;
+  const when =
+    ago === 0 ? "less than a minute ago" : `${minutesLabel(ago)} ago`;
+  const rule = `Event check-ins have to be at least ${CHECK_IN_GAP_MS / 60_000} minutes apart`;
+  if (!self) {
+    return `${participant.name} checked into ${other} ${when}. ${rule}. If that was a mistake, remove them from ${other} first.`;
+  }
+  // minutesAgo is floored, so what is left of the gap rounds up on its own.
+  const left = Math.max(1, CHECK_IN_GAP_MS / 60_000 - ago);
+  return `You checked into ${other} ${when}. ${rule}, so try again in ${minutesLabel(left)}.`;
 }
 
 // ---------------------------------------------------------------------------

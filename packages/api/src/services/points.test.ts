@@ -3,8 +3,11 @@ import { TRPCError } from "@trpc/server";
 import {
   CHECK_IN_CODE_ALPHABET,
   CHECK_IN_CODE_LENGTH,
+  CHECK_IN_GAP_MS,
   alreadyCheckedInMessage,
   assignCheckInCode,
+  attendanceConflict,
+  attendanceConflictMessage,
   canSupply,
   fullName,
   generateCheckInCode,
@@ -19,7 +22,7 @@ import {
   recordEventAttendance,
   selfCheckInWindow,
 } from "./points";
-import type { PointsDb } from "./points";
+import type { EarlierAttendance, PointsDb } from "./points";
 import type { DrizzleDB } from "@query/db";
 
 // Drizzle wraps the pg error, so the SQLSTATE sits on `.cause`.
@@ -341,26 +344,292 @@ describe("selfCheckInWindow", () => {
   });
 });
 
+const MIN = 60 * 1000;
+
+describe("attendanceConflict", () => {
+  const T0 = new Date("2026-10-10T18:00:00Z").getTime();
+  const at = (minutes: number) => new Date(T0 + minutes * MIN);
+
+  const ev = (
+    id: string,
+    startMin: number,
+    endMin: number,
+    type = "workshop",
+  ) => ({
+    id,
+    type,
+    startTime: at(startMin),
+    endTime: at(endMin),
+  });
+
+  // An earlier check-in. Defaults to long ago, so only the overlap rule can
+  // fire unless a test says otherwise.
+  const attended = (
+    id: string,
+    startMin: number,
+    endMin: number,
+    opts: { type?: string; checkedInMin?: number; name?: string } = {},
+  ): EarlierAttendance => ({
+    event: {
+      ...ev(id, startMin, endMin, opts.type),
+      name: opts.name ?? `Event ${id}`,
+    },
+    checkedInAt: at(opts.checkedInMin ?? -600),
+  });
+
+  it("allows a first check-in", () => {
+    expect(attendanceConflict(ev("a", 0, 60), [], at(0))).toBeNull();
+  });
+
+  it("refuses an event that runs at the same time as one already attended", () => {
+    const bny = attended("bny", 0, 60, { name: "BNY Workshop" });
+    expect(attendanceConflict(ev("fs", 30, 90), [bny], at(30))).toEqual({
+      kind: "overlap",
+      other: { name: "BNY Workshop" },
+    });
+    // Contained and containing count too.
+    expect(attendanceConflict(ev("fs", 10, 20), [bny], at(30))?.kind).toBe(
+      "overlap",
+    );
+    expect(attendanceConflict(ev("fs", -30, 120), [bny], at(30))?.kind).toBe(
+      "overlap",
+    );
+  });
+
+  it("lets back-to-back events through", () => {
+    const first = attended("a", 0, 60);
+    expect(attendanceConflict(ev("b", 60, 120), [first], at(60))).toBeNull();
+    const second = attended("c", 60, 120);
+    expect(attendanceConflict(ev("d", 0, 60), [second], at(30))).toBeNull();
+  });
+
+  it("refuses a second check-in 29 minutes after the first and allows it at 30", () => {
+    const first = attended("a", 0, 60, { checkedInMin: 0, name: "Workshop" });
+    // Back-to-back events, so only the gap is in play.
+    const next = ev("b", 60, 120);
+    expect(attendanceConflict(next, [first], at(29))).toEqual({
+      kind: "too_soon",
+      other: { name: "Workshop" },
+      minutesAgo: 29,
+    });
+    expect(attendanceConflict(next, [first], at(30))).toBeNull();
+    expect(CHECK_IN_GAP_MS).toBe(30 * MIN);
+  });
+
+  it("reports whole minutes, zero for a check-in just now", () => {
+    const first = attended("a", 0, 60, { checkedInMin: 0 });
+    const next = ev("b", 60, 120);
+    expect(
+      attendanceConflict(next, [first], new Date(T0 + 59 * 1000))?.minutesAgo,
+    ).toBe(0);
+    expect(
+      attendanceConflict(next, [first], new Date(T0 + 61 * 1000))?.minutesAgo,
+    ).toBe(1);
+  });
+
+  it("does not report a negative wait when the clock is behind the database", () => {
+    const first = attended("a", 0, 60, { checkedInMin: 1 });
+    expect(
+      attendanceConflict(ev("b", 60, 120), [first], at(0))?.minutesAgo,
+    ).toBe(0);
+  });
+
+  it("names the most recent check-in when several are too recent", () => {
+    const older = attended("a", 0, 10, { checkedInMin: 0, name: "Older" });
+    const newer = attended("b", 20, 30, { checkedInMin: 10, name: "Newer" });
+    const expected = {
+      kind: "too_soon",
+      other: { name: "Newer" },
+      minutesAgo: 10,
+    };
+    expect(attendanceConflict(ev("c", 60, 90), [newer, older], at(20))).toEqual(
+      expected,
+    );
+    expect(attendanceConflict(ev("c", 60, 90), [older, newer], at(20))).toEqual(
+      expected,
+    );
+  });
+
+  it("does not block a meal, and a meal does not block anything", () => {
+    const workshop = attended("w", 0, 60, { checkedInMin: 0 });
+    expect(
+      attendanceConflict(ev("lunch", 10, 50, "meal"), [workshop], at(10)),
+    ).toBeNull();
+
+    const lunch = attended("lunch", 0, 60, { type: "meal", checkedInMin: 0 });
+    expect(attendanceConflict(ev("w", 10, 50), [lunch], at(10))).toBeNull();
+  });
+
+  it("ignores the same event, which the unique index handles", () => {
+    const same = attended("a", 0, 60, { checkedInMin: 0 });
+    expect(attendanceConflict(ev("a", 0, 60), [same], at(5))).toBeNull();
+    // A check-in elsewhere since then does not turn a repeat into "too soon":
+    // the true answer is still "already checked in".
+    const since = attended("b", 60, 120, { checkedInMin: 50 });
+    expect(
+      attendanceConflict(ev("a", 0, 60), [same, since], at(55)),
+    ).toBeNull();
+  });
+
+  it("reports an overlap before a recent check-in", () => {
+    const overlapping = attended("a", 0, 60, {
+      checkedInMin: 10,
+      name: "Overlaps",
+    });
+    const recent = attended("b", -120, -90, {
+      checkedInMin: 14,
+      name: "Recent",
+    });
+    expect(
+      attendanceConflict(ev("c", 30, 90), [recent, overlapping], at(15)),
+    ).toEqual({ kind: "overlap", other: { name: "Overlaps" } });
+  });
+});
+
+describe("attendanceConflictMessage", () => {
+  const input = {
+    event: { name: "Full Sail Fireside" },
+    participant: { name: "Ada Lovelace" },
+  };
+  const overlap = { kind: "overlap", other: { name: "BNY Workshop" } } as const;
+  const soon = (minutesAgo: number) =>
+    ({
+      kind: "too_soon",
+      other: { name: "BNY Workshop" },
+      minutesAgo,
+    }) as const;
+
+  it("speaks to the hacker who entered the code about an overlap", () => {
+    expect(
+      attendanceConflictMessage({ ...input, method: "code" }, overlap),
+    ).toBe(
+      "You're already checked into BNY Workshop, which runs at the same time as Full Sail Fireside. You can check into one event at a time.",
+    );
+  });
+
+  it("tells staff to remove the participant from the other event", () => {
+    for (const method of ["scan", "manual"] as const) {
+      expect(attendanceConflictMessage({ ...input, method }, overlap)).toBe(
+        "Ada Lovelace is already checked into BNY Workshop, which runs at the same time as Full Sail Fireside. If that was a mistake, remove them from BNY Workshop first.",
+      );
+    }
+  });
+
+  it("tells the hacker how long to wait", () => {
+    expect(
+      attendanceConflictMessage({ ...input, method: "code" }, soon(12)),
+    ).toBe(
+      "You checked into BNY Workshop 12 minutes ago. Event check-ins have to be at least 30 minutes apart, so try again in 18 minutes.",
+    );
+  });
+
+  it("tells staff the same without a countdown", () => {
+    for (const method of ["scan", "manual"] as const) {
+      expect(attendanceConflictMessage({ ...input, method }, soon(12))).toBe(
+        "Ada Lovelace checked into BNY Workshop 12 minutes ago. Event check-ins have to be at least 30 minutes apart. If that was a mistake, remove them from BNY Workshop first.",
+      );
+    }
+  });
+
+  it("uses singular wording at one minute", () => {
+    expect(
+      attendanceConflictMessage({ ...input, method: "code" }, soon(1)),
+    ).toBe(
+      "You checked into BNY Workshop 1 minute ago. Event check-ins have to be at least 30 minutes apart, so try again in 29 minutes.",
+    );
+    expect(
+      attendanceConflictMessage({ ...input, method: "code" }, soon(29)),
+    ).toContain("so try again in 1 minute.");
+  });
+
+  it("says less than a minute for zero", () => {
+    expect(
+      attendanceConflictMessage({ ...input, method: "code" }, soon(0)),
+    ).toBe(
+      "You checked into BNY Workshop less than a minute ago. Event check-ins have to be at least 30 minutes apart, so try again in 30 minutes.",
+    );
+    expect(
+      attendanceConflictMessage({ ...input, method: "manual" }, soon(0)),
+    ).toContain("checked into BNY Workshop less than a minute ago.");
+  });
+});
+
 describe("recordEventAttendance", () => {
-  const fakeDb = (fail?: () => Error) => {
+  // Stands in for the pool: a transaction hands back a builder that answers the
+  // participant lock, the attendance read and the insert, noting the order.
+  const fakeDb = (
+    opts: { fail?: () => Error; earlier?: EarlierAttendance[] } = {},
+  ) => {
     const inserted: unknown[] = [];
-    const db = {
+    const calls: string[] = [];
+    const tx = {
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            for: async (mode: string) => {
+              calls.push(`lock:${mode}`);
+              return [{ id: "part-1" }];
+            },
+          }),
+          innerJoin: () => ({
+            where: async () => {
+              calls.push("read");
+              return opts.earlier ?? [];
+            },
+          }),
+        }),
+      }),
       insert: () => ({
         values: async (values: unknown) => {
-          if (fail) throw fail();
+          calls.push("insert");
+          if (opts.fail) throw opts.fail();
           inserted.push(values);
         },
       }),
     };
-    return { db: db as unknown as PointsDb, inserted };
+    const db = {
+      transaction: async (run: (tx: unknown) => unknown) => run(tx),
+    };
+    return { db: db as unknown as PointsDb, inserted, calls };
   };
 
+  // A meal, so the rules stay out of the way unless a test switches to the
+  // workshop below.
   const input = {
-    event: { id: "event-1", name: "Lunch", points: 15 },
+    event: {
+      id: "event-1",
+      name: "Lunch",
+      points: 15,
+      type: "meal",
+      startTime: new Date(Date.now() - 30 * MIN),
+      endTime: new Date(Date.now() + 30 * MIN),
+    },
     participant: { id: "part-1", name: "Ada Lovelace" },
     method: "manual" as const,
     actorId: "staff-1",
   };
+
+  const workshop = {
+    ...input.event,
+    id: "event-2",
+    name: "Workshop",
+    type: "workshop",
+  };
+
+  const earlierRow = (
+    event: Partial<EarlierAttendance["event"]> = {},
+    checkedInAt = new Date(Date.now() - 300 * MIN),
+  ): EarlierAttendance => ({
+    event: {
+      id: "event-9",
+      name: "BNY Workshop",
+      type: "workshop",
+      startTime: new Date(Date.now() - 30 * MIN),
+      endTime: new Date(Date.now() + 30 * MIN),
+      ...event,
+    },
+    checkedInAt,
+  });
 
   it("copies the event's points and records how and by whom", async () => {
     const { db, inserted } = fakeDb();
@@ -374,12 +643,63 @@ describe("recordEventAttendance", () => {
         pointsAwarded: 15,
         method: "manual",
         checkedInById: "staff-1",
+        checkedInAt: expect.any(Date),
       },
     ]);
   });
 
+  it("locks the participant before it reads their attendance", async () => {
+    const { db, calls } = fakeDb();
+    await recordEventAttendance(db, input);
+    expect(calls).toEqual(["lock:no key update", "read", "insert"]);
+  });
+
+  it("refuses a check-in into an event that overlaps one already attended", async () => {
+    const { db, inserted } = fakeDb({ earlier: [earlierRow()] });
+    const error = await recordEventAttendance(db, {
+      ...input,
+      event: workshop,
+      method: "code",
+    }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(TRPCError);
+    expect((error as TRPCError).code).toBe("FORBIDDEN");
+    expect((error as TRPCError).message).toBe(
+      "You're already checked into BNY Workshop, which runs at the same time as Workshop. You can check into one event at a time.",
+    );
+    expect(inserted).toEqual([]);
+  });
+
+  it("refuses a check-in under 30 minutes after the last one", async () => {
+    const { db, inserted } = fakeDb({
+      earlier: [
+        earlierRow(
+          {
+            startTime: new Date(Date.now() - 300 * MIN),
+            endTime: new Date(Date.now() - 240 * MIN),
+          },
+          new Date(Date.now() - 10 * MIN),
+        ),
+      ],
+    });
+    const error = await recordEventAttendance(db, {
+      ...input,
+      event: workshop,
+    }).catch((e: unknown) => e);
+    expect((error as TRPCError).code).toBe("FORBIDDEN");
+    expect((error as TRPCError).message).toMatch(
+      /^Ada Lovelace checked into BNY Workshop 10 minutes ago\./,
+    );
+    expect(inserted).toEqual([]);
+  });
+
+  it("lets a meal through alongside an overlapping event", async () => {
+    const { db, inserted } = fakeDb({ earlier: [earlierRow()] });
+    await recordEventAttendance(db, input);
+    expect(inserted).toHaveLength(1);
+  });
+
   it("reads a duplicate as already checked in", async () => {
-    const { db } = fakeDb(uniqueViolation);
+    const { db } = fakeDb({ fail: uniqueViolation });
     const error = await recordEventAttendance(db, input).catch(
       (e: unknown) => e,
     );
@@ -390,15 +710,44 @@ describe("recordEventAttendance", () => {
     );
   });
 
+  it("reads a repeat as already checked in after a later check-in elsewhere", async () => {
+    const { db } = fakeDb({
+      fail: uniqueViolation,
+      earlier: [
+        earlierRow(
+          { id: workshop.id, name: workshop.name },
+          new Date(Date.now() - 40 * MIN),
+        ),
+        // Starts as the workshop ends, checked into five minutes ago.
+        earlierRow(
+          {
+            startTime: workshop.endTime,
+            endTime: new Date(Date.now() + 90 * MIN),
+          },
+          new Date(Date.now() - 5 * MIN),
+        ),
+      ],
+    });
+    const error = await recordEventAttendance(db, {
+      ...input,
+      event: workshop,
+      method: "code",
+    }).catch((e: unknown) => e);
+    expect((error as TRPCError).code).toBe("CONFLICT");
+    expect((error as TRPCError).message).toBe(
+      "You are already checked into Workshop.",
+    );
+  });
+
   it("speaks to the hacker when they entered the code", async () => {
-    const { db } = fakeDb(uniqueViolation);
+    const { db } = fakeDb({ fail: uniqueViolation });
     await expect(
       recordEventAttendance(db, { ...input, method: "code" }),
     ).rejects.toThrow("You are already checked into Lunch.");
   });
 
   it("passes other failures through", async () => {
-    const { db } = fakeDb(() => new Error("connection reset"));
+    const { db } = fakeDb({ fail: () => new Error("connection reset") });
     await expect(recordEventAttendance(db, input)).rejects.toThrow(
       "connection reset",
     );
