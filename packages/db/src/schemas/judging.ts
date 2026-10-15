@@ -90,6 +90,14 @@ export const judgingEntries = pgTable(
     deletedById: text("deleted_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
+    // An organiser pulled this entry from prizes, usually after a check-in rule
+    // break. Judges still score it, so nothing about the room schedule changes;
+    // only placements and results leave it out.
+    prizeIneligibleAt: timestamp("prize_ineligible_at"),
+    prizeIneligibleById: text("prize_ineligible_by_id").references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

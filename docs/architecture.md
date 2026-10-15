@@ -58,6 +58,7 @@ Edition-scoped event operations. Everything hangs off `hackathon`.
 - Judging: room-based judging with Devpost import — `judging_*` tables (`judging.ts`). The older pool-dispatch tables (`judging_project`, `judge_vote`, `judge_queue`, `hackathon_result`) are retired and kept for past editions' results
 - Points: `hackathon_event` points, staff adjustments and the point store (`points.ts`)
 - Event check-in rules: nobody is checked into two events that run at the same time, or into two less than 30 minutes apart (meals are exempt). `recordEventAttendance` enforces this for pass scans, event codes and manual check-in
+- Check-in rule-break flags: each refused attempt is recorded (`hackathon_check_in_flag`, `services/check-in-flags.ts`) and shown in judging on the hacker's team, in full to organisers and as a bare marker to judges. Organisers decide whether to pull the team from prizes (`judging_entry.prize_ineligible_at`). Hackers never see flags, and they stay out of public and cached payloads
 - Announcements and acceptance waves
 
 Hackathon participation is **open to non-members**. Membership is not a registration requirement.
