@@ -188,7 +188,17 @@ export function ProjectQueue({
           </p>
         )}
         <h2 className={`mt-2 ${itemTitle}`}>{next.title}</h2>
-        <p className={`mt-1 ${deskMeta}`}>{where(next, false)}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p className={deskMeta}>{where(next, false)}</p>
+          {next.flagged && (
+            <span
+              className={deskStatus("warning")}
+              title="Organisers flagged this team for a check-in rule."
+            >
+              Flagged
+            </span>
+          )}
+        </div>
         <button
           type="button"
           className={`${btnPrimary} mt-5 min-h-11 w-full sm:w-auto`}
@@ -358,6 +368,14 @@ export function ProjectQueue({
                             {state && (
                               <span className={deskStatus(state.tone)}>
                                 {state.text}
+                              </span>
+                            )}
+                            {project.flagged && (
+                              <span
+                                className={deskStatus("warning")}
+                                title="Organisers flagged this team for a check-in rule."
+                              >
+                                Flagged
                               </span>
                             )}
                           </span>
