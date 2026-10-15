@@ -16,7 +16,9 @@ Exports: `.`, `./context`, `./trpc`, `./pricing`, plus a few middleware paths (s
 | `member` | `routers/member.ts` | Membership profile, pass, admin grant/revoke/search |
 | `hackathon` | `routers/hackathon/*` | Editions, registration, interest, events, content, announcements, staff ops |
 | `events` | `routers/events.ts` | Club events and QR check-in |
-| `judge` | `routers/judge/*` | Judge portal, rankings/results, admin judging |
+| `judge` | `routers/judge/*` | Judge roster: apply, approve, add, remove |
+| `judging` | `routers/judging/*` | Room judging: `admin`, `schedule`, `desk`, `hacker`, `results` |
+| `points` | `routers/points/*` | Hackathon points: `admin`, `store`, `me` |
 | `stripe` | `routers/stripe.ts` | Checkout, PaymentIntent, link, reconcile |
 | `audit` | `routers/audit.ts` | Audit log list (admin) |
 | `team` | `routers/team.ts` | Teams and project submission |
@@ -37,7 +39,6 @@ Defined in `src/trpc.ts` and `src/middleware/procedures.ts`.
 | `isScanner` | Active `admin` row | Volunteers included. Badge / door scanning only |
 | `isAdmin` | Active staff `admin` | Rejects `volunteer` |
 | `isSuperAdmin` | `role === "super_admin"` | Staff create/remove, judge activate/remove, set project leader |
-| `isJudge` | Active `judge` for the resolved hackathon | Resolves edition from input `hackathonId` / `projectId` / `queueId`, else current edition |
 | `isProjectLeader` | Active `project_leader` **or** staff | Staff can cover a quiet leader; leaders cannot use this to pass `isAdmin` |
 
 There is deliberately **no** `adminProcedure` that equals `protectedProcedure`. That name shipped open admin endpoints in the past.
@@ -86,11 +87,11 @@ Batch status updates allow up to **2500** ids. The global array cap in `scrubMar
 
 ## Judge procedures
 
-**Portal** (`portal.ts`): `isJudge`, assignments, applications, QR start, next table, vote, skip, overtime skip, progress. `toggleJudging` is admin.
+**Portal** (`portal.ts`): `isJudge` (for the named or current edition), `myApplications`, `register` (apply to judge).
 
-**Rankings** (`rankings.ts`): `getRankings`, `computeResults`, draft/publish/unpublish. Results are a **frozen snapshot** (`hackathon_result`), not a live z-score on every page load.
+**Admin** (`admin.ts`): `list`, `create` (add by email), `setActive` (approve or suspend), `remove` (super admin).
 
-**Admin** (`admin.ts`): CRUD judges, promote submissions into judging tables, initialize queues, assign tracks/projects, table cards, live progress, analytics. `setActive` and `remove` are super admin. `register` is protected (apply to judge).
+Judging itself is the `judging` namespace; its shared helpers are in `services/judging/` (`room-link`, `scope`, `scoring`, `config`). `hackathon.getResults` returns published placings from both the retired `hackathon_result` table and `judging_placement`, in one shape.
 
 ## Club procedures (selected)
 

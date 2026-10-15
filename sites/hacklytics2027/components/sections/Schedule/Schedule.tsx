@@ -20,8 +20,8 @@ export default function Schedule() {
 
   return (
     <section id="schedule" className="section-anchor border-t border-rule">
-      <div className="wrap py-24 md:py-32">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-14 md:mb-20">
+      <div className="wrap py-16 md:py-32">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10 md:mb-20">
           <h2 className="section-title">Schedule</h2>
           <p className="font-sans text-[17px] md:text-[19px] text-ink-2 leading-[1.55] max-w-[44ch]">
             The key times so far. Meals and workshops are added closer to the
@@ -33,8 +33,8 @@ export default function Schedule() {
           {DAYS.map((d) => (
             <div key={d.key}>
               <p className="flex items-baseline justify-between border-b border-ink-3/60 pb-3">
-                <span className="font-sans font-semibold text-[19px] text-ink">{d.name}</span>
-                <span className="font-sans text-sm text-ink-3 tabular-nums">{d.date}</span>
+                <span className="font-display text-[16px] text-ink">{d.name}</span>
+                <span className="font-sans text-[13px] text-ink-3 tabular-nums">{d.date}</span>
               </p>
               <ol>
                 {rows

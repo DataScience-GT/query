@@ -58,6 +58,13 @@ Without `DATABASE_URL`, `db` is null, sessions fall back to JWT, and tRPC proced
 | `RESUME_BUCKET` | Cloud Storage bucket holding resume PDFs (App Hosting sets `dsgt-resumes`). Unset means uploads return 503 rather than failing obscurely. Credentials are ADC — the runtime service account needs `roles/storage.objectAdmin`. See [Resume book](../resume-book.md) |
 | `BOOTCAMP_BUCKET` | Cloud Storage bucket holding bootcamp workshop ZIPs (App Hosting sets `dsgt-bootcamp`). Unset means uploads and downloads return 503. Same ADC and same `roles/storage.objectAdmin` as above. Downloads are proxied and gated on the caller's bootcamp term, so the bucket keeps public access prevention on |
 
+## Judging schedule
+
+| Variable | Default / notes |
+| --- | --- |
+| `JUDGING_CPSAT_PYTHON` | A Python with OR-Tools (`python3` or a path). Set, the schedule section can run `packages/api/scripts/judging-schedule/cpsat.py` on the server (`judging.schedule.solveCpsat`). Unset means CP-SAT is download, run on a laptop, upload |
+| `JUDGING_CPSAT_SCRIPT` | Path to `cpsat.py`. Default: found by walking up from the working directory |
+
 ## Security / proxy
 
 | Variable | Default / notes |

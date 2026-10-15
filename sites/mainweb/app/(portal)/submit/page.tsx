@@ -13,17 +13,12 @@ import {
   btnPrimary,
   btnSecondary,
   chip,
-  fieldHint,
   fieldLabel,
   input,
   itemTitle,
   kicker,
-  label,
-  meta,
   page,
-  pageDek,
   pageTitle,
-  sectionTitle,
   textLink,
 } from "@/components/portal/ui";
 
@@ -43,6 +38,15 @@ const formatMoment = (moment: Date) =>
     timeZone: "America/New_York",
   });
 
+/** A deadline that never breaks across lines: "EST." alone on a line is unreadable. */
+const Moment = ({ at }: { at: Date }) => (
+  <span className="whitespace-nowrap font-semibold">{formatMoment(at)}</span>
+);
+
+/** A teammate's view of the form: filed values read as values, not empty fields. */
+const readOnlyField =
+  "read-only:bg-transparent read-only:border-[var(--border-subtle)]";
+
 function SubmitPortalContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -55,8 +59,7 @@ function SubmitPortalContent() {
   const [selectedHackathonId, setSelectedHackathonId] = useState<string>(
     urlHackathonId || "",
   );
-  const [teamName, setTeamName] = useState("");
-  const [joinTeamId, setJoinTeamId] = useState("");
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false);
 
   const [projectName, setProjectName] = useState("");
   const [projectDesc, setProjectDesc] = useState("");
@@ -79,7 +82,27 @@ function SubmitPortalContent() {
 
   // Queries
   const { data: myRegs, isLoading: loadingRegs } =
-    trpc.hackathon.myRegistrations.useQuery(undefined, { enabled: !!session });
+    trpc.hackathon.myRegistrations.useQuery(undefined, {
+      enabled: !!session,
+      // An accepted attendee gets checked in at the venue, which is what
+      // unlocks the form. Poll for it only on the event's days, so the page
+      // updates without a reload and idle tabs stay quiet. Day granularity on
+      // the viewer's clock, as the event page does: a badge scanned before
+      // doors open still counts.
+      refetchInterval: (query) => {
+        const reg = query.state.data?.find(
+          (r) => r.hackathonId === selectedHackathonId,
+        );
+        if (reg?.registrationStatus !== "approved") return false;
+        const startOfDay = (d: Date | string) =>
+          new Date(d).setHours(0, 0, 0, 0);
+        const today = startOfDay(new Date());
+        const started = startOfDay(reg.hackathon.startDate) <= today;
+        const ended =
+          !!reg.hackathon.endDate && today > startOfDay(reg.hackathon.endDate);
+        return started && !ended ? 30_000 : false;
+      },
+    });
 
   // The project a submit would overwrite — the team's entry, or the solo one
   // this participant filed. Reading it from the team alone leaves every solo
@@ -104,24 +127,8 @@ function SubmitPortalContent() {
     { enabled: !!session && !!selectedHackathonId },
   );
 
-  // Team create/join/leave gate on a different window to submitting: it opens
-  // at +12h, shuts at +34h, and leaving locks at +24h. The panel queried none
-  // of it, so every button outside those hours failed on click.
-  const teamWindow = trpc.team.window.useQuery(
-    { hackathonId: selectedHackathonId },
-    { enabled: !!session && !!selectedHackathonId },
-  );
-
   const availableTracks = hackathonDetail?.tracks ?? [];
   const availableChallenges = hackathonDetail?.challenges ?? [];
-
-  const teamsOpen = teamWindow.data?.isOpen ?? false;
-  const canLeaveTeam = teamWindow.data?.canLeave ?? false;
-  const teamWindowNotice = !teamWindow.data
-    ? null
-    : teamsOpen
-      ? null
-      : "Team formation has closed for this event.";
 
   const toggle = (
     value: string,
@@ -147,54 +154,28 @@ function SubmitPortalContent() {
     (!!mySubmission.data && mySubmission.data.status !== "draft") ||
     currentReg?.hasSubmittedProject ||
     projectSubmitted;
+  // submitProject and withdrawProject refuse everyone but the captain, so
+  // teammates see the entry but cannot change it.
+  const readOnly =
+    !!currentReg?.team && currentReg.team.captainId !== session?.user?.id;
+  // The team list already carries the captain; it is read only to name them.
+  const teamRoster = trpc.team.list.useQuery(
+    { hackathonId: selectedHackathonId },
+    { enabled: readOnly && !!selectedHackathonId },
+  );
+  const captainName = teamRoster.data?.find(
+    (t) => t.id === currentReg?.team?.id,
+  )?.captain?.name;
 
   // Mutations
-  // Joining, creating or leaving a team changes which project this participant
-  // owns, so the form has to be refilled from the new one rather than keeping
-  // the old team's answers.
-  const teamChanged = () => {
-    utils.hackathon.myRegistrations.invalidate();
-    utils.team.mySubmission.invalidate();
-    setPrefilledFor("");
-    setError("");
-  };
-
-  const createTeam = trpc.team.createTeam.useMutation({
-    onSuccess: () => {
-      teamChanged();
-      setTeamName("");
-    },
-    onError: (err) => setError(err.message),
-  });
-
-  const joinTeam = trpc.team.joinTeam.useMutation({
-    onSuccess: () => {
-      teamChanged();
-      setJoinTeamId("");
-    },
-    onError: (err) => setError(err.message),
-  });
-
-  const leaveTeam = trpc.team.leaveTeam.useMutation({
-    onSuccess: () => {
-      teamChanged();
-    },
-    onError: (err) => setError(err.message),
-  });
-
-  const disbandTeam = trpc.team.disbandTeam.useMutation({
-    onSuccess: () => {
-      teamChanged();
-    },
-    onError: (err) => setError(err.message),
-  });
-
   const submitProject = trpc.team.submitProject.useMutation({
     onSuccess: () => {
       utils.hackathon.myRegistrations.invalidate();
       utils.team.mySubmission.invalidate();
       setError("");
-      setSuccessMessage("Project submitted.");
+      setSuccessMessage(
+        "Project submitted. Judging is in person: your team presents to judges for each challenge, and the event's Judging tab shows where and when.",
+      );
       setProjectSubmitted(true);
     },
     onError: (err) => setError(err.message),
@@ -208,11 +189,15 @@ function SubmitPortalContent() {
       utils.team.mySubmission.invalidate();
       setError("");
       setProjectSubmitted(false);
+      setConfirmWithdraw(false);
       setSuccessMessage(
         "Submission withdrawn. It is back to draft and no longer entered for judging.",
       );
     },
-    onError: (err) => setError(err.message),
+    onError: (err) => {
+      setConfirmWithdraw(false);
+      setError(err.message);
+    },
   });
 
   // Still submittable: until 12 hours after the event ends. The default pick
@@ -263,22 +248,36 @@ function SubmitPortalContent() {
   }
 
   const activeRegs = myRegs?.filter(isActiveReg) || [];
+  // One live event is already named by the kicker; the picker earns its place
+  // only when there is something to choose.
+  const showEventPicker =
+    activeRegs.length > 1 ||
+    !activeRegs.some((r) => r.hackathonId === selectedHackathonId);
+
+  // A teammate reads what was filed; a row of dimmed buttons says it badly.
+  const filedChips = (picked: string[]) =>
+    picked.length > 0 ? (
+      picked.map((v) => (
+        <span key={v} className={chip(true)}>
+          {v}
+        </span>
+      ))
+    ) : (
+      <p className="text-[13px] text-[var(--text-muted)]">None picked</p>
+    );
 
   return (
     <main className={page}>
       <Link
         href="/dashboard"
-        className="text-[13px] text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors"
+        className="inline-flex min-h-11 items-center text-[13px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
       >
         ← Dashboard
       </Link>
 
-      <header className="mt-6">
+      <header className="mt-2">
         {currentReg && <p className={kicker}>{currentReg.hackathon.name}</p>}
         <h1 className={`mt-1 ${pageTitle}`}>Submit your project</h1>
-        <p className={pageDek}>
-          Pick the event, set up your team, then fill in your project.
-        </p>
       </header>
 
       {!myRegs || myRegs.length === 0 ? (
@@ -295,203 +294,96 @@ function SubmitPortalContent() {
         <div className="mt-10 grid grid-cols-1 gap-10 border-t border-[var(--border-subtle)] pt-8 lg:grid-cols-12">
           {/* Context and team */}
           <aside className="space-y-8 lg:col-span-4">
-            <div>
-              <label htmlFor="event-context" className={fieldLabel}>
-                Hackathon
-              </label>
-              <select
-                id="event-context"
-                className={input}
-                value={selectedHackathonId}
-                onChange={(e) => {
-                  setSelectedHackathonId(e.target.value);
-                  setError("");
-                  setSuccessMessage("");
-                  setProjectSubmitted(false);
-                }}
-              >
-                <option value="" disabled>
-                  Select a hackathon…
-                </option>
-                {activeRegs.map((r) => (
-                  <option key={r.hackathonId} value={r.hackathonId}>
-                    {r.hackathon.name}
+            {showEventPicker && (
+              <div>
+                <label htmlFor="event-context" className={fieldLabel}>
+                  Hackathon
+                </label>
+                <select
+                  id="event-context"
+                  className={`${input} min-h-11`}
+                  value={selectedHackathonId}
+                  onChange={(e) => {
+                    setSelectedHackathonId(e.target.value);
+                    setError("");
+                    setSuccessMessage("");
+                    setProjectSubmitted(false);
+                    setConfirmWithdraw(false);
+                  }}
+                >
+                  <option value="" disabled>
+                    Select a hackathon…
                   </option>
-                ))}
-              </select>
-            </div>
-
-            {currentReg?.team ? (
-              <div className="border-t border-[var(--border-subtle)] pt-6">
-                <h2 className={label}>Your team</h2>
-                <p className={`mt-1 ${itemTitle}`}>{currentReg.team.name}</p>
-                <p className={`mt-1 ${meta}`}>
-                  {currentReg.team.currentMembers} of{" "}
-                  {currentReg.team.maxMembers} members
-                </p>
-
-                <div className="mt-5">
-                  <p className={fieldLabel}>Invite code</p>
-                  <div className="rounded-[var(--radius-sm)] border border-[var(--border-medium)] bg-[var(--bg-input)] px-3 py-2 text-center font-mono text-[13px] text-[var(--text-primary)] select-all break-all">
-                    {currentReg.team.id}
-                  </div>
-                  <p className={fieldHint}>Share this so teammates can join.</p>
-                </div>
-
-                {currentReg.team.captainId === session?.user?.id ? (
-                  <div className="mt-6 space-y-3">
-                    <p className={meta}>You&apos;re the team captain.</p>
-                    {/* leaveTeam refuses for a captain and points here;
-                        without this the captain has no way out. */}
-                    <button
-                      onClick={() => {
-                        const teamId = currentReg.team?.id;
-                        if (!teamId) return;
-                        disbandTeam.mutate({
-                          hackathonId: selectedHackathonId,
-                          teamId,
-                        });
-                      }}
-                      disabled={disbandTeam.isPending || !canLeaveTeam}
-                      className={`w-full ${btnDanger}`}
-                    >
-                      {disbandTeam.isPending ? "Disbanding…" : "Disband team"}
-                    </button>
-                    {!canLeaveTeam && (
-                      <p className={meta}>
-                        Rosters are locked for the final 12 hours before the
-                        deadline.
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="mt-6 space-y-3">
-                    <button
-                      onClick={() =>
-                        leaveTeam.mutate({
-                          hackathonId: selectedHackathonId,
-                        })
-                      }
-                      disabled={leaveTeam.isPending || !canLeaveTeam}
-                      className={`w-full ${btnDanger}`}
-                    >
-                      {leaveTeam.isPending ? "Leaving…" : "Leave team"}
-                    </button>
-                    {!canLeaveTeam && (
-                      <p className={meta}>
-                        Rosters are locked for the final 12 hours before the
-                        deadline.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4 border-t border-[var(--border-subtle)] pt-6">
-                <h2 className={label}>Team</h2>
-                <p className={body}>
-                  {admitted
-                    ? "You're submitting solo. Create a team or join one with an invite code."
-                    : "You can create or join a team once you have been accepted."}
-                </p>
-
-                {teamWindowNotice && (
-                  <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
-                    {teamWindowNotice}
-                  </p>
-                )}
-
-                {admitted && (
-                  <>
-                    <div className="space-y-3 pt-2">
-                      <input
-                        type="text"
-                        aria-label="Team name"
-                        placeholder="Team name"
-                        value={teamName}
-                        onChange={(e) => setTeamName(e.target.value)}
-                        className={input}
-                      />
-                      <button
-                        onClick={() => {
-                          if (teamName.trim().length === 0) {
-                            setError("Team name is required.");
-                            return;
-                          }
-                          createTeam.mutate({
-                            hackathonId: selectedHackathonId,
-                            name: teamName,
-                          });
-                        }}
-                        disabled={createTeam.isPending || !teamsOpen}
-                        className={`w-full ${btnSecondary}`}
-                      >
-                        {createTeam.isPending ? "Creating…" : "Create team"}
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-4 py-1">
-                      <div className="h-px flex-1 bg-[var(--border-subtle)]"></div>
-                      <span className={meta}>or</span>
-                      <div className="h-px flex-1 bg-[var(--border-subtle)]"></div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <input
-                        type="text"
-                        aria-label="Invite code"
-                        placeholder="Paste invite code"
-                        value={joinTeamId}
-                        onChange={(e) => setJoinTeamId(e.target.value)}
-                        className={`font-mono ${input}`}
-                      />
-                      <button
-                        onClick={() =>
-                          joinTeam.mutate({
-                            hackathonId: selectedHackathonId,
-                            teamId: joinTeamId,
-                          })
-                        }
-                        disabled={
-                          joinTeam.isPending ||
-                          joinTeamId.trim().length === 0 ||
-                          !teamsOpen
-                        }
-                        className={`w-full ${btnSecondary}`}
-                      >
-                        {joinTeam.isPending ? "Joining…" : "Join team"}
-                      </button>
-                    </div>
-                  </>
-                )}
+                  {activeRegs.map((r) => (
+                    <option key={r.hackathonId} value={r.hackathonId}>
+                      {r.hackathon.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
+
+            <div
+              className={
+                showEventPicker
+                  ? "border-t border-[var(--border-subtle)] pt-6"
+                  : undefined
+              }
+            >
+              <h2 className="text-[13px] font-medium text-[var(--text-muted)]">
+                {currentReg?.team ? "Your team" : "Team"}
+              </h2>
+              {currentReg?.team ? (
+                <>
+                  <p className={`mt-1 ${itemTitle}`}>{currentReg.team.name}</p>
+                  <p className="mt-1 text-[13px] text-[var(--text-muted)]">
+                    {currentReg.team.currentMembers} of{" "}
+                    {currentReg.team.maxMembers} members ·{" "}
+                    {readOnly
+                      ? `${captainName ?? "your captain"} submits for the team`
+                      : "you're the captain"}
+                  </p>
+                </>
+              ) : (
+                <p className={`mt-1 ${body}`}>
+                  {admitted
+                    ? "You're submitting solo. Create a team or join one from the event's Teams tab."
+                    : "You can create or join a team once you have been accepted."}
+                </p>
+              )}
+              {currentReg && (currentReg.team || admitted) && (
+                <Link
+                  href={`/hackathons/${selectedHackathonId}?tab=TEAMS`}
+                  className={`mt-3 ${textLink}`}
+                >
+                  {currentReg.team ? "Manage team" : "Create or join a team"}
+                </Link>
+              )}
+            </div>
           </aside>
 
           {/* Project submission */}
           <section className="border-t border-[var(--border-subtle)] pt-8 lg:col-span-8 lg:border-t-0 lg:pt-0">
-            <h2 className={sectionTitle}>Your project</h2>
-            <p className={`mt-2 ${body}`}>
-              Name and description are required. On a team, only the captain
-              can submit.
-            </p>
-
-            <div className="mt-6 space-y-4 empty:hidden">
-              {/* Where judges will come. The table is assigned when an
-                  organiser opens judging, and nothing else told the team. */}
-              {mySubmission.data?.tableNumber != null && (
+            <div className="mb-8 space-y-4 empty:hidden">
+              {/* Once the project is in judging, the team's times and rooms
+                  live on the hackathon's Judging tab. */}
+              {mySubmission.data?.inJudging && (
                 <p className="border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]">
-                  Your project is at table{" "}
-                  <span className="font-semibold tabular-nums">
-                    {mySubmission.data.tableNumber}
-                  </span>
-                  . Be there when judging starts; judges come to you.
+                  Your project is in judging. Your team presents to judges for
+                  each challenge it entered, and the{" "}
+                  <Link
+                    href={`/hackathons/${selectedHackathonId}?tab=JUDGING`}
+                    className="font-semibold underline decoration-accent decoration-2 underline-offset-[5px]"
+                  >
+                    Judging tab
+                  </Link>{" "}
+                  shows where and when once organisers publish the schedule.
                 </p>
               )}
 
               {/* Admission, said before the form is filled in. Acceptance
                   lets you form a team; submitting needs the badge scan,
-                  because judging happens in person at a table number. */}
+                  because judging happens in person. */}
               {currentReg && currentReg.registrationStatus !== "checked_in" && (
                 <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
                   {currentReg.registrationStatus === "approved"
@@ -515,42 +407,46 @@ function SubmitPortalContent() {
                       : "border-[var(--warning)]"
                   }`}
                 >
-                  {submissionWindow.data.cancelled
-                    ? "This hackathon has been cancelled, so nothing can be submitted."
-                    : submissionWindow.data.notYetOpen
-                      ? `Submission opens ${formatMoment(submissionWindow.data.opensAt)}. The form is here early so you can see what it asks for.`
-                      : !submissionWindow.data.isOpen
-                        ? `Submission closed ${formatMoment(submissionWindow.data.closesAt)}.`
-                        : submissionWindow.data.canEditExisting
-                          ? `Open until ${formatMoment(submissionWindow.data.closesAt)}. Edits to an existing submission close ${formatMoment(submissionWindow.data.editsCloseAt)}.`
-                          : `Open until ${formatMoment(submissionWindow.data.closesAt)}. Edits to an existing submission are closed, so this can only file a first entry.`}
+                  {submissionWindow.data.cancelled ? (
+                    "This hackathon has been cancelled, so nothing can be submitted."
+                  ) : submissionWindow.data.notYetOpen ? (
+                    <>
+                      Submission opens{" "}
+                      <Moment at={submissionWindow.data.opensAt} />. The form is
+                      here early so you can see what it asks for.
+                    </>
+                  ) : !submissionWindow.data.isOpen ? (
+                    <>
+                      Submission closed{" "}
+                      <Moment at={submissionWindow.data.closesAt} />.
+                    </>
+                  ) : !hasSubmitted ? (
+                    <>
+                      Submissions close{" "}
+                      <Moment at={submissionWindow.data.closesAt} />.
+                    </>
+                  ) : submissionWindow.data.canEditExisting ? (
+                    <>
+                      {readOnly
+                        ? "Your team can edit its entry"
+                        : "You can edit your entry"}{" "}
+                      until <Moment at={submissionWindow.data.editsCloseAt} />.
+                    </>
+                  ) : (
+                    <>
+                      Edits closed{" "}
+                      <Moment at={submissionWindow.data.editsCloseAt} />, so
+                      your entry stands as filed.
+                    </>
+                  )}
                 </p>
-              )}
-
-              {error && (
-                <p
-                  role="alert"
-                  className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
-                >
-                  {error}
-                </p>
-              )}
-
-              {successMessage && (
-                <div className="flex flex-wrap items-center justify-between gap-4 border-l-2 border-[var(--success)] pl-3">
-                  <p className="text-[15px] font-semibold text-[var(--text-primary)]">
-                    {successMessage}
-                  </p>
-                  <Link href="/dashboard" className={textLink}>
-                    Back to dashboard
-                  </Link>
-                </div>
               )}
             </div>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                if (readOnly) return;
                 submitProject.mutate({
                   hackathonId: selectedHackathonId,
                   teamId: currentReg?.team?.id,
@@ -564,14 +460,14 @@ function SubmitPortalContent() {
                   isCreateX,
                 });
               }}
-              className="mt-8 space-y-10"
+              className="space-y-10"
             >
               {/* Name & Desc */}
               <div className="space-y-5">
                 <div>
                   <label htmlFor="project-name" className={fieldLabel}>
                     Project name{" "}
-                    <span className="font-normal text-[var(--text-subtle)]">
+                    <span className="font-normal text-[var(--text-muted)]">
                       (required)
                     </span>
                   </label>
@@ -579,27 +475,29 @@ function SubmitPortalContent() {
                     id="project-name"
                     type="text"
                     required
+                    readOnly={readOnly}
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
                     placeholder="e.g. Transit delay predictor"
-                    className={input}
+                    className={`${input} ${readOnlyField}`}
                   />
                 </div>
                 <div>
                   <label htmlFor="project-description" className={fieldLabel}>
                     Description{" "}
-                    <span className="font-normal text-[var(--text-subtle)]">
+                    <span className="font-normal text-[var(--text-muted)]">
                       (required)
                     </span>
                   </label>
                   <textarea
                     id="project-description"
                     required
+                    readOnly={readOnly}
                     value={projectDesc}
                     onChange={(e) => setProjectDesc(e.target.value)}
                     placeholder="Explain the problem you solved and how you built it…"
                     rows={5}
-                    className={`resize-none ${input}`}
+                    className={`resize-none ${input} ${readOnlyField} [field-sizing:content] min-h-[8.5rem]`}
                   />
                 </div>
               </div>
@@ -612,26 +510,30 @@ function SubmitPortalContent() {
                 availableChallenges.length > 0) && (
                 <div className="border-t border-[var(--border-subtle)] pt-6">
                   <h3 className={itemTitle}>Tracks and challenges</h3>
-                  <p className={`mt-1 ${body}`}>
-                    This decides which judges see your project. Pick
-                    everything you are competing for.
-                  </p>
+                  {!readOnly && (
+                    <p className={`mt-1 ${body}`}>
+                      Your project presents to judges for each challenge you
+                      pick, so pick everything you are competing for.
+                    </p>
+                  )}
 
                   {availableTracks.length > 0 && (
                     <div className="mt-5">
                       <p className={fieldLabel}>Tracks</p>
                       <div className="flex flex-wrap gap-2">
-                        {availableTracks.map((track) => (
-                          <button
-                            key={track}
-                            type="button"
-                            onClick={() => toggle(track, tracks, setTracks)}
-                            aria-pressed={tracks.includes(track)}
-                            className={chip(tracks.includes(track))}
-                          >
-                            {track}
-                          </button>
-                        ))}
+                        {readOnly
+                          ? filedChips(tracks)
+                          : availableTracks.map((track) => (
+                              <button
+                                key={track}
+                                type="button"
+                                onClick={() => toggle(track, tracks, setTracks)}
+                                aria-pressed={tracks.includes(track)}
+                                className={chip(tracks.includes(track))}
+                              >
+                                {track}
+                              </button>
+                            ))}
                       </div>
                     </div>
                   )}
@@ -640,36 +542,46 @@ function SubmitPortalContent() {
                     <div className="mt-5">
                       <p className={fieldLabel}>Sponsor challenges</p>
                       <div className="flex flex-wrap gap-2">
-                        {availableChallenges.map((challenge) => (
-                          <button
-                            key={challenge}
-                            type="button"
-                            onClick={() =>
-                              toggle(challenge, challenges, setChallenges)
-                            }
-                            aria-pressed={challenges.includes(challenge)}
-                            className={chip(challenges.includes(challenge))}
-                          >
-                            {challenge}
-                          </button>
-                        ))}
+                        {readOnly
+                          ? filedChips(challenges)
+                          : availableChallenges.map((challenge) => (
+                              <button
+                                key={challenge}
+                                type="button"
+                                onClick={() =>
+                                  toggle(challenge, challenges, setChallenges)
+                                }
+                                aria-pressed={challenges.includes(challenge)}
+                                className={chip(challenges.includes(challenge))}
+                              >
+                                {challenge}
+                              </button>
+                            ))}
                       </div>
                     </div>
                   )}
 
-                  <label
-                    htmlFor="is-createx"
-                    className="mt-6 flex cursor-pointer items-start gap-3 text-[15px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    <input
-                      id="is-createx"
-                      type="checkbox"
-                      checked={isCreateX}
-                      onChange={(e) => setIsCreateX(e.target.checked)}
-                      className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
-                    />
-                    We are competing for the CreateX entrepreneurship prize
-                  </label>
+                  {readOnly ? (
+                    isCreateX && (
+                      <p className={`mt-6 ${body}`}>
+                        Entered for the CreateX entrepreneurship prize.
+                      </p>
+                    )
+                  ) : (
+                    <label
+                      htmlFor="is-createx"
+                      className="mt-6 flex min-h-11 cursor-pointer items-start gap-3 py-2.5 text-[15px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      <input
+                        id="is-createx"
+                        type="checkbox"
+                        checked={isCreateX}
+                        onChange={(e) => setIsCreateX(e.target.checked)}
+                        className="mt-0.5 h-5 w-5 min-h-0! min-w-0! shrink-0 cursor-pointer accent-[var(--accent)]"
+                      />
+                      We are competing for the CreateX entrepreneurship prize
+                    </label>
+                  )}
                 </div>
               )}
 
@@ -685,10 +597,11 @@ function SubmitPortalContent() {
                     <input
                       id="github-url"
                       type="url"
+                      readOnly={readOnly}
                       value={githubUrl}
                       onChange={(e) => setGithubUrl(e.target.value)}
                       placeholder="https://github.com/…"
-                      className={input}
+                      className={`${input} ${readOnlyField}`}
                     />
                   </div>
                   <div>
@@ -698,10 +611,11 @@ function SubmitPortalContent() {
                     <input
                       id="video-url"
                       type="url"
+                      readOnly={readOnly}
                       value={videoUrl}
                       onChange={(e) => setVideoUrl(e.target.value)}
                       placeholder="https://youtube.com/…"
-                      className={input}
+                      className={`${input} ${readOnlyField}`}
                     />
                   </div>
                   <div>
@@ -711,44 +625,66 @@ function SubmitPortalContent() {
                     <input
                       id="demo-url"
                       type="url"
+                      readOnly={readOnly}
                       value={demoUrl}
                       onChange={(e) => setDemoUrl(e.target.value)}
                       placeholder="https://…"
-                      className={input}
+                      className={`${input} ${readOnlyField}`}
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-subtle)] pt-6">
-                <p className={meta}>
-                  {hasSubmitted
-                    ? "You've already submitted. Saving replaces your current entry."
-                    : ""}
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  {hasSubmitted && (
-                    <button
-                      type="button"
-                      disabled={withdrawProject.isPending}
-                      onClick={() => {
-                        setError("");
-                        setSuccessMessage("");
-                        withdrawProject.mutate({
-                          hackathonId: selectedHackathonId,
-                        });
-                      }}
-                      className={btnDanger}
-                    >
-                      {withdrawProject.isPending
-                        ? "Withdrawing…"
-                        : "Withdraw submission"}
-                    </button>
-                  )}
+              <div className="space-y-4 border-t border-[var(--border-subtle)] pt-6 empty:hidden">
+                {/* Feedback lands beside the button that was tapped, not in
+                    the notices above the form. */}
+                {error && (
+                  <p
+                    role="alert"
+                    className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
+                  >
+                    {error}
+                  </p>
+                )}
+
+                {successMessage && (
+                  <div
+                    role="status"
+                    className="space-y-2 border-l-2 border-[var(--success)] pl-3"
+                  >
+                    <p className="text-[15px] font-semibold text-[var(--text-primary)]">
+                      {successMessage}
+                    </p>
+                    {/* A withdrawn project is out of judging, so only a
+                        submit points there. */}
+                    {projectSubmitted ? (
+                      <Link
+                        href={`/hackathons/${selectedHackathonId}?tab=JUDGING`}
+                        className={textLink}
+                      >
+                        Go to Judging
+                      </Link>
+                    ) : (
+                      <Link href="/dashboard" className={textLink}>
+                        Back to dashboard
+                      </Link>
+                    )}
+                  </div>
+                )}
+
+                {hasSubmitted && !successMessage && (
+                  <p className="text-[13px] text-[var(--text-muted)]">
+                    {readOnly
+                      ? "Your team has submitted."
+                      : "You've already submitted. Saving replaces your current entry."}
+                  </p>
+                )}
+
+                {!readOnly && (
                   <button
                     type="submit"
                     disabled={submitProject.isPending}
-                    className={btnPrimary}
+                    className={`${btnPrimary} w-full sm:w-auto`}
                   >
                     {submitProject.isPending
                       ? "Submitting…"
@@ -756,7 +692,56 @@ function SubmitPortalContent() {
                         ? "Save changes"
                         : "Submit project"}
                   </button>
-                </div>
+                )}
+
+                {hasSubmitted && !readOnly && !confirmWithdraw && (
+                  <div className="border-t border-[var(--border-subtle)] pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError("");
+                        setSuccessMessage("");
+                        setConfirmWithdraw(true);
+                      }}
+                      className={btnDanger}
+                    >
+                      Withdraw submission
+                    </button>
+                  </div>
+                )}
+
+                {confirmWithdraw && (
+                  <div className="flex w-full flex-col gap-3 border-t border-[var(--border-subtle)] pt-4">
+                    <p className={body}>
+                      Withdraw your submission? It goes back to draft and is no
+                      longer entered for judging.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          withdrawProject.mutate({
+                            hackathonId: selectedHackathonId,
+                          })
+                        }
+                        disabled={withdrawProject.isPending}
+                        className={btnDanger}
+                      >
+                        {withdrawProject.isPending
+                          ? "Withdrawing…"
+                          : "Withdraw"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmWithdraw(false)}
+                        disabled={withdrawProject.isPending}
+                        className={btnSecondary}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </form>
           </section>

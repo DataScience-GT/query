@@ -269,6 +269,39 @@ describe("Hackathon interest list", () => {
       const res = await callerFor().hackathon.getUpcoming();
       expect(res?.registrationOpen).toBe(true);
     });
+
+    /**
+     * The page has to resolve after the event too, so a registered hacker lands
+     * on something that points at their results instead of "Nothing announced
+     * yet". A finished edition only stands in when none is ahead of it.
+     */
+    it("falls back to the finished edition once nothing is ahead of it", async () => {
+      // The first lookup (editions ahead) finds nothing; the second does.
+      let editionLookups = 0;
+      mockFindFirst.mockImplementation((tableName: string) => {
+        if (tableName !== "hackathons") return undefined;
+        editionLookups += 1;
+        return editionLookups === 1
+          ? undefined
+          : announced({ status: "completed" });
+      });
+
+      const res = await callerFor().hackathon.getUpcoming();
+      expect(res?.name).toBe("Example Hackathon");
+      expect(res?.status).toBe("completed");
+      expect(res?.registrationOpen).toBe(false);
+    });
+
+    it("prefers an edition that is ahead over a finished one", async () => {
+      lookups({ hackathon: announced({ status: "open" }) });
+
+      const res = await callerFor().hackathon.getUpcoming();
+      expect(res?.status).toBe("open");
+      // Answered by the first lookup; the finished-edition fallback never ran.
+      expect(
+        mockFindFirst.mock.calls.filter(([name]) => name === "hackathons"),
+      ).toHaveLength(1);
+    });
   });
 
   describe("5. Telling the list registration opened", () => {

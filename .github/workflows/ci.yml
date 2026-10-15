@@ -46,7 +46,7 @@ jobs:
         run: pnpm turbo run build
 
       - name: Upload Hacklytics build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: hacklytics-out
           path: sites/hacklytics2027/out
@@ -69,7 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: hacklytics-out
           path: sites/hacklytics2027/out
@@ -94,7 +94,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: hacklytics-out
           path: sites/hacklytics2027/out
