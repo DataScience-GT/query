@@ -17,6 +17,7 @@ import {
   sql,
 } from "drizzle-orm";
 import {
+  hackathonCheckInFlags,
   hackathonProjects,
   judgingAnnouncements,
   judgingAppointments,
@@ -90,6 +91,12 @@ import {
   stateChangeProblem,
 } from "../../services/judging/checklist";
 import { notifyItineraryPosted } from "../../services/judging/notify";
+import {
+  checkInFlagsForEntries,
+  flaggedEntryIds,
+  openCheckInFlagCount,
+} from "../../services/check-in-flags";
+import type { CheckInFlagView } from "../../services/check-in-flags";
 
 // Organiser setup and live control of room judging: getting projects in,
 // shaping challenges, rooms and the rubric, the switches flipped on judging
@@ -150,6 +157,25 @@ const evictResults = (
   cache: { delete: (key: string) => void },
   hackathonId: string,
 ) => cache.delete(`hackathon:${hackathonId}:results`);
+
+/** Live projects of the edition that carry a check-in flag nobody dismissed. */
+async function entriesWithOpenFlags(db: JudgingDb, hackathonId: string) {
+  const live = await db
+    .select({ id: judgingEntries.id })
+    .from(judgingEntries)
+    .where(
+      and(
+        eq(judgingEntries.hackathonId, hackathonId),
+        isNull(judgingEntries.deletedAt),
+      ),
+    );
+  const flagged = await flaggedEntryIds(
+    db,
+    hackathonId,
+    live.map((row) => row.id),
+  );
+  return [...flagged];
+}
 
 // Each of these finds the row's edition, takes the edition lock, then reads
 // the row again so the checks see it as it stands under the lock.
@@ -285,6 +311,7 @@ export const judgingAdminRouter = createTRPCRouter({
       [drafts],
       [announcements],
       [seated],
+      openCheckInFlags,
     ] = await Promise.all([
       db
         .select({
@@ -375,6 +402,7 @@ export const judgingAdminRouter = createTRPCRouter({
             gte(judgingPresence.lastSeenAt, seatedSince),
           ),
         ),
+      openCheckInFlagCount(db, id),
     ]);
 
     const hasEvaluations = (evaluations?.total ?? 0) + (drafts?.total ?? 0) > 0;
@@ -422,6 +450,9 @@ export const judgingAdminRouter = createTRPCRouter({
         },
         announcements: announcements?.total ?? 0,
         judgesSeated: seated?.total ?? 0,
+        // Only how many wait for a decision. Who and why stay in the project
+        // list, which is organiser-only.
+        checkInFlags: { open: openCheckInFlags },
       },
       schedule: schedule ?? null,
       locks: {
@@ -541,6 +572,8 @@ export const judgingAdminRouter = createTRPCRouter({
         source: z.enum(["all", "devpost", "portal"]).default("all"),
         status: z.enum(["live", "removed", "all"]).default("live"),
         challengeId: uuid.optional(),
+        // Only projects with a check-in flag nobody has dismissed.
+        flagged: z.boolean().optional(),
         page: z.number().int().min(1).default(1),
         pageSize: z.number().int().min(1).max(200).default(50),
       }),
@@ -548,6 +581,12 @@ export const judgingAdminRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
       const pattern = input.search ? `%${escapeLike(input.search)}%` : null;
+
+      // Settled before the query so the filter narrows the page and the total
+      // together instead of thinning out a page afterwards.
+      const flaggedIds = input.flagged
+        ? await entriesWithOpenFlags(db, input.hackathonId)
+        : null;
 
       const where = and(
         eq(judgingEntries.hackathonId, input.hackathonId),
@@ -559,6 +598,11 @@ export const judgingAdminRouter = createTRPCRouter({
           : input.status === "removed"
             ? isNotNull(judgingEntries.deletedAt)
             : undefined,
+        flaggedIds
+          ? flaggedIds.length > 0
+            ? inArray(judgingEntries.id, flaggedIds)
+            : sql`false`
+          : undefined,
         input.challengeId
           ? exists(
               db
@@ -611,6 +655,7 @@ export const judgingAdminRouter = createTRPCRouter({
             participantCount: judgingEntries.participantCount,
             submittedAt: judgingEntries.submittedAt,
             deletedAt: judgingEntries.deletedAt,
+            prizeIneligible: sql<boolean>`${judgingEntries.prizeIneligibleAt} is not null`,
             createdAt: judgingEntries.createdAt,
           })
           .from(judgingEntries)
@@ -621,9 +666,9 @@ export const judgingAdminRouter = createTRPCRouter({
       ]);
 
       const ids = rows.map((row) => row.id);
-      const [members, memberships, appointments, evaluations] =
+      const [members, memberships, appointments, evaluations, flags] =
         ids.length === 0
-          ? [[], [], [], []]
+          ? [[], [], [], [], new Map<string, CheckInFlagView[]>()]
           : await Promise.all([
               db
                 .select({
@@ -675,6 +720,9 @@ export const judgingAdminRouter = createTRPCRouter({
                   ),
                 )
                 .groupBy(judgingEvaluations.entryId),
+              // Names and events of other people: organiser-only, which this
+              // procedure is, and never part of a cached payload.
+              checkInFlagsForEntries(db, input.hackathonId, ids),
             ]);
 
       const countFor = (list: { entryId: string; value: number }[], id: string) =>
@@ -694,6 +742,7 @@ export const judgingAdminRouter = createTRPCRouter({
             .map(({ entryId: _entryId, ...membership }) => membership),
           appointments: countFor(appointments, row.id),
           completeEvaluations: countFor(evaluations, row.id),
+          checkInFlags: flags.get(row.id) ?? [],
         })),
       };
     }),
@@ -933,6 +982,99 @@ export const judgingAdminRouter = createTRPCRouter({
         metadata: { hackathonId: entry.hackathonId },
       });
       return { restored: true };
+    }),
+
+  /**
+   * Clears a check-in flag an organiser has looked into, or opens it again.
+   * The flag stays on record either way; judges stop seeing the marker while it
+   * is dismissed. The edition is part of the match so a flag id from another
+   * edition cannot be touched from this one.
+   */
+  dismissCheckInFlag: isAdmin
+    .input(hackathonInput.extend({ flagId: uuid, dismissed: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const [flag] = await db
+        .update(hackathonCheckInFlags)
+        .set(
+          input.dismissed
+            ? { dismissedAt: new Date(), dismissedById: ctx.userId }
+            : { dismissedAt: null, dismissedById: null },
+        )
+        .where(
+          and(
+            eq(hackathonCheckInFlags.id, input.flagId),
+            eq(hackathonCheckInFlags.hackathonId, input.hackathonId),
+          ),
+        )
+        .returning({ id: hackathonCheckInFlags.id });
+      if (!flag) throw notFound("That flag is gone. Refresh the list.");
+
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: input.dismissed
+          ? "judging.dismissCheckInFlag"
+          : "judging.reopenCheckInFlag",
+        resourceId: flag.id,
+        metadata: { hackathonId: input.hackathonId },
+      });
+      return { dismissed: input.dismissed };
+    }),
+
+  /**
+   * Pulls a project from prizes, or puts it back. Judges still score it and
+   * the room schedule is untouched; only placements and public results leave
+   * it out, so the cached results go at once.
+   */
+  setPrizeEligibility: isAdmin
+    .input(hackathonInput.extend({ entryId: uuid, eligible: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const changed = await db.transaction(async (tx) => {
+        await lockEdition(tx, input.hackathonId);
+        const [entry] = await tx
+          .select({ prizeIneligibleAt: judgingEntries.prizeIneligibleAt })
+          .from(judgingEntries)
+          .where(
+            and(
+              eq(judgingEntries.id, input.entryId),
+              eq(judgingEntries.hackathonId, input.hackathonId),
+            ),
+          )
+          .limit(1);
+        if (!entry) throw notFound("That project is gone. Refresh the list.");
+        if ((entry.prizeIneligibleAt === null) === input.eligible) return false;
+
+        const now = new Date();
+        await tx
+          .update(judgingEntries)
+          .set(
+            input.eligible
+              ? {
+                  prizeIneligibleAt: null,
+                  prizeIneligibleById: null,
+                  updatedAt: now,
+                }
+              : {
+                  prizeIneligibleAt: now,
+                  prizeIneligibleById: ctx.userId,
+                  updatedAt: now,
+                },
+          )
+          .where(eq(judgingEntries.id, input.entryId));
+        return true;
+      });
+      if (!changed) return { changed: false };
+
+      evictResults(ctx.cache, input.hackathonId);
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "judging.setPrizeEligibility",
+        resourceId: input.entryId,
+        severity: "warn",
+        metadata: { hackathonId: input.hackathonId, eligible: input.eligible },
+      });
+      return { changed: true };
     }),
 
   // ---------------------------------------------------------------------
