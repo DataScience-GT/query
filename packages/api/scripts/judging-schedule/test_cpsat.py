@@ -389,6 +389,45 @@ class JudgeTest(unittest.TestCase):
         self.assertEqual(status, "feasible")
         self.assertEqual(kept, assignment)
 
+    def test_a_goal_cut_short_is_not_traded_away_by_the_next(self):
+        from ortools.sat.python import cp_model
+
+        solve = cp_model.CpSolver.solve
+        calls = []
+
+        for seed in range(12):
+            raw = judge_problem(seed)
+            problem, placement = self.fixed(raw)
+            _, best = cpsat.assign(problem, placement, 20, 1, quiet)
+            raw["assignmentHint"] = [
+                {
+                    "entryId": problem.tasks[i].entry_id,
+                    "challengeId": problem.tasks[i].challenge_id,
+                    "judgeId": problem.judges[k].id,
+                }
+                for i, k in best.items()
+                if k is not None
+            ]
+            problem, placement = self.fixed(raw)
+            # The hint is the best there is. Whichever goal runs out of time,
+            # the goals after it must not make it worse to do better themselves.
+            for cut in (1, 2):
+
+                def runs_out(solver, model, *args, **kwargs):
+                    calls.append(1)
+                    if len(calls) == cut:
+                        return cp_model.UNKNOWN
+                    return solve(solver, model, *args, **kwargs)
+
+                calls.clear()
+                with mock.patch.object(cp_model.CpSolver, "solve", autospec=True, side_effect=runs_out):
+                    _, assignment = cpsat.assign(problem, placement, 20, 1, quiet)
+                with self.subTest(seed=seed, cut=cut):
+                    self.assertEqual(
+                        judge_key(cpsat.assignment_score(problem, placement, assignment)),
+                        judge_key(cpsat.assignment_score(problem, placement, best)),
+                    )
+
     def test_a_presentation_nobody_may_grade_is_left_out_not_failed(self):
         raw = judge_problem(1)
         for judge in raw["judges"]:
