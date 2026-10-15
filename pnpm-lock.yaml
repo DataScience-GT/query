@@ -77,8 +77,8 @@ importers:
         specifier: 2.17.7
         version: 2.17.7
       stripe:
-        specifier: ^22.6.2
-        version: 22.6.2(@types/node@22.20.4)
+        specifier: ^23.0.0
+        version: 23.0.0(@types/node@22.20.4)
       superjson:
         specifier: 2.2.6
         version: 2.2.6
@@ -373,8 +373,8 @@ importers:
         specifier: ^2.17.7
         version: 2.17.7
       stripe:
-        specifier: ^22.6.2
-        version: 22.6.2(@types/node@22.20.4)
+        specifier: ^23.0.0
+        version: 23.0.0(@types/node@22.20.4)
       superjson:
         specifier: ^2.2.6
         version: 2.2.6
@@ -4462,11 +4462,11 @@ packages:
     resolution: {integrity: sha512-vavAMRXOgBVNF6nyEEmL3DBK19iRpDcoIwW+swQ+CbGiu7lju6t+JklA1MHweoWtadgt4ISVUsXLyDq34ddcwA==}
     engines: {node: '>=4'}
 
-  stripe@22.6.2:
-    resolution: {integrity: sha512-PwRE2scocvXqDKPiskMa5vRJEAEkq46W69XyUYmAwrNSLr675lQnfqLwnsndAWizwgihOWw/irLmoFRo3ez7ew==}
-    engines: {node: '>=18'}
+  stripe@23.0.0:
+    resolution: {integrity: sha512-MDE2A5ZVVluYURORaZEVghSmnLJc3w6aHAlZSxDQMsOjOb3V0O6ro/CiaeFlJS4N7uIVmsg98ocRsPmUK6YfyA==}
+    engines: {node: '>=20'}
     peerDependencies:
-      '@types/node': '>=18'
+      '@types/node': '>=20'
     peerDependenciesMeta:
       '@types/node':
         optional: true
@@ -8770,7 +8770,7 @@ snapshots:
 
   strip-bom@3.0.0: {}
 
-  stripe@22.6.2(@types/node@22.20.4):
+  stripe@23.0.0(@types/node@22.20.4):
     optionalDependencies:
       '@types/node': 22.20.4
 
