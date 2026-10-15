@@ -11,6 +11,7 @@ import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { notHackathonBanned } from "../../middleware/procedures";
 import { rateLimit } from "../../middleware/security";
+import { flaggingRuleBreaks } from "../../services/check-in-flags";
 import {
   isSoldOut,
   leaderboardName,
@@ -304,12 +305,20 @@ export const pointsMeRouter = createTRPCRouter({
         });
       }
 
-      const { pointsAwarded } = await recordEventAttendance(db, {
-        event,
-        participant: { id: participant.id, name: "You" },
-        method: "code",
-        actorId: ctx.userId,
-      });
+      // A refusal for the check-in rules is recorded for organisers, on the
+      // pool and outside the transaction it rolled back. The hacker sees only
+      // the refusal.
+      const { pointsAwarded } = await flaggingRuleBreaks(
+        db,
+        input.hackathonId,
+        () =>
+          recordEventAttendance(db, {
+            event,
+            participant: { id: participant.id, name: "You" },
+            method: "code",
+            actorId: ctx.userId,
+          }),
+      );
 
       // The public schedule shows how many people came.
       ctx.cache.delete(`hackathon:${input.hackathonId}:events`);

@@ -21,6 +21,7 @@ import {
   rankLeaderboard,
   recordEventAttendance,
   selfCheckInWindow,
+  CheckInRuleBreak,
 } from "./points";
 import type { EarlierAttendance, PointsDb } from "./points";
 import type { DrizzleDB } from "@query/db";
@@ -385,7 +386,7 @@ describe("attendanceConflict", () => {
     const bny = attended("bny", 0, 60, { name: "BNY Workshop" });
     expect(attendanceConflict(ev("fs", 30, 90), [bny], at(30))).toEqual({
       kind: "overlap",
-      other: { name: "BNY Workshop" },
+      other: { id: "bny", name: "BNY Workshop" },
     });
     // Contained and containing count too.
     expect(attendanceConflict(ev("fs", 10, 20), [bny], at(30))?.kind).toBe(
@@ -409,7 +410,7 @@ describe("attendanceConflict", () => {
     const next = ev("b", 60, 120);
     expect(attendanceConflict(next, [first], at(29))).toEqual({
       kind: "too_soon",
-      other: { name: "Workshop" },
+      other: { id: "a", name: "Workshop" },
       minutesAgo: 29,
     });
     expect(attendanceConflict(next, [first], at(30))).toBeNull();
@@ -439,7 +440,7 @@ describe("attendanceConflict", () => {
     const newer = attended("b", 20, 30, { checkedInMin: 10, name: "Newer" });
     const expected = {
       kind: "too_soon",
-      other: { name: "Newer" },
+      other: { id: "b", name: "Newer" },
       minutesAgo: 10,
     };
     expect(attendanceConflict(ev("c", 60, 90), [newer, older], at(20))).toEqual(
@@ -482,7 +483,7 @@ describe("attendanceConflict", () => {
     });
     expect(
       attendanceConflict(ev("c", 30, 90), [recent, overlapping], at(15)),
-    ).toEqual({ kind: "overlap", other: { name: "Overlaps" } });
+    ).toEqual({ kind: "overlap", other: { id: "a", name: "Overlaps" } });
   });
 });
 
@@ -491,11 +492,14 @@ describe("attendanceConflictMessage", () => {
     event: { name: "Full Sail Fireside" },
     participant: { name: "Ada Lovelace" },
   };
-  const overlap = { kind: "overlap", other: { name: "BNY Workshop" } } as const;
+  const overlap = {
+    kind: "overlap",
+    other: { id: "bny", name: "BNY Workshop" },
+  } as const;
   const soon = (minutesAgo: number) =>
     ({
       kind: "too_soon",
-      other: { name: "BNY Workshop" },
+      other: { id: "bny", name: "BNY Workshop" },
       minutesAgo,
     }) as const;
 
@@ -666,6 +670,18 @@ describe("recordEventAttendance", () => {
     expect((error as TRPCError).message).toBe(
       "You're already checked into BNY Workshop, which runs at the same time as Workshop. You can check into one event at a time.",
     );
+    // What a caller needs to record the attempt once this has rolled back.
+    const cause = (error as TRPCError).cause;
+    expect(cause).toBeInstanceOf(CheckInRuleBreak);
+    expect(cause).toMatchObject({
+      participantId: "part-1",
+      eventId: "event-2",
+      conflictEventId: "event-9",
+      rule: "overlap",
+      method: "code",
+      actorId: "staff-1",
+      at: expect.any(Date),
+    });
     expect(inserted).toEqual([]);
   });
 
@@ -689,6 +705,12 @@ describe("recordEventAttendance", () => {
     expect((error as TRPCError).message).toMatch(
       /^Ada Lovelace checked into BNY Workshop 10 minutes ago\./,
     );
+    expect((error as TRPCError).cause).toMatchObject({
+      eventId: "event-2",
+      conflictEventId: "event-9",
+      rule: "too_soon",
+      method: "manual",
+    });
     expect(inserted).toEqual([]);
   });
 
@@ -744,6 +766,14 @@ describe("recordEventAttendance", () => {
     await expect(
       recordEventAttendance(db, { ...input, method: "code" }),
     ).rejects.toThrow("You are already checked into Lunch.");
+  });
+
+  it("leaves a duplicate without a rule-break cause", async () => {
+    const { db } = fakeDb({ fail: uniqueViolation });
+    const error = await recordEventAttendance(db, input).catch(
+      (e: unknown) => e,
+    );
+    expect((error as TRPCError).cause).not.toBeInstanceOf(CheckInRuleBreak);
   });
 
   it("passes other failures through", async () => {

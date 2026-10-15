@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "../root";
+import { errorFormatter } from "../trpc";
 import { cache } from "../middleware/cache";
 import {
   db,
   hackathons,
   hackathonParticipants,
   hackathonEventAttendees,
+  hackathonCheckInFlags,
 } from "@query/db";
 
 // Fully mock the DB at the file level. vi.mock factories are hoisted and
@@ -194,6 +196,16 @@ vi.mock("@query/db", () => {
       eventId: "event_id",
       participantId: "participant_id",
       checkedInAt: "checked_in_at",
+    },
+    hackathonCheckInFlags: {
+      _t: "hackathonCheckInFlags",
+      id: "id",
+      hackathonId: "hackathon_id",
+      participantId: "participant_id",
+      eventId: "event_id",
+      conflictEventId: "conflict_event_id",
+      attempts: "attempts",
+      lastAttemptAt: "last_attempt_at",
     },
     members: {
       _t: "members",
@@ -1356,6 +1368,14 @@ describe("Hackathon admin management edge cases", () => {
     const attendanceWrites = () =>
       mockInsert.mock.calls.filter((c) => c[1][0] === hackathonEventAttendees);
 
+    // Each refused attempt leaves a flag for organisers; the values are the
+    // third element of the mock's recorded call.
+    const flagWrites = () =>
+      mockInsert.mock.calls.filter((c) => c[1][0] === hackathonCheckInFlags);
+
+    // The event the fixtures' earlier check-ins are for.
+    const BNY = "99999999-9999-4999-8999-999999999999";
+
     it("refuses a code check-in into an event that overlaps one already attended", async () => {
       const caller = hackerCaller();
       mockEarlierAttendance.mockReturnValue([
@@ -1439,6 +1459,182 @@ describe("Hackathon admin management edge cases", () => {
           "Ada Lovelace is already checked into BNY Workshop, which runs at the same time as Full Sail Fireside. If that was a mistake, remove them from BNY Workshop first.",
       });
       expect(attendanceWrites()).toHaveLength(0);
+    });
+
+    describe("flags for organisers", () => {
+      const overlapping = () =>
+        earlier(
+          {
+            startTime: new Date(Date.now() - 30 * MINUTE),
+            endTime: new Date(Date.now() + 30 * MINUTE),
+          },
+          20,
+        );
+
+      it("records a refused code check-in against the hacker", async () => {
+        const caller = hackerCaller();
+        mockEarlierAttendance.mockReturnValue([overlapping()]);
+
+        await expect(
+          caller.points.me.checkIn({ hackathonId: HACK_A, code: "ABC234" }),
+        ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+        expect(flagWrites()).toHaveLength(1);
+        expect(flagWrites()[0]![2][0]).toEqual({
+          hackathonId: HACK_A,
+          participantId: PART_A1,
+          eventId: EVENT_A,
+          conflictEventId: BNY,
+          rule: "overlap",
+          method: "code",
+          attemptedById: "rules-hacker",
+          attempts: 1,
+          createdAt: expect.any(Date),
+          lastAttemptAt: expect.any(Date),
+        });
+      });
+
+      it("records a refused pass scan, with the staff member who scanned", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: { ...person, registrationStatus: "approved" },
+          hackathonEvents: fireside,
+          hackathonEventAttendees: undefined,
+        });
+        mockEarlierAttendance.mockReturnValue([earlier({}, 10)]);
+
+        await expect(
+          caller.hackathon.scanParticipantPass({
+            hackathonId: HACK_A,
+            eventId: EVENT_A,
+            participantId: PART_A1,
+          }),
+        ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+        expect(flagWrites()).toHaveLength(1);
+        expect(flagWrites()[0]![2][0]).toMatchObject({
+          hackathonId: HACK_A,
+          participantId: PART_A1,
+          eventId: EVENT_A,
+          conflictEventId: BNY,
+          rule: "too_soon",
+          method: "scan",
+          attemptedById: ADMIN_USER,
+        });
+      });
+
+      it("records a refused manual check-in", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: person,
+          hackathonEvents: fireside,
+        });
+        mockEarlierAttendance.mockReturnValue([overlapping()]);
+
+        await expect(
+          caller.hackathon.manualEventCheckIn({
+            hackathonId: HACK_A,
+            eventId: EVENT_A,
+            participantId: PART_A1,
+          }),
+        ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+        expect(flagWrites()).toHaveLength(1);
+        expect(flagWrites()[0]![2][0]).toMatchObject({
+          participantId: PART_A1,
+          rule: "overlap",
+          method: "manual",
+          attemptedById: ADMIN_USER,
+        });
+      });
+
+      it("records nothing for a check-in that goes through", async () => {
+        mockEarlierAttendance.mockReturnValue([earlier({}, 120)]);
+
+        await hackerCaller().points.me.checkIn({
+          hackathonId: HACK_A,
+          code: "ABC234",
+        });
+        await adminCaller({
+          hackathonParticipants: person,
+          hackathonEvents: fireside,
+        }).hackathon.manualEventCheckIn({
+          hackathonId: HACK_A,
+          eventId: EVENT_A,
+          participantId: PART_A1,
+        });
+
+        expect(attendanceWrites()).toHaveLength(2);
+        expect(flagWrites()).toHaveLength(0);
+      });
+
+      it("records nothing for a duplicate scan", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: { ...person, registrationStatus: "approved" },
+          hackathonEvents: fireside,
+          hackathonEventAttendees: { id: "already" },
+        });
+
+        await expect(
+          caller.hackathon.scanParticipantPass({
+            hackathonId: HACK_A,
+            eventId: EVENT_A,
+            participantId: PART_A1,
+          }),
+        ).rejects.toMatchObject({ code: "CONFLICT" });
+
+        expect(flagWrites()).toHaveLength(0);
+      });
+
+      it("gives the hacker the same refusal when the flag cannot be written", async () => {
+        const consoleError = vi
+          .spyOn(console, "error")
+          .mockImplementation(() => undefined);
+        const caller = hackerCaller();
+        mockEarlierAttendance.mockReturnValue([overlapping()]);
+        mockInsert.mockImplementation((_op, [table]) => {
+          if (table === hackathonCheckInFlags) throw new Error("db is down");
+          return [{}];
+        });
+
+        await expect(
+          caller.points.me.checkIn({ hackathonId: HACK_A, code: "ABC234" }),
+        ).rejects.toMatchObject({
+          code: "FORBIDDEN",
+          message:
+            "You're already checked into BNY Workshop, which runs at the same time as Full Sail Fireside. You can check into one event at a time.",
+        });
+        expect(consoleError).toHaveBeenCalled();
+        consoleError.mockRestore();
+      });
+
+      it("keeps the flag out of what the hacker is sent", async () => {
+        const caller = hackerCaller();
+        mockEarlierAttendance.mockReturnValue([overlapping()]);
+
+        const error: any = await caller.points.me
+          .checkIn({ hackathonId: HACK_A, code: "ABC234" })
+          .catch((e: unknown) => e);
+
+        // The record rides on the error server side only; the formatter is what
+        // builds the response.
+        const response = JSON.stringify(
+          errorFormatter({
+            shape: {
+              message: error.message,
+              code: -32003,
+              data: {
+                code: "FORBIDDEN",
+                httpStatus: 403,
+                path: "points.me.checkIn",
+              },
+            },
+            error,
+          }),
+        );
+        expect(response).not.toContain(PART_A1);
+        expect(response).not.toContain(BNY);
+        expect(response).not.toContain("CheckInRuleBreak");
+        expect(response).not.toContain("conflictEventId");
+      });
     });
 
     it("does not hold a meal to the rules", async () => {

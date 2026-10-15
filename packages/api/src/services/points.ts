@@ -261,7 +261,8 @@ export type EarlierAttendance = {
 export type AttendanceConflict = {
   /** overlap: the events run at the same time. too_soon: under the gap. */
   kind: "overlap" | "too_soon";
-  other: { name: string };
+  /** The earlier check-in that stands in the way. */
+  other: { id: string; name: string };
   /** Whole minutes since the earlier check-in. Only on too_soon. */
   minutesAgo?: number;
 };
@@ -294,7 +295,10 @@ export function attendanceConflict(
       event.startTime < row.event.endTime,
   );
   if (overlapping) {
-    return { kind: "overlap", other: { name: overlapping.event.name } };
+    return {
+      kind: "overlap",
+      other: { id: overlapping.event.id, name: overlapping.event.name },
+    };
   }
 
   let latest: EarlierAttendance | null = null;
@@ -306,13 +310,54 @@ export function attendanceConflict(
 
   return {
     kind: "too_soon",
-    other: { name: latest.event.name },
+    other: { id: latest.event.id, name: latest.event.name },
     // A clock a little behind the database can put the check-in in the future.
     minutesAgo: Math.max(
       0,
       Math.floor((now.getTime() - latest.checkedInAt.getTime()) / 60_000),
     ),
   };
+}
+
+export type CheckInRuleBreakDetails = {
+  participantId: string;
+  /** The event they tried to enter. */
+  eventId: string;
+  /** The event they were already in. */
+  conflictEventId: string;
+  rule: AttendanceConflict["kind"];
+  method: AttendanceMethod;
+  /** The hacker on a code, staff otherwise. */
+  actorId: string | null;
+  /** The clock the rule was judged on. */
+  at: Date;
+};
+
+/**
+ * Rides on the `cause` of the refusal recordEventAttendance throws, so a caller
+ * outside the transaction can record the attempt after the refusal has rolled
+ * back. It never reaches a client: tRPC does not serialise `cause`.
+ */
+export class CheckInRuleBreak extends Error implements CheckInRuleBreakDetails {
+  readonly participantId: string;
+  readonly eventId: string;
+  readonly conflictEventId: string;
+  readonly rule: AttendanceConflict["kind"];
+  readonly method: AttendanceMethod;
+  readonly actorId: string | null;
+  readonly at: Date;
+
+  constructor(details: CheckInRuleBreakDetails) {
+    super(`Check-in rule broken: ${details.rule}`);
+    this.name = "CheckInRuleBreak";
+    this.participantId = details.participantId;
+    this.eventId = details.eventId;
+    this.conflictEventId = details.conflictEventId;
+    this.rule = details.rule;
+    this.method = details.method;
+    this.actorId = details.actorId;
+    this.at = details.at;
+  }
 }
 
 /**
@@ -330,6 +375,8 @@ export function attendanceConflict(
  * two check-ins for one person at the same moment (two tabs, two stations)
  * queue up, and the second one sees the first. A refusal is FORBIDDEN, not
  * CONFLICT: the self check-in page reads CONFLICT as "already checked in".
+ * The refusal rolls this transaction back, so it carries a CheckInRuleBreak as
+ * its cause for the caller to record (see check-in-flags.ts).
  */
 export async function recordEventAttendance(
   db: PointsDb,
@@ -386,6 +433,15 @@ export async function recordEventAttendance(
         throw new TRPCError({
           code: "FORBIDDEN",
           message: attendanceConflictMessage(input, conflict),
+          cause: new CheckInRuleBreak({
+            participantId: participant.id,
+            eventId: event.id,
+            conflictEventId: conflict.other.id,
+            rule: conflict.kind,
+            method,
+            actorId,
+            at: now,
+          }),
         });
       }
 

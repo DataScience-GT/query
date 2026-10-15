@@ -14,6 +14,7 @@ import {
   recordEventAttendance,
   searchParticipants,
 } from "../../services/points";
+import { flaggingRuleBreaks } from "../../services/check-in-flags";
 import { CacheKeys } from "../../middleware/cache";
 import { MASS_EMAIL_BATCH } from "../../services/email-limits";
 import {
@@ -281,7 +282,7 @@ async function checkInParticipant(
   // Rolling the attendance back makes a rescan the fix.
   let promotedToCheckedIn = false;
 
-  await ctx.db.transaction(async (tx) => {
+  const attendAndPromote = () => ctx.db.transaction(async (tx) => {
     await recordEventAttendance(tx, attendance);
 
     // The first scan is the check-in. `checked_in` previously had no writer
@@ -307,6 +308,10 @@ async function checkInParticipant(
 
     promotedToCheckedIn = !!promoted;
   });
+
+  // A refusal for the check-in rules rolls that transaction back, so the flag
+  // for organisers is written here, on the pool, once it has.
+  await flaggingRuleBreaks(ctx.db, input.hackathonId, attendAndPromote);
 
   // A scan changes one event's attendee count and, on the first one, this
   // attendee's roster row. This runs at every door all weekend, so eviction
@@ -1358,12 +1363,17 @@ export const hackathonAdminRouter = createTRPCRouter({
         });
       }
 
-      const { pointsAwarded } = await recordEventAttendance(db, {
-        event,
-        participant: { id: participant.id, name },
-        method: "manual",
-        actorId: ctx.userId,
-      });
+      const { pointsAwarded } = await flaggingRuleBreaks(
+        db,
+        input.hackathonId,
+        () =>
+          recordEventAttendance(db, {
+            event,
+            participant: { id: participant.id, name },
+            method: "manual",
+            actorId: ctx.userId,
+          }),
+      );
 
       ctx.cache.delete(`hackathon:${input.hackathonId}:events`);
 

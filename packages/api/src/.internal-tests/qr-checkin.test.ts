@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
-import { db, events, eventCheckIns, hackathonEventAttendees } from "@query/db";
+import {
+  db,
+  events,
+  eventCheckIns,
+  hackathonCheckInFlags,
+  hackathonEventAttendees,
+} from "@query/db";
 // The real rule: a hardcoded "2026-fall" would fail every January.
 import { currentTerm } from "@query/db/services/membership";
 import { __onRollback } from "./_db-tx-mock";
@@ -190,6 +196,12 @@ vi.mock("@query/db", async () => {
     hackathonEventAttendees: {
       eventId: "event_id",
       participantId: "participant_id",
+    },
+    hackathonCheckInFlags: {
+      participantId: "participant_id",
+      eventId: "event_id",
+      conflictEventId: "conflict_event_id",
+      attempts: "attempts",
     },
     members: { id: "id", userId: "user_id", hackathonId: "hackathon_id" },
     events: {
@@ -939,8 +951,73 @@ describe("QR check-in", () => {
       expect(err.message).toBe(
         "Ada Lovelace is already checked into BNY Workshop, which runs at the same time as Full Sail Fireside. If that was a mistake, remove them from BNY Workshop first.",
       );
-      expect(mockInsert).not.toHaveBeenCalled();
+      // No attendance and no arrival, but the attempt is on record for
+      // organisers: it is the one write that survives the refusal.
+      const inserts = mockInsert.mock.calls as any[][];
+      expect(
+        inserts.filter((c) => c[1][0] === hackathonEventAttendees),
+      ).toHaveLength(0);
+      const flags = inserts.filter((c) => c[1][0] === hackathonCheckInFlags);
+      expect(flags).toHaveLength(1);
+      expect(flags[0]![2][0]).toMatchObject({
+        hackathonId: HACK_A,
+        participantId: PARTICIPANT,
+        eventId: HACK_EVENT,
+        conflictEventId: CLUB_EVENT,
+        rule: "overlap",
+        method: "scan",
+        attemptedById: "admin_user_id",
+        attempts: 1,
+      });
       expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("writes the flag after the refused scan has rolled back, not inside it", async () => {
+      const caller = scannerCtx({
+        event: hackEvent({
+          name: "Full Sail Fireside",
+          type: "sponsor_session",
+          endTime: new Date(Date.now() + HOUR),
+        }),
+      });
+      mockEarlierAttendance.mockReturnValue([
+        {
+          event: {
+            id: CLUB_EVENT,
+            name: "BNY Workshop",
+            type: "workshop",
+            startTime: new Date(Date.now() - 2 * HOUR),
+            endTime: new Date(Date.now() + 2 * HOUR),
+          },
+          checkedInAt: new Date(Date.now() - 90 * 60 * 1000),
+        },
+      ]);
+      // A write made through a transaction registers an undo that runs when the
+      // refusal throws; one made on the pool registers nothing.
+      let flagRolledBack = false;
+      mockInsert.mockImplementation((_op, [table]) => {
+        if (table === hackathonCheckInFlags) {
+          __onRollback(() => {
+            flagRolledBack = true;
+          });
+        }
+        return [{}];
+      });
+
+      await expect(
+        caller.hackathon.scanParticipantPass({
+          hackathonId: HACK_A,
+          eventId: HACK_EVENT,
+          participantId: PARTICIPANT,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      expect(
+        (mockInsert.mock.calls as any[][]).filter(
+          (c) => c[1][0] === hackathonCheckInFlags,
+        ),
+      ).toHaveLength(1);
+      expect(flagRolledBack).toBe(false);
     });
 
     // BUG: scanParticipantPass matches on (id, hackathonId) only
