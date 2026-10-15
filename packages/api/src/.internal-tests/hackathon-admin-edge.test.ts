@@ -546,6 +546,25 @@ describe("Hackathon admin management edge cases", () => {
       ).rejects.toThrow(refused);
     });
 
+    // A banned hacker can keep a registration, so the code check-in is a way
+    // of taking part that has to stop at the gate, before any lookup.
+    it("refuses a banned hacker's event code check-in", async () => {
+      const caller = participant(true);
+
+      await expect(
+        caller.points.me.checkIn({ hackathonId: HACK_A, code: "ABC234" }),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message: expect.stringMatching(/can't take part in Hacklytics/),
+      });
+
+      expect(mockFindFirst).not.toHaveBeenCalledWith(
+        "hackathonParticipants",
+        expect.anything(),
+      );
+      expect(mockInsert).not.toHaveBeenCalled();
+    });
+
     it("lets everyone else through the ban gate", async () => {
       const caller = participant(false);
       const result = await caller.hackathon
