@@ -320,6 +320,7 @@ describe.each(judgesUnderTest)(
           expect(Object.keys(project).sort()).toEqual([
             "challenges",
             "flagged",
+            "grading",
             "hasDraft",
             "id",
             "myEvaluation",
