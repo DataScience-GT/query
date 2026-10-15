@@ -636,7 +636,12 @@ async function loadJudging(db: JudgingDb, board: Board, schedule: SavedSchedule)
     ];
   });
 
-  return { roster, saved, plan: planOfSaved(board, timing, saved), timing };
+  return {
+    roster,
+    saved,
+    plan: planOfSaved(board, timing, saved, roster),
+    timing,
+  };
 }
 
 /** The saved appointments as the judge assigner takes them. */
@@ -644,6 +649,7 @@ function planOfSaved(
   board: Board,
   timing: ScheduleTiming,
   saved: readonly SavedAppointment[],
+  roster: Roster,
 ) {
   return judgePlanOf({
     rooms: board.inventory.rooms,
@@ -652,6 +658,7 @@ function planOfSaved(
     ),
     grid: gridOf(timing),
     appointments: saved,
+    judgeIds: new Set(roster.judges.map((j) => j.id)),
   });
 }
 
@@ -1246,6 +1253,11 @@ export const judgingScheduleRouter = createTRPCRouter({
         board.appointments.map((a) => taskKey(a.entryId, a.challengeId)),
       );
       const scheduledRooms = new Set(board.plan.rooms.map((r) => r.id));
+      // Its judge can be chosen anew: it has not started and nobody has
+      // begun on it.
+      const assignable = new Set(
+        judging?.saved.filter((s) => s.open && !s.removed).map((s) => s.id),
+      );
 
       return {
         serverNow: now,
@@ -1296,11 +1308,7 @@ export const judgingScheduleRouter = createTRPCRouter({
           assignedJudgeName: a.assignedJudgeId
             ? (judging?.roster.names.get(a.assignedJudgeId) ?? "Removed judge")
             : null,
-          // Its judge can be chosen anew: it has not started and nobody has
-          // begun on it.
-          canAssignJudge: judging?.saved.some(
-            (s) => s.id === a.id && s.open && !s.removed,
-          ) ?? false,
+          canAssignJudge: assignable.has(a.id),
         })),
         judging: judging ? describeBoardJudging(judging, board, now) : null,
         unscheduled: schedule
@@ -1702,7 +1710,7 @@ export const judgingScheduleRouter = createTRPCRouter({
           {
             ...judging,
             saved,
-            plan: planOfSaved(board, judging.timing, saved),
+            plan: planOfSaved(board, judging.timing, saved, judging.roster),
           },
           board,
           now,

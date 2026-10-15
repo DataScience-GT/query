@@ -811,22 +811,38 @@ def assign(problem: Problem, placement: Placement, seconds: float, workers: int,
             model.add(pick[i, kept[i]] == 1)
 
     max_gap = max(problem.same_gap, problem.cross_gap)
-    by_slot = defaultdict(list)
-    for i in range(n):
-        by_slot[slot_of[i]].append(i)
+
+    def walk(room: int, other: int) -> int:
+        """Free slots a judge needs between grading in `room` and in `other`."""
+        if room == other:
+            return 0
+        same = rooms[room].building_id == rooms[other].building_id
+        return problem.same_gap if same else problem.cross_gap
 
     mine = []  # judge -> {task: literal}
     for k, judge in enumerate(judges):
         grades = {i: pick[i, k] for i in range(n) if (i, k) in pick}
         mine.append(grades)
-        # One place at a time, and time to walk between rooms.
+        # Where this judge could be: slot -> room -> literals. Each rule below
+        # is a set of which at most one holds, the same as forbidding every
+        # pair that judges_clash() forbids, in far fewer constraints.
+        at = defaultdict(lambda: defaultdict(list))
         for i, lit in grades.items():
-            for slot in range(slot_of[i], slot_of[i] + max_gap + 1):
-                for q in by_slot.get(slot, ()):
-                    if q not in grades or (slot == slot_of[i] and q <= i):
-                        continue
-                    if judges_clash(problem, placement, i, q):
-                        model.add_bool_or([lit.Not(), grades[q].Not()])
+            at[slot_of[i]][room_of[i]].append(lit)
+        for slot, here in at.items():
+            # One place at a time.
+            everywhere = [lit for lits in here.values() for lit in lits]
+            if len(everywhere) > 1:
+                model.add_at_most_one(everywhere)
+            # Time to walk: grading in a room rules out, in each of the next
+            # few slots, every room too far to reach by then.
+            for room, lits in here.items():
+                for ahead in range(1, max_gap + 1):
+                    later = at.get(slot + ahead, {})
+                    far = [lit for other, group in later.items()
+                           if ahead <= walk(room, other) for lit in group]
+                    if far:
+                        model.add_at_most_one(lits + far)
         # No more than max_consecutive slots in a row: any window one longer
         # holds at most max_consecutive.
         run = judge.max_consecutive
@@ -923,8 +939,23 @@ def assign(problem: Problem, placement: Placement, seconds: float, workers: int,
             model.add_hint(left_out[i], hinted[i] is None)
         if not assignment_violations(problem, placement, hinted):
             best = hinted
+
+    def model_value(goal: str, assignment: Assignment) -> int:
+        """`goal` for `assignment` as the stage's expression counts it."""
+        score = assignment_score(problem, placement, assignment)
+        if goal == "repeats":
+            # Minus the rooms each judge grades in, summed: repeats less the
+            # presentations graded.
+            return score["repeats"] - (n - score["unassigned"])
+        if goal == "dayPartsCovered":
+            return -score["dayPartsCovered"]
+        return score[goal]
+
     all_optimal = True
     for position, (name, expression) in enumerate(stages):
+        if position == 0 and best is not None:
+            # The hint already reaches this; the search can only improve on it.
+            model.add(expression <= model_value(name, best))
         remaining = deadline - time.monotonic()
         share = remaining / (len(stages) - position)
         if position == 0:
@@ -939,6 +970,9 @@ def assign(problem: Problem, placement: Placement, seconds: float, workers: int,
                 return ("unknown", None)
             all_optimal = False
             log(f"  {name}: no improvement within its time share, {solver.status_name(status)}")
+            # Hold this goal where the assignment in hand has it, so the
+            # stages after it cannot trade it away.
+            model.add(expression <= model_value(name, best))
             continue
         all_optimal = all_optimal and status == cp_model.OPTIMAL
         best = take(solver)

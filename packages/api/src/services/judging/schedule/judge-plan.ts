@@ -129,10 +129,16 @@ export function judgePlanOf(source: {
   sponsorChallengeIds: ReadonlySet<string>;
   grid: Pick<PlanInputs, "slots" | "sameGap" | "crossGap">;
   appointments: readonly SavedAppointment[];
+  /** The judges on the roster: those who can be given presentations. */
+  judgeIds: ReadonlySet<string>;
 }) {
-  // One that is over or under way with nobody assigned has no judge to find.
+  // One that is over or under way with nobody assigned has no judge to find,
+  // and one whose judge has left the roster ties up nobody who is still on it.
   const live = source.appointments.filter(
-    (a) => !a.removed && (a.open || a.assignedJudgeId),
+    (a) =>
+      !a.removed &&
+      (a.open ||
+        (a.assignedJudgeId !== null && source.judgeIds.has(a.assignedJudgeId))),
   );
   const inputs: PlanInputs = {
     ...source.grid,
@@ -179,13 +185,12 @@ export function judgeChanges(
   );
   return appointments
     .filter((a) => a.open && !a.removed)
-    .map((a) => ({
-      id: a.id,
-      assignedJudgeId: chosen.get(taskKey(a.entryId, a.challengeId)) ?? null,
-    }))
-    .filter((change) => {
-      const was = appointments.find((a) => a.id === change.id)!.assignedJudgeId;
-      return was !== change.assignedJudgeId;
+    .flatMap((a) => {
+      const assignedJudgeId =
+        chosen.get(taskKey(a.entryId, a.challengeId)) ?? null;
+      return assignedJudgeId === a.assignedJudgeId
+        ? []
+        : [{ id: a.id, assignedJudgeId }];
     });
 }
 

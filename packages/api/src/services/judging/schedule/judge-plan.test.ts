@@ -137,6 +137,7 @@ describe("judgePlanOf", () => {
       sponsorChallengeIds: new Set(["acme"]),
       grid: { slots: 10, sameGap: 1, crossGap: 2 },
       appointments,
+      judgeIds: new Set(["m1", "m2"]),
     });
 
   it("plans the appointments that are open or already have a judge", () => {
@@ -172,6 +173,23 @@ describe("judgePlanOf", () => {
     const result = plan([appointment("o", { assignedJudgeId: "m1" })]);
     expect(result.keep).toEqual([]);
     expect(result.current).toHaveLength(1);
+  });
+
+  it("drops an appointment under way whose judge has left the roster", () => {
+    // Kept, it would hold a presentation for a judge nobody can plan around,
+    // and CP-SAT's answer would be refused for not keeping it.
+    const result = plan([
+      appointment("gone-judge", {
+        open: false,
+        assignedJudgeId: "g9",
+        slot: 2,
+      }),
+      appointment("open-gone-judge", { assignedJudgeId: "g9", slot: 4 }),
+    ]);
+    expect(result.placements.map((p) => p.entryId)).toEqual([
+      "e-open-gone-judge",
+    ]);
+    expect(result.keep).toEqual([]);
   });
 });
 
