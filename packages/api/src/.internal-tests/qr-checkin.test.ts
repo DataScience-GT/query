@@ -21,6 +21,9 @@ const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
 const mockSelect = vi.fn();
+// A participant's earlier check-ins, which recordEventAttendance reads as
+// attendance joined to its event. Empty unless a test says otherwise.
+const mockEarlierAttendance = vi.fn<() => unknown[]>(() => []);
 
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");
@@ -261,7 +264,10 @@ describe("QR check-in", () => {
     cache.clear();
     // Aggregate reads default to "nothing there"; the concurrency tests below
     // override this to hand back the live row a FOR UPDATE would have locked.
-    mockSelect.mockReturnValue([{ count: 0 }]);
+    mockSelect.mockImplementation((_op, _sel, _from, _where, joined) =>
+      joined ? mockEarlierAttendance() : [{ count: 0 }],
+    );
+    mockEarlierAttendance.mockReturnValue([]);
   });
 
   const createMockCtx = (userId?: string) =>
@@ -896,6 +902,45 @@ describe("QR check-in", () => {
 
       expect(err.code).toBe("CONFLICT");
       expect(err.message).toMatch(/is already checked into/);
+    });
+
+    it("refuses a scan into an event that runs at the same time as one already attended", async () => {
+      // Named and typed outright: the default fixture reads as a meal, and
+      // meals are exempt.
+      const caller = scannerCtx({
+        event: hackEvent({
+          name: "Full Sail Fireside",
+          type: "sponsor_session",
+          endTime: new Date(Date.now() + HOUR),
+        }),
+      });
+      mockEarlierAttendance.mockReturnValue([
+        {
+          event: {
+            id: CLUB_EVENT,
+            name: "BNY Workshop",
+            type: "workshop",
+            startTime: new Date(Date.now() - 2 * HOUR),
+            endTime: new Date(Date.now() + 2 * HOUR),
+          },
+          checkedInAt: new Date(Date.now() - 90 * 60 * 1000),
+        },
+      ]);
+
+      const err: any = await caller.hackathon
+        .scanParticipantPass({
+          hackathonId: HACK_A,
+          eventId: HACK_EVENT,
+          participantId: PARTICIPANT,
+        })
+        .catch((e: unknown) => e);
+
+      expect(err.code).toBe("FORBIDDEN");
+      expect(err.message).toBe(
+        "Ada Lovelace is already checked into BNY Workshop, which runs at the same time as Full Sail Fireside. If that was a mistake, remove them from BNY Workshop first.",
+      );
+      expect(mockInsert).not.toHaveBeenCalled();
+      expect(mockUpdate).not.toHaveBeenCalled();
     });
 
     // BUG: scanParticipantPass matches on (id, hackathonId) only

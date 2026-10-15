@@ -267,6 +267,7 @@ export const pointsMeRouter = createTRPCRouter({
         columns: {
           id: true,
           name: true,
+          type: true,
           points: true,
           startTime: true,
           endTime: true,

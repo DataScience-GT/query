@@ -19,6 +19,11 @@ const mockDelete = vi.fn();
 const mockCount = vi.fn();
 /** maxParticipants as the capacity check reads it; undefined = uncapped. */
 const mockMaxParticipants = vi.fn<() => number | undefined>(() => undefined);
+/**
+ * A participant's earlier check-ins as recordEventAttendance reads them:
+ * attendance joined to its event. Empty unless a test says otherwise.
+ */
+const mockEarlierAttendance = vi.fn<() => unknown[]>(() => []);
 // Acceptance emails are sent through a dynamic import; intercept it so we can
 // see exactly who a mass-approval actually mailed.
 const mockSendAcceptanceEmail = vi.fn();
@@ -111,7 +116,7 @@ vi.mock("@query/db", () => {
       select: vi.fn().mockImplementation(() => ({
         from: (tbl: any) => {
           const count = mockCount(tbl?._t) ?? 0;
-          return thenable([
+          const node = thenable([
             {
               count,
               n: count,
@@ -119,6 +124,10 @@ vi.mock("@query/db", () => {
                 tbl?._t === "hackathons" ? mockMaxParticipants() : undefined,
             },
           ]);
+          if (tbl?._t === "hackathonEventAttendees") {
+            node.innerJoin = () => thenable(mockEarlierAttendance());
+          }
+          return node;
         },
       })),
     },
@@ -292,6 +301,7 @@ describe("Hackathon admin management edge cases", () => {
     cache.clear();
     mockCount.mockReturnValue(0);
     mockMaxParticipants.mockImplementation(() => undefined);
+    mockEarlierAttendance.mockReturnValue([]);
     mockFindMany.mockReturnValue([]);
     mockInsert.mockReturnValue([{}]);
     mockUpdate.mockReturnValue([{}]);
@@ -1290,6 +1300,170 @@ describe("Hackathon admin management edge cases", () => {
           /read-only/,
         );
       });
+    });
+  });
+
+  // =====================================================================
+  // Organisers' rules for bad actors: nobody is in two events that run at the
+  // same time, or in two within 30 minutes. They live in recordEventAttendance,
+  // so every way of writing attendance is held to them.
+  describe("Event check-in rules", () => {
+    const MINUTE = 60 * 1000;
+
+    const person = {
+      id: PART_A1,
+      hackathonId: HACK_A,
+      registrationStatus: "checked_in",
+      firstName: "Ada",
+      lastName: "Lovelace",
+      user: { name: "Ada Lovelace", email: "ada@example.com" },
+    };
+    const fireside = {
+      id: EVENT_A,
+      hackathonId: HACK_A,
+      name: "Full Sail Fireside",
+      type: "sponsor_session",
+      points: 10,
+      selfCheckIn: true,
+      startTime: new Date(Date.now() - HOUR),
+      endTime: new Date(Date.now() + HOUR),
+    };
+
+    // A check-in for another event, as the attendance read returns it.
+    const earlier = (event: Record<string, unknown>, minutesAgo: number) => ({
+      event: {
+        id: "99999999-9999-4999-8999-999999999999",
+        name: "BNY Workshop",
+        type: "workshop",
+        startTime: new Date(Date.now() - 5 * HOUR),
+        endTime: new Date(Date.now() - 4 * HOUR),
+        ...event,
+      },
+      checkedInAt: new Date(Date.now() - minutesAgo * MINUTE),
+    });
+
+    // The hacker's own session, past the ban gate, with the event live.
+    const hackerCaller = () => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "users") return { email: "ada@example.com" };
+        if (table === "hackathonParticipants") return person;
+        if (table === "hackathonEvents") return fireside;
+        return undefined;
+      });
+      return appRouter.createCaller(createMockCtx("rules-hacker"));
+    };
+
+    const attendanceWrites = () =>
+      mockInsert.mock.calls.filter((c) => c[1][0] === hackathonEventAttendees);
+
+    it("refuses a code check-in into an event that overlaps one already attended", async () => {
+      const caller = hackerCaller();
+      mockEarlierAttendance.mockReturnValue([
+        earlier(
+          {
+            startTime: new Date(Date.now() - 30 * MINUTE),
+            endTime: new Date(Date.now() + 30 * MINUTE),
+          },
+          20,
+        ),
+      ]);
+
+      await expect(
+        caller.points.me.checkIn({ hackathonId: HACK_A, code: "ABC234" }),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message:
+          "You're already checked into BNY Workshop, which runs at the same time as Full Sail Fireside. You can check into one event at a time.",
+      });
+      expect(attendanceWrites()).toHaveLength(0);
+    });
+
+    it("lets a code check-in through when nothing overlaps and the last was long ago", async () => {
+      const caller = hackerCaller();
+      mockEarlierAttendance.mockReturnValue([earlier({}, 120)]);
+
+      await expect(
+        caller.points.me.checkIn({ hackathonId: HACK_A, code: "ABC234" }),
+      ).resolves.toMatchObject({ eventName: "Full Sail Fireside" });
+      expect(attendanceWrites()).toHaveLength(1);
+    });
+
+    it("refuses a pass scan within 30 minutes of the last check-in", async () => {
+      const caller = adminCaller({
+        hackathonParticipants: { ...person, registrationStatus: "approved" },
+        hackathonEvents: fireside,
+        hackathonEventAttendees: undefined,
+      });
+      mockEarlierAttendance.mockReturnValue([earlier({}, 10)]);
+
+      await expect(
+        caller.hackathon.scanParticipantPass({
+          hackathonId: HACK_A,
+          eventId: EVENT_A,
+          participantId: PART_A1,
+        }),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message:
+          "Ada Lovelace checked into BNY Workshop 10 minutes ago. Event check-ins have to be at least 30 minutes apart. If that was a mistake, remove them from BNY Workshop first.",
+      });
+      // The whole scan rolls back: no attendance, and no arrival either.
+      expect(attendanceWrites()).toHaveLength(0);
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("refuses a manual check-in into an event that overlaps one already attended", async () => {
+      const caller = adminCaller({
+        hackathonParticipants: person,
+        hackathonEvents: fireside,
+      });
+      mockEarlierAttendance.mockReturnValue([
+        earlier(
+          {
+            startTime: new Date(Date.now() - 30 * MINUTE),
+            endTime: new Date(Date.now() + 30 * MINUTE),
+          },
+          45,
+        ),
+      ]);
+
+      await expect(
+        caller.hackathon.manualEventCheckIn({
+          hackathonId: HACK_A,
+          eventId: EVENT_A,
+          participantId: PART_A1,
+        }),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message:
+          "Ada Lovelace is already checked into BNY Workshop, which runs at the same time as Full Sail Fireside. If that was a mistake, remove them from BNY Workshop first.",
+      });
+      expect(attendanceWrites()).toHaveLength(0);
+    });
+
+    it("does not hold a meal to the rules", async () => {
+      const caller = adminCaller({
+        hackathonParticipants: person,
+        hackathonEvents: { ...fireside, name: "Dinner", type: "meal" },
+      });
+      mockEarlierAttendance.mockReturnValue([
+        earlier(
+          {
+            startTime: new Date(Date.now() - 30 * MINUTE),
+            endTime: new Date(Date.now() + 30 * MINUTE),
+          },
+          5,
+        ),
+      ]);
+
+      await expect(
+        caller.hackathon.manualEventCheckIn({
+          hackathonId: HACK_A,
+          eventId: EVENT_A,
+          participantId: PART_A1,
+        }),
+      ).resolves.toMatchObject({ eventName: "Dinner" });
+      expect(attendanceWrites()).toHaveLength(1);
     });
   });
 
