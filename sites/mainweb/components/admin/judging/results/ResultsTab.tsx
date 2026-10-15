@@ -23,9 +23,13 @@ import {
   eventClock,
   eventMoment,
 } from "@/components/hackathon/judging/event-time";
+import { plural, useRefreshJudging } from "@/components/admin/judging/shared";
 
 // Officer screens poll every 10 seconds while judges are still submitting.
 const POLL_MS = 10_000;
+// A line above the lists that asks the organiser to look before they publish.
+const WARNING_BANNER =
+  "border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]";
 // Rows shown per placing list before "Show all".
 const PLACINGS_SHOWN = 10;
 const AUDIT_PAGE = 50;
@@ -43,6 +47,7 @@ const score = (value: number | null) =>
 export function ResultsTab({ hackathonId }: { hackathonId: string }) {
   const utils = trpc.useUtils();
   const readOnly = useReadOnly();
+  const refreshJudging = useRefreshJudging();
   const auditRef = useRef<HTMLElement>(null);
 
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +83,16 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
     onSuccess: refresh,
     onError,
   });
+  // The decision changes the Projects list and the public tab as well as this
+  // one, so refresh all of judging, then the public copy.
+  const setEligibility = trpc.judging.admin.setPrizeEligibility.useMutation({
+    onSuccess: () => {
+      setError(null);
+      void refreshJudging();
+      void utils.hackathon.getResults.invalidate();
+    },
+    onError,
+  });
   // Once placings are out the edition is over; offer to close it here rather
   // than send organisers back to the hackathon dashboard for one click.
   const edition = trpc.hackathon.getById.useQuery({ id: hackathonId });
@@ -89,6 +104,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
     compute.isPending ||
     publish.isPending ||
     unpublish.isPending ||
+    setEligibility.isPending ||
     complete.isPending;
 
   if (list.isLoading) {
@@ -115,6 +131,16 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
   const { computedAt, publishedAt, evaluationsSinceCompute, scopes } =
     list.data;
   const published = !!publishedAt;
+
+  // Teams, not rows: one team can place in several lists. A team already
+  // pulled from prizes has been decided, so it is not asked about again.
+  const flaggedPlaced = new Set(
+    scopes.flatMap((scope) =>
+      scope.placements
+        .filter((row) => row.openCheckInFlags > 0 && !row.prizeIneligible)
+        .map((row) => row.entryId),
+    ),
+  );
 
   const showEvaluations = (entry: { id: string; title: string }) => {
     setEntryFilter(entry);
@@ -228,7 +254,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
       </section>
 
       {evaluationsSinceCompute > 0 && (
-        <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
+        <p className={WARNING_BANNER}>
           {evaluationsSinceCompute}{" "}
           {evaluationsSinceCompute === 1
             ? "evaluation was"
@@ -237,6 +263,16 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
           {published
             ? "Unpublish, compute again and republish to include them."
             : "Compute again to include them."}
+        </p>
+      )}
+
+      {flaggedPlaced.size > 0 && (
+        <p className={WARNING_BANNER}>
+          {plural(flaggedPlaced.size, "placed team")}{" "}
+          {flaggedPlaced.size === 1 ? "has" : "have"} open check-in flags.{" "}
+          {published
+            ? "Review them in Projects. A team pulled from prizes leaves the public list at once."
+            : "Review them before you publish."}
         </p>
       )}
 
@@ -299,6 +335,60 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
                             <p className={status("warning")}>
                               Pulled from judging; hidden from the public list
                             </p>
+                          )}
+                          {(row.openCheckInFlags > 0 ||
+                            row.prizeIneligible) && (
+                            <div className="mt-1 flex flex-col items-start gap-1">
+                              {row.openCheckInFlags > 0 && (
+                                <p className={status("warning")}>
+                                  {plural(
+                                    row.openCheckInFlags,
+                                    "open check-in flag",
+                                  )}
+                                  :{" "}
+                                  <a href="#projects" className={textLink}>
+                                    see Projects
+                                  </a>
+                                </p>
+                              )}
+                              {row.prizeIneligible && (
+                                <p className={status("danger")}>
+                                  Not eligible for prizes; recompute to move the
+                                  next team up
+                                </p>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (
+                                    !row.prizeIneligible &&
+                                    !window.confirm(
+                                      `Pull ${row.title} from prizes? Judges still score it. It leaves the public Results tab at once and the placings when you compute again.`,
+                                    )
+                                  )
+                                    return;
+                                  setError(null);
+                                  setEligibility.mutate({
+                                    hackathonId,
+                                    entryId: row.entryId,
+                                    eligible: row.prizeIneligible,
+                                  });
+                                }}
+                                disabled={readOnly || busy}
+                                title={readOnly ? READ_ONLY_TITLE : undefined}
+                                className={
+                                  row.prizeIneligible ? btnSecondary : btnDanger
+                                }
+                              >
+                                {setEligibility.isPending &&
+                                setEligibility.variables?.entryId ===
+                                  row.entryId
+                                  ? "Saving…"
+                                  : row.prizeIneligible
+                                    ? "Make eligible again"
+                                    : "Pull from prizes"}
+                              </button>
+                            </div>
                           )}
                         </div>
                         <span className="text-right text-[13px] tabular-nums text-[var(--text-subtle)]">
