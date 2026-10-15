@@ -171,20 +171,28 @@ export const hackathonAnnounceRouter = createTRPCRouter({
 
   // Announcements for this edition and how far each got, so a reopened tab can
   // pick an unfinished send back up instead of starting a duplicate.
+  //
+  // `sentAt` alone does not mean "emailed": an in-app post is born with it
+  // stamped. Only sendBatch sets `claimedAt`, so `sent` counts rows with both,
+  // and `inAppOnly` is an announcement whose every row is stamped but never
+  // claimed. `pending` is counted directly, not total - sent - failed, which
+  // would leave in-app rows looking like an unfinished send.
   listAnnouncements: isAdmin
     .input(z.object({ hackathonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
 
-      const rows = await db
+      return await db
         .select({
           id: hackathonAnnouncements.id,
           subject: hackathonAnnouncements.subject,
           audience: hackathonAnnouncements.audience,
           createdAt: hackathonAnnouncements.createdAt,
           total: sql<number>`count(${hackathonAnnouncementRecipients.id})::int`,
-          sent: sql<number>`count(${hackathonAnnouncementRecipients.sentAt})::int`,
+          sent: sql<number>`count(${hackathonAnnouncementRecipients.id}) filter (where ${hackathonAnnouncementRecipients.sentAt} is not null and ${hackathonAnnouncementRecipients.claimedAt} is not null)::int`,
           failed: sql<number>`count(${hackathonAnnouncementRecipients.failedAt})::int`,
+          pending: sql<number>`count(${hackathonAnnouncementRecipients.id}) filter (where ${hackathonAnnouncementRecipients.sentAt} is null and ${hackathonAnnouncementRecipients.failedAt} is null)::int`,
+          inAppOnly: sql<boolean>`count(${hackathonAnnouncementRecipients.id}) > 0 and count(${hackathonAnnouncementRecipients.id}) filter (where ${hackathonAnnouncementRecipients.sentAt} is not null and ${hackathonAnnouncementRecipients.claimedAt} is null) = count(${hackathonAnnouncementRecipients.id})`,
         })
         .from(hackathonAnnouncements)
         .leftJoin(
@@ -198,11 +206,6 @@ export const hackathonAnnounceRouter = createTRPCRouter({
         .groupBy(hackathonAnnouncements.id)
         .orderBy(desc(hackathonAnnouncements.createdAt))
         .limit(50);
-
-      return rows.map((row) => ({
-        ...row,
-        pending: row.total - row.sent - row.failed,
-      }));
     }),
 
   // Freezes a message and its audience. Sends nothing. The recipient rows are
