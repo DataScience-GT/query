@@ -19,6 +19,7 @@ import {
   meta,
   sectionRule,
   sectionTitle,
+  status as statusPill,
   textLink,
 } from "@/components/portal/ui";
 /**
@@ -66,6 +67,8 @@ export function AttendeesTab({
   const [statusFilter, setStatusFilter] = useState<"all" | RegistrationStatus>(
     "all",
   );
+  // Accepted and silent: the seats worth chasing before the event.
+  const [unconfirmedOnly, setUnconfirmedOnly] = useState(false);
 
   // Typing straight into the query would fire a request per keystroke against
   // a table this size. 300ms is below the point where the list feels detached
@@ -78,6 +81,7 @@ export function AttendeesTab({
     offset: page * PAGE_SIZE,
     search: debouncedSearch.trim() || undefined,
     status: statusFilter === "all" ? undefined : statusFilter,
+    unconfirmedOnly: unconfirmedOnly || undefined,
   };
 
   const { data, isLoading, isFetching, isError, error, refetch } =
@@ -213,6 +217,7 @@ export function AttendeesTab({
         hackathonId,
         search: debouncedSearch.trim() || undefined,
         status: statusFilter === "all" ? undefined : statusFilter,
+        unconfirmedOnly: unconfirmedOnly || undefined,
       });
     } catch (error) {
       setBulkError(error instanceof Error ? error.message : "Export failed");
@@ -293,6 +298,16 @@ export function AttendeesTab({
     });
   };
 
+  // Accepting moves rows between filters and changes seat counts, the wave
+  // tally and the Emailed column, so it refetches rather than patching a row.
+  const refreshAfterAccept = () => {
+    utils.hackathon.adminGetAttendees.invalidate();
+    utils.hackathon.analytics.invalidate({ hackathonId });
+    utils.hackathon.getById.invalidate({ id: hackathonId });
+    utils.hackathon.listAll.invalidate();
+    utils.hackathon.waveStatus.invalidate({ hackathonId });
+  };
+
   /**
    * Approve the selection and mail each of them, in server-sized batches.
    *
@@ -345,11 +360,37 @@ export function AttendeesTab({
     );
     setEmailSending(false);
     setSelectedIds(new Set());
-    utils.hackathon.adminGetAttendees.invalidate();
-    utils.hackathon.analytics.invalidate({ hackathonId });
-    utils.hackathon.getById.invalidate({ id: hackathonId });
-    utils.hackathon.listAll.invalidate();
-    utils.hackathon.waveStatus.invalidate({ hackathonId });
+    refreshAfterAccept();
+  };
+
+  /**
+   * Accept one applicant and mail them: the bulk call with a single id, so the
+   * row button tells the hacker the same way "Accept and email" does. Safe to
+   * repeat on somebody already approved — the server skips anyone whose
+   * acceptanceEmailSentAt is set, so it only sends the mail they have not had.
+   */
+  const handleAcceptAndEmail = async (participantId: string, email?: string) => {
+    if (
+      !window.confirm(
+        `Approve ${email ?? "this applicant"} and send an acceptance email?\n\nAcceptance emails cannot be unsent.`,
+      )
+    )
+      return;
+
+    setBulkError(null);
+    setEmailProgress(null);
+    setEmailSending(true);
+    try {
+      const result = await massAccept.mutateAsync({
+        hackathonId,
+        participantIds: [participantId],
+      });
+      setEmailProgress(result.message);
+    } catch (error) {
+      setBulkError(error instanceof Error ? error.message : "Accept failed");
+    }
+    setEmailSending(false);
+    refreshAfterAccept();
   };
 
   const toggleSelect = (id: string) => {
@@ -387,6 +428,7 @@ export function AttendeesTab({
         hackathonId,
         search: debouncedSearch.trim() || undefined,
         status: statusFilter === "all" ? undefined : statusFilter,
+        unconfirmedOnly: unconfirmedOnly || undefined,
       });
       setSelectedIds(new Set(ids));
       setSelectedAllMatching(true);
@@ -401,6 +443,17 @@ export function AttendeesTab({
   // meaning anything — landing on page 8 of a 2-page result shows nothing.
   const changeFilter = (next: "all" | RegistrationStatus) => {
     setStatusFilter(next);
+    setUnconfirmedOnly(false);
+    setPage(0);
+    setSelectedIds(new Set());
+    setSelectedAllMatching(false);
+  };
+
+  // Implies approved, so it replaces the status tile filter rather than
+  // stacking on it: "pending" and "unconfirmed" together can only be empty.
+  const toggleUnconfirmed = () => {
+    setUnconfirmedOnly(!unconfirmedOnly);
+    setStatusFilter("all");
     setPage(0);
     setSelectedIds(new Set());
     setSelectedAllMatching(false);
@@ -434,6 +487,8 @@ export function AttendeesTab({
   const th = "px-3 py-2.5 text-[13px] font-medium text-[var(--text-subtle)]";
   const rowAction =
     "rounded-[var(--radius-sm)] border border-[var(--border-medium)] px-2.5 py-1 text-[13px] font-semibold text-[var(--text-primary)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  const rowActionPrimary =
+    "rounded-[var(--radius-sm)] bg-accent px-2.5 py-1 text-[13px] font-semibold text-[var(--text-on-accent)] hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
   const rowActionDanger =
     "rounded-[var(--radius-sm)] border border-[var(--danger)]/40 px-2.5 py-1 text-[13px] font-semibold text-[var(--danger)] hover:bg-[var(--danger-glow)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
   const detailLabel = "text-[13px] font-medium text-[var(--text-subtle)] mb-1";
@@ -632,15 +687,26 @@ export function AttendeesTab({
       )}
 
       {/* Search */}
-      <div className="max-w-xl">
-        <input
-          type="search"
-          aria-label="Search attendees"
-          placeholder="Search by name, email, school, major or response"
-          value={searchQuery}
-          onChange={(e) => changeSearch(e.target.value)}
-          className={input}
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="min-w-[16rem] max-w-xl flex-1">
+          <input
+            type="search"
+            aria-label="Search attendees"
+            placeholder="Search by name, email, school, major or response"
+            value={searchQuery}
+            onChange={(e) => changeSearch(e.target.value)}
+            className={input}
+          />
+        </div>
+        <button
+          type="button"
+          aria-pressed={unconfirmedOnly}
+          onClick={toggleUnconfirmed}
+          title="Accepted hackers who have not said they are coming"
+          className={unconfirmedOnly ? btnPrimary : btnSecondary}
+        >
+          Approved, not confirmed
+        </button>
       </div>
 
       {/* placeholderData keeps the previous rows as `data`, so a failed
@@ -685,6 +751,7 @@ export function AttendeesTab({
               </th>
               <th className={th}>Applicant</th>
               <th className={th}>Status</th>
+              <th className={th}>Emailed</th>
               <th className={th}>School and major</th>
               <th className={`${th} text-right`}>Applied</th>
               <th className={`${th} text-right`}>Actions</th>
@@ -693,7 +760,7 @@ export function AttendeesTab({
           <tbody>
             {filteredAttendees.length === 0 ? (
               <tr>
-                <td colSpan={7} className={`px-3 py-12 ${body}`}>
+                <td colSpan={8} className={`px-3 py-12 ${body}`}>
                   No registrations match this search or filter.
                 </td>
               </tr>
@@ -782,6 +849,52 @@ export function AttendeesTab({
                       }
                     >
                       <StatusBadge status={attendee.registrationStatus} />
+                      {/* Only an accepted hacker has anything to confirm. */}
+                      {attendee.registrationStatus === "approved" && (
+                        <p className="mt-1">
+                          {attendee.attendanceConfirmedAt ? (
+                            <span
+                              className={statusPill("success")}
+                              title={new Date(
+                                attendee.attendanceConfirmedAt,
+                              ).toLocaleString()}
+                            >
+                              Confirmed
+                            </span>
+                          ) : (
+                            <span className={meta}>Not confirmed</span>
+                          )}
+                        </p>
+                      )}
+                    </td>
+                    <td
+                      className="px-3 py-3"
+                      onClick={() =>
+                        setExpandedRow(
+                          expandedRow === attendee.id ? null : attendee.id,
+                        )
+                      }
+                    >
+                      {/* Approved with no mail is the state worth seeing:
+                          silent approvals, waves and walk-ins all land here. */}
+                      {attendee.acceptanceEmailSentAt ? (
+                        <span
+                          className="tabular-nums text-[var(--text-muted)]"
+                          title={new Date(
+                            attendee.acceptanceEmailSentAt,
+                          ).toLocaleString()}
+                        >
+                          {new Date(
+                            attendee.acceptanceEmailSentAt,
+                          ).toLocaleDateString()}
+                        </span>
+                      ) : attendee.registrationStatus === "approved" ? (
+                        <span className={statusPill("warning")}>
+                          Not emailed
+                        </span>
+                      ) : (
+                        <span className="text-[var(--text-subtle)]">—</span>
+                      )}
                     </td>
                     <td
                       className="px-3 py-3"
@@ -813,6 +926,40 @@ export function AttendeesTab({
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-end gap-1.5">
+                        {/* The primary approve tells the hacker. Somebody
+                            already approved without the mail still gets the
+                            button, as the way to send it later; once the
+                            marker is set there is nothing left to send. */}
+                        {attendee.registrationStatus !== "checked_in" &&
+                          !(
+                            attendee.registrationStatus === "approved" &&
+                            attendee.acceptanceEmailSentAt
+                          ) && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleAcceptAndEmail(
+                                  attendee.id,
+                                  attendee.user?.email ?? undefined,
+                                )
+                              }
+                              disabled={
+                                readOnly ||
+                                updateStatus.isPending ||
+                                emailSending
+                              }
+                              title={
+                                readOnly
+                                  ? READ_ONLY_TITLE
+                                  : "Approve and send the acceptance email. It cannot be unsent."
+                              }
+                              className={rowActionPrimary}
+                            >
+                              {attendee.registrationStatus === "approved"
+                                ? "Email acceptance"
+                                : "Accept + email"}
+                            </button>
+                          )}
                         {attendee.registrationStatus !== "approved" && (
                           <button
                             type="button"
@@ -823,12 +970,11 @@ export function AttendeesTab({
                             title={
                               readOnly
                                 ? READ_ONLY_TITLE
-                                : "Approve (no email). Use Accept and email to notify."
+                                : "Sets the status only. No email is sent."
                             }
-                            aria-label="Approve (no email)"
                             className={rowAction}
                           >
-                            Approve
+                            Approve (no email)
                           </button>
                         )}
                         {attendee.registrationStatus !== "waitlisted" && (
@@ -882,7 +1028,7 @@ export function AttendeesTab({
                   </tr>
                   {expandedRow === attendee.id && (
                     <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
-                      <td colSpan={7} className="p-0">
+                      <td colSpan={8} className="p-0">
                         <div className="px-4 py-6 md:px-8 whitespace-normal">
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {/* Application Details */}
@@ -921,9 +1067,17 @@ export function AttendeesTab({
                                 Logistics and links
                               </h4>
                               <div className="flex flex-wrap gap-4">
-                                {attendee.resumeUrl && (
+                                {/* A resume uploaded in the portal is stored
+                                    apart from the application, so the row's
+                                    own URL is empty for those people. The
+                                    route serves it to staff by user id. */}
+                                {(attendee.resumeUrl ||
+                                  attendee.hasStoredResume) && (
                                   <a
-                                    href={attendee.resumeUrl}
+                                    href={
+                                      attendee.resumeUrl ||
+                                      `/api/resume/${attendee.userId}`
+                                    }
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className={textLink}

@@ -100,7 +100,7 @@ vi.mock("@query/db", async () => {
         hackathonParticipants: table("hackathonParticipants"),
         hackathonTeams: table("hackathonTeams"),
         hackathonProjects: table("hackathonProjects"),
-        judgingProjects: table("judgingProjects"),
+        judgingEntries: table("judgingEntries"),
         hackathonEvents: table("hackathonEvents"),
         hackathonEventAttendees: table("hackathonEventAttendees"),
         members: table("members"),
@@ -172,11 +172,10 @@ vi.mock("@query/db", async () => {
       status: "status",
       submittedAt: "submitted_at",
     },
-    judgingProjects: {
+    judgingEntries: {
       id: "id",
       sourceProjectId: "source_project_id",
-      withdrawnAt: "withdrawn_at",
-      tableNumber: "table_number",
+      deletedAt: "deleted_at",
     },
     hackathonEvents: {
       id: "id",
@@ -834,10 +833,15 @@ describe("QR check-in", () => {
       expect(mockInsert).toHaveBeenCalledTimes(1);
       const [, insertArgs, valArgs] = mockInsert.mock.calls[0] as any[];
       expect(insertArgs[0]).toBe(hackathonEventAttendees);
-      expect(valArgs[0]).toEqual({
+      // The attendance row also says how it was recorded and by whom, and
+      // carries the event's points at the time of the scan.
+      expect(valArgs[0]).toMatchObject({
         eventId: HACK_EVENT,
         participantId: PARTICIPANT,
+        method: "scan",
       });
+      expect(valArgs[0]).toHaveProperty("pointsAwarded");
+      expect(valArgs[0]).toHaveProperty("checkedInById");
       // The roster write is what makes the analytics tile count real arrivals
       // rather than manual admin decisions — and what lets the team submit.
       const rosterWrite = mockUpdate.mock.calls[0];
@@ -1051,6 +1055,23 @@ describe("QR check-in", () => {
       });
       // Their own pass id is still not something the form needs.
       expect(res.submittedById).toBeUndefined();
+    });
+
+    it("tells the team when their project is in judging", async () => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "hackathonParticipants")
+          return { id: PARTICIPANT, teamId: null };
+        if (table === "hackathonProjects")
+          return { id: "project_1", teamId: null, name: "Solo Entry" };
+        if (table === "judgingEntries") return { id: "entry_1" };
+        return undefined;
+      });
+
+      const res: any = await appRouter
+        .createCaller(createMockCtx("solo_user"))
+        .team.mySubmission({ hackathonId: HACK_A });
+
+      expect(res.inJudging).toBe(true);
     });
 
     // BUG: admin.ts:190 returns `updated: participantIds.length` — the count

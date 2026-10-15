@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Sans, Silkscreen } from "next/font/google";
-import { db, hackathons, inArray, eq, and, asc } from "@query/db";
+import { db, hackathons, inArray, eq, and, asc, desc } from "@query/db";
 
 // The Hacklytics site's own faces (sites/hacklytics2027): Silkscreen for
 // headings, Instrument Sans for text. Scoped to this route by .hl-theme.
@@ -20,8 +20,18 @@ const instrumentSans = Instrument_Sans({
 const SITE = "https://datasciencegt.org";
 const URL = `${SITE}/hacklytics`;
 
-/** Same funnel statuses the page itself renders from. */
-const PUBLIC_FUNNEL_STATUSES = ["announced", "open", "closed", "in_progress"] as const;
+/** Same editions the page itself renders from; a finished one only when none is ahead. */
+const AHEAD_STATUSES = ["announced", "open", "closed", "in_progress"] as const;
+
+const EDITION_COLUMNS = {
+  name: true,
+  description: true,
+  location: true,
+  startDate: true,
+  endDate: true,
+  status: true,
+  registrationDeadline: true,
+} as const;
 
 /**
  * The edition this page is about, read on the server so the title, the link
@@ -30,21 +40,23 @@ const PUBLIC_FUNNEL_STATUSES = ["announced", "open", "closed", "in_progress"] as
  */
 async function currentEdition() {
   if (!db) return null;
-  return db.query.hackathons.findFirst({
+  const ahead = await db.query.hackathons.findFirst({
     where: and(
-      inArray(hackathons.status, [...PUBLIC_FUNNEL_STATUSES]),
+      inArray(hackathons.status, [...AHEAD_STATUSES]),
       eq(hackathons.isPublic, true),
     ),
     orderBy: asc(hackathons.startDate),
-    columns: {
-      name: true,
-      description: true,
-      location: true,
-      startDate: true,
-      endDate: true,
-      status: true,
-      registrationDeadline: true,
-    },
+    columns: EDITION_COLUMNS,
+  });
+  if (ahead) return ahead;
+
+  return db.query.hackathons.findFirst({
+    where: and(
+      eq(hackathons.status, "completed"),
+      eq(hackathons.isPublic, true),
+    ),
+    orderBy: desc(hackathons.startDate),
+    columns: EDITION_COLUMNS,
   });
 }
 

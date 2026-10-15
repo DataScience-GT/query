@@ -1,30 +1,73 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import {
   body,
   btnSecondary,
   itemTitle,
   meta,
-  textLink,
+  status,
 } from "@/components/portal/ui";
+
+// While the event runs and nothing is published, look again at this pace.
+const POLL_MS = 30_000;
+
+// Quieter than the accent textLink so the names lead. The py-3 makes the tap
+// target 44px; globals.css zeroes min-height on `li a[href]`, so padding is the
+// only lever.
+const resultLink =
+  "py-3 inline-flex items-center text-sm font-semibold text-[var(--text-secondary)] underline decoration-[var(--border-medium)] decoration-2 underline-offset-[5px] hover:text-[var(--text-primary)] hover:decoration-accent transition-colors";
 
 /**
  * The published placings.
  *
  * Reads `hackathon.getResults`, which returns only rows an organiser has
- * actually published — so this shows nothing until Publish is pressed, and
- * goes back to showing nothing if it is unpublished. Without this the publish
- * button was a no-op that told the organiser "everyone will see them
- * immediately", and the winners existed only inside one admin response.
+ * actually published — so this shows nothing until results are published, and
+ * goes back to showing nothing if they are unpublished. Rows come grouped:
+ * overall first, then each prize, each in placing order.
  */
 export function ResultsTab({ hackathonId }: { hackathonId: string }) {
+  const { data: session } = useSession();
+  // The page reads both already, so these are usually served from the cache.
+  const { data: hackathon } = trpc.hackathon.getById.useQuery({
+    id: hackathonId,
+  });
+  const { data: myRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, {
+    enabled: !!session,
+  });
+  const inProgress = hackathon?.status === "in_progress";
+
   const {
     data: results,
     isLoading,
     isError,
     refetch,
-  } = trpc.hackathon.getResults.useQuery({ hackathonId });
+  } = trpc.hackathon.getResults.useQuery(
+    { hackathonId },
+    {
+      // Organisers can publish while the event is still running; a hacker
+      // already on this tab should not need to reload to see it.
+      refetchInterval: (query) =>
+        inProgress && !query.state.data?.length ? POLL_MS : false,
+    },
+  );
+
+  // Rows carry the team's name and no id. Team names are not unique, so the
+  // tag waits for the event's team list to show no other team uses the
+  // caller's; otherwise a namesake's placing would read as theirs.
+  const myTeam =
+    myRegs?.find((r) => r.hackathonId === hackathonId)?.team ?? null;
+  const { data: teams } = trpc.team.list.useQuery(
+    { hackathonId },
+    { enabled: !!myTeam && !!results?.length },
+  );
+  const myTeamName =
+    myTeam &&
+    teams &&
+    !teams.some((t) => t.name === myTeam.name && t.id !== myTeam.id)
+      ? myTeam.name
+      : null;
 
   if (isLoading) {
     return <p className={`py-16 ${body}`}>Loading results…</p>;
@@ -57,62 +100,104 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
         <p className={`mt-1 ${body}`}>
           They will appear here once judging is finished and the organisers
           release them.
+          {inProgress && " This tab checks every 30 seconds."}
         </p>
       </div>
     );
   }
 
+  // The server already orders by scope, then placing.
+  const groups: { scope: string; label: string; rows: typeof results }[] = [];
+  for (const row of results) {
+    const last = groups[groups.length - 1];
+    if (last && last.scope === row.scope) last.rows.push(row);
+    else groups.push({ scope: row.scope, label: row.scopeLabel, rows: [row] });
+  }
+  const showLabels = groups.length > 1 || groups[0]?.scope !== "overall";
+
   return (
-    <ol className="border-t border-[var(--border-subtle)]">
-      {results.map((row) => {
-        const name =
-          row.sourceProject?.name ?? row.project?.name ?? "Unknown project";
-        const team = row.sourceProject?.team?.name ?? row.project?.teamMembers;
-        return (
-          <li
-            key={row.id}
-            className="flex items-baseline gap-5 sm:gap-8 border-b border-[var(--border-subtle)] py-5"
-          >
-            <span
-              className={`w-10 sm:w-14 shrink-0 font-[family-name:var(--font-display)] text-[40px] sm:text-[56px] font-semibold leading-none tabular-nums ${
-                row.placement === 1
-                  ? "text-accent"
-                  : row.placement <= 3
-                    ? "text-[var(--text-primary)]"
-                    : "text-[var(--text-subtle)]"
-              }`}
-            >
-              {row.placement}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className={`${itemTitle} truncate`}>{name}</p>
-              {team ? <p className={`${meta} truncate`}>{team}</p> : null}
-            </div>
-            <div className="flex items-center gap-4 shrink-0">
-              {row.sourceProject?.githubUrl ? (
-                <a
-                  href={row.sourceProject.githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={textLink}
+    <div className="space-y-10">
+      {groups.map((group) => (
+        <section key={group.scope}>
+          {showLabels && (
+            <h3 className="mb-3 text-[15px] font-semibold text-[var(--text-primary)]">
+              {group.label}
+            </h3>
+          )}
+          <ol className="border-t border-[var(--border-subtle)]">
+            {group.rows.map((row) => {
+              const mine = myTeamName !== null && row.teamName === myTeamName;
+              return (
+                <li
+                  key={row.id}
+                  className="flex items-baseline gap-5 sm:gap-8 border-b border-[var(--border-subtle)] py-5"
                 >
-                  Code
-                </a>
-              ) : null}
-              {row.sourceProject?.demoUrl ? (
-                <a
-                  href={row.sourceProject.demoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={textLink}
-                >
-                  Demo
-                </a>
-              ) : null}
-            </div>
-          </li>
-        );
-      })}
-    </ol>
+                  <span
+                    className={`w-10 sm:w-14 shrink-0 font-[family-name:var(--font-display)] text-[40px] sm:text-[56px] font-semibold leading-none tabular-nums ${
+                      row.placement === 1
+                        ? "text-accent"
+                        : row.placement <= 3
+                          ? "text-[var(--text-primary)]"
+                          : "text-[var(--text-subtle)]"
+                    }`}
+                  >
+                    {row.placement}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className={`${itemTitle} text-pretty`}>
+                      {row.projectName}
+                    </p>
+                    {(row.teamName || mine) && (
+                      <p className="mt-0.5 flex flex-wrap items-baseline gap-x-3">
+                        {row.teamName && (
+                          <span className={meta}>{row.teamName}</span>
+                        )}
+                        {mine && (
+                          <span className={status("accent")}>Your team</span>
+                        )}
+                      </p>
+                    )}
+                    {(row.githubUrl || row.demoUrl || row.submissionUrl) && (
+                      <div className="-mb-3 flex flex-wrap gap-x-5">
+                        {row.githubUrl ? (
+                          <a
+                            href={row.githubUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={resultLink}
+                          >
+                            Code
+                          </a>
+                        ) : null}
+                        {row.demoUrl ? (
+                          <a
+                            href={row.demoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={resultLink}
+                          >
+                            Demo
+                          </a>
+                        ) : null}
+                        {row.submissionUrl ? (
+                          <a
+                            href={row.submissionUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={resultLink}
+                          >
+                            Devpost
+                          </a>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      ))}
+    </div>
   );
 }

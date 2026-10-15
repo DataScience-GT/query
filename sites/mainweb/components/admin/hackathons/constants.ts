@@ -1,3 +1,5 @@
+import type { Tone } from "@/components/portal/ui";
+
 export type HackathonStatus =
   | "draft"
   | "announced"
@@ -71,6 +73,26 @@ export function getStatusMeta(s: string) {
   const status = STATUSES.find((x) => x.value === s);
   if (!status) return STATUSES[0];
   return status;
+}
+
+/** Tone of the status pill on a hackathon card, from the portal's own scale. */
+export const STATUS_TONE: Record<HackathonStatus, Tone> = {
+  draft: "neutral",
+  announced: "accent",
+  open: "success",
+  closed: "warning",
+  in_progress: "success",
+  completed: "neutral",
+  cancelled: "danger",
+};
+
+/**
+ * The browser's time zone, e.g. "America/New_York". Date inputs on the
+ * hackathon forms are read in it, so the forms name it rather than leave the
+ * organiser to guess which clock a bare "9:00 AM" is on.
+ */
+export function localTimeZone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
 export function toInputDate(d: Date | string) {

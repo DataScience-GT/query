@@ -15,6 +15,24 @@ const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
 
+// Every send is a no-op here, so a procedure that emails (judge.create, ...)
+// can never reach a real mail server from a test run. Listed rather than
+// built from the real module: loading that pulls in the mail transport, which
+// alone could push the first test that emails past its timeout.
+vi.mock("@query/auth/email", () => ({
+  sendTransactionalEmail: vi.fn(),
+  sendAnnouncementEmail: vi.fn(),
+  sendRegistrationOpenEmail: vi.fn(),
+  sendJudgeApprovedEmail: vi.fn(),
+  sendJudgeAddedEmail: vi.fn(),
+  sendJudgingTimesPostedEmail: vi.fn(),
+  sendInitiativeDecisionEmail: vi.fn(),
+  sendSubteamApplicationEmail: vi.fn(),
+  sendResultsPublishedEmail: vi.fn(),
+  sendJudgingClaimEmail: vi.fn(),
+  sendAcceptanceEmail: vi.fn(),
+}));
+
 vi.mock("@query/db", () => {
   return {
     db: {
@@ -856,7 +874,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
           description: "This is a long description of the awesome project.",
         }),
       ).rejects.toThrowError(
-        "Project edits are closed. Devposts must be final 34 hours after the hacking starts.",
+        "Project edits are closed. Submissions must be final 34 hours after the hacking starts.",
       );
     });
 
@@ -960,6 +978,54 @@ describe("Router Integration and Access Control Verification Suite", () => {
         "Project submission closed. The submission window ended 36 hours after the hacking started.",
       );
     });
+
+    // joinTeam refuses a closed team, so the flag decides who can get in.
+    describe("team.setOpen", () => {
+      const hackathonId = "00000000-0000-4000-8000-000000000001";
+      const teamId = "00000000-0000-4000-8000-000000000002";
+      const closedFlag = [
+        "update",
+        expect.anything(),
+        [expect.objectContaining({ isOpen: false })],
+        expect.anything(),
+      ];
+
+      beforeEach(() => {
+        mockFindFirst.mockImplementation((table) => {
+          if (table === "hackathons") {
+            return {
+              id: hackathonId,
+              startDate: new Date(),
+              hackingStartTime: null,
+            };
+          }
+          if (table === "hackathonTeams") {
+            return { id: teamId, captainId: "captain_user_id", hackathonId };
+          }
+          return null;
+        });
+      });
+
+      it("refuses anyone but the captain", async () => {
+        const caller = appRouter.createCaller(createMockCtx("member_user_id"));
+        await expect(
+          caller.team.setOpen({ hackathonId, teamId, isOpen: false }),
+        ).rejects.toMatchObject({ code: "FORBIDDEN" });
+        expect(mockUpdate).not.toHaveBeenCalledWith(...closedFlag);
+      });
+
+      it("lets the captain close the team and drops the cached roster", async () => {
+        const cacheKey = `hackathon:${hackathonId}:teams`;
+        cache.set(cacheKey, [], 60);
+
+        const caller = appRouter.createCaller(createMockCtx("captain_user_id"));
+        await expect(
+          caller.team.setOpen({ hackathonId, teamId, isOpen: false }),
+        ).resolves.toEqual({ success: true });
+        expect(mockUpdate).toHaveBeenCalledWith(...closedFlag);
+        expect(cache.get(cacheKey)).toBeNull();
+      });
+    });
   });
 
   describe("8. Hackathon Participant Registration (does it add users to the hackathon)", () => {
@@ -1012,6 +1078,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
         country: "United States",
         whyAttend: "I want to build with data.",
         agreeToCodeOfConduct: true,
+        mlhCodeOfConduct: true,
+        mlhDataSharing: true,
       });
 
       expect(res.id).toBe("participant_new");
@@ -1049,6 +1117,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
           country: "United States",
           whyAttend: "I want to build with data.",
           agreeToCodeOfConduct: true,
+          mlhCodeOfConduct: true,
+          mlhDataSharing: true,
         }),
       ).rejects.toThrowError("You are already registered for this hackathon");
     });
@@ -1084,6 +1154,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
           country: "United States",
           whyAttend: "I want to build with data.",
           agreeToCodeOfConduct: true,
+          mlhCodeOfConduct: true,
+          mlhDataSharing: true,
         })
         .catch((error: unknown) => error);
       expect(String((outcome as Error)?.message ?? "")).not.toMatch(/full/);
@@ -1114,6 +1186,8 @@ describe("Router Integration and Access Control Verification Suite", () => {
           country: "United States",
           whyAttend: "I want to build with data.",
           agreeToCodeOfConduct: true,
+          mlhCodeOfConduct: true,
+          mlhDataSharing: true,
         }),
       ).rejects.toThrowError("Registration is not open for this hackathon");
     });
@@ -1685,7 +1759,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
     );
   });
 
-  describe("13. Judging System, Queue & Live Rankings", () => {
+  describe("13. Judge roster", () => {
     const hackathonId = "00000000-0000-4000-8000-000000000050";
 
     it("should allow admin to create a judge profile", async () => {
@@ -1715,76 +1789,6 @@ describe("Router Integration and Access Control Verification Suite", () => {
       });
 
       expect(judge.name).toBe("Judge Dread");
-    });
-
-    it("should calculate bias-corrected Z-score and Bayesian rankings for hackathon projects", async () => {
-      const ctx = createMockCtx("admin_user_id");
-
-      mockFindFirst.mockImplementation((table) => {
-        if (table === "admins") {
-          return { id: "admin_1", userId: "admin_user_id", role: "admin", isActive: true };
-        }
-        return null;
-      });
-
-      mockFindMany.mockImplementation((table) => {
-        if (table === "judgingProjects") {
-          return [
-            {
-              id: "proj_1",
-              name: "AI Health Assistant",
-              tableNumber: 1,
-              votes: [
-                {
-                  judgeId: "j1",
-                  score: 45,
-                  scoreCreativity: 9,
-                  scoreImpact: 9,
-                  scoreScope: 9,
-                  scoreClarity: 9,
-                  scoreSoundness: 9,
-                  judge: { name: "Strict Judge", user: { name: "Strict Judge" } },
-                },
-                {
-                  judgeId: "j2",
-                  score: 48,
-                  scoreCreativity: 10,
-                  scoreImpact: 10,
-                  scoreScope: 9,
-                  scoreClarity: 10,
-                  scoreSoundness: 9,
-                  judge: { name: "Lenient Judge", user: { name: "Lenient Judge" } },
-                },
-              ],
-            },
-            {
-              id: "proj_2",
-              name: "Simple Web App",
-              tableNumber: 2,
-              votes: [
-                {
-                  judgeId: "j1",
-                  score: 25,
-                  scoreCreativity: 5,
-                  scoreImpact: 5,
-                  scoreScope: 5,
-                  scoreClarity: 5,
-                  scoreSoundness: 5,
-                  judge: { name: "Strict Judge", user: { name: "Strict Judge" } },
-                },
-              ],
-            },
-          ];
-        }
-        return [];
-      });
-
-      const caller = appRouter.createCaller(ctx);
-      const res = await caller.judge.getRankings({ hackathonId });
-
-      expect(res.rankings.length).toBe(2);
-      expect(res.rankings[0].project.name).toBe("AI Health Assistant");
-      expect(res.rankings[0].weightedScore).toBeGreaterThan(res.rankings[1].weightedScore);
     });
   });
 

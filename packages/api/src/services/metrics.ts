@@ -25,8 +25,8 @@ import {
   ne,
   sum,
 } from "drizzle-orm";
+import type { DrizzleDB } from "@query/db";
 import {
-  type DrizzleDB,
   hackathonEventAttendees,
   hackathonEvents,
   hackathonParticipants,

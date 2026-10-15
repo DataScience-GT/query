@@ -218,10 +218,64 @@ export async function sendJudgeApprovedEmail({
     heading: "You're confirmed as a judge",
     paragraphs: [
       `Your application to judge ${hackathonName} has been approved.`,
-      "Your judging queue is ready. On the day, scan the QR card on each table to start, score the project, and move to the next one.",
+      "Club judges: sign in on your phone before you scan the code at your room or table, so your scores count under your account.",
+      "On the day, scan the QR code at your judging room or table to take your seat, then score each project as it presents.",
     ],
     ctaLabel: "Open the judge portal",
     ctaUrl: `${host}/judge`,
+  });
+}
+
+// An organiser added someone as a judge directly, so there was no application
+// to approve. Reusing the approval copy would thank them for one they never
+// made.
+export async function sendJudgeAddedEmail({
+  email,
+  hackathonName,
+  host = DEFAULT_HOST,
+}: {
+  email: string;
+  hackathonName: string;
+  host?: string;
+}) {
+  await sendTransactionalEmail({
+    email,
+    subject: `You've been added as a judge for ${hackathonName}`,
+    heading: "You've been added as a judge",
+    paragraphs: [
+      `An organiser added you as a judge for ${hackathonName}. There is nothing to apply for or wait on.`,
+      "Sign in on your phone before you scan the code at your room or table, so your scores count under your account.",
+      "On the day, scan the QR code at your judging room or table to take your seat, then score each project as it presents.",
+    ],
+    ctaLabel: "Open the judge portal",
+    ctaUrl: `${host}/judge`,
+  });
+}
+
+// The judging itinerary went live. Until it does, the Judging tab hides rooms
+// and times, and a team had no other way to learn where to stand.
+export async function sendJudgingTimesPostedEmail({
+  email,
+  hackathonName,
+  hackathonId,
+  host = DEFAULT_HOST,
+}: {
+  email: string;
+  hackathonName: string;
+  hackathonId: string;
+  host?: string;
+}) {
+  await sendTransactionalEmail({
+    email,
+    subject: `Your judging times are posted for ${hackathonName}`,
+    heading: "Your judging times are posted",
+    paragraphs: [
+      `Where and when your project presents at ${hackathonName} is now on the Judging tab.`,
+      "If the tab asks you to claim your place on the project, do that first and your times appear.",
+      "Check it before you head to your room or table, and be there a few minutes early.",
+    ],
+    ctaLabel: "See your judging times",
+    ctaUrl: `${host}/hackathons/${hackathonId}?tab=JUDGING`,
   });
 }
 
@@ -350,6 +404,39 @@ export async function sendResultsPublishedEmail({
     ],
     ctaLabel: "See the results",
     ctaUrl: resultsUrl ?? `${host}/hackathons`,
+  });
+}
+
+// A link that attaches a judged project to the recipient's portal account.
+// Devpost lists the address someone signed up there with, which is often not
+// the one they sign in with here, so matching on email alone strands them.
+export async function sendJudgingClaimEmail({
+  email,
+  hackathonName,
+  projectTitle,
+  claimUrl,
+  invitedBy,
+}: {
+  email: string;
+  hackathonName: string;
+  projectTitle: string;
+  claimUrl: string;
+  /** The teammate who added them, when Devpost did not list them. */
+  invitedBy?: string | null;
+}) {
+  await sendTransactionalEmail({
+    email,
+    subject: `Claim your place on ${projectTitle}`,
+    heading: "Claim your project",
+    paragraphs: [
+      invitedBy
+        ? `${invitedBy} added you to ${projectTitle} for judging at ${hackathonName}.`
+        : `${projectTitle} is entered for judging at ${hackathonName}, and you are listed on its team.`,
+      "Open the link while signed in to the portal account you checked in with. Where and when you present, and your feedback, then appear on the Judging tab.",
+      "The link works once and stops working when the event ends.",
+    ],
+    ctaLabel: "Claim your place",
+    ctaUrl: claimUrl,
   });
 }
 
