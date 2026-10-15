@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
   judgingAppointments,
   judgingBuildings,
@@ -8,7 +8,10 @@ import {
   judgingConfigs,
   judgingEntries,
   judgingEntryChallenges,
+  judgingEvaluationDrafts,
   judgingEvaluations,
+  judgingGuestSessions,
+  judgingJudges,
   judgingPresence,
   judgingRooms,
   judgingSchedules,
@@ -37,9 +40,31 @@ import type {
 import { aamoghCPSolver } from "../../services/judging/schedule/aamogh-cp-solver";
 import {
   CPSAT_COMMAND,
+  cpsatAssignmentProblem,
   cpsatProblem,
+  readCpsatAssignments,
   readCpsatSolution,
 } from "../../services/judging/schedule/cpsat-bridge";
+import {
+  assignJudges,
+  describeShortfall,
+  judgeShortfalls,
+  mayGrade,
+} from "../../services/judging/schedule/judges";
+import type {
+  JudgeAssignment,
+  JudgeInput,
+} from "../../services/judging/schedule/judges";
+import {
+  judgeChanges,
+  judgeChoices,
+  judgePlanOf,
+  rosterOf,
+} from "../../services/judging/schedule/judge-plan";
+import type {
+  Roster,
+  SavedAppointment,
+} from "../../services/judging/schedule/judge-plan";
 import {
   CPSAT_SECONDS,
   CPSAT_UNAVAILABLE,
@@ -131,6 +156,7 @@ async function readInventory(db: JudgingDb, hackathonId: string) {
         parentId: judgingChallenges.parentId,
         mode: judgingChallenges.mode,
         isGeneral: judgingChallenges.isGeneral,
+        isGroup: judgingChallenges.isGroup,
       })
       .from(judgingChallenges)
       .where(eq(judgingChallenges.hackathonId, hackathonId)),
@@ -170,6 +196,49 @@ async function readInventory(db: JudgingDb, hackathonId: string) {
 }
 
 type Inventory = Awaited<ReturnType<typeof readInventory>>;
+
+/** The judges an edition can give presentations to, with every judge's name. */
+async function readRoster(
+  db: JudgingDb,
+  hackathonId: string,
+  inventory: Inventory,
+): Promise<Roster> {
+  const [judges, sessions] = await Promise.all([
+    db
+      .select({
+        id: judgingJudges.id,
+        kind: judgingJudges.kind,
+        userId: judgingJudges.userId,
+        displayName: judgingJudges.displayName,
+      })
+      .from(judgingJudges)
+      .where(eq(judgingJudges.hackathonId, hackathonId)),
+    db
+      .select({
+        judgeId: judgingGuestSessions.judgeId,
+        roomId: judgingGuestSessions.roomId,
+        createdAt: judgingGuestSessions.createdAt,
+      })
+      .from(judgingGuestSessions)
+      .where(
+        and(
+          eq(judgingGuestSessions.hackathonId, hackathonId),
+          isNull(judgingGuestSessions.revokedAt),
+        ),
+      ),
+  ]);
+  return rosterOf({
+    hackathonId,
+    judges,
+    seats: sessions.flatMap((s) =>
+      s.judgeId
+        ? [{ judgeId: s.judgeId, roomId: s.roomId, createdAt: s.createdAt }]
+        : [],
+    ),
+    challenges: inventory.challenges,
+    rooms: selectPlan(inventory).rooms,
+  });
+}
 
 function namesOf(inventory: Inventory) {
   const labels = new Map(inventory.challenges.map((c) => [c.id, c.label]));
@@ -319,7 +388,13 @@ async function writeSchedule(
   db: DrizzleDB,
   userId: string,
   input: { hackathonId: string; timing: ScheduleTiming },
-  schedule: { placements: Placement[]; relaxed: boolean; fingerprint: string },
+  schedule: {
+    placements: Placement[];
+    relaxed: boolean;
+    fingerprint: string;
+    /** The judge of each presentation, as far as there are judges. */
+    assignments: readonly JudgeAssignment[];
+  },
 ) {
   return db.transaction(async (tx) => {
     await ensureJudgingConfig(tx, input.hackathonId);
@@ -351,12 +426,28 @@ async function writeSchedule(
       })
       .returning({ id: judgingSchedules.id });
 
+    // A judge removed since the assignment was made has no appointments left.
+    const judges = new Set(
+      (
+        await tx
+          .select({ id: judgingJudges.id })
+          .from(judgingJudges)
+          .where(eq(judgingJudges.hackathonId, input.hackathonId))
+      ).map((judge) => judge.id),
+    );
+    const judgeOf = new Map(
+      schedule.assignments
+        .filter((a) => judges.has(a.judgeId))
+        .map((a) => [taskKey(a.entryId, a.challengeId), a.judgeId]),
+    );
+
     const rows = schedule.placements.map((p) => ({
       scheduleId: row!.id,
       hackathonId: input.hackathonId,
       entryId: p.entryId,
       challengeId: p.challengeId,
       roomId: p.roomId,
+      assignedJudgeId: judgeOf.get(taskKey(p.entryId, p.challengeId)) ?? null,
       ...appointmentTimes(input.timing, p.slot),
     }));
     // Postgres takes at most 65535 parameters per statement.
@@ -364,14 +455,26 @@ async function writeSchedule(
       await tx.insert(judgingAppointments).values(rows.slice(i, i + 1000));
     }
 
-    return { scheduleId: row!.id, appointments: rows.length };
+    return {
+      scheduleId: row!.id,
+      appointments: rows.length,
+      judged: rows.filter((r) => r.assignedJudgeId).length,
+    };
   });
 }
 
-/** The uploaded CP-SAT solution, checked against the edition as it stands. */
-function readUpload(inventory: Inventory, timing: ScheduleTiming, solution: string) {
+/**
+ * The uploaded CP-SAT solution, checked against the edition as it stands,
+ * with its judges checked against `judges` as they are now.
+ */
+function readUpload(
+  inventory: Inventory,
+  timing: ScheduleTiming,
+  solution: string,
+  judges: readonly JudgeInput[],
+) {
   const { inputs, fingerprint } = planOf(inventory, timing);
-  const read = readCpsatSolution(inputs, fingerprint, solution);
+  const read = readCpsatSolution(inputs, fingerprint, solution, judges);
   if (!read.ok) {
     throw new TRPCError({ code: "BAD_REQUEST", message: read.reason });
   }
@@ -380,6 +483,21 @@ function readUpload(inventory: Inventory, timing: ScheduleTiming, solution: stri
     fingerprint,
     read,
     key: candidateKey(fingerprint, read.relaxed, read.placements),
+  };
+}
+
+/** What a CP-SAT preview says about the judges. */
+function describeJudging(
+  read: { judging: { source: "cp-sat" | "in-app"; metrics: { unassigned: number } } },
+  judges: readonly JudgeInput[],
+  presentations: number,
+) {
+  return {
+    judges: judges.length,
+    presentations,
+    unassigned: read.judging.metrics.unassigned,
+    // Who worked the assignment out.
+    source: read.judging.source,
   };
 }
 
@@ -404,6 +522,7 @@ async function loadBoard(
             deadlineAt: judgingAppointments.deadlineAt,
             endsAt: judgingAppointments.endsAt,
             revision: judgingAppointments.revision,
+            assignedJudgeId: judgingAppointments.assignedJudgeId,
             entryTitle: judgingEntries.title,
             entryDeletedAt: judgingEntries.deletedAt,
           })
@@ -463,6 +582,175 @@ async function loadBoard(
 
 type Board = Awaited<ReturnType<typeof loadBoard>>;
 type SavedSchedule = NonNullable<Board["schedule"]>;
+
+/**
+ * The board's judges: who can be given presentations, and the saved
+ * appointments the way the assigner takes them. An appointment is open to a
+ * new judge while it has not started and nobody has begun an evaluation.
+ */
+async function loadJudging(db: JudgingDb, board: Board, schedule: SavedSchedule) {
+  const hackathonId = schedule.hackathonId;
+  const [roster, drafts] = await Promise.all([
+    readRoster(db, hackathonId, board.inventory),
+    db
+      .select({
+        entryId: judgingEvaluationDrafts.entryId,
+        challengeId: judgingEvaluationDrafts.challengeId,
+        appointmentId: judgingEvaluationDrafts.appointmentId,
+      })
+      .from(judgingEvaluationDrafts)
+      .where(eq(judgingEvaluationDrafts.hackathonId, hackathonId)),
+  ]);
+
+  const timing = timingOf(schedule);
+  const planned = new Set(
+    board.plan.tasks.map((t) => taskKey(t.entryId, t.challengeId)),
+  );
+  const rootOfChallenge = (id: string) =>
+    rootOf(board.inventory.challenges, id)?.id ?? null;
+  const started = (a: Board["appointments"][number]) =>
+    drafts.some(
+      (d) =>
+        d.entryId === a.entryId &&
+        (d.appointmentId
+          ? d.appointmentId === a.id
+          : rootOfChallenge(d.challengeId) === a.challengeId),
+    );
+
+  const saved: SavedAppointment[] = board.appointments.flatMap((a) => {
+    // Saved appointments sit on the grid; one that does not has no slot to compare.
+    const slot = slotAt(timing, a.startsAt);
+    if (slot === null) return [];
+    return [
+      {
+        id: a.id,
+        entryId: a.entryId,
+        challengeId: a.challengeId,
+        roomId: a.roomId,
+        slot,
+        assignedJudgeId: a.assignedJudgeId,
+        removed:
+          !!a.entryDeletedAt || !planned.has(taskKey(a.entryId, a.challengeId)),
+        open: a.status === "future" && !started(a),
+      },
+    ];
+  });
+
+  return { roster, saved, plan: planOfSaved(board, timing, saved), timing };
+}
+
+/** The saved appointments as the judge assigner takes them. */
+function planOfSaved(
+  board: Board,
+  timing: ScheduleTiming,
+  saved: readonly SavedAppointment[],
+) {
+  return judgePlanOf({
+    rooms: board.inventory.rooms,
+    sponsorChallengeIds: new Set(
+      board.inventory.challenges.filter((c) => !c.isGeneral).map((c) => c.id),
+    ),
+    grid: gridOf(timing),
+    appointments: saved,
+  });
+}
+
+type Judging = Awaited<ReturnType<typeof loadJudging>>;
+
+/** What the board shows about judges: loads, and where there are too few. */
+function describeBoardJudging(judging: Judging, board: Board, now: Date) {
+  const { roster, saved, plan, timing } = judging;
+  const live = saved.filter((a) => !a.removed);
+  const rooms = new Map(board.inventory.rooms.map((r) => [r.id, r.name]));
+
+  const loads = new Map<string, number>();
+  for (const a of live) {
+    if (a.assignedJudgeId) {
+      loads.set(a.assignedJudgeId, (loads.get(a.assignedJudgeId) ?? 0) + 1);
+    }
+  }
+  const available = new Map(roster.judges.map((j) => [j.id, j]));
+  const listed = new Set([...available.keys(), ...loads.keys()]);
+
+  const from = firstSlotFrom(timing, now);
+  return {
+    judges: roster.judges.length,
+    assigned: live.filter((a) => a.assignedJudgeId).length,
+    // Still waiting for a judge: ones that have started or are over cannot
+    // be given one.
+    unassigned: live.filter((a) => a.open && !a.assignedJudgeId).length,
+    loads: [...listed]
+      .map((id) => {
+        const judge = available.get(id);
+        return {
+          judgeId: id,
+          name: roster.names.get(id) ?? "Removed judge",
+          kind: judge?.kind ?? null,
+          roomName: judge?.roomId ? (rooms.get(judge.roomId) ?? null) : null,
+          // Cannot take presentations: a guest with no room or table.
+          available: !!judge,
+          load: loads.get(id) ?? 0,
+        };
+      })
+      .sort(
+        (a, b) =>
+          (a.kind === "guest" ? 1 : 0) - (b.kind === "guest" ? 1 : 0) ||
+          a.name.localeCompare(b.name),
+      ),
+    warnings: judgeShortfalls(
+      plan.inputs,
+      plan.placements,
+      roster.judges,
+      plan.current,
+    )
+      .filter((w) => w.slot >= from)
+      .map((w) => {
+        const challengeLabel = board.names.label(w.challengeId);
+        return {
+          slot: w.slot,
+          startsAt: slotStartsAt(timing, w.slot),
+          challengeId: w.challengeId,
+          challengeLabel,
+          presentations: w.presentations,
+          judgesFree: w.judgesFree,
+          message: describeShortfall(w, challengeLabel),
+        };
+      }),
+  };
+}
+
+/**
+ * Who should grade the open presentations: CP-SAT when this server runs it
+ * and its answer passes the checks, the in-app assigner otherwise.
+ */
+async function makeAssignments(
+  judging: Judging,
+  options: { seconds: number; signal?: AbortSignal },
+) {
+  const { plan, roster } = judging;
+  if (cpsatAvailable()) {
+    const run = await runCpsat(
+      cpsatAssignmentProblem(plan.inputs, plan.placements, roster.judges, plan.keep),
+      options,
+    );
+    if (run.status === "solved") {
+      const read = readCpsatAssignments(
+        plan.inputs,
+        plan.placements,
+        roster.judges,
+        plan.keep,
+        run.solution,
+      );
+      if (read.ok) {
+        return { assignments: read.assignments, solver: "cp-sat" as const };
+      }
+    }
+  }
+  const made = assignJudges(plan.inputs, plan.placements, roster.judges, {
+    keep: plan.keep,
+  });
+  return { assignments: made.assignment, solver: "in-app" as const };
+}
 
 /**
  * Every free future slot `task` can take, best first. Only rooms with a
@@ -562,6 +850,12 @@ const noSchedule = () =>
     message: "No schedule is saved for this hackathon. Preview one and save it first.",
   });
 
+const noJudgeNeeded = () =>
+  new TRPCError({
+    code: "PRECONDITION_FAILED",
+    message: "That project is no longer entered, so it needs no judge.",
+  });
+
 const scheduleExists = () =>
   new TRPCError({
     code: "CONFLICT",
@@ -638,7 +932,7 @@ export const judgingScheduleRouter = createTRPCRouter({
 
       // Solved before the transaction so no lock is held while it computes.
       const inventory = await readInventory(db, input.hackathonId);
-      const { result, key, fingerprint } = solveInventory(
+      const { inputs, result, key, fingerprint } = solveInventory(
         inventory,
         input.timing,
       );
@@ -662,10 +956,15 @@ export const judgingScheduleRouter = createTRPCRouter({
         });
       }
 
+      // Judges first come with the schedule, as far as there are any yet;
+      // assignJudges picks up the rest once more have joined.
+      const roster = await readRoster(db, input.hackathonId, inventory);
       const written = await writeSchedule(db, ctx.userId, input, {
         placements: result.placements,
         relaxed: result.relaxed,
         fingerprint,
+        assignments: assignJudges(inputs, result.placements, roster.judges)
+          .assignment,
       });
       const saved = {
         ...written,
@@ -736,10 +1035,12 @@ export const judgingScheduleRouter = createTRPCRouter({
 
       const inventory = await readInventory(db, input.hackathonId);
       const { inputs, result, fingerprint } = solveInventory(inventory, input.timing);
+      const roster = await readRoster(db, input.hackathonId, inventory);
       const problem = cpsatProblem(
         inputs,
         fingerprint,
         result.ok ? result.placements : undefined,
+        roster.judges,
       );
       return {
         fileName: "problem.json",
@@ -747,6 +1048,7 @@ export const judgingScheduleRouter = createTRPCRouter({
         command: CPSAT_COMMAND,
         presentations: inputs.tasks.length,
         hinted: result.ok,
+        judges: roster.judges.length,
       };
     }),
 
@@ -766,12 +1068,19 @@ export const judgingScheduleRouter = createTRPCRouter({
       if (await findSchedule(db, input.hackathonId)) throw scheduleExists();
 
       const inventory = await readInventory(db, input.hackathonId);
-      const { inputs, read, key } = readUpload(inventory, input.timing, input.solution);
+      const roster = await readRoster(db, input.hackathonId, inventory);
+      const { inputs, read, key } = readUpload(
+        inventory,
+        input.timing,
+        input.solution,
+        roster.judges,
+      );
       return {
         ...describePlan(read, inputs, namesOf(inventory), input.timing),
         candidateKey: key,
         // CP-SAT's own word: "optimal" means it proved nothing beats this.
         solverStatus: read.status,
+        judging: describeJudging(read, roster.judges, inputs.tasks.length),
       };
     }),
 
@@ -792,10 +1101,12 @@ export const judgingScheduleRouter = createTRPCRouter({
       assertWindowAhead(input.timing);
 
       const inventory = await readInventory(db, input.hackathonId);
+      const roster = await readRoster(db, input.hackathonId, inventory);
       const { read, key, fingerprint } = readUpload(
         inventory,
         input.timing,
         input.solution,
+        roster.judges,
       );
       if (key !== input.candidateKey) {
         throw new TRPCError({
@@ -815,12 +1126,14 @@ export const judgingScheduleRouter = createTRPCRouter({
         placements: read.placements,
         relaxed: read.relaxed,
         fingerprint,
+        assignments: read.judging.assignments,
       });
       const saved = {
         ...written,
         relaxed: read.relaxed,
         reducedBreaks: read.reducedBreaks.length,
         solver: "cp-sat",
+        judges: read.judging.source,
       };
 
       await recordAdminAction(db, {
@@ -873,8 +1186,14 @@ export const judgingScheduleRouter = createTRPCRouter({
 
       const inventory = await readInventory(db, input.hackathonId);
       const { inputs, result, fingerprint } = solveInventory(inventory, input.timing);
+      const roster = await readRoster(db, input.hackathonId, inventory);
       const run = await runCpsat(
-        cpsatProblem(inputs, fingerprint, result.ok ? result.placements : undefined),
+        cpsatProblem(
+          inputs,
+          fingerprint,
+          result.ok ? result.placements : undefined,
+          roster.judges,
+        ),
         { seconds: input.seconds, signal },
       );
       if (run.status === "failed") {
@@ -889,11 +1208,17 @@ export const judgingScheduleRouter = createTRPCRouter({
       }
       // A proof of infeasibility is refused here with its reasons; a schedule
       // has to pass the same checks as an upload.
-      const { read, key } = readUpload(inventory, input.timing, run.solution);
+      const { read, key } = readUpload(
+        inventory,
+        input.timing,
+        run.solution,
+        roster.judges,
+      );
       return {
         ...describePlan(read, inputs, namesOf(inventory), input.timing),
         candidateKey: key,
         solverStatus: read.status,
+        judging: describeJudging(read, roster.judges, inputs.tasks.length),
         solution: run.solution,
       };
     }),
@@ -914,6 +1239,7 @@ export const judgingScheduleRouter = createTRPCRouter({
       await reconcileDueDrafts(db, input.hackathonId, now);
       const board = await loadBoard(db, input.hackathonId, now);
       const { schedule, names } = board;
+      const judging = schedule ? await loadJudging(db, board, schedule) : null;
 
       const planned = new Set(board.plan.tasks.map((t) => taskKey(t.entryId, t.challengeId)));
       const booked = new Set(
@@ -966,7 +1292,17 @@ export const judgingScheduleRouter = createTRPCRouter({
           status: a.status,
           canMove: a.canMove,
           evaluationCount: a.evaluationCount,
+          assignedJudgeId: a.assignedJudgeId,
+          assignedJudgeName: a.assignedJudgeId
+            ? (judging?.roster.names.get(a.assignedJudgeId) ?? "Removed judge")
+            : null,
+          // Its judge can be chosen anew: it has not started and nobody has
+          // begun on it.
+          canAssignJudge: judging?.saved.some(
+            (s) => s.id === a.id && s.open && !s.removed,
+          ) ?? false,
         })),
+        judging: judging ? describeBoardJudging(judging, board, now) : null,
         unscheduled: schedule
           ? board.plan.tasks
               .filter((t) => !booked.has(taskKey(t.entryId, t.challengeId)))
@@ -1074,6 +1410,31 @@ export const judgingScheduleRouter = createTRPCRouter({
           input,
           timingOf(board.schedule),
         );
+
+        // Its judge stays only if they may grade in the new room and are free
+        // at the new time; otherwise the organiser assigns judges again.
+        let clearsJudge = false;
+        if (appointment.assignedJudgeId) {
+          const judging = await loadJudging(tx, board, board.schedule);
+          const judge = judging.roster.judges.find(
+            (j) => j.id === appointment.assignedJudgeId,
+          );
+          const slot = slotAt(judging.timing, choice.startsAt);
+          clearsJudge =
+            !judge ||
+            slot === null ||
+            !mayGrade(judge, {
+              challengeId: appointment.challengeId,
+              roomId: choice.roomId,
+            }) ||
+            judging.saved.some(
+              (other) =>
+                other.id !== appointment.id &&
+                !other.removed &&
+                other.assignedJudgeId === judge.id &&
+                other.slot === slot,
+            );
+        }
         const [updated] = await tx
           .update(judgingAppointments)
           .set({
@@ -1082,6 +1443,7 @@ export const judgingScheduleRouter = createTRPCRouter({
             deadlineAt: choice.deadlineAt,
             endsAt: choice.endsAt,
             revision: sql`${judgingAppointments.revision} + 1`,
+            ...(clearsJudge ? { assignedJudgeId: null } : {}),
           })
           .where(
             and(
@@ -1100,6 +1462,7 @@ export const judgingScheduleRouter = createTRPCRouter({
           toRoomId: choice.roomId,
           toStartsAt: choice.startsAt,
           reducedBreaks: choice.reducedBreaks,
+          clearedJudgeId: clearsJudge ? appointment.assignedJudgeId : null,
         };
       });
 
@@ -1111,6 +1474,264 @@ export const judgingScheduleRouter = createTRPCRouter({
       });
 
       return moved;
+    }),
+
+  /**
+   * Who could grade an appointment instead: the judges who may grade its
+   * challenge in its room, least loaded first, with those already grading
+   * something else at that time marked.
+   */
+  judgeChoices: isAdmin
+    .input(z.object({ hackathonId: uuid, appointmentId: uuid }))
+    .query(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const now = new Date();
+      const board = await loadBoard(db, input.hackathonId, now);
+      const appointment = board.appointments.find(
+        (a) => a.id === input.appointmentId,
+      );
+      if (!board.schedule || !appointment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "That appointment no longer exists. Reload the board.",
+        });
+      }
+      const judging = await loadJudging(db, board, board.schedule);
+      const saved = judging.saved.find((s) => s.id === appointment.id);
+      if (!saved || saved.removed) throw noJudgeNeeded();
+
+      const titles = new Map(board.appointments.map((a) => [a.id, a.entryTitle]));
+      const loads = new Map<string, number>();
+      for (const s of judging.saved) {
+        if (s.assignedJudgeId && !s.removed) {
+          loads.set(s.assignedJudgeId, (loads.get(s.assignedJudgeId) ?? 0) + 1);
+        }
+      }
+      const kinds = new Map(judging.roster.judges.map((j) => [j.id, j.kind]));
+      return {
+        appointment: {
+          id: appointment.id,
+          entryTitle: appointment.entryTitle,
+          challengeLabel: board.names.label(appointment.challengeId),
+          ...board.names.room(appointment.roomId),
+          startsAt: appointment.startsAt,
+          assignedJudgeId: appointment.assignedJudgeId,
+          canAssignJudge: saved.open,
+        },
+        choices: judgeChoices(judging.roster, saved, judging.saved)
+          .map((choice) => ({
+            judgeId: choice.judgeId,
+            name: judging.roster.names.get(choice.judgeId) ?? "Removed judge",
+            kind: kinds.get(choice.judgeId)!,
+            load: loads.get(choice.judgeId) ?? 0,
+            bookedWith: choice.bookedWith ? (titles.get(choice.bookedWith) ?? null) : null,
+            booked: choice.bookedWith !== null,
+          }))
+          .sort(
+            (a, b) =>
+              Number(a.booked) - Number(b.booked) ||
+              a.load - b.load ||
+              a.name.localeCompare(b.name),
+          ),
+      };
+    }),
+
+  /**
+   * Sets, or with null clears, the judge of one appointment, until it starts.
+   * The judge has to be one who may grade it there and is not already
+   * grading something else at that time.
+   */
+  setAssignedJudge: isAdmin
+    .input(
+      z.object({
+        hackathonId: uuid,
+        appointmentId: uuid,
+        judgeId: uuid.nullable(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const changed = await db.transaction(async (tx) => {
+        const now = new Date();
+        const board = await loadBoard(tx, input.hackathonId, now, true);
+        const appointment = board.appointments.find(
+          (a) => a.id === input.appointmentId,
+        );
+        if (!board.schedule || !appointment) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "That appointment no longer exists. Reload the board.",
+          });
+        }
+        const judging = await loadJudging(tx, board, board.schedule);
+        const saved = judging.saved.find((s) => s.id === appointment.id);
+        if (!saved || saved.removed) throw noJudgeNeeded();
+        if (!saved.open) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message:
+              "This presentation has started, or a judge has begun on it, so its judge stays.",
+          });
+        }
+
+        if (input.judgeId) {
+          const judge = judging.roster.judges.find((j) => j.id === input.judgeId);
+          if (!judge) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message:
+                "That judge cannot be assigned. A guest judge needs a room or table of their own.",
+            });
+          }
+          const name = judging.roster.names.get(judge.id) ?? "That judge";
+          if (!mayGrade(judge, saved)) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `${name} cannot grade ${board.names.label(saved.challengeId)} at ${board.names.room(saved.roomId).roomName}.`,
+            });
+          }
+          const booked = judgeChoices(judging.roster, saved, judging.saved).find(
+            (c) => c.judgeId === judge.id,
+          )?.bookedWith;
+          if (booked) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `${name} is already grading ${board.appointments.find((a) => a.id === booked)?.entryTitle ?? "another project"} at that time.`,
+            });
+          }
+        }
+
+        await tx
+          .update(judgingAppointments)
+          .set({ assignedJudgeId: input.judgeId })
+          .where(eq(judgingAppointments.id, appointment.id));
+        return {
+          appointmentId: appointment.id,
+          fromJudgeId: appointment.assignedJudgeId,
+          toJudgeId: input.judgeId,
+        };
+      });
+
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "judging.schedule.setJudge",
+        resourceId: changed.appointmentId,
+        metadata: { hackathonId: input.hackathonId, ...changed },
+      });
+
+      return changed;
+    }),
+
+  /**
+   * Gives every appointment that has not started, and that no judge has
+   * begun on, a judge again. The others keep theirs. CP-SAT does it when
+   * this server runs it, otherwise the in-app assigner. Warns of each slot
+   * where there are too few judges.
+   */
+  assignJudges: isAdmin
+    .input(
+      z.object({
+        hackathonId: uuid,
+        seconds: z
+          .number()
+          .int()
+          .min(CPSAT_SECONDS.min)
+          .max(CPSAT_SECONDS.max)
+          .default(CPSAT_SECONDS.default),
+      }),
+    )
+    .mutation(async ({ ctx, input, signal }) => {
+      const db = ctx.db as DrizzleDB;
+      await assertHackathonExists(db, input.hackathonId);
+
+      // Worked out before the transaction, so no lock is held while CP-SAT
+      // runs, and checked against the board again inside it.
+      const first = await loadBoard(db, input.hackathonId, new Date());
+      if (!first.schedule) throw noSchedule();
+      const before = await loadJudging(db, first, first.schedule);
+      if (before.roster.judges.length === 0) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message:
+            "No judge can be assigned yet. Judges appear here once they have joined a room or table.",
+        });
+      }
+      const made = await makeAssignments(before, {
+        seconds: input.seconds,
+        signal,
+      });
+
+      const result = await db.transaction(async (tx) => {
+        const now = new Date();
+        const board = await loadBoard(tx, input.hackathonId, now, true);
+        if (!board.schedule) throw noSchedule();
+        const judging = await loadJudging(tx, board, board.schedule);
+        const stale = (a: Judging) =>
+          JSON.stringify([a.saved, a.roster.judges]);
+        if (stale(judging) !== stale(before)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "Appointments or judges changed while judges were being assigned. Assign judges again.",
+          });
+        }
+
+        const changes = judgeChanges(judging.saved, made.assignments);
+        // One update per judge, however many appointments they gain.
+        const byJudge = new Map<string | null, string[]>();
+        for (const change of changes) {
+          const list = byJudge.get(change.assignedJudgeId);
+          if (list) list.push(change.id);
+          else byJudge.set(change.assignedJudgeId, [change.id]);
+        }
+        for (const [judgeId, ids] of byJudge) {
+          for (let i = 0; i < ids.length; i += 1000) {
+            await tx
+              .update(judgingAppointments)
+              .set({ assignedJudgeId: judgeId })
+              .where(inArray(judgingAppointments.id, ids.slice(i, i + 1000)));
+          }
+        }
+
+        const chosen = new Map(changes.map((c) => [c.id, c.assignedJudgeId]));
+        const saved = judging.saved.map((s) =>
+          chosen.has(s.id) ? { ...s, assignedJudgeId: chosen.get(s.id)! } : s,
+        );
+        const summary = describeBoardJudging(
+          {
+            ...judging,
+            saved,
+            plan: planOfSaved(board, judging.timing, saved),
+          },
+          board,
+          now,
+        );
+        return {
+          solver: made.solver,
+          changed: changes.length,
+          kept: judging.plan.keep.length,
+          assigned: summary.assigned,
+          unassigned: summary.unassigned,
+          warnings: summary.warnings,
+        };
+      });
+
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "judging.schedule.assignJudges",
+        resourceId: input.hackathonId,
+        metadata: {
+          solver: result.solver,
+          changed: result.changed,
+          kept: result.kept,
+          assigned: result.assigned,
+          unassigned: result.unassigned,
+          warnings: result.warnings.length,
+        },
+      });
+
+      return result;
     }),
 
   /** Where a presentation with no appointment yet could go, best first. */

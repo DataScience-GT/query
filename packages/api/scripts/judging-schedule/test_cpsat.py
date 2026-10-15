@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import itertools
 import json
 import random
 import subprocess
@@ -188,16 +189,20 @@ class SolveTest(unittest.TestCase):
         self.assertEqual(placement, hinted)
 
 
+def run_cli(problem: dict | str, *args: str):
+    text = problem if isinstance(problem, str) else json.dumps(problem)
+    return subprocess.run(
+        [sys.executable, "-I", str(HERE / "cpsat.py"), "-", *args],
+        input=text.encode("utf-8"),
+        capture_output=True,
+        timeout=120,
+    )
+
+
 @unittest.skipUnless(HAVE_ORTOOLS, "OR-Tools is not installed")
 class CommandLineTest(unittest.TestCase):
     def run_script(self, problem: dict | str, *args: str):
-        text = problem if isinstance(problem, str) else json.dumps(problem)
-        return subprocess.run(
-            [sys.executable, "-I", str(HERE / "cpsat.py"), "-", *args],
-            input=text.encode("utf-8"),
-            capture_output=True,
-            timeout=120,
-        )
+        return run_cli(problem, *args)
 
     def test_reads_the_problem_from_stdin(self):
         raw = small_problem(1)
@@ -257,6 +262,193 @@ class CommandLineTest(unittest.TestCase):
         done = self.run_script(raw, "--time-limit", "5")
         self.assertEqual(done.returncode, 2)
         self.assertTrue(json.loads(done.stdout)["reasons"])
+
+
+JUDGE_KEYS = cpsat.JUDGE_GOALS
+
+
+def judge_problem(seed: int) -> dict:
+    """small_problem with a finished schedule and judges: two table judges (one
+    with a short run limit) and a guest in one sponsor room."""
+    rng = random.Random(seed * 7 + 1)
+    raw = small_problem(seed)
+    free = [(r["id"], s) for r in raw["rooms"] for s in range(raw["slotCount"])]
+    rng.shuffle(free)
+    placements, taken = [], set()
+    for task in raw["tasks"]:
+        room, slot = next(
+            (r, s) for r, s in free
+            if (r, s) not in taken
+            and next(x for x in raw["rooms"] if x["id"] == r)["challengeId"] == task["challengeId"]
+        )
+        taken.add((room, slot))
+        placements.append(
+            {"entryId": task["entryId"], "challengeId": task["challengeId"], "roomId": room, "slot": slot}
+        )
+    everything = ["general", "acme", "globex"]
+    raw["placements"] = placements
+    raw["judges"] = [
+        {"id": "m1", "kind": "member", "challengeIds": everything, "roomId": None},
+        {"id": "m2", "kind": "member", "challengeIds": everything, "roomId": None,
+         "maxConsecutive": rng.choice([1, 2, 4])},
+        {"id": "gs", "kind": "guest", "challengeIds": ["acme"], "roomId": "s1"},
+    ]
+    return raw
+
+
+def judge_key(score: dict) -> tuple[int, ...]:
+    """Lower is better, in goal order; the last goal counts what is covered."""
+    return tuple(-score[k] if k == "dayPartsCovered" else score[k] for k in JUDGE_KEYS)
+
+
+def brute_force_assign(problem: cpsat.Problem, placement: cpsat.Placement):
+    """Best goal vector over every assignment that keeps the judges' rules."""
+    rooms, tasks, judges = problem.rooms, problem.tasks, problem.judges
+    options = [
+        [None] + [k for k, judge in enumerate(judges)
+                  if cpsat.may_grade(judge, tasks[i], rooms[placement[i][0]])]
+        for i in range(len(tasks))
+    ]
+    best = None
+    for combo in itertools.product(*options):
+        assignment = dict(enumerate(combo))
+        if cpsat.assignment_violations(problem, placement, assignment):
+            continue
+        key = judge_key(cpsat.assignment_score(problem, placement, assignment))
+        if best is None or key < best:
+            best = key
+    return best
+
+
+@unittest.skipUnless(HAVE_ORTOOLS, "OR-Tools is not installed")
+class JudgeTest(unittest.TestCase):
+    def fixed(self, raw: dict) -> tuple[cpsat.Problem, cpsat.Placement]:
+        problem = cpsat.load_problem(raw)
+        index = {r.id: i for i, r in enumerate(problem.rooms)}
+        placement = {
+            i: (index[problem.fixed[t.entry_id, t.challenge_id][0]],
+                problem.fixed[t.entry_id, t.challenge_id][1])
+            for i, t in enumerate(problem.tasks)
+        }
+        return problem, placement
+
+    def test_assignment_matches_brute_force(self):
+        for seed in range(12):
+            problem, placement = self.fixed(judge_problem(seed))
+            with self.subTest(seed=seed):
+                status, assignment = cpsat.assign(problem, placement, 20, 1, quiet)
+                self.assertEqual(status, "optimal")
+                self.assertEqual(cpsat.assignment_violations(problem, placement, assignment), [])
+                self.assertEqual(
+                    judge_key(cpsat.assignment_score(problem, placement, assignment)),
+                    brute_force_assign(problem, placement),
+                )
+
+    def test_judges_are_assigned_from_the_command_line(self):
+        raw = judge_problem(2)
+        done = run_cli(raw, "--time-limit", "10", "--workers", "1")
+        self.assertEqual(done.returncode, 0, done.stderr.decode())
+        solution = json.loads(done.stdout)
+        self.assertEqual(solution["status"], solution["assignmentStatus"])
+        self.assertEqual(solution["placements"], raw["placements"])
+        self.assertEqual(list(solution["judging"])[:6], JUDGE_KEYS)
+        # One judge at most per presentation, and the rest counted as left out.
+        done_for = {(a["entryId"], a["challengeId"]) for a in solution["assignments"]}
+        self.assertEqual(len(done_for), len(solution["assignments"]))
+        self.assertEqual(
+            len(solution["assignments"]) + solution["judging"]["unassigned"], len(raw["tasks"])
+        )
+
+    def test_locked_assignments_stay(self):
+        raw = judge_problem(4)
+        first = raw["tasks"][0]
+        raw["locked"] = [{"entryId": first["entryId"], "challengeId": first["challengeId"], "judgeId": "m2"}]
+        problem, placement = self.fixed(raw)
+        _, assignment = cpsat.assign(problem, placement, 20, 1, quiet)
+        self.assertEqual(problem.judges[assignment[0]].id, "m2")
+
+    def test_a_valid_hint_survives_running_out_of_time(self):
+        from ortools.sat.python import cp_model
+
+        raw = judge_problem(1)
+        problem, placement = self.fixed(raw)
+        _, assignment = cpsat.assign(problem, placement, 20, 1, quiet)
+        raw["assignmentHint"] = [
+            {
+                "entryId": problem.tasks[i].entry_id,
+                "challengeId": problem.tasks[i].challenge_id,
+                "judgeId": problem.judges[k].id,
+            }
+            for i, k in assignment.items()
+            if k is not None
+        ]
+        problem, placement = self.fixed(raw)
+        # Every solve runs out of time without finding anything.
+        with mock.patch.object(cp_model.CpSolver, "solve", return_value=cp_model.UNKNOWN):
+            status, kept = cpsat.assign(problem, placement, 1, 1, quiet)
+        self.assertEqual(status, "feasible")
+        self.assertEqual(kept, assignment)
+
+    def test_a_presentation_nobody_may_grade_is_left_out_not_failed(self):
+        raw = judge_problem(1)
+        for judge in raw["judges"]:
+            judge["challengeIds"] = ["general"]
+        problem, placement = self.fixed(raw)
+        status, assignment = cpsat.assign(problem, placement, 20, 1, quiet)
+        self.assertEqual(status, "optimal")
+        sponsor = [i for i, t in enumerate(problem.tasks) if t.challenge_id != "general"]
+        self.assertTrue(sponsor)
+        self.assertTrue(all(assignment[i] is None for i in sponsor))
+
+    def test_placement_keeps_a_challenge_within_its_judges(self):
+        # Three teams, each in general once, three tables, one judge for general.
+        # Without judges all three go at once; with one they must take turns.
+        raw = {
+            "format": cpsat.PROBLEM_FORMAT, "version": cpsat.VERSION, "fingerprint": "capacity",
+            "slotCount": 4, "sameGap": 0, "crossGap": 0,
+            "rooms": [{"id": f"g{n}", "challengeId": "general", "buildingId": "a", "sponsor": False}
+                      for n in range(3)],
+            "tasks": [{"entryId": f"p{n}", "challengeId": "general", "sponsor": False}
+                      for n in range(3)],
+        }
+        problem = cpsat.load_problem(raw)
+        _, together = cpsat.solve(problem, 0, 10, 1, quiet)
+        self.assertEqual({slot for _, slot in together.values()}, {0})
+        self.assertEqual(list(cpsat.score(problem, together)), KEYS)
+
+        raw["judges"] = [{"id": "m1", "kind": "member", "challengeIds": ["general"], "roomId": None}]
+        problem = cpsat.load_problem(raw)
+        _, turns = cpsat.solve(problem, 0, 10, 1, quiet)
+        self.assertEqual(sorted(slot for _, slot in turns.values()), [0, 1, 2])
+        self.assertEqual(cpsat.score(problem, turns)["judgeShortfall"], 0)
+
+    def test_too_few_judges_do_not_make_a_schedule_impossible(self):
+        raw = {
+            "format": cpsat.PROBLEM_FORMAT, "version": cpsat.VERSION, "fingerprint": "short",
+            "slotCount": 2, "sameGap": 0, "crossGap": 0,
+            "rooms": [{"id": f"g{n}", "challengeId": "general", "buildingId": "a", "sponsor": False}
+                      for n in range(3)],
+            "tasks": [{"entryId": f"p{n}", "challengeId": "general", "sponsor": False}
+                      for n in range(5)],
+            "judges": [{"id": "m1", "kind": "member", "challengeIds": ["general"], "roomId": None}],
+        }
+        problem = cpsat.load_problem(raw)
+        status, placement = cpsat.solve(problem, 0, 10, 1, quiet)
+        self.assertIn(status, ("optimal", "feasible"))
+        # Five presentations in two slots: at best three and two at a time, so
+        # the worst slot has two more than the one judge.
+        self.assertEqual(cpsat.score(problem, placement)["judgeShortfall"], 2)
+
+    def test_rejects_bad_judges_and_placements(self):
+        raw = judge_problem(0)
+        with self.assertRaises(cpsat.InputError):
+            cpsat.load_problem({**raw, "judges": [{**raw["judges"][0], "kind": "robot"}]})
+        with self.assertRaises(cpsat.InputError):
+            cpsat.load_problem({**raw, "judges": [raw["judges"][0], raw["judges"][0]]})
+        with self.assertRaises(cpsat.InputError):
+            cpsat.load_problem({**raw, "placements": raw["placements"][:-1]})
+        with self.assertRaises(cpsat.InputError):
+            cpsat.load_problem({k: v for k, v in raw.items() if k != "judges"})
 
 
 if __name__ == "__main__":

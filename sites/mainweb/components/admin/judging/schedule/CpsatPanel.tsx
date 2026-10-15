@@ -16,7 +16,7 @@ import {
   sectionRule,
   status,
 } from "@/components/portal/ui";
-import { ErrorLine } from "@/components/admin/judging/shared";
+import { ErrorLine, plural } from "@/components/admin/judging/shared";
 import type { CpsatPreview, ScheduleBoard, Timing } from "./format";
 import {
   PreviewFigures,
@@ -264,7 +264,8 @@ export function CpsatPanel({
           <p className={body} role="status">
             CP-SAT is searching. It can take up to {seconds} seconds of solving,
             or twice that if no schedule keeps the full break between buildings,
-            plus up to a minute of setup on large events.
+            and as long again to pick judges once some have joined, plus up to a
+            minute of setup on large events.
           </p>
         ) : check.isPending ? (
           <p className={body} role="status">
@@ -292,6 +293,19 @@ export function CpsatPanel({
       </div>
     </section>
   );
+}
+
+/** What a CP-SAT schedule says about its judges. */
+function judgesLine({
+  judges,
+  presentations,
+  unassigned,
+  source,
+}: CpsatPreview["judging"]) {
+  if (judges === 0) {
+    return "No judge has joined yet. Assign judges from the schedule once they have.";
+  }
+  return `${source === "cp-sat" ? "CP-SAT" : "The in-app assigner"} gave ${presentations - unassigned} of ${plural(presentations, "presentation")} a judge, from ${plural(judges, "judge")}.`;
 }
 
 /** One CP-SAT schedule, shown like the preview, and saving it. */
@@ -341,6 +355,8 @@ function CpsatResult({
       </p>
 
       <PreviewFigures result={result} timing={timing} />
+
+      <p className={meta}>{judgesLine(result.judging)}</p>
 
       {result.relaxed && (
         <ReducedBreaks
