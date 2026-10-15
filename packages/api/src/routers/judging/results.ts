@@ -37,6 +37,7 @@ import { assertHackathonExists } from "../../services/judging/config";
 import { reconcileDueDrafts } from "../../services/judging/evaluation-store";
 import type { JudgingDb } from "../../services/judging/config";
 import { lockJudgingConfig } from "../../services/judging/claims";
+import { checkInFlagsForEntries } from "../../services/check-in-flags";
 import {
   notifyResultsPublished,
   resultsPublishedBefore,
@@ -115,6 +116,10 @@ export const judgingResultsRouter = createTRPCRouter({
         });
       }
 
+      // Judges still score a team an organiser pulled from prizes, so its
+      // evaluations stay as they are; it just cannot place. Leaving it out of
+      // the entry set is enough, because computePlacements ignores
+      // evaluations of any entry it was not given.
       const entries = await tx
         .select({ id: judgingEntries.id })
         .from(judgingEntries)
@@ -122,6 +127,7 @@ export const judgingResultsRouter = createTRPCRouter({
           and(
             eq(judgingEntries.hackathonId, input.hackathonId),
             isNull(judgingEntries.deletedAt),
+            isNull(judgingEntries.prizeIneligibleAt),
           ),
         );
       const memberships = await tx
@@ -311,6 +317,7 @@ export const judgingResultsRouter = createTRPCRouter({
         entryId: judgingEntries.id,
         title: judgingEntries.title,
         deletedAt: judgingEntries.deletedAt,
+        prizeIneligibleAt: judgingEntries.prizeIneligibleAt,
       })
       .from(judgingPlacements)
       .innerJoin(
@@ -346,6 +353,19 @@ export const judgingResultsRouter = createTRPCRouter({
       evaluationsSinceCompute = since?.n ?? 0;
     }
 
+    // An organiser decides these teams' prizes, so each row says how many
+    // flags are still open. The flag detail (who, which events) stays in the
+    // Projects section; this payload carries the count and nothing else.
+    const flags = await checkInFlagsForEntries(db, input.hackathonId, [
+      ...new Set(rows.map((row) => row.entryId)),
+    ]);
+    const openFlags = new Map(
+      [...flags].map(([entryId, views]) => [
+        entryId,
+        views.filter((view) => !view.dismissed).length,
+      ]),
+    );
+
     const scopes = new Map<
       string,
       {
@@ -360,6 +380,10 @@ export const judgingResultsRouter = createTRPCRouter({
           evaluationCount: number;
           /** Pulled from judging since; getResults already hides it. */
           withdrawn: boolean;
+          /** Check-in flags nobody has dismissed. Only the count leaves here. */
+          openCheckInFlags: number;
+          /** Pulled from prizes; getResults hides it and a recompute drops it. */
+          prizeIneligible: boolean;
         }[];
       }
     >();
@@ -377,6 +401,8 @@ export const judgingResultsRouter = createTRPCRouter({
         score: toScore(row.score),
         evaluationCount: row.evaluationCount,
         withdrawn: !!row.deletedAt,
+        openCheckInFlags: openFlags.get(row.entryId) ?? 0,
+        prizeIneligible: !!row.prizeIneligibleAt,
       });
       scopes.set(row.scope, scope);
     }

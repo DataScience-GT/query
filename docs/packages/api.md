@@ -91,7 +91,7 @@ Batch status updates allow up to **2500** ids. The global array cap in `scrubMar
 
 **Admin** (`admin.ts`): `list`, `create` (add by email), `setActive` (approve or suspend), `remove` (super admin).
 
-Judging itself is the `judging` namespace; its shared helpers are in `services/judging/` (`room-link`, `scope`, `scoring`, `config`). `hackathon.getResults` returns published placings from both the retired `hackathon_result` table and `judging_placement`, in one shape.
+Judging itself is the `judging` namespace; its shared helpers are in `services/judging/` (`room-link`, `scope`, `scoring`, `config`). `hackathon.getResults` returns published placings from both the retired `hackathon_result` table and `judging_placement`, in one shape. It leaves out entries pulled from judging (`deleted_at`) or from prizes (`prize_ineligible_at`, set by `judging.admin.setPrizeEligibility`). Check-in rule-break flags (`services/check-in-flags.ts`) reach organisers through `judging.admin.listEntries` and `judging.results.list`, and judges through `judging.desk` as a bare `flagged` boolean; no hacker-facing, public or cached procedure returns them.
 
 ## Club procedures (selected)
 
