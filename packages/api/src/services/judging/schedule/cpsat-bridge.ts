@@ -115,7 +115,7 @@ export function readCpsatSolution(
     return {
       ok: false,
       reason:
-        "Projects, rooms or timing changed since that problem was downloaded. Download it again and re-run the script.",
+        "Projects, rooms, tables or timing changed since that problem was downloaded. Download it again and re-run the script.",
     };
   }
   if (solution.status === "infeasible") {

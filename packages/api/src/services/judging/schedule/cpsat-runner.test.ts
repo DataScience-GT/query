@@ -119,7 +119,9 @@ describe("cpsatAvailable", () => {
   });
 });
 
-describe("runCpsat", () => {
+// Every case here starts a real process, which alone can take seconds on a
+// busy machine; the default 5s made them flaky rather than wrong.
+describe("runCpsat", { timeout: 30_000 }, () => {
   it("passes the problem as a file and returns what the script printed", async () => {
     fakeScript(reading(`console.error("strict: full cross-building breaks"); answer("optimal", problem.hint);`));
     const run = await runCpsat(problem);
@@ -208,6 +210,45 @@ process.exitCode = 1;
     const run = await running;
     expect(run.status).toBe("failed");
     if (run.status === "failed") expect(run.reason).toContain("after 70 seconds");
+  });
+
+  it("kills a run when its signal fires, and removes the problem file", async () => {
+    // Would run for the full 70 seconds if nothing stopped it.
+    fakeScript(`console.error("loading"); setInterval(() => undefined, 1000);`);
+    const abort = new AbortController();
+    const running = runCpsat(problem, { seconds: 5, signal: abort.signal });
+    while (spawned.length === 0) await new Promise((next) => setImmediate(next));
+    const child = spawned[0]!.child;
+    const file = spawned[0]!.args[2]!;
+    expect(existsSync(file)).toBe(true);
+
+    const started = Date.now();
+    abort.abort();
+    const run = await running;
+
+    expect(Date.now() - started).toBeLessThan(5_000);
+    expect(child.killed).toBe(true);
+    expect(child.exitCode !== null || child.signalCode !== null).toBe(true);
+    expect(run).toMatchObject({ status: "failed" });
+    if (run.status === "failed") expect(run.reason).toContain("cancelled");
+    expect(existsSync(file)).toBe(false);
+  });
+
+  it("does not start when its signal has already fired", async () => {
+    fakeScript(reading(`answer("optimal", problem.hint);`));
+    const run = await runCpsat(problem, { signal: AbortSignal.abort() });
+    expect(run).toMatchObject({ status: "failed" });
+    if (run.status === "failed") expect(run.reason).toContain("cancelled");
+    expect(spawned).toHaveLength(0);
+  });
+
+  it("ignores a signal that fires after the run has ended", async () => {
+    fakeScript(reading(`answer("optimal", problem.hint);`));
+    const abort = new AbortController();
+    const run = await runCpsat(problem, { signal: abort.signal });
+    expect(run.status).toBe("solved");
+    abort.abort();
+    expect(spawned[0]!.child.killed).toBe(false);
   });
 });
 
