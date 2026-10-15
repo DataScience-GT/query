@@ -158,7 +158,13 @@ async function staleWhileRevalidate(request) {
 async function pageNetworkFirst(request, preloadResponse) {
   const cache = await caches.open(CACHE_VERSION);
   try {
-    const response = (await preloadResponse) || (await fetch(request));
+    // A preload that rejected or came back empty falls through to a fetch; only
+    // the fetch failing means offline. preloadResponse is undefined where
+    // navigation preload is unsupported.
+    const preloaded = await Promise.resolve(preloadResponse).catch(
+      () => undefined,
+    );
+    const response = preloaded || (await fetch(request));
     if (response && response.ok) {
       cache.put(request, response.clone());
       trimCache(CACHE_VERSION, MAX_ENTRIES);

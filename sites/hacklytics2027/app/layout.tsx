@@ -21,16 +21,21 @@ const silkscreen = Silkscreen({
   variable: "--font-silkscreen",
 });
 
+// --ground in globals.css, per theme. The browser bar follows the device
+// setting by default; ThemeToggle repeats these when a choice is made.
+const ground = { light: "#eef1ec", dark: "#131715" };
+
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#eef1ec" },
-    { media: "(prefers-color-scheme: dark)", color: "#131715" },
+    { media: "(prefers-color-scheme: light)", color: ground.light },
+    { media: "(prefers-color-scheme: dark)", color: ground.dark },
   ],
 };
 
 // Runs before first paint so a saved light/dark choice never flashes the
-// other theme. Kept tiny and dependency-free; the key matches ThemeToggle.
-const themeScript = `try{var t=localStorage.getItem("hl-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
+// other theme, and points the theme-color metas at it so the bar matches the
+// page. Kept tiny and dependency-free; the key matches ThemeToggle.
+const themeScript = `try{var t=localStorage.getItem("hl-theme");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=t==="light"?"${ground.light}":"${ground.dark}"})}}catch(e){}`;
 
 export const metadata: Metadata = {
   title: "Hacklytics 2027: Digital Bloom · Data Science Hackathon at Georgia Tech",
