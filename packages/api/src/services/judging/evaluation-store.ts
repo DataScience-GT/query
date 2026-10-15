@@ -27,7 +27,7 @@ import { GUEST_SESSION_ENDED } from "./principal";
 import type { Judge } from "./principal";
 import { descendantsOf, effectiveMode, rootOf } from "./scope";
 import type { ChallengeMode } from "./scope";
-import { evaluationTiming } from "./timing";
+import { DEADLINE_GRACE_MS, evaluationTiming } from "./timing";
 import type { EvaluationTiming } from "./timing";
 
 // The judge desk's reads and writes around one evaluation: which challenge a
@@ -322,6 +322,8 @@ export async function evaluationAccess(
     challenge: ChallengeRow;
     challenges: readonly ChallengeRow[];
     evaluation: { appointmentId: string | null } | null;
+    /** DEADLINE_GRACE_MS when the caller is writing. */
+    graceMs?: number;
   },
   now = new Date(),
 ): Promise<{ timing: EvaluationTiming; presentation: Presentation | null }> {
@@ -360,6 +362,7 @@ export async function evaluationAccess(
       evaluation: input.evaluation,
       appointment: presentation ?? null,
       presenceChallengeId: seat?.challengeId ?? null,
+      graceMs: input.graceMs,
     },
     now,
   );
@@ -490,9 +493,13 @@ export async function reconcileDueDrafts(
   hackathonId: string,
   now = new Date(),
 ) {
+  // Waits out the grace a judge's own submit gets, so the two never race.
   const due = and(
     eq(judgingEvaluationDrafts.hackathonId, hackathonId),
-    lte(judgingEvaluationDrafts.deadlineAt, now),
+    lte(
+      judgingEvaluationDrafts.deadlineAt,
+      new Date(now.getTime() - DEADLINE_GRACE_MS),
+    ),
     or(
       eq(judgingConfigs.state, "open"),
       and(

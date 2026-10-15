@@ -759,6 +759,13 @@ function AccessNotice({
       <div className="mt-6">
         <p className={deskStatus("warning")}>{heading}</p>
         <p className={`mt-1 ${body}`}>{access.reason}</p>
+        {access.ended && evaluation && (
+          <p className={`mt-1 ${deskMeta}`}>
+            {evaluation.autoSubmittedAt
+              ? `Submitted for you at ${clockTime(evaluation.autoSubmittedAt)}${evaluation.isComplete ? "" : ", incomplete"}`
+              : `Submitted ${clockTime(evaluation.submittedAt)}`}
+          </p>
+        )}
         {access.needsRoom && onPickRoom && (
           <button
             type="button"
@@ -782,8 +789,8 @@ function AccessNotice({
         </p>
         <p className={`mt-1 ${body}`}>
           {evaluation.isComplete
-            ? "Time ran out with every question answered. You can still change your answers."
-            : "Time ran out before you finished, so it counts as incomplete. Answer the rest and submit again."}
+            ? "Time ran out with every question answered."
+            : "Time ran out before you finished, so it counts as incomplete."}
         </p>
       </div>
     );

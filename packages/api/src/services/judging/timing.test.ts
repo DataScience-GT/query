@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluationTiming } from "./timing";
+import { DEADLINE_GRACE_MS, evaluationTiming } from "./timing";
 import type { TimingInput } from "./timing";
 
 const startsAt = new Date("2027-02-08T15:00:00Z");
@@ -53,7 +53,26 @@ describe("evaluationTiming", () => {
           }),
           now,
         ),
-      ).toEqual({ canEdit: true, deadlineAt: null, appointmentId: "appt-1" });
+      ).toEqual({ canEdit: true, deadlineAt, appointmentId: "appt-1" });
+    }
+  });
+
+  it("gives a write DEADLINE_GRACE_MS past the deadline, and a read none", () => {
+    const inGrace = new Date(deadlineAt.getTime() + DEADLINE_GRACE_MS - 1);
+    const pastGrace = new Date(deadlineAt.getTime() + DEADLINE_GRACE_MS);
+    for (const evaluation of [null, { appointmentId: "appt-1" }]) {
+      const write = scheduled({ evaluation, graceMs: DEADLINE_GRACE_MS });
+      expect(evaluationTiming(write, inGrace)).toMatchObject({
+        canEdit: true,
+        deadlineAt: null,
+      });
+      expect(evaluationTiming(write, pastGrace)).toMatchObject({
+        canEdit: false,
+        ended: true,
+      });
+      expect(evaluationTiming(scheduled({ evaluation }), inGrace)).toMatchObject(
+        { canEdit: false, ended: true },
+      );
     }
   });
 

@@ -11,9 +11,14 @@ import type { ChallengeMode } from "./scope";
 // answers run against that deadline, and a draft still open when it passes is
 // submitted for the judge. The deadline is a hard end: after it the judge can
 // neither submit a first evaluation nor edit one they already submitted.
+// Writes get DEADLINE_GRACE_MS past it, so an answer sent in the last seconds
+// is not refused for the time it spent on the network.
 //
 // Where nothing is timed, a submitted evaluation stays editable while judging
 // is open.
+
+/** How long after a deadline a write sent before it still lands. */
+export const DEADLINE_GRACE_MS = 15_000;
 
 export type TimingInput = {
   /** Whether the edition has a saved schedule. */
@@ -28,6 +33,8 @@ export type TimingInput = {
   appointment: { id: string; startsAt: Date; deadlineAt: Date } | null;
   /** The challenge served by the room the judge is sitting in, if any. */
   presenceChallengeId: string | null;
+  /** DEADLINE_GRACE_MS for a write; reads leave it at 0. */
+  graceMs?: number;
 };
 
 export type EvaluationTiming =
@@ -54,10 +61,10 @@ export function evaluationTiming(
   now: Date,
 ): EvaluationTiming {
   const timed = input.hasSchedule && input.mode === "scheduled";
+  const deadline = timed ? (input.appointment?.deadlineAt ?? null) : null;
   const ended =
-    timed &&
-    input.appointment !== null &&
-    now >= input.appointment.deadlineAt;
+    deadline !== null &&
+    now.getTime() >= deadline.getTime() + (input.graceMs ?? 0);
 
   if (input.evaluation) {
     if (ended) {
@@ -65,7 +72,8 @@ export function evaluationTiming(
     }
     return {
       canEdit: true,
-      deadlineAt: null,
+      // Counts down the time left to edit; nothing is submitted for the judge.
+      deadlineAt: deadline && now < deadline ? deadline : null,
       appointmentId: input.evaluation.appointmentId,
     };
   }
@@ -110,7 +118,8 @@ export function evaluationTiming(
 
   return {
     canEdit: true,
-    deadlineAt: input.appointment.deadlineAt,
+    deadlineAt:
+      now < input.appointment.deadlineAt ? input.appointment.deadlineAt : null,
     appointmentId: input.appointment.id,
   };
 }
