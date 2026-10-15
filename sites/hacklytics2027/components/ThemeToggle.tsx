@@ -7,17 +7,54 @@ export const THEME_KEY = "hl-theme";
 
 type Theme = "light" | "dark";
 
+// --ground in globals.css, per theme; app/layout.tsx has the same pair.
+const GROUND: Record<Theme, string> = { light: "#eef1ec", dark: "#131715" };
+
+// Points the browser bar at the page. It reads the theme-color metas, which
+// Next renders one per system scheme: a chosen theme sets both to its ground,
+// and no choice leaves each on its own scheme, so the bar follows the device.
+const syncBar = () => {
+  const set = document.documentElement.dataset.theme;
+  document
+    .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+    .forEach((meta) => {
+      const scheme = meta.media.includes("light") ? "light" : "dark";
+      meta.content = GROUND[set === "light" || set === "dark" ? set : scheme];
+    });
+};
+
 const subscribe = (onChange: () => void) => {
   const media = window.matchMedia("(prefers-color-scheme: light)");
-  const observer = new MutationObserver(onChange);
+  const observer = new MutationObserver(() => {
+    syncBar();
+    onChange();
+  });
   observer.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ["data-theme"],
   });
+  // A client navigation renders the theme-color metas afresh, with their
+  // server colours; sync them as they land.
+  observer.observe(document.head, { childList: true });
+  // Hydration adds back any meta the pre-paint script changed, with its server
+  // colour; sync those too.
+  syncBar();
+  // A choice saved in another tab (key null is storage being cleared there).
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== null && event.key !== THEME_KEY) return;
+    const saved = event.newValue;
+    if (saved === "light" || saved === "dark") {
+      document.documentElement.dataset.theme = saved;
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  };
   media.addEventListener("change", onChange);
+  window.addEventListener("storage", onStorage);
   return () => {
     observer.disconnect();
     media.removeEventListener("change", onChange);
+    window.removeEventListener("storage", onStorage);
   };
 };
 

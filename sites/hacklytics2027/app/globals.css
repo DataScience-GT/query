@@ -176,7 +176,9 @@ body {
     color: var(--on-bloom);
   }
   .btn-bloom:hover { background: var(--bloom-hover); }
-  .btn-bloom:active { background: var(--bloom-deep); color: var(--ink); }
+  /* --bloom-deep is a dark pink in both themes, so the pressed label is white:
+     --ink is near-black in light (2:1) and --on-bloom is near-black in dark (3.3:1). */
+  .btn-bloom:active { background: var(--bloom-deep); color: #ffffff; }
   .btn-line {
     border: 1px solid var(--line-border);
     color: var(--ink);
