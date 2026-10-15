@@ -62,7 +62,7 @@ Without `DATABASE_URL`, `db` is null, sessions fall back to JWT, and tRPC proced
 
 | Variable | Default / notes |
 | --- | --- |
-| `JUDGING_CPSAT_PYTHON` | A Python with OR-Tools (`python3` or a path). Set, the schedule section can run `packages/api/scripts/judging-schedule/cpsat.py` on the server (`judging.schedule.solveCpsat`). Unset means CP-SAT is download, run on a laptop, upload |
+| `JUDGING_CPSAT_PYTHON` | A Python with OR-Tools (`python3` or a path). Set, the schedule section can run `packages/api/scripts/judging-schedule/cpsat.py` on the server (`judging.schedule.solveCpsat`), and `judging.schedule.assignJudges` uses it to pick judges. Unset means CP-SAT is download, run on a laptop, upload, and the app assigns judges itself |
 | `JUDGING_CPSAT_SCRIPT` | Path to `cpsat.py`. Default: found by walking up from the working directory |
 
 ## Security / proxy

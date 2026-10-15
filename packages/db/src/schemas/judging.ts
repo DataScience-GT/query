@@ -463,6 +463,12 @@ export const judgingAppointments = pgTable(
     endsAt: timestamp("ends_at").notNull(),
     // Compare-and-swap for moves made from two organiser screens at once.
     revision: integer("revision").notNull().default(0),
+    // The one judge who grades this presentation. Null until judges are
+    // assigned, and again if that judge is removed.
+    assignedJudgeId: uuid("assigned_judge_id").references(
+      () => judgingJudges.id,
+      { onDelete: "set null" },
+    ),
   },
   (table) => [
     uniqueIndex("judging_appointment_task_idx").on(
@@ -476,6 +482,7 @@ export const judgingAppointments = pgTable(
       table.startsAt,
     ),
     index("judging_appointment_entry_idx").on(table.entryId),
+    index("judging_appointment_judge_idx").on(table.assignedJudgeId),
     foreignKey({
       name: "judging_appointment_challenge_fk",
       columns: [table.challengeId],

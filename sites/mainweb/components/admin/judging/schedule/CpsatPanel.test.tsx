@@ -120,6 +120,7 @@ function solution(overrides: Record<string, unknown> = {}) {
     reducedBreaks: [],
     candidateKey: "a".repeat(64),
     solverStatus: "optimal",
+    judging: { judges: 3, presentations: 2, unassigned: 0, source: "cp-sat" },
     solution: "{}",
     ...overrides,
   };
@@ -224,6 +225,25 @@ describe("CpsatPanel", () => {
     const mixed = render();
     expect(mixed).toContain("Timetable by room or table<");
     expect(mixed).toContain("Rooms or tables");
+  });
+
+  it("says who assigned the judges, or that there are none yet", () => {
+    mocks.solved = solution();
+    expect(render()).toContain("CP-SAT gave 2 of 2 presentations a judge, from 3 judges.");
+
+    mocks.reported = false;
+    mocks.solved = solution({
+      judging: { judges: 1, presentations: 2, unassigned: 1, source: "in-app" },
+    });
+    expect(render()).toContain(
+      "The in-app assigner gave 1 of 2 presentations a judge, from 1 judge.",
+    );
+
+    mocks.reported = false;
+    mocks.solved = solution({
+      judging: { judges: 0, presentations: 2, unassigned: 2, source: "in-app" },
+    });
+    expect(render()).toContain("No judge has joined yet.");
   });
 
   it("says when the time limit ended the search", () => {
