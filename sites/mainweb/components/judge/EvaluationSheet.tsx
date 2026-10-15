@@ -752,9 +752,13 @@ function AccessNotice({
       ? `Opens ${clockTime(access.opensAt)}${opensIn !== null && opensIn > 0 ? `, ${startsIn(opensIn)}` : ""}`
       : access.judgingState === "closed"
         ? "Read-only"
-        : access.ended
-          ? "Time is up"
-          : "Not open to you yet";
+        : access.gradedElsewhere
+          ? data.grading === "graded"
+            ? "Already graded"
+            : "Being graded"
+          : access.ended
+            ? "Time is up"
+            : "Not open to you yet";
     return (
       <div className="mt-6">
         <p className={deskStatus("warning")}>{heading}</p>

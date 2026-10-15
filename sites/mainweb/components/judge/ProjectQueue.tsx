@@ -61,6 +61,11 @@ function progress(
   if (project.myEvaluation?.isComplete)
     return { tone: "success", text: "Judged" };
   if (project.myEvaluation) return { tone: "warning", text: "Incomplete" };
+  // Another judge's, so the judge's own half-written draft is not the news.
+  if (project.grading === "graded") return { tone: "neutral", text: "Graded" };
+  if (project.grading === "in_progress") {
+    return { tone: "neutral", text: "Being graded" };
+  }
   if (project.hasDraft) return { tone: "warning", text: "Draft saved" };
   const p = project.presentation;
   if (
@@ -121,6 +126,15 @@ export function ProjectQueue({
     { refetchInterval: 15_000, placeholderData: keepPreviousData },
   );
   const now = useServerNow(list.data?.serverNow, list.dataUpdatedAt);
+  const utils = trpc.useUtils();
+  const [finding, setFinding] = useState(false);
+  // Where the last "Grade next project" found nothing, and why.
+  const [none, setNone] = useState<{
+    challengeId: string;
+    label: string;
+    needsRoom: boolean;
+  } | null>(null);
+  const [findError, setFindError] = useState<string | null>(null);
 
   // Tops are challenges whose parent the judge cannot see: the roots for a
   // member, the room's challenge for a guest.
@@ -145,10 +159,16 @@ export function ProjectQueue({
 
   const data = list.data;
   const challenge = data?.challenge;
-  // Only a presentation in the judge's own room is theirs to do next.
+  // Only a presentation in the judge's own room is theirs to do next, and not
+  // one that another judge has graded or is grading.
   const next =
     data && data.roomFilter === "applied" && now !== null
-      ? nextPresentation(data.projects, now)
+      ? nextPresentation(
+          data.projects.filter(
+            (p) => p.grading === "open" || p.grading === "mine",
+          ),
+          now,
+        )
       : null;
   const rest = data ? data.projects.filter((p) => p !== next) : [];
 
@@ -170,8 +190,42 @@ export function ProjectQueue({
   const emptyFirst = !!empty && !search;
 
   // With judged projects shown, a count of all of them hides how many are left.
+  // The same goes for projects with other judges.
   const judged = rest.filter((p) => p.myEvaluation?.isComplete).length;
-  const mixed = !filters.hideJudged && judged > 0;
+  const taken = rest.filter(
+    (p) => p.grading === "graded" || p.grading === "in_progress",
+  ).length;
+  const mixed = (!filters.hideJudged && judged > 0) || taken > 0;
+
+  async function gradeNext() {
+    if (!challenge) return;
+    setFinding(true);
+    setNone(null);
+    setFindError(null);
+    try {
+      const found = await utils.client.judging.desk.nextProject.query({
+        hackathonId,
+        challengeId: filters.challengeId ?? undefined,
+      });
+      if (found.entryId) {
+        onOpen(found.entryId, found.challenge.id);
+      } else {
+        setNone({
+          challengeId: found.challenge.id,
+          label: found.challenge.label,
+          needsRoom: found.needsRoom,
+        });
+      }
+    } catch (error) {
+      setFindError(
+        error instanceof Error && error.message
+          ? error.message
+          : "The next project did not load. Try again.",
+      );
+    } finally {
+      setFinding(false);
+    }
+  }
 
   // Above the filters, so it is the first thing on a phone's screen. It only
   // exists in the judge's own room, which the heading already names.
@@ -214,6 +268,49 @@ export function ProjectQueue({
       {upNext}
 
       {emptyFirst && <div className="mb-8">{empty}</div>}
+
+      {data && challenge && (
+        <div className="mb-6">
+          {context.state === "open" && (
+            <button
+              type="button"
+              className={`${upNext ? btnSecondary : btnPrimary} min-h-11 w-full sm:w-auto`}
+              disabled={finding}
+              onClick={() => void gradeNext()}
+            >
+              {finding ? "Finding a project…" : "Grade next project"}
+            </button>
+          )}
+          {none?.challengeId === challenge.id && (
+            <p role="status" className={`mt-3 ${body}`}>
+              {none.needsRoom ? (
+                <>
+                  You are not seated where {none.label} is judged.{" "}
+                  {onPickRoom && (
+                    <button
+                      type="button"
+                      className={`${textLink} min-h-11`}
+                      onClick={onPickRoom}
+                    >
+                      Pick your room or table
+                    </button>
+                  )}
+                </>
+              ) : (
+                `Nothing left to grade in ${none.label}.`
+              )}
+            </p>
+          )}
+          {findError && (
+            <p role="alert" className={`mt-3 ${body}`}>
+              {findError}
+            </p>
+          )}
+          <p className={`mt-2 ${deskMeta}`}>
+            Each project is graded once per challenge, by one judge.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-3">
         {context.challenges.length > 1 && (
@@ -333,7 +430,7 @@ export function ProjectQueue({
             >
               <h2 className={deskLabel}>
                 {mixed ? (
-                  `${rest.length - judged} ${next ? "more " : ""}to judge · ${judged} judged`
+                  `${rest.length - judged - taken} ${next ? "more " : ""}to judge${judged > 0 ? ` · ${judged} judged` : ""}${taken > 0 ? ` · ${taken} with other judges` : ""}`
                 ) : (
                   <>
                     {rest.length} {next ? "more " : ""}

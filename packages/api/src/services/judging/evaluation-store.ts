@@ -1,5 +1,16 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  lte,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import {
   judgingAppointments,
   judgingChallenges,
@@ -23,6 +34,7 @@ import type { DrizzleDB } from "@query/db";
 import type { JudgingDb, JudgingTx } from "./config";
 import { checkAnswers, snapshotOf } from "./evaluation";
 import type { CheckedAnswers } from "./evaluation";
+import { gradingLockKey, gradingRefusal, gradingStateOf } from "./grading-hold";
 import { GUEST_SESSION_ENDED } from "./principal";
 import type { Judge } from "./principal";
 import { descendantsOf, effectiveMode, rootOf } from "./scope";
@@ -370,6 +382,69 @@ export async function evaluationAccess(
 }
 
 /**
+ * Serialises the writers of one project's grade for one challenge until the
+ * transaction ends: a judge's submit, another judge's first save, and the
+ * deadline submission each check that nobody else has the project and then
+ * write, which two of them cannot do at once. Transaction-level, so it is safe
+ * behind the connection pooler. Take a draft's row lock before this one, and
+ * take several in key order (gradingLockKey), so the locks cannot deadlock.
+ */
+export async function lockGrading(
+  tx: JudgingTx,
+  entryId: string,
+  challengeId: string,
+) {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${gradingLockKey(entryId, challengeId)}::text, 0))`,
+  );
+}
+
+/**
+ * For a judge who has not graded a project yet and is about to write to it:
+ * takes the project's grading lock, then refuses if another judge has graded
+ * it or is grading it now (see grading-hold.ts). Run it after the judge's own
+ * rows are locked, and skip it for a judge editing their own evaluation.
+ */
+export async function claimGrading(
+  tx: JudgingTx,
+  input: { judgeId: string; entryId: string; challenge: ChallengeRow },
+  now = new Date(),
+) {
+  await lockGrading(tx, input.entryId, input.challenge.id);
+
+  const evaluations = await tx
+    .select({ judgeId: judgingEvaluations.judgeId })
+    .from(judgingEvaluations)
+    .where(
+      and(
+        eq(judgingEvaluations.entryId, input.entryId),
+        eq(judgingEvaluations.challengeId, input.challenge.id),
+        ne(judgingEvaluations.judgeId, input.judgeId),
+      ),
+    );
+  const drafts = await tx
+    .select({
+      judgeId: judgingEvaluationDrafts.judgeId,
+      updatedAt: judgingEvaluationDrafts.updatedAt,
+      deadlineAt: judgingEvaluationDrafts.deadlineAt,
+    })
+    .from(judgingEvaluationDrafts)
+    .where(
+      and(
+        eq(judgingEvaluationDrafts.entryId, input.entryId),
+        eq(judgingEvaluationDrafts.challengeId, input.challenge.id),
+        ne(judgingEvaluationDrafts.judgeId, input.judgeId),
+      ),
+    );
+
+  const refusal = gradingRefusal(
+    gradingStateOf(input.judgeId, evaluations, drafts, now),
+    input.challenge.label,
+  );
+  if (refusal) throw new TRPCError({ code: "CONFLICT", message: refusal });
+}
+
+/**
  * Writes one evaluation: the row (new, or the next revision of the existing
  * one), its ratings and responses, and a revision snapshot. The first result
  * of a scheduled presentation also stamps the schedule, which from then on
@@ -486,7 +561,12 @@ const RECONCILE_BATCH = 50;
  * draft is submitted once, and a judge's own submit (which locks the draft
  * first) wins over this. A draft that can no longer be submitted (the guest's
  * session was revoked before the deadline, the project was withdrawn, the
- * schedule was dropped) keeps its answers and loses its deadline.
+ * schedule was dropped, another judge already graded the project) keeps its
+ * answers and loses its deadline.
+ *
+ * Each project is graded once, so the batch takes the grading lock of every
+ * project it touches before it writes anything: in key order, and ahead of any
+ * write, so it cannot deadlock with another batch or with a judge's submit.
  */
 export async function reconcileDueDrafts(
   db: DrizzleDB,
@@ -556,6 +636,17 @@ export async function reconcileDueDrafts(
       );
     const kindOf = new Map(kinds.map((judge) => [judge.id, judge.kind]));
 
+    const locks = new Map(
+      drafts.map((draft) => [
+        gradingLockKey(draft.entryId, draft.challengeId),
+        draft,
+      ]),
+    );
+    for (const key of [...locks.keys()].sort()) {
+      const draft = locks.get(key)!;
+      await lockGrading(tx, draft.entryId, draft.challengeId);
+    }
+
     const retain = (draftId: string) =>
       tx
         .update(judgingEvaluationDrafts)
@@ -582,14 +673,14 @@ export async function reconcileDueDrafts(
         .from(judgingEvaluations)
         .where(
           and(
-            eq(judgingEvaluations.judgeId, draft.judgeId),
             eq(judgingEvaluations.entryId, draft.entryId),
             eq(judgingEvaluations.challengeId, draft.challengeId),
           ),
         )
         .limit(1);
       if (existing) {
-        // Never overwrite a result the judge submitted themselves.
+        // Never overwrite a result the judge submitted themselves, and a
+        // project another judge graded is graded.
         await retain(draft.id);
         continue;
       }
