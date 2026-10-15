@@ -80,7 +80,7 @@ const faqItems: { q: string; a: React.ReactNode }[] = [
 export default function FAQSection() {
   return (
     <section id="faqs" className="section-anchor relative border-t border-rule">
-      <div className="wrap py-24 md:py-32">
+      <div className="wrap py-16 md:py-32">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
           <h2 className="lg:col-span-5 section-title">FAQ</h2>
 

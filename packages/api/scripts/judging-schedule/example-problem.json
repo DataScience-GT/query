@@ -1,0 +1,232 @@
+{
+  "format": "query-judging-schedule-problem",
+  "version": 1,
+  "fingerprint": "example",
+  "slotCount": 18,
+  "sameGap": 1,
+  "crossGap": 2,
+  "rooms": [
+    {
+      "id": "room-klaus-1",
+      "challengeId": "general",
+      "buildingId": "klaus",
+      "sponsor": false
+    },
+    {
+      "id": "room-klaus-2",
+      "challengeId": "general",
+      "buildingId": "klaus",
+      "sponsor": false
+    },
+    {
+      "id": "room-coc-1",
+      "challengeId": "general",
+      "buildingId": "coc",
+      "sponsor": false
+    },
+    {
+      "id": "room-coc-2",
+      "challengeId": "best-use-of-data",
+      "buildingId": "coc",
+      "sponsor": true
+    },
+    {
+      "id": "room-klaus-3",
+      "challengeId": "best-hardware-hack",
+      "buildingId": "klaus",
+      "sponsor": true
+    }
+  ],
+  "tasks": [
+    {
+      "entryId": "entry-01",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-02",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-03",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-03",
+      "challengeId": "best-use-of-data",
+      "sponsor": true
+    },
+    {
+      "entryId": "entry-04",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-04",
+      "challengeId": "best-hardware-hack",
+      "sponsor": true
+    },
+    {
+      "entryId": "entry-05",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-06",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-06",
+      "challengeId": "best-use-of-data",
+      "sponsor": true
+    },
+    {
+      "entryId": "entry-07",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-08",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-08",
+      "challengeId": "best-hardware-hack",
+      "sponsor": true
+    },
+    {
+      "entryId": "entry-09",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-09",
+      "challengeId": "best-use-of-data",
+      "sponsor": true
+    },
+    {
+      "entryId": "entry-10",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-11",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-12",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-12",
+      "challengeId": "best-use-of-data",
+      "sponsor": true
+    },
+    {
+      "entryId": "entry-12",
+      "challengeId": "best-hardware-hack",
+      "sponsor": true
+    },
+    {
+      "entryId": "entry-13",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-14",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-15",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-15",
+      "challengeId": "best-use-of-data",
+      "sponsor": true
+    },
+    {
+      "entryId": "entry-16",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-16",
+      "challengeId": "best-hardware-hack",
+      "sponsor": true
+    },
+    {
+      "entryId": "entry-17",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-18",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-18",
+      "challengeId": "best-use-of-data",
+      "sponsor": true
+    },
+    {
+      "entryId": "entry-19",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-20",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-20",
+      "challengeId": "best-hardware-hack",
+      "sponsor": true
+    },
+    {
+      "entryId": "entry-21",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-21",
+      "challengeId": "best-use-of-data",
+      "sponsor": true
+    },
+    {
+      "entryId": "entry-22",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-23",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-24",
+      "challengeId": "general",
+      "sponsor": false
+    },
+    {
+      "entryId": "entry-24",
+      "challengeId": "best-use-of-data",
+      "sponsor": true
+    },
+    {
+      "entryId": "entry-24",
+      "challengeId": "best-hardware-hack",
+      "sponsor": true
+    }
+  ]
+}

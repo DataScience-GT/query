@@ -1,7 +1,12 @@
 "use client";
 import Link from "next/link";
 import { PixelBed, bloomSet, plantBed, withBlooms } from "./pixel/PixelBed";
-import { INTEREST_URL, PORTAL_ORIGIN } from "@/lib/links";
+import {
+  INTEREST_URL,
+  JUDGE_URL,
+  PORTAL_HACKATHON_URL,
+  PORTAL_ORIGIN,
+} from "@/lib/links";
 
 const navIds = ["about", "tracks", "prizes", "schedule", "sponsors", "faqs"];
 
@@ -10,7 +15,7 @@ const FOOTER_BED = withBlooms(plantBed(3), bloomSet(4));
 export default function Footer() {
   return (
     <footer className="relative w-full border-t border-rule overflow-hidden">
-      <div className="wrap pt-24 md:pt-32 pb-10">
+      <div className="wrap pt-16 md:pt-32 pb-10">
         <h2 className="section-title mb-8">
           Applications open soon.
         </h2>
@@ -31,24 +36,41 @@ export default function Footer() {
         </div>
 
         {/* Side by side only once both rows fit: at tablet width the contact
-            links wrapped "MLH Code of Conduct" onto three lines. */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 lg:gap-10 pt-8 border-t border-rule">
-          <nav className="flex flex-wrap gap-x-6 gap-y-3">
+            links wrapped "MLH Code of Conduct" onto three lines. With the two
+            portal links that is now xl, not lg. */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8 xl:gap-10 pt-8 border-t border-rule">
+          <nav className="grid grid-cols-3 gap-x-6 sm:flex sm:flex-wrap">
             {navIds.map((id) => (
               <Link
                 key={id}
                 href={`/#${id}`}
-                className="font-sans text-sm capitalize text-ink-2 hover:text-ink transition-colors"
+                className="font-sans text-[15px] capitalize text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 min-w-11 items-center"
               >
                 {id === "faqs" ? "FAQ" : id}
               </Link>
             ))}
           </nav>
 
-          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-4 sm:gap-x-8 whitespace-nowrap">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-0 sm:gap-x-8 whitespace-nowrap">
+            <Link
+              href={PORTAL_HACKATHON_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
+            >
+              Hacker portal
+            </Link>
+            <Link
+              href={JUDGE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
+            >
+              Judge Hacklytics
+            </Link>
             <Link
               href="mailto:hello@hacklytics.io"
-              className="font-sans text-sm text-ink-2 hover:text-ink transition-colors"
+              className="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
             >
               hello@hacklytics.io
             </Link>
@@ -56,7 +78,7 @@ export default function Footer() {
               href={PORTAL_ORIGIN}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-sans text-sm text-ink-2 hover:text-ink transition-colors"
+              className="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
             >
               datasciencegt.org
             </Link>
@@ -64,7 +86,7 @@ export default function Footer() {
               href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-sans text-sm text-ink-2 hover:text-ink transition-colors"
+              className="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
             >
               MLH Code of Conduct
             </Link>
@@ -79,7 +101,7 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram"
-              className="font-sans text-[13px] text-ink-3 hover:text-ink transition-colors"
+              className="font-sans text-[13px] text-ink-3 hover:text-ink transition-colors inline-flex min-h-11 items-center"
             >
               Instagram
             </Link>
@@ -88,7 +110,7 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="LinkedIn"
-              className="font-sans text-[13px] text-ink-3 hover:text-ink transition-colors"
+              className="font-sans text-[13px] text-ink-3 hover:text-ink transition-colors inline-flex min-h-11 items-center"
             >
               LinkedIn
             </Link>
@@ -97,10 +119,10 @@ export default function Footer() {
       </div>
 
       {/* The page ends in the same bed it started in. */}
-      <h2 className="wrap font-display font-bold text-[15px] text-ink pt-10">
+      <h2 className="wrap font-display text-[16px] text-ink pt-10">
         Plant a flower
       </h2>
-      <PixelBed plants={FOOTER_BED} className="pt-6" plantable />
+      <PixelBed plants={FOOTER_BED} className="pt-6" plantable soil />
     </footer>
   );
 }

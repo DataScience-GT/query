@@ -31,7 +31,7 @@ Config: `packages/api/vitest.config.ts`. Includes `src/**/*.test.ts` and `src/.i
 | Security / sanitizer / rate limit | `security.test.ts`, `resilience.test.ts` |
 | Judges / participants / initiatives / bootcamp / announcements | matching `*-edge.test.ts` / `bootcamp.test.ts` / `announcements.test.ts` |
 | Portal context | `services/portal-context.test.ts`, `routers/user/portal-context.test.ts` |
-| Judge helpers | `routers/judge/helpers.test.ts` |
+| Judging scoring, scope, room links | `services/judging/*.test.ts` |
 
 Tests use `src/test/create-mock-context.ts` and `.internal-tests/_db-tx-mock.ts` rather than a live database.
 

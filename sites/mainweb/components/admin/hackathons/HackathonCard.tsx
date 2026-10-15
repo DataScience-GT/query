@@ -3,7 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
-import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import {
+  READ_ONLY_TITLE,
+  usePortalContext,
+  useReadOnly,
+} from "@/lib/use-portal-context";
 import { Eye, EyeOff } from "lucide-react";
 import {
   body,
@@ -15,9 +19,14 @@ import {
   meta,
   object,
   sectionTitle,
+  status as statusPill,
   textLink,
 } from "@/components/portal/ui";
 import { adminHackathonPath } from "@/lib/hackathon-slug";
+import {
+  STATUS_TONE,
+  getStatusMeta,
+} from "@/components/admin/hackathons/constants";
 import type { HackathonStatus } from "@/components/admin/hackathons/constants";
 
 export function HackathonCard({
@@ -42,6 +51,10 @@ export function HackathonCard({
 }) {
   const utils = trpc.useUtils();
   const readOnly = useReadOnly();
+  const { data: portalContext } = usePortalContext();
+  // hackathon.delete is super-admin only; other staff would only meet the refusal.
+  const canDelete = portalContext?.role === "super_admin";
+  const dashboardPath = adminHackathonPath(hackathon.name, hackathon.id);
 
   const { data: events, isLoading: eventsLoading } =
     trpc.hackathon.getEvents.useQuery({ hackathonId: hackathon.id });
@@ -71,12 +84,17 @@ export function HackathonCard({
       <div className="flex flex-col gap-8">
         {/* Info Section */}
         <div className="min-w-0">
-          <Link
-            href={adminHackathonPath(hackathon.name, hackathon.id)}
-            className="decoration-accent decoration-2 underline-offset-[5px] hover:underline"
-          >
-            <h3 className={sectionTitle}>{hackathon.name}</h3>
-          </Link>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Link
+              href={dashboardPath}
+              className="decoration-accent decoration-2 underline-offset-[5px] hover:underline"
+            >
+              <h3 className={sectionTitle}>{hackathon.name}</h3>
+            </Link>
+            <span className={statusPill(STATUS_TONE[hackathon.status])}>
+              {getStatusMeta(hackathon.status)?.label}
+            </span>
+          </div>
           {hackathon.description && (
             <p className={`mt-2 line-clamp-4 max-w-3xl ${body}`}>
               {hackathon.description}
@@ -145,10 +163,7 @@ export function HackathonCard({
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h4 className={itemTitle}>Schedule</h4>
               {events && events.length > 0 && (
-                <Link
-                  href={adminHackathonPath(hackathon.name, hackathon.id)}
-                  className={textLink}
-                >
+                <Link href={`${dashboardPath}#events`} className={textLink}>
                   Manage schedule ({events.length})
                 </Link>
               )}
@@ -193,7 +208,7 @@ export function HackathonCard({
                 {events.length > 4 && (
                   <li className="pt-3 md:col-span-2">
                     <Link
-                      href={adminHackathonPath(hackathon.name, hackathon.id)}
+                      href={`${dashboardPath}#events`}
                       className="text-[13px] text-[var(--text-subtle)] transition-colors hover:text-[var(--text-primary)]"
                     >
                       {events.length - 4} more events. View the full schedule
@@ -234,27 +249,29 @@ export function HackathonCard({
               )}
               {hackathon.isPublic ? "Public" : "Hidden"}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                // Typing the name, not clicking OK. Deleting an edition takes
-                // every participant, team, project and judge vote with it, and
-                // a confirm() dialog is one stray Enter key away from doing it.
-                const typed = window.prompt(
-                  `This deletes "${hackathon.name}" and every participant, team, project and vote attached to it. This cannot be undone.\n\nType the hackathon's name to confirm:`,
-                );
-                if (typed === null) return;
-                deleteMutation.mutate({
-                  hackathonId: hackathon.id,
-                  confirmName: typed,
-                });
-              }}
-              disabled={readOnly || deleteMutation.isPending}
-              title={readOnly ? READ_ONLY_TITLE : undefined}
-              className={btnDanger}
-            >
-              {deleteMutation.isPending ? "Deleting…" : "Delete"}
-            </button>
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  // Typing the name, not clicking OK. Deleting an edition takes
+                  // every participant, team, project and judge vote with it, and
+                  // a confirm() dialog is one stray Enter key away from doing it.
+                  const typed = window.prompt(
+                    `This deletes "${hackathon.name}" and every participant, team, project and vote attached to it. This cannot be undone.\n\nType the hackathon's name to confirm:`,
+                  );
+                  if (typed === null) return;
+                  deleteMutation.mutate({
+                    hackathonId: hackathon.id,
+                    confirmName: typed,
+                  });
+                }}
+                disabled={readOnly || deleteMutation.isPending}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
+                className={btnDanger}
+              >
+                {deleteMutation.isPending ? "Deleting…" : "Delete"}
+              </button>
+            )}
             {!hackathon.isPublic && (
               <p className="basis-full text-[13px] text-[var(--warning)]">
                 Hidden. Judges can&apos;t find it at /judge/register, and it
@@ -263,7 +280,7 @@ export function HackathonCard({
             )}
           </div>
 
-          {/* Right group: Edit + Dashboard */}
+          {/* Right group: Edit + Judging + Dashboard */}
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
@@ -275,9 +292,12 @@ export function HackathonCard({
               Edit
             </button>
             <Link
-              href={adminHackathonPath(hackathon.name, hackathon.id)}
-              className={btnPrimary}
+              href={`/admin/judging/${hackathon.id}`}
+              className={btnSecondary}
             >
+              Judging
+            </Link>
+            <Link href={dashboardPath} className={btnPrimary}>
               Open dashboard
             </Link>
           </div>

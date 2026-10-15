@@ -56,6 +56,19 @@ export const hackathons = pgTable(
     websiteUrl: text("website_url"),
     isPublic: boolean("is_public").notNull().default(true),
     judgingActive: boolean("judging_active").notNull().default(false),
+    // Retired with the panel judging service; nothing reads it. Still declared
+    // because a database that already has the column would otherwise see push
+    // propose dropping it, which stops every deploy at a TTY prompt.
+    judgingBackend: text("judging_backend", { enum: ["legacy", "panel"] })
+      .notNull()
+      .default("legacy"),
+    // Point store. Hidden and closed until an organiser opens it; the location
+    // is where hackers pick up what they bought.
+    storeCatalogVisible: boolean("store_catalog_visible")
+      .notNull()
+      .default(false),
+    storeOpen: boolean("store_open").notNull().default(false),
+    storeLocation: text("store_location"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -170,6 +183,9 @@ export const hackathonParticipants = pgTable(
 
     // Participation tracking
     checkedInAt: timestamp("checked_in_at"),
+    // Set when an accepted hacker says they are coming. Null means no answer,
+    // which is what organisers chase to free seats before the event.
+    attendanceConfirmedAt: timestamp("attendance_confirmed_at"),
     hasSubmittedProject: boolean("has_submitted_project")
       .notNull()
       .default(false),
@@ -403,12 +419,24 @@ export const hackathonEvents = pgTable(
     location: text("location").notNull(),
     startTime: timestamp("start_time").notNull(),
     endTime: timestamp("end_time").notNull(),
+    // What attending is worth. Copied onto each attendance row at check-in, so
+    // editing it later never changes what anyone already earned.
+    points: integer("points").notNull().default(0),
+    // A short code shown at the event (on screen, or as a QR that opens the
+    // portal with it filled in). Hackers type or scan it themselves, so nobody
+    // has to hold up a pass. Only accepted while selfCheckIn is on and the
+    // event is running.
+    checkInCode: text("check_in_code"),
+    selfCheckIn: boolean("self_check_in").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
     index("event_hackathon_id_idx").on(table.hackathonId),
     index("event_type_idx").on(table.type),
+    uniqueIndex("event_check_in_code_idx")
+      .on(table.hackathonId, table.checkInCode)
+      .where(sql`${table.checkInCode} is not null`),
   ],
 );
 
@@ -422,6 +450,14 @@ export const hackathonEventAttendees = pgTable(
       .references(() => hackathonEvents.id, { onDelete: "cascade" }),
     participantId: uuid("participant_id").notNull(),
     checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
+    // The event's points at the moment of check-in. Null on rows from before
+    // points existed, which count as zero. No default on purpose: every writer
+    // must copy the event's value, or the number is invented.
+    pointsAwarded: integer("points_awarded"),
+    // scan: staff scanned the pass. code: the hacker entered the event's code.
+    // manual: staff found them by name. Null on older rows.
+    method: text("method", { enum: ["scan", "code", "manual"] }),
+    checkedInById: text("checked_in_by_id"),
   },
   (table) => [
     index("event_attendee_event_id_idx").on(table.eventId),
@@ -435,6 +471,11 @@ export const hackathonEventAttendees = pgTable(
       columns: [table.participantId],
       foreignColumns: [hackathonParticipants.id],
     }).onDelete("cascade"),
+    foreignKey({
+      name: "event_attendee_checked_in_by_fk",
+      columns: [table.checkedInById],
+      foreignColumns: [users.id],
+    }).onDelete("set null"),
   ],
 );
 
@@ -497,6 +538,10 @@ export const hackathonAnnouncements = pgTable(
         // Rejected and waitlisted applicants, who every other audience deliberately
         // excludes. Chosen on purpose or not at all.
         "not_accepted",
+        // Each half of not_accepted on its own, so a waitlist note never
+        // reaches someone who was turned down.
+        "waitlisted",
+        "rejected",
       ],
     }).notNull(),
     subject: text("subject").notNull(),

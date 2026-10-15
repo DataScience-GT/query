@@ -38,17 +38,17 @@ Unauthenticated and authenticated product UI. `proxy.ts` marks these prefixes `p
 | `/club/bootcamp` | Bootcamp (paid add-on, term-gated) |
 | `/initiatives` | Browse / apply |
 | `/lead`, `/lead/[id]` | Project leader |
-| `/hackathons`, `/hackathons/[id]` | Edition pages (info, schedule, teams, projects, results) |
-| `/hackathons/[id]/judge` | Judging for that edition |
+| `/hackathons`, `/hackathons/[id]` | Edition pages (info, schedule, teams, projects, judging, points, results) |
 | `/hacklytics` | Current Hacklytics interest / portal landing |
 | `/submit` | Project submission |
 | `/judge`, `/judge/register` | Judge home / apply |
+| `/judge/[hackathonId]` | Judge desk for one edition |
 | `/scan` | QR scanning |
 | `/admin` | Staff home |
-| `/admin/hackathons`, `/admin/hackathons/[id]` | Edition admin (attendees, waves, announcements, analytics, events). `[id]` is the name slug (`hacklytics-digital-bloom`), not a percent-encoded name. |
+| `/admin/hackathons`, `/admin/hackathons/[id]` | Edition admin (attendees, waves, announcements, analytics, events, judges, points, store). `[id]` is the name slug (`hacklytics-digital-bloom`), not a percent-encoded name. |
 | `/admin/members` | Membership admin |
 | `/admin/attendees` | Attendee tools |
-| `/admin/judging` | Judging admin (sync submissions + assign judges live here) |
+| `/admin/judging`, `/admin/judging/[hackathonId]` | Pick an edition, then run its judging: import, rooms, schedule, results |
 | `/admin/initiatives` | Initiative / proposal review |
 | `/admin/bootcamp` | Bootcamp attendance grid and the weekly workshop table |
 | `/admin/staff` | Admin users |

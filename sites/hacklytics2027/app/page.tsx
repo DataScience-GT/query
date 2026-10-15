@@ -61,7 +61,7 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
       {units.map(({ label, value }) => (
         <div key={label} className="flex flex-col">
           <span
-            className={`font-display font-bold text-[2.25rem] leading-none tabular-nums ${
+            className={`font-display text-[2rem] leading-none tabular-nums ${
               mounted ? "text-ink" : "text-ink-3/40"
             }`}
           >
@@ -95,7 +95,7 @@ export default function HomePage() {
           rel="noopener noreferrer"
           className="absolute top-0 right-5 md:right-12 z-50 w-[9%] max-w-[90px] min-w-[56px] hover:scale-105 hover:brightness-110 transition-all duration-300"
         >
-          <img src="/mlh-trust-badge.svg" alt="Major League Hacking 2027" className="w-full drop-shadow-2xl" />
+          <img src="/mlh-trust-badge.svg" alt="Major League Hacking 2027" className="w-full" />
         </a>
 
         {/* Top padding clears the navbar and the MLH badge, which hangs to
@@ -139,7 +139,7 @@ export default function HomePage() {
         {/* The flower bed the hero stands in. Its share in bloom tracks the
             season; visitors can plant their own. */}
         <div className="pb-6">
-          <h2 className="wrap font-display font-bold text-[15px] text-ink mb-3">
+          <h2 className="wrap font-display text-[16px] text-ink mb-3">
             Plant a flower
           </h2>
           <PixelBed

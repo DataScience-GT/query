@@ -74,8 +74,10 @@ export const object =
 /** Underline tabs. The selected one gets ink and the accent rule. */
 export const tabList =
   "flex gap-6 border-b border-[var(--border-subtle)] overflow-x-auto overflow-y-hidden [scrollbar-width:none]";
+// shrink-0: on touch screens every button gets a 44px min-width, which
+// replaces the flex default and let a strip of tabs squeeze into each other.
 export const tab = (selected: boolean) =>
-  `-mb-px whitespace-nowrap border-b-2 py-3 text-sm transition-colors ${
+  `-mb-px shrink-0 whitespace-nowrap border-b-2 py-3 text-sm transition-colors ${
     selected
       ? "border-accent font-semibold text-[var(--text-primary)]"
       : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"

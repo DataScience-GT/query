@@ -350,6 +350,29 @@ const uploadSanitizeInputs = t.middleware(
   },
 );
 
+// A file an organiser uploads as text, such as a Devpost submissions export.
+// Up to 12 MB (a 10 MB file plus JSON escaping), and not run through
+// scrubMarkup: one project description that mentions "JavaScript:" or quotes
+// an <img> tag would refuse the whole file. The procedure's zod schema still
+// shapes the input, and the text is only ever rendered escaped.
+const textUploadInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
+  const rawInput = await getRawInput();
+
+  if (rawInput && !validateRequestSize(rawInput, 12 * 1024 * 1024)) {
+    logSecurityEvent({
+      type: "validation_error",
+      identifier: ctx.userId ?? ctx.clientIp,
+      details: "Text upload too large (max 12MB)",
+    });
+    throw new TRPCError({
+      code: "PAYLOAD_TOO_LARGE",
+      message: "That file is too large to upload. The limit is 10 MB.",
+    });
+  }
+
+  return next();
+});
+
 // Surgical invalidation: each mutation path maps to the exact key patterns it
 // should evict. Unmapped routes fall back to namespace-level eviction.
 const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
@@ -367,6 +390,13 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // resolver evicts that key by id. Empty rather than absent, so the namespace
   // fallback cannot wipe every attendee's registrations at every door.
   "hackathon.scanParticipantPass": [],
+  // The desk admit is the same write as a scan, so it evicts the same way.
+  "hackathon.admit": [],
+  // Both change only the caller's own registration, which the resolver evicts
+  // by user id. Empty rather than absent, so the namespace fallback cannot wipe
+  // every attendee's cached registrations.
+  "hackathon.updateMyRegistration": [],
+  "hackathon.confirmAttendance": [],
   // `hackathons:list*`, not `hackathons:list`: deletePattern anchors with `$`,
   // and every real key carries a viewer/status/limit suffix. With an entry
   // present the namespace fallback is skipped, so nothing was evicted at all.
@@ -380,28 +410,15 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // and the two are read from the same namespace.
   "hackathon.registerInterest": ["hackathon:*:interest"],
   "hackathon.withdrawInterest": ["hackathon:*:interest"],
-  // Judge mutations — only invalidate judging-related keys
-  "judge.submitVote": ["hackathon:*:rankings", "hackathon:*:judge-analytics"],
-  "judge.completeAndNext": [
-    "hackathon:*:rankings",
-    "hackathon:*:judge-analytics",
-  ],
-  "judge.toggleJudging": ["hackathon:*"],
-  // Promotion creates judgeable projects and flips submissions to "judging", so
-  // the public project list and the rankings view both move.
-  "judge.promoteSubmissions": [
-    "hackathon:*:projects",
-    "hackathon:*:public-projects*",
-    "hackathon:*:rankings",
-  ],
   // Announcements write their own rows and nothing cacheable. Empty rather than
   // absent, so this cannot sweep the whole hackathon namespace.
   "hackathon.createAnnouncement": [],
   "hackathon.sendBatch": [],
+  // A test goes to the caller's own inbox and writes nothing at all.
+  "hackathon.sendTestToMe": [],
   // Same: the marker lives on hackathon_interest, which is not cached, and the
   // admin list is read fresh.
   "hackathon.notifyRegistrationOpen": [],
-  "judge.assignToHackathon": ["judge:*"],
   // Member mutations
   "member.update": ["member:*", "user:*:profile"],
   // Renewal moves the membership the portal reads, so its context goes too.
@@ -447,10 +464,17 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // registrations — and a volunteer pressing Undo reaches this.
   "hackathon.removeEventAttendance": [],
   "hackathon.sendMassAcceptanceEmails": [],
+  // A check-in by name evicts its event's count by id in the resolver. Codes
+  // are never in the public, cached schedule, so rotating one evicts nothing.
+  "hackathon.manualEventCheckIn": [],
+  "hackathon.generateEventCheckInCode": [],
+  "hackathon.clearEventCheckInCode": [],
   // Publishing and unpublishing change what the public getResults returns.
-  "judge.computeResults": ["hackathon:*:results"],
-  "judge.publishResults": ["hackathon:*:results"],
-  "judge.unpublishResults": ["hackathon:*:results"],
+  // Every other judging.* and points.* mutation falls back to evicting its own
+  // namespace, which holds nothing: those reads are polled live, not cached.
+  "judging.results.compute": ["hackathon:*:results"],
+  "judging.results.publish": ["hackathon:*:results"],
+  "judging.results.unpublish": ["hackathon:*:results"],
   // Stripe — invalidate member status after linking
   "stripe.attemptAutoLink": ["member:*"],
   "stripe.linkAccount": ["member:*"],
@@ -602,8 +626,19 @@ export const uploadProcedure = t.procedure
   .use(enforceContentType)
   .use(cacheInvalidationMiddleware);
 
+// Signed in, large text input (see textUploadInputs). Gate it further with
+// isAdminUpload in middleware/procedures.ts; nothing should use it bare.
+export const textUploadProcedure = t.procedure
+  .use(recordDuration)
+  .use(requiresDb)
+  .use(isAuthed)
+  .use(textUploadInputs)
+  .use(enforceContentType)
+  .use(cacheInvalidationMiddleware);
+
 // No `adminProcedure` or `judgeProcedure` here. Both existed and were
 // identical to `protectedProcedure` — no role check — so the obvious call
 // shipped an admin endpoint open to every signed-in user, and it built
 // cleanly. The real gates are in middleware/procedures.ts: isAdmin,
-// isSuperAdmin, isScanner (volunteers included) and isJudge.
+// isSuperAdmin and isScanner (volunteers included). The judge desk resolves
+// its own principal in routers/judging.
