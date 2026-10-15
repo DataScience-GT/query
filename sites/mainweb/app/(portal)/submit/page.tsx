@@ -59,6 +59,9 @@ function SubmitPortalContent() {
   const [selectedHackathonId, setSelectedHackathonId] = useState<string>(
     urlHackathonId || "",
   );
+  // The id can come straight from the URL or the picker, so it is encoded
+  // wherever it becomes part of a link path.
+  const hackathonPath = `/hackathons/${encodeURIComponent(selectedHackathonId)}`;
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
 
   const [projectName, setProjectName] = useState("");
@@ -353,7 +356,7 @@ function SubmitPortalContent() {
               )}
               {currentReg && (currentReg.team || admitted) && (
                 <Link
-                  href={`/hackathons/${selectedHackathonId}?tab=TEAMS`}
+                  href={`${hackathonPath}?tab=TEAMS`}
                   className={`mt-3 ${textLink}`}
                 >
                   {currentReg.team ? "Manage team" : "Create or join a team"}
@@ -372,7 +375,7 @@ function SubmitPortalContent() {
                   Your project is in judging. Your team presents to judges for
                   each challenge it entered, and the{" "}
                   <Link
-                    href={`/hackathons/${selectedHackathonId}?tab=JUDGING`}
+                    href={`${hackathonPath}?tab=JUDGING`}
                     className="font-semibold underline decoration-accent decoration-2 underline-offset-[5px]"
                   >
                     Judging tab
@@ -659,7 +662,7 @@ function SubmitPortalContent() {
                         submit points there. */}
                     {projectSubmitted ? (
                       <Link
-                        href={`/hackathons/${selectedHackathonId}?tab=JUDGING`}
+                        href={`${hackathonPath}?tab=JUDGING`}
                         className={textLink}
                       >
                         Go to Judging
