@@ -228,6 +228,10 @@ export const CacheKeys = {
   judge: (userId: string) => `judge:${userId}`,
   projectLeader: (userId: string) => `project-leader:${userId}`,
   portalContext: (userId: string) => `user:${userId}:portal`,
+  // judging.results.list's per-judge calibration; the caller adds what it was
+  // computed from, so a changed evaluation reads a new key.
+  judgingCalibration: (hackathonId: string) =>
+    `judging:${hackathonId}:calibration`,
 } as const;
 
 export const invalidatePortalContext = (userId: string) => {

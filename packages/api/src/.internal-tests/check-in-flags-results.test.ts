@@ -9,6 +9,10 @@
  * both and a per-judge summary, and the public payload carries neither the raw
  * score nor anything about a judge.
  *
+ * It covers which evaluations count (every rating, whether or not a written
+ * response is missing, as with a draft submitted at the deadline), and the
+ * calibration the list keeps for a minute, which compute never reads.
+ *
  * The schema is the real one; only the database handle is a stand-in, handed
  * to the router through the context the way judge-edge.test.ts does. Its
  * selects answer by the table they read from, and the entries query applies
@@ -21,6 +25,7 @@ import {
   hackathonCheckInFlags,
   hackathonEvents,
   hackathons,
+  judgingAppointments,
   judgingChallenges,
   judgingConfigs,
   judgingEntries,
@@ -28,9 +33,11 @@ import {
   judgingEntryMembers,
   judgingEvaluationDrafts,
   judgingEvaluationRatings,
+  judgingEvaluationResponses,
   judgingEvaluations,
   judgingJudges,
   judgingPlacements,
+  judgingRubricItems,
 } from "@query/db";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
@@ -166,7 +173,6 @@ describe("judging.results.compute", () => {
     challengeId: "ch-1",
     judgeId,
     submittedAt: new Date(Date.UTC(2027, 1, 6, 10, minute)),
-    isComplete: true,
   });
   // One judge marked all three. With the pulled team left out of the
   // calibration she has two grades, a mean of 3.5 and the pool's own spread, so
@@ -212,6 +218,8 @@ describe("judging.results.compute", () => {
       if (table === judgingChallenges) return [];
       if (table === judgingEvaluations) return scored;
       if (table === judgingEvaluationRatings) return ratings;
+      // One rating item, which every evaluation here rated.
+      if (table === judgingRubricItems) return [{ n: 1 }];
       return [];
     });
   };
@@ -289,7 +297,6 @@ describe("judging.results.compute with judge calibration", () => {
     challengeId: "ch-1",
     judgeId,
     submittedAt: new Date(Date.UTC(2027, 1, 6, 10, minute)),
-    isComplete: true,
   });
 
   // A strict judge marked e1 and e2, a lenient one e3 and e4. Raw, e2 and e3
@@ -321,6 +328,7 @@ describe("judging.results.compute with judge calibration", () => {
           { evaluationId: "v4", value: 5 },
         ];
       }
+      if (table === judgingRubricItems) return [{ n: 1 }];
       return [];
     });
 
@@ -349,7 +357,282 @@ describe("judging.results.compute with judge calibration", () => {
 });
 
 // ---------------------------------------------------------------------------
+describe("judging.results.compute with grades submitted at the deadline", () => {
+  const entries = ["entry-a", "entry-b", "entry-c"].map((id) => ({
+    id,
+    deletedAt: null,
+    prizeIneligibleAt: null,
+  }));
+  const evaluation = (
+    id: string,
+    entryId: string,
+    minute: number,
+    isComplete: boolean,
+  ) => ({
+    id,
+    entryId,
+    challengeId: "ch-1",
+    judgeId: "judge-1",
+    submittedAt: new Date(Date.UTC(2027, 1, 6, 10, minute)),
+    isComplete,
+  });
+  // A rubric of two rating items. entry-a's only grade is an auto-submit: both
+  // ratings, a required response left empty, so isComplete is false. entry-b's
+  // stopped after one rating. entry-c's is whole.
+  const stored = [
+    evaluation("eval-a", "entry-a", 0, false),
+    evaluation("eval-b", "entry-b", 1, false),
+    evaluation("eval-c", "entry-c", 2, true),
+  ];
+  const ratings = [
+    { evaluationId: "eval-a", value: 4 },
+    { evaluationId: "eval-a", value: 4 },
+    { evaluationId: "eval-b", value: 5 },
+    { evaluationId: "eval-c", value: 3 },
+    { evaluationId: "eval-c", value: 3 },
+  ];
+  let evaluationWheres: unknown[] = [];
+  let ratingWheres: unknown[] = [];
+
+  const wire = () => {
+    evaluationWheres = [];
+    ratingWheres = [];
+    mockSelect.mockImplementation(({ table, wheres }) => {
+      if (table === hackathons) {
+        return [
+          { id: HACK, name: "Hacklytics", startDate: null, endDate: null },
+        ];
+      }
+      if (table === judgingEvaluationDrafts) return [];
+      if (table === judgingConfigs) return [{ hackathonId: HACK }];
+      if (table === judgingPlacements) return [{ n: 0 }];
+      if (table === judgingEntries) return entries;
+      if (table === judgingRubricItems) return [{ n: 2 }];
+      if (table === judgingEvaluations) {
+        evaluationWheres = wheres;
+        return stored;
+      }
+      if (table === judgingEvaluationRatings) {
+        ratingWheres = wheres;
+        return ratings;
+      }
+      return [];
+    });
+  };
+
+  it("places a project whose only grade is such an auto-submit", async () => {
+    wire();
+
+    const result = await adminCaller().judging.results.compute({
+      hackathonId: HACK,
+    });
+
+    const placed = placementsInserted();
+    expect(
+      placed.map((row) => [row.entryId, row.scope, row.placement, row.score]),
+    ).toEqual([
+      ["entry-a", "overall", 1, "4.00"],
+      ["entry-c", "overall", 2, "3.00"],
+    ]);
+    expect(placed.map((row) => row.evaluationCount)).toEqual([1, 1]);
+    expect(result.placements).toBe(2);
+  });
+
+  it("leaves a grade short of a rating out, and does not count it as ranked", async () => {
+    wire();
+
+    const result = await adminCaller().judging.results.compute({
+      hackathonId: HACK,
+    });
+
+    expect(placementsInserted().map((row) => row.entryId)).not.toContain(
+      "entry-b",
+    );
+    expect(result.evaluations).toBe(2);
+  });
+
+  it("does not filter evaluations or ratings on isComplete", async () => {
+    wire();
+
+    await adminCaller().judging.results.compute({ hackathonId: HACK });
+
+    expect(evaluationWheres.length).toBeGreaterThan(0);
+    expect(ratingWheres.length).toBeGreaterThan(0);
+    for (const where of [...evaluationWheres, ...ratingWheres]) {
+      expect(render(where).sql).not.toContain("is_complete");
+      expect(render(where).params).toContain(HACK);
+    }
+  });
+
+  it("asks the rubric how many rating items an evaluation must have", async () => {
+    wire();
+
+    await adminCaller().judging.results.compute({ hackathonId: HACK });
+
+    const rubric = mockSelect.mock.calls.find(
+      ([query]) => query.table === judgingRubricItems,
+    )![0];
+    expect(render(rubric.wheres[0]).params).toEqual([HACK, "rating"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("judging.results.compute beside the list's calibration cache", () => {
+  const entries = ["e1", "e2", "e3", "e4"].map((id) => ({
+    id,
+    deletedAt: null,
+    prizeIneligibleAt: null,
+  }));
+  const evaluation = (
+    id: string,
+    entryId: string,
+    judgeId: string,
+    minute: number,
+  ) => ({
+    id,
+    entryId,
+    challengeId: "ch-1",
+    judgeId,
+    submittedAt: new Date(Date.UTC(2027, 1, 6, 10, minute)),
+  });
+  const stored = [
+    evaluation("v1", "e1", "strict", 0),
+    evaluation("v2", "e2", "strict", 1),
+    evaluation("v3", "e3", "lenient", 2),
+    evaluation("v4", "e4", "lenient", 3),
+  ];
+  let ratings = [
+    { evaluationId: "v1", value: 3 },
+    { evaluationId: "v2", value: 4 },
+    { evaluationId: "v3", value: 4 },
+    { evaluationId: "v4", value: 5 },
+  ];
+  const computedAt = new Date("2027-02-07T09:00:00Z");
+
+  beforeEach(() => {
+    ratings = [
+      { evaluationId: "v1", value: 3 },
+      { evaluationId: "v2", value: 4 },
+      { evaluationId: "v3", value: 4 },
+      { evaluationId: "v4", value: 5 },
+    ];
+  });
+
+  // The same edition answers both procedures. Placements come back as rows for
+  // the list and as a published count for compute, which asks for `n`.
+  const wire = () =>
+    mockSelect.mockImplementation(({ table, fields }) => {
+      if (table === hackathons) {
+        return [
+          { id: HACK, name: "Hacklytics", startDate: null, endDate: null },
+        ];
+      }
+      if (table === judgingPlacements) {
+        return fields && "n" in fields
+          ? [{ n: 0 }]
+          : [
+              {
+                id: "p1",
+                scope: "overall",
+                scopeLabel: "Overall",
+                placement: 1,
+                score: "4.00",
+                evaluationCount: 1,
+                publishedAt: null,
+                computedAt,
+                entryId: "e1",
+                title: "Project e1",
+                deletedAt: null,
+                prizeIneligibleAt: null,
+              },
+            ];
+      }
+      if (table === judgingEvaluationDrafts) return [];
+      if (table === judgingConfigs) return [{ hackathonId: HACK }];
+      if (table === judgingEntries) {
+        return fields && "latest" in fields
+          ? [{ n: 4, latest: new Date("2027-02-06T09:00:00Z") }]
+          : entries;
+      }
+      if (table === judgingEvaluations) {
+        if (fields && "latest" in fields) {
+          return [{ n: 4, latest: new Date("2027-02-06T11:00:00Z") }];
+        }
+        return fields && "n" in fields ? [{ n: 0 }] : stored;
+      }
+      if (table === judgingRubricItems) return [{ n: 1 }];
+      if (table === judgingEvaluationRatings) return ratings;
+      if (table === judgingJudges) {
+        return [
+          { id: "strict", displayName: "Sam Strict", kind: "member" },
+          { id: "lenient", displayName: "Lee Lenient", kind: "member" },
+        ];
+      }
+      if (table === judgingChallenges) {
+        return [{ id: "ch-1", label: "General" }];
+      }
+      return [];
+    });
+
+  const ratingReads = () =>
+    mockSelect.mock.calls.filter(
+      ([query]) => query.table === judgingEvaluationRatings,
+    ).length;
+
+  it("ranks on the evaluations as they stand, whatever the list has cached", async () => {
+    wire();
+    const getOrSet = vi.spyOn(cache, "getOrSet");
+
+    // The list fills the cache, and a second poll is answered from it.
+    await adminCaller().judging.results.list({ hackathonId: HACK });
+    await adminCaller().judging.results.list({ hackathonId: HACK });
+    expect(ratingReads()).toBe(1);
+    expect(getOrSet).toHaveBeenCalledTimes(2);
+
+    // A rating changes under it, with nothing the cache key could see.
+    ratings = ratings.map((rating) =>
+      rating.evaluationId === "v4" ? { ...rating, value: 1 } : rating,
+    );
+    await adminCaller().judging.results.compute({ hackathonId: HACK });
+
+    // Compute read the ratings itself and did not touch the cache.
+    expect(ratingReads()).toBe(2);
+    expect(getOrSet).toHaveBeenCalledTimes(2);
+    // v4 is the lenient judge's lowest now, so e4 ranks last.
+    expect(placementsInserted().at(-1)?.entryId).toBe("e4");
+    getOrSet.mockRestore();
+  });
+
+  it("reads the ratings again on every compute", async () => {
+    wire();
+
+    await adminCaller().judging.results.compute({ hackathonId: HACK });
+    await adminCaller().judging.results.compute({ hackathonId: HACK });
+
+    expect(ratingReads()).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
 describe("judging.results.list", () => {
+  // What the calibration cache key is read from: the edition's evaluations and
+  // its ranked entries, each a count and a latest save. A test changes one
+  // between two lists to stand for a save, a reopen or a pulled team.
+  const stamps = {
+    evaluations: { n: 4, latest: new Date("2027-02-06T11:00:00Z") } as Record<
+      string,
+      unknown
+    >,
+    entries: { n: 6, latest: new Date("2027-02-06T09:00:00Z") } as Record<
+      string,
+      unknown
+    >,
+  };
+  beforeEach(() => {
+    stamps.evaluations = { n: 4, latest: new Date("2027-02-06T11:00:00Z") };
+    stamps.entries = { n: 6, latest: new Date("2027-02-06T09:00:00Z") };
+  });
+
   const COMPUTED_AT = new Date("2027-02-07T09:00:00Z");
   const placement = (
     id: string,
@@ -400,15 +683,20 @@ describe("judging.results.list", () => {
     /** Complete evaluations, as the calibration summary reads them. */
     evaluations?: unknown[];
     ratings?: unknown[];
+    /** Rating items on the rubric. The fixtures rate one each unless said. */
+    ratingItems?: number;
     judges?: unknown[];
     challenges?: unknown[];
   }) => {
     mockSelect.mockImplementation(({ table, fields }) => {
       if (table === judgingPlacements) return opts.placements;
-      // The stale count reads one column; the calibration summary reads many.
+      // The cache key reads a count and a latest time, the stale count reads
+      // a count alone, and the calibration summary reads many columns.
       if (table === judgingEvaluations) {
+        if (fields && "latest" in fields) return [stamps.evaluations];
         return fields && "n" in fields ? [{ n: 0 }] : (opts.evaluations ?? []);
       }
+      if (table === judgingRubricItems) return [{ n: opts.ratingItems ?? 1 }];
       if (table === judgingEvaluationRatings) return opts.ratings ?? [];
       if (table === judgingJudges) return opts.judges ?? [];
       if (table === judgingChallenges) return opts.challenges ?? [];
@@ -419,7 +707,10 @@ describe("judging.results.list", () => {
           { id: "event-2", name: "Sponsor Talk" },
         ];
       }
-      if (table === judgingEntries) return opts.portal ?? opts.live ?? [];
+      if (table === judgingEntries) {
+        if (fields && "latest" in fields) return [stamps.entries];
+        return opts.portal ?? opts.live ?? [];
+      }
       if (table === judgingEntryMembers) return [];
       return [];
     });
@@ -540,7 +831,6 @@ describe("judging.results.list", () => {
       challengeId,
       judgeId,
       submittedAt: new Date(Date.UTC(2027, 1, 6, 10, minute)),
-      isComplete: true,
     });
     const challenges = [
       { id: "ch-sponsor", label: "Sponsor Prize" },
@@ -646,6 +936,168 @@ describe("judging.results.list", () => {
 
       expect(data.calibration).toEqual([]);
     });
+
+    it("counts a grade submitted at the deadline with every rating, and not one short of a rating", async () => {
+      // Two rating items. g1 is an auto-submit: all its ratings, a response
+      // left empty, so the evaluation is incomplete. g3 stopped after one.
+      const two = [
+        { ...evaluations[0]!, isComplete: false },
+        evaluations[1]!,
+        evaluations[2]!,
+      ];
+      const rated = [
+        { evaluationId: "g1", value: 3 },
+        { evaluationId: "g1", value: 3 },
+        { evaluationId: "g2", value: 3 },
+        { evaluationId: "g2", value: 3 },
+        { evaluationId: "g3", value: 4 },
+      ];
+      wire({
+        placements: [placement("p1", "entry-0")],
+        evaluations: two,
+        ratings: rated,
+        ratingItems: 2,
+        judges,
+        challenges,
+        live,
+      });
+
+      const data = await adminCaller().judging.results.list({
+        hackathonId: HACK,
+      });
+
+      const general = data.calibration.find((c) => c.challenge === "General");
+      expect(general!.judges.map((j) => [j.judgeName, j.grades])).toEqual([
+        ["Sam Strict", 2],
+      ]);
+    });
+
+    describe("cache", () => {
+      const list = () =>
+        adminCaller().judging.results.list({ hackathonId: HACK });
+      // The heavy read: every rating of the edition.
+      const calibrations = () =>
+        mockSelect.mock.calls.filter(
+          ([query]) => query.table === judgingEvaluationRatings,
+        ).length;
+      const setUp = () =>
+        wire({
+          placements: [placement("p1", "entry-0")],
+          evaluations,
+          ratings,
+          judges,
+          challenges,
+          live,
+        });
+
+      it("calibrates once for polls that find nothing changed", async () => {
+        setUp();
+
+        const first = await list();
+        const second = await list();
+        const third = await list();
+
+        expect(calibrations()).toBe(1);
+        expect(second.calibration).toEqual(first.calibration);
+        expect(third.calibration).toEqual(first.calibration);
+        expect(first.calibration.length).toBeGreaterThan(0);
+      });
+
+      it("calibrates again when an evaluation is added or deleted", async () => {
+        setUp();
+        await list();
+
+        stamps.evaluations = { ...stamps.evaluations, n: 5 };
+        await list();
+        expect(calibrations()).toBe(2);
+
+        // Two grades reopened, the newest among them: fewer, and an earlier
+        // latest save.
+        stamps.evaluations = {
+          n: 3,
+          latest: new Date("2027-02-06T10:30:00Z"),
+        };
+        await list();
+        expect(calibrations()).toBe(3);
+      });
+
+      it("calibrates again when an evaluation is edited", async () => {
+        setUp();
+        await list();
+
+        // Same count, saved later.
+        stamps.evaluations = {
+          ...stamps.evaluations,
+          latest: new Date("2027-02-06T11:05:00Z"),
+        };
+        await list();
+
+        expect(calibrations()).toBe(2);
+      });
+
+      it("calibrates again when a team is pulled from prizes or put back", async () => {
+        setUp();
+        await list();
+
+        stamps.entries = { n: 5, latest: new Date("2027-02-07T08:00:00Z") };
+        await list();
+        expect(calibrations()).toBe(2);
+
+        // Back in, a moment later: the count is as it was, the time is not.
+        stamps.entries = { n: 6, latest: new Date("2027-02-07T08:01:00Z") };
+        await list();
+        expect(calibrations()).toBe(3);
+      });
+
+      it("keys the result by edition and by what it was computed from", async () => {
+        setUp();
+        const getOrSet = vi.spyOn(cache, "getOrSet");
+
+        await list();
+
+        expect(getOrSet).toHaveBeenCalledTimes(1);
+        const [key, , ttl] = getOrSet.mock.calls[0]!;
+        const latest = (stamps.evaluations.latest as Date).getTime();
+        const entries = (stamps.entries.latest as Date).getTime();
+        expect(key).toBe(
+          `judging:${HACK}:calibration:4:${latest}:6:${entries}`,
+        );
+        expect(ttl).toBe(60);
+        getOrSet.mockRestore();
+      });
+
+      it("does not share a result between editions", async () => {
+        setUp();
+        await list();
+
+        await adminCaller().judging.results.list({
+          hackathonId: "99999999-9999-4999-8999-999999999999",
+        });
+
+        expect(calibrations()).toBe(2);
+      });
+
+      it("keeps the result for a minute and no longer", async () => {
+        setUp();
+        const getOrSet = vi.spyOn(cache, "getOrSet");
+        await list();
+        const key = getOrSet.mock.calls[0]![0];
+        getOrSet.mockRestore();
+
+        // Only the clock the cache reads is moved: the router's own rate
+        // limiter keeps real time.
+        const clock = vi.spyOn(Date, "now");
+        const now = Date.now();
+        try {
+          clock.mockReturnValue(now + 59_000);
+          expect(cache.has(key)).toBe(true);
+          clock.mockReturnValue(now + 61_000);
+          expect(cache.has(key)).toBe(false);
+        } finally {
+          clock.mockRestore();
+        }
+      });
+    });
   });
 
   it("reads no flags when nothing is placed", async () => {
@@ -658,6 +1110,167 @@ describe("judging.results.list", () => {
     expect(data.scopes).toEqual([]);
     const tables = mockSelect.mock.calls.map(([query]) => query.table);
     expect(tables).not.toContain(hackathonCheckInFlags);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("the organiser's evaluation views with a grade short of a response", () => {
+  const APPOINTMENT = "33333333-3333-4333-8333-333333333333";
+  const at = new Date("2027-02-06T11:00:00Z");
+  // A rubric of two rating items. Judge A's grade was submitted at the
+  // deadline with both ratings and a response left empty. B's is whole. C's
+  // stopped after one rating.
+  const evaluations = [
+    {
+      id: "eval-a",
+      entryId: "entry-1",
+      title: "Project 1",
+      challengeId: "ch-1",
+      challenge: "General",
+      judgeId: "judge-a",
+      judgeName: "Ada Auto",
+      kind: "member",
+      appointmentId: APPOINTMENT,
+      isComplete: false,
+      revision: 1,
+      submittedAt: at,
+      autoSubmittedAt: at,
+      updatedAt: at,
+    },
+    {
+      id: "eval-b",
+      entryId: "entry-1",
+      title: "Project 1",
+      challengeId: "ch-1",
+      challenge: "General",
+      judgeId: "judge-b",
+      judgeName: "Bea Whole",
+      kind: "member",
+      appointmentId: APPOINTMENT,
+      isComplete: true,
+      revision: 1,
+      submittedAt: at,
+      autoSubmittedAt: null,
+      updatedAt: at,
+    },
+    {
+      id: "eval-c",
+      entryId: "entry-1",
+      title: "Project 1",
+      challengeId: "ch-1",
+      challenge: "General",
+      judgeId: "judge-c",
+      judgeName: "Cy Short",
+      kind: "member",
+      appointmentId: APPOINTMENT,
+      isComplete: false,
+      revision: 1,
+      submittedAt: at,
+      autoSubmittedAt: at,
+      updatedAt: at,
+    },
+  ];
+  const rating = (
+    evaluationId: string,
+    item: "one" | "two",
+    value: number,
+  ) => ({
+    evaluationId,
+    itemId: `item-${item}`,
+    label: item === "one" ? "Impact" : "Craft",
+    value,
+  });
+  const ratings = [
+    rating("eval-a", "one", 5),
+    rating("eval-a", "two", 3),
+    rating("eval-b", "one", 4),
+    rating("eval-b", "two", 4),
+    rating("eval-c", "one", 2),
+  ];
+
+  const wire = () =>
+    mockSelect.mockImplementation(({ table, fields }) => {
+      if (table === judgingEvaluationDrafts) return [];
+      if (table === judgingRubricItems) return [{ n: 2 }];
+      if (table === judgingEvaluationRatings) return ratings;
+      if (table === judgingEvaluationResponses) return [];
+      if (table === judgingAppointments) {
+        return [
+          {
+            id: APPOINTMENT,
+            entryId: "entry-1",
+            challengeId: "ch-1",
+            startsAt: at,
+            endsAt: at,
+            title: "Project 1",
+            challenge: "General",
+            room: "Table 1",
+            building: null,
+          },
+        ];
+      }
+      if (table === judgingEvaluations) {
+        // The "elsewhere" check reads the id alone; the rest read the judge.
+        return fields && "judgeName" in fields ? evaluations : [];
+      }
+      return [];
+    });
+
+  describe("appointmentResults", () => {
+    const results = () =>
+      adminCaller().judging.results.appointmentResults({
+        hackathonId: HACK,
+        appointmentId: APPOINTMENT,
+      });
+
+    it("counts a grade with every rating, whether or not it is complete", async () => {
+      wire();
+
+      const data = await results();
+
+      const byName = Object.fromEntries(
+        data.judges.map((judge) => [judge.judgeName, judge]),
+      );
+      expect(byName["Ada Auto"]).toMatchObject({
+        status: "incomplete",
+        autoSubmitted: true,
+        counted: true,
+        score: 4,
+      });
+      expect(byName["Ada Auto"]!.ratings.map((r) => r.value)).toEqual([5, 3]);
+      expect(byName["Bea Whole"]).toMatchObject({
+        status: "complete",
+        counted: true,
+        score: 4,
+      });
+    });
+
+    it("leaves a grade short of a rating out of the score and the average", async () => {
+      wire();
+
+      const data = await results();
+
+      const short = data.judges.find((judge) => judge.judgeName === "Cy Short");
+      expect(short).toMatchObject({ counted: false, score: null, ratings: [] });
+      expect(data.countedCount).toBe(2);
+      expect(data.average).toBe(4);
+    });
+  });
+
+  describe("evaluationAudit", () => {
+    it("says which evaluations the placings count", async () => {
+      wire();
+
+      const rows = await adminCaller().judging.results.evaluationAudit({
+        hackathonId: HACK,
+      });
+
+      expect(rows.map((row) => [row.id, row.isComplete, row.counted])).toEqual([
+        ["eval-a", false, true],
+        ["eval-b", true, true],
+        ["eval-c", false, false],
+      ]);
+    });
   });
 });
 

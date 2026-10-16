@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { K_A, K_B, K_D, calibrate } from "./calibration";
+import { K_A, K_B, K_D, MIN_DRIFT_GRADES, calibrate } from "./calibration";
 import type { CalibrationEvaluation } from "./calibration";
 
 // A small seeded generator (mulberry32), so every dataset below is the same on
@@ -40,7 +40,7 @@ const evaluation = (
   challengeId: "general",
   entryId: `entry-${id}`,
   submittedAt: new Date(DAY),
-  isComplete: true,
+  ratingsComplete: true,
   ratings: [score],
   ...over,
 });
@@ -151,7 +151,8 @@ function slopeOf(values: readonly number[]) {
 
 describe("calibrate", () => {
   it("uses the documented pseudo-evaluation counts", () => {
-    expect([K_A, K_B, K_D]).toEqual([3, 6, 10]);
+    expect([K_A, K_B, K_D]).toEqual([3, 6, 150]);
+    expect(MIN_DRIFT_GRADES).toBe(20);
   });
 
   it("returns nothing for no evaluations", () => {
@@ -182,10 +183,10 @@ describe("calibrate", () => {
     expect(result.adjusted.get("a")).toBeCloseTo(4, 10);
   });
 
-  it("ignores incomplete evaluations and ones with no ratings", () => {
+  it("ignores evaluations short of a rating and ones with no ratings", () => {
     const result = calibrate([
       evaluation("done", "judge", 4),
-      evaluation("draft", "judge", 1, { isComplete: false }),
+      evaluation("short", "judge", 1, { ratingsComplete: false }),
       evaluation("blank", "judge", 0, { ratings: [] }),
     ]);
     expect([...result.adjusted.keys()]).toEqual(["done"]);
@@ -351,40 +352,149 @@ describe("calibrate", () => {
     });
     const result = calibrate(evaluations);
 
-    it("is detrended in grading order", () => {
-      const mine = evaluations
-        .filter((e) => e.judgeId === "tiring")
-        .sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime());
+    const mine = evaluations
+      .filter((e) => e.judgeId === "tiring")
+      .sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime());
+    const grades = mine.length;
+    // What shrink leaves of a fitted trend with this many grades.
+    const trusted = grades / (grades + K_D);
+
+    it("is detrended in grading order, by the shrunk trend", () => {
       const before = slopeOf(mine.map(scoreOf));
       const after = slopeOf(
         mine.map((e) => result.adjusted.get(e.id) as number),
       );
       expect(before).toBeLessThan(-0.04);
-      expect(Math.abs(after)).toBeLessThan(Math.abs(before) * 0.4);
+      expect(Math.abs(after)).toBeLessThan(Math.abs(before));
+      expect(after * before).toBeGreaterThan(0);
+      // Only the trusted share of the trend is taken out (spread and offset
+      // rescale what is left, so this is not exact).
+      expect(Math.abs(after)).toBeGreaterThan(
+        Math.abs(before) * (1 - trusted) * 0.7,
+      );
     });
 
     it("reports a drift that is negative for a judge who got harsher", () => {
       const tiring = result.judges.find((j) => j.judgeId === "tiring");
       const steady = result.judges.find((j) => j.judgeId === "steady");
-      // Lost about 0.05 a grade over 44 grades, less the shrink.
-      expect(tiring?.drift).toBeLessThan(-1.2);
-      expect(Math.abs(steady?.drift ?? 1)).toBeLessThan(0.7);
+      // It is the fitted drift over the whole day, times the share trusted.
+      expect(tiring?.drift).toBeCloseTo(
+        slopeOf(mine.map(scoreOf)) * (grades - 1) * trusted,
+        9,
+      );
+      expect(tiring?.drift).toBeLessThan(-0.3);
+      expect(Math.abs(steady?.drift ?? 1)).toBeLessThan(0.3);
     });
   });
 
   it("breaks a tie in submission time by id when ordering a judge's grades", () => {
-    const climbing = calibrate([
-      evaluation("a", "judge", 1),
-      evaluation("b", "judge", 3),
-      evaluation("c", "judge", 5),
-    ]);
-    const falling = calibrate([
-      evaluation("c", "judge", 1),
-      evaluation("b", "judge", 3),
-      evaluation("a", "judge", 5),
-    ]);
+    // Twenty grades at one instant, so the ids alone say which came first.
+    const day = (idOf: (position: number) => string) =>
+      calibrate(
+        Array.from({ length: MIN_DRIFT_GRADES }, (_, position) =>
+          evaluation(
+            idOf(position),
+            "judge",
+            1 + (4 * position) / (MIN_DRIFT_GRADES - 1),
+          ),
+        ),
+      );
+    const id = (n: number) => `g${String(n).padStart(2, "0")}`;
+    const climbing = day((position) => id(position));
+    const falling = day((position) => id(MIN_DRIFT_GRADES - 1 - position));
     expect(climbing.judges[0]?.drift).toBeGreaterThan(0);
     expect(falling.judges[0]?.drift).toBeLessThan(0);
+  });
+
+  describe("drift tuning", () => {
+    // Simulated days: pools of 80 judges who each grade `grades` projects in
+    // turn, three pools per size, so every number below is over 240 judges and
+    // the same on every run. Project quality varies by about 0.7 of a point
+    // and a judge adds 0.2 of noise (pool above). `reported` is the drift
+    // calibrate removes from each judge; `raw` is the unshrunk least-squares
+    // drift from first grade to last, taken from the same scores.
+    const day = (grades: number, drift: number) => {
+      const reported: number[] = [];
+      const raw: number[] = [];
+      for (const seed of [1, 2, 3]) {
+        const { evaluations } = pool({
+          projects: 80 * grades,
+          judges: Array.from({ length: 80 }, (_, i) => ({
+            judgeId: `j${i}`,
+            drift: drift / (grades - 1),
+          })),
+          seed: 1000 * grades + seed,
+        });
+        const byJudge = new Map<string, number[]>();
+        for (const e of [...evaluations].sort(
+          (a, b) => a.submittedAt.getTime() - b.submittedAt.getTime(),
+        )) {
+          byJudge.set(e.judgeId, [
+            ...(byJudge.get(e.judgeId) ?? []),
+            scoreOf(e),
+          ]);
+        }
+        for (const judge of calibrate(evaluations).judges) {
+          reported.push(judge.drift);
+          raw.push(
+            slopeOf(byJudge.get(judge.judgeId) as number[]) * (grades - 1),
+          );
+        }
+      }
+      return { reported, raw };
+    };
+    const meanOf = (values: readonly number[]) =>
+      values.reduce((sum, value) => sum + value, 0) / values.length;
+
+    // From the shortest day that is fitted to the longest there is.
+    const sizes = [MIN_DRIFT_GRADES, 30, 45, 60, 100];
+
+    it.each(sizes)(
+      "invents under 0.1 of a point of drift for a judge with none, at %i grades",
+      (grades) => {
+        const { reported, raw } = day(grades, 0);
+        expect(sdOf(reported)).toBeLessThan(0.1);
+        // The same judges under the old K_D = 10, which the review measured at
+        // about 0.33.
+        const old = raw.map((d) => (d * grades) / (grades + 10));
+        expect(sdOf(old)).toBeGreaterThan(0.2);
+      },
+    );
+
+    it.each(sizes)(
+      "takes out the share n / (n + K_D) of a real drift, at %i grades",
+      (grades) => {
+        for (const drift of [0.5, 1]) {
+          const { reported, raw } = day(grades, drift);
+          // The fit itself is unbiased: the raw drifts average the real one.
+          expect(Math.abs(meanOf(raw) - drift)).toBeLessThan(0.1);
+          const removed = meanOf(reported) / drift;
+          expect(Math.abs(removed - grades / (grades + K_D))).toBeLessThan(
+            0.07,
+          );
+        }
+      },
+    );
+
+    it("does not fit a drift below the fewest grades", () => {
+      const grades = MIN_DRIFT_GRADES - 1;
+      const { evaluations } = pool({
+        projects: 20 * grades,
+        judges: Array.from({ length: 20 }, (_, i) => ({
+          judgeId: `j${i}`,
+          drift: -3 / (grades - 1),
+        })),
+        seed: 7,
+      });
+      const result = calibrate(evaluations);
+      expect(result.judges.every((judge) => judge.drift === 0)).toBe(true);
+      // Nothing detrended: with one habit shared by every judge, the offset and
+      // spread are the only other corrections, and they are about 0 here.
+      const moved = evaluations.map((e) =>
+        Math.abs((result.adjusted.get(e.id) as number) - scoreOf(e)),
+      );
+      expect(meanOf(moved)).toBeLessThan(0.25);
+    });
   });
 
   it("barely corrects a judge with a single grade", () => {

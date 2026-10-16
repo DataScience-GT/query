@@ -10,11 +10,12 @@ type Numbers = Pick<CalibratedJudge, "grades" | "offset" | "spread" | "drift">;
 // out loud. Offset and drift are in rating points; spread is a multiple of the
 // pool's, so 1 is the same. Chance alone moves them for a judge with no habit
 // at all (which projects they drew, and in what order), by about 0.1 for the
-// offset and 0.3 for the drift over thirty grades, so these sit about twice
-// that above zero.
+// offset over thirty grades and under 0.1 for the drift (the API shrinks it to
+// that, and fits none below twenty grades), so these sit about twice that
+// above zero.
 const OFFSET_NOTICED = 0.2;
 const SPREAD_NOTICED = 0.15;
-const DRIFT_NOTICED = 0.6;
+const DRIFT_NOTICED = 0.2;
 // With fewer grades than this the correction is mostly shrunk away.
 const FEW_GRADES = 3;
 

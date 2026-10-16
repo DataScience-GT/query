@@ -1,5 +1,5 @@
 // Turns evaluations into placings: one ranking per challenge and one overall.
-// A project's score is the mean of its complete evaluations (scoring.ts), each
+// A project's score is the mean of its counted evaluations (scoring.ts), each
 // calibrated for its judge's habits first (calibration.ts); equal scores share
 // a placing. The raw mean is kept beside it. Projects nobody scored are left
 // out rather than listed last, since a placing is published and "8th of 8" for
@@ -14,6 +14,8 @@ export const OVERALL_SCOPE = "overall";
 export const OVERALL_LABEL = "Overall";
 
 export type PlacementEvaluation = ScoredEvaluation & {
+  /** Calibration counts evaluations by this alone. */
+  ratingsComplete: boolean;
   id: string;
   entryId: string;
   judgeId: string;
@@ -46,7 +48,7 @@ export function computePlacements(input: {
   const entryIds = [...new Set(input.entryIds)].sort();
   const live = new Set(entryIds);
 
-  // Calibrated once, over every complete evaluation of a live entry, so a
+  // Calibrated once, over every counted evaluation of a live entry, so a
   // judge's habits are learned from all of their grades and not from the
   // slice that fell in one scope.
   const liveEvaluations = input.evaluations.filter((evaluation) =>
