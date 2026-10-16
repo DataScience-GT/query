@@ -546,7 +546,7 @@ describe("reading flags", () => {
     });
 
     it("still lists a flag when both events were deleted", async () => {
-      const { db } = fakeReadDb(
+      const { db, calls } = fakeReadDb(
         table(
           [
             hackathonCheckInFlags,
@@ -574,6 +574,8 @@ describe("reading flags", () => {
         conflictEventName: "A deleted event",
         dismissed: false,
       });
+      // With no event ids left there is nothing to look up.
+      expect(calls.some((c) => c.table === hackathonEvents)).toBe(false);
     });
 
     it("falls back to the account name, then the email, when the registration has none", async () => {

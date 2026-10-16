@@ -317,10 +317,12 @@ export async function checkInFlagsForEntries(
     ),
   ];
   const [events, entriesByFlag] = await Promise.all([
-    db
-      .select({ id: hackathonEvents.id, name: hackathonEvents.name })
-      .from(hackathonEvents)
-      .where(inArray(hackathonEvents.id, eventIds)),
+    eventIds.length === 0
+      ? []
+      : db
+          .select({ id: hackathonEvents.id, name: hackathonEvents.name })
+          .from(hackathonEvents)
+          .where(inArray(hackathonEvents.id, eventIds)),
     entriesFor(db, hackathonId, rows),
   ]);
   const eventName = new Map(events.map((event) => [event.id, event.name]));
