@@ -60,6 +60,7 @@ import type {
   Itinerary,
   VisibleChallenge,
 } from "../../services/judging/itinerary";
+import { holdsEveryRating } from "../../services/judging/scoring-sql";
 
 const hackathonInput = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -642,7 +643,7 @@ export const judgingHackerRouter = createTRPCRouter({
             judgeId: judgingEvaluations.judgeId,
             challengeId: judgingEvaluations.challengeId,
             appointmentId: judgingEvaluations.appointmentId,
-            isComplete: judgingEvaluations.isComplete,
+            ratingsComplete: holdsEveryRating(input.hackathonId),
           })
           .from(judgingEvaluations)
           .where(
@@ -694,9 +695,9 @@ export const judgingHackerRouter = createTRPCRouter({
       return { ...state, entry, challenges: visible, ...itinerary };
     }),
 
-  // Written feedback on the caller's project: public responses from member
-  // judges' complete evaluations. No judge names and no scores. Hidden in
-  // emergency mode.
+  // Written feedback on the caller's project: public responses that exist, from
+  // member judges' evaluations that hold every rating (the ones placings
+  // count). No judge names and no scores. Hidden in emergency mode.
   feedback: protectedProcedure
     .input(hackathonInput)
     .query(async ({ ctx, input }) => {
@@ -725,7 +726,7 @@ export const judgingHackerRouter = createTRPCRouter({
           and(
             eq(judgingEvaluations.hackathonId, input.hackathonId),
             eq(judgingEvaluations.entryId, held.entryId),
-            eq(judgingEvaluations.isComplete, true),
+            holdsEveryRating(input.hackathonId),
             eq(judgingJudges.kind, "member"),
           ),
         );

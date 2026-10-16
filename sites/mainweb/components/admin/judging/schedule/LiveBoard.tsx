@@ -21,6 +21,7 @@ import { ErrorLine, plural } from "@/components/admin/judging/shared";
 import {
   clock,
   fieldsFromTiming,
+  JUDGE_PROGRESS,
   STATUS,
   STATUS_ORDER,
   windowLabel,
@@ -352,6 +353,13 @@ export function LiveBoard({
                   <span className={meta}>
                     Judge: {a.assignedJudgeName ?? "none"}
                   </span>
+                  {a.judgeProgress && (
+                    <span
+                      className={status(JUDGE_PROGRESS[a.judgeProgress].tone)}
+                    >
+                      {JUDGE_PROGRESS[a.judgeProgress].label}
+                    </span>
+                  )}
                   {a.canAssignJudge && (
                     <button
                       type="button"

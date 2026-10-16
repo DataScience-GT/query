@@ -1,7 +1,9 @@
 /**
  * judging.admin.reopenGrade: an organiser deletes one judge's evaluation, and
  * any draft for the same project and challenge, so the project is open for
- * another judge. Refused once results are published.
+ * another judge. The edition's draft placings were ranked with that grade, so
+ * they go in the same transaction and results have to be computed again
+ * before they can be published. Refused once results are published.
  *
  * The schema is the real one; only the database handle is a stand-in, handed
  * to the router through the context the way check-in-flags-organizer.test.ts
@@ -84,10 +86,22 @@ const fakeDb: any = {
     events.push(event);
     const chain: any = {
       then: (onOk: any, onErr: any) => {
-        // The published check counts placements that carry a publish time.
+        // Counts of placements: those that carry a publish time (the published
+        // check), or every one of the edition's (what publish finds to publish).
+        const placings = () => {
+          const { sql: text, params } = render(event.where);
+          const count = text.includes('"published_at" is not null')
+            ? published
+              ? 3
+              : 0
+            : (store.get(judgingPlacements) ?? []).filter((row) =>
+                params.includes(row.hackathonId),
+              ).length;
+          return [{ value: count, n: count }];
+        };
         const rows =
           event.table === judgingPlacements
-            ? [{ value: published ? 3 : 0 }]
+            ? placings()
             : rowsOf(event.table, event.where);
         return Promise.resolve(rows).then(onOk, onErr);
       },
@@ -134,7 +148,25 @@ const fakeDb: any = {
   delete: (table: unknown) => ({
     where: (where: unknown) => {
       events.push({ kind: "delete", table, where });
-      return Promise.resolve([]);
+      // The placings the delete takes: this edition's that carry no publish
+      // time, which the fake reads off the condition's parameters.
+      const hit =
+        table === judgingPlacements
+          ? (store.get(table) ?? []).filter(
+              (row) =>
+                render(where).params.includes(row.hackathonId) &&
+                row.publishedAt === null,
+            )
+          : [];
+      if (table === judgingPlacements) {
+        store.set(
+          table,
+          (store.get(table) ?? []).filter((row) => !hit.includes(row)),
+        );
+      }
+      return Object.assign(Promise.resolve([]), {
+        returning: async () => hit.map((row) => ({ id: row.id })),
+      });
     },
   }),
   transaction: async (callback: (tx: unknown) => unknown) => callback(fakeDb),
@@ -214,6 +246,11 @@ beforeEach(() => {
       isComplete: true,
     },
   ]);
+  store.set(judgingPlacements, [
+    { id: "p1", hackathonId: HACK_A, scope: "overall", publishedAt: null },
+    { id: "p2", hackathonId: HACK_A, scope: CHALLENGE, publishedAt: null },
+    { id: "p3", hackathonId: HACK_B, scope: "overall", publishedAt: null },
+  ]);
   store.set(judgingEvaluationDrafts, [
     { id: DRAFT_1, entryId: ENTRY, challengeId: CHALLENGE },
     { id: DRAFT_2, entryId: ENTRY, challengeId: CHALLENGE },
@@ -223,10 +260,14 @@ beforeEach(() => {
 
 describe("judging.admin.reopenGrade", () => {
   it("deletes the evaluation and every draft for the project and challenge", async () => {
-    await expect(reopen()).resolves.toEqual({ reopened: true, drafts: 2 });
+    await expect(reopen()).resolves.toEqual({
+      reopened: true,
+      drafts: 2,
+      placings: 2,
+    });
 
     const [draftDelete, evaluationDelete] = deletes();
-    expect(deletes()).toHaveLength(2);
+    expect(deletes()).toHaveLength(3);
     expect(draftDelete!.table).toBe(judgingEvaluationDrafts);
     expect(render(draftDelete!.where).params).toEqual([DRAFT_1, DRAFT_2]);
     expect(evaluationDelete!.table).toBe(judgingEvaluations);
@@ -236,9 +277,15 @@ describe("judging.admin.reopenGrade", () => {
   it("deletes an evaluation with no draft beside it", async () => {
     store.set(judgingEvaluationDrafts, []);
 
-    await expect(reopen()).resolves.toEqual({ reopened: true, drafts: 0 });
+    await expect(reopen()).resolves.toMatchObject({
+      reopened: true,
+      drafts: 0,
+    });
 
-    expect(deletes().map((event) => event.table)).toEqual([judgingEvaluations]);
+    expect(deletes().map((event) => event.table)).toEqual([
+      judgingEvaluations,
+      judgingPlacements,
+    ]);
   });
 
   it("locks the drafts, then the project's grading lock, before it deletes", async () => {
@@ -262,6 +309,45 @@ describe("judging.admin.reopenGrade", () => {
     expect(draftLock).toBeGreaterThan(configLock);
     expect(gradingLock).toBeGreaterThan(draftLock);
     expect(firstDelete).toBeGreaterThan(gradingLock);
+  });
+
+  it("deletes the edition's draft placings once the grade is gone, and no other edition's", async () => {
+    await expect(reopen()).resolves.toMatchObject({ placings: 2 });
+
+    const [, evaluationDelete, placingDelete] = deletes();
+    expect(evaluationDelete!.table).toBe(judgingEvaluations);
+    expect(placingDelete!.table).toBe(judgingPlacements);
+    const query = render(placingDelete!.where);
+    expect(query.params).toEqual([HACK_A]);
+    expect(query.sql).toContain('"judging_placement"."hackathon_id" = $1');
+    expect(query.sql).toContain('"published_at" is null');
+    expect(store.get(judgingPlacements)!.map((row) => row.id)).toEqual(["p3"]);
+  });
+
+  it("leaves nothing to publish until results are computed again", async () => {
+    const publish = () =>
+      admin().judging.results.publish({ hackathonId: HACK_A });
+
+    // The draft placings as computed, with the grade in them.
+    await expect(publish()).resolves.toMatchObject({ publishedAt: expect.any(Date) });
+
+    await reopen();
+
+    await expect(publish()).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+      message: expect.stringContaining(
+        "Reopening a grade clears the draft placings, so compute again after one.",
+      ),
+    });
+  });
+
+  it("reports none cleared when results were never computed", async () => {
+    store.set(judgingPlacements, []);
+
+    await expect(reopen()).resolves.toMatchObject({
+      reopened: true,
+      placings: 0,
+    });
   });
 
   it("refuses once results are published, and deletes nothing", async () => {
@@ -293,7 +379,7 @@ describe("judging.admin.reopenGrade", () => {
 
     await expect(reopen()).resolves.toMatchObject({ reopened: true });
 
-    expect(deletes()).toHaveLength(2);
+    expect(deletes()).toHaveLength(3);
   });
 
   it("does not reach an evaluation of another edition", async () => {
@@ -328,6 +414,7 @@ describe("judging.admin.reopenGrade", () => {
           revision: 2,
           wasComplete: false,
           draftsDeleted: 2,
+          placingsDeleted: 2,
         },
       }),
     ]);

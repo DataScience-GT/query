@@ -93,6 +93,7 @@ import {
   stateChangeProblem,
 } from "../../services/judging/checklist";
 import { notifyItineraryPosted } from "../../services/judging/notify";
+import { holdsEveryRating } from "../../services/judging/scoring-sql";
 import {
   checkInFlagsForEntries,
   flaggedEntryIds,
@@ -377,7 +378,8 @@ export const judgingAdminRouter = createTRPCRouter({
       db
         .select({
           total: count(),
-          complete: sql<number>`count(*) filter (where ${judgingEvaluations.isComplete})::int`,
+          // The ones placings count: every rating in, written response or not.
+          complete: sql<number>`count(*) filter (where ${holdsEveryRating(id)})::int`,
         })
         .from(judgingEvaluations)
         .where(eq(judgingEvaluations.hackathonId, id)),
@@ -718,7 +720,7 @@ export const judgingAdminRouter = createTRPCRouter({
                 .where(
                   and(
                     inArray(judgingEvaluations.entryId, ids),
-                    eq(judgingEvaluations.isComplete, true),
+                    holdsEveryRating(input.hackathonId),
                   ),
                 )
                 .groupBy(judgingEvaluations.entryId),
@@ -2545,8 +2547,12 @@ export const judgingAdminRouter = createTRPCRouter({
    * ratings, responses and revisions go with the evaluation by cascade. Allowed
    * while judging is closed, as setPrizeEligibility is: closing freezes judges'
    * writes, not the organiser's decisions on a project. No judge can grade the
-   * project until judging is open again. The draft placings still hold the old
-   * grade until results are computed again.
+   * project until judging is open again.
+   *
+   * The draft placings were ranked with the grade in them, in its challenge
+   * and overall, and a judge's calibration moved with it, so every draft
+   * placing is deleted in the same transaction. Publishing needs a compute
+   * after the project is graded again; until then there is nothing to publish.
    *
    * Refused while results are published: the public list was ranked on it.
    */
@@ -2619,8 +2625,21 @@ export const judgingAdminRouter = createTRPCRouter({
         await tx
           .delete(judgingEvaluations)
           .where(eq(judgingEvaluations.id, input.evaluationId));
+        const placings = await tx
+          .delete(judgingPlacements)
+          .where(
+            and(
+              eq(judgingPlacements.hackathonId, input.hackathonId),
+              isNull(judgingPlacements.publishedAt),
+            ),
+          )
+          .returning({ id: judgingPlacements.id });
 
-        return { ...evaluation, drafts: drafts.length };
+        return {
+          ...evaluation,
+          drafts: drafts.length,
+          placings: placings.length,
+        };
       });
 
       await recordAdminAction(db, {
@@ -2636,9 +2655,15 @@ export const judgingAdminRouter = createTRPCRouter({
           revision: reopened.revision,
           wasComplete: reopened.isComplete,
           draftsDeleted: reopened.drafts,
+          placingsDeleted: reopened.placings,
         },
       });
-      return { reopened: true, drafts: reopened.drafts };
+      return {
+        reopened: true,
+        drafts: reopened.drafts,
+        /** Draft placings cleared with it: compute again once it is regraded. */
+        placings: reopened.placings,
+      };
     }),
 
   // ---------------------------------------------------------------------

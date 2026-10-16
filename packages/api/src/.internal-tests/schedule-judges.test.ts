@@ -436,6 +436,160 @@ describe("judging.schedule.get", () => {
 });
 
 // ---------------------------------------------------------------------------
+describe("judging.schedule.get: where each assigned judge has got", () => {
+  const evaluation = (
+    judgeId: string,
+    entryId: string,
+    challengeId: string,
+    appointmentId: string | null,
+    ratingsComplete = true,
+  ) => ({ judgeId, entryId, challengeId, appointmentId, ratingsComplete });
+  const draft = (
+    judgeId: string,
+    entryId: string,
+    challengeId: string,
+    appointmentId: string | null,
+    updatedAt = NOW,
+  ) => ({ judgeId, entryId, challengeId, appointmentId, updatedAt });
+
+  // The clock stays at 15:00: the rate limiter reads it, and a clock that
+  // runs backwards between tests starves its bucket. Presentations start
+  // earlier instead.
+  const startAt = (apptId: string, time: string) => {
+    store.get(judgingAppointments)!.find((a) => a.id === apptId)!.startsAt =
+      at(time);
+  };
+
+  const progress = async () => {
+    const board = await admin().judging.schedule.get({ hackathonId: HACK });
+    return Object.fromEntries(
+      board.appointments.map((a) => [a.id, a.judgeProgress]),
+    );
+  };
+
+  it("tells graded, grading, taken over and not started apart, and leaves the rest blank", async () => {
+    // It is 15:00: P1 is over, P2 and P3 began long enough ago for the
+    // takeover time to have passed and P4 is still to come.
+    startAt(P2, "14:10");
+    startAt(P3, "14:20");
+    give(P1, M1);
+    give(P2, M1);
+    give(P3, M2);
+    give(P4, GS);
+    store.set(judgingEvaluations, [
+      // Ada graded P1.
+      evaluation(M1, E1, GENERAL, P1),
+      // Bea graded P2, which was Ada's.
+      evaluation(M2, E2, GENERAL, P2),
+    ]);
+
+    await expect(progress()).resolves.toEqual({
+      [P1]: "graded",
+      [P2]: "taken_over",
+      // Nobody has begun it and Bea had 5 minutes.
+      [P3]: "not_started",
+      // Not started yet.
+      [P4]: null,
+    });
+
+    // A draft is a start.
+    store.set(judgingEvaluations, []);
+    store.set(judgingEvaluationDrafts, [
+      draft(M2, E3, GENERAL, P3),
+      draft(M2, E2, GENERAL, P2),
+    ]);
+    await expect(progress()).resolves.toMatchObject({
+      [P1]: "not_started",
+      // Ada's, with Bea's draft on it.
+      [P2]: "taken_over",
+      // Bea's own.
+      [P3]: "grading",
+    });
+  });
+
+  it("gives the assigned judge five minutes from the start before it flags them", async () => {
+    give(P2, M1);
+    startAt(P2, "14:56");
+    await expect(progress()).resolves.toMatchObject({ [P2]: null });
+    startAt(P2, "14:55");
+    await expect(progress()).resolves.toMatchObject({ [P2]: "not_started" });
+  });
+
+  it("does not count a draft left without its deadline once the presentation is over", async () => {
+    // P1's deadline was 14:00. Ada only opened it, so her empty draft was
+    // kept without its deadline and will never be submitted.
+    give(P1, M1);
+    store.set(judgingEvaluationDrafts, [
+      { ...draft(M1, E1, GENERAL, P1, at("13:58")), deadlineAt: null },
+    ]);
+    await expect(progress()).resolves.toMatchObject({ [P1]: "not_started" });
+
+    // Still carrying it: due, and about to be submitted for her.
+    store.set(judgingEvaluationDrafts, [
+      { ...draft(M1, E1, GENERAL, P1, at("13:58")), deadlineAt: at("14:00") },
+    ]);
+    await expect(progress()).resolves.toMatchObject({ [P1]: "grading" });
+  });
+
+  it("matches evaluations and drafts to the presentation the way the board does", async () => {
+    startAt(P2, "14:10");
+    startAt(P3, "14:20");
+    give(P2, M1);
+    give(P3, M1);
+    store.set(judgingEvaluations, [
+      // Names P2, whatever its challenge.
+      evaluation(M1, E2, ACME, P2),
+      // Names no slot: the project and a challenge under P3's root.
+      evaluation(M1, E3, GENERAL, null),
+    ]);
+    // Another project's evaluation, and a slot P3 was moved from.
+    store.set(judgingEvaluationDrafts, [
+      draft(M2, E2, GENERAL, P3),
+      draft(M2, E1, GENERAL, null),
+    ]);
+
+    await expect(progress()).resolves.toMatchObject({
+      [P2]: "graded",
+      [P3]: "graded",
+    });
+  });
+
+  it("leaves a presentation with no judge, or whose project is gone, blank", async () => {
+    startAt(P2, "14:10");
+    startAt(P3, "14:20");
+    give(P2, M1);
+    store.get(judgingAppointments)!.find((a) => a.id === P2)!.entryDeletedAt =
+      NOW;
+    store.set(judgingEvaluations, [evaluation(M2, E1, GENERAL, P1)]);
+
+    const board = await admin().judging.schedule.get({ hackathonId: HACK });
+    expect(
+      board.appointments.map((a) => [a.id, a.removed, a.judgeProgress]),
+    ).toEqual([
+      // Graded by someone, but nobody was assigned.
+      [P1, false, null],
+      [P2, true, null],
+      [P3, false, null],
+      [P4, false, null],
+    ]);
+  });
+
+  it("reads a presentation's status from evaluations that hold every rating", async () => {
+    store.set(judgingEvaluations, [evaluation(M1, E1, GENERAL, P1, false)]);
+    const short = await admin().judging.schedule.get({ hackathonId: HACK });
+    expect(short.appointments[0]).toMatchObject({
+      id: P1,
+      status: "incomplete",
+      evaluationCount: 1,
+    });
+
+    store.set(judgingEvaluations, [evaluation(M1, E1, GENERAL, P1, true)]);
+    const whole = await admin().judging.schedule.get({ hackathonId: HACK });
+    expect(whole.appointments[0]).toMatchObject({ id: P1, status: "complete" });
+  });
+});
+
+// ---------------------------------------------------------------------------
 describe("judging.schedule.assignJudges", () => {
   const run = () =>
     admin().judging.schedule.assignJudges({ hackathonId: HACK });

@@ -397,7 +397,7 @@ function EntryRow({
           {(entry.appointments > 0 || entry.completeEvaluations > 0) && (
             <p className={`mt-1 ${meta} tabular-nums`}>
               {plural(entry.appointments, "presentation")} scheduled ·{" "}
-              {plural(entry.completeEvaluations, "evaluation")} complete
+              {plural(entry.completeEvaluations, "evaluation")} counted
             </p>
           )}
           {entry.checkInFlags.length > 0 && (

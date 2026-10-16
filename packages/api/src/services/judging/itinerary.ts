@@ -39,7 +39,8 @@ export type ItineraryEvaluation = {
   judgeId: string;
   challengeId: string;
   appointmentId: string | null;
-  isComplete: boolean;
+  /** Holds every rating (scoring.hasEveryRating), so placings count it. */
+  ratingsComplete: boolean;
 };
 
 export type ItineraryPresence = {
@@ -159,7 +160,7 @@ export type UnscheduledChallengeView = {
   challenge: string;
   children: string[];
   rooms: { name: string; kind: JudgingRoomKind; building: string | null }[];
-  /** A judge has finished an evaluation of the project in this challenge. */
+  /** A judge has rated the project in this challenge, every rating in. */
   judged: boolean;
 };
 
@@ -243,7 +244,7 @@ export function buildItinerary(input: {
         })),
       judged: evaluations.some(
         (evaluation) =>
-          evaluation.isComplete &&
+          evaluation.ratingsComplete &&
           rootId(evaluation.challengeId) === challenge.id,
       ),
     }));
@@ -290,8 +291,8 @@ export type FeedbackItem = {
 /**
  * Written feedback, one item per evaluation that has any to share, in
  * challenge order then the order it arrived. Carries no judge and no score:
- * the router passes only complete member evaluations and their public
- * responses.
+ * the router passes only member evaluations that hold every rating, and their
+ * public responses.
  */
 export function groupFeedback(
   evaluations: readonly FeedbackEvaluation[],

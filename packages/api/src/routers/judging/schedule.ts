@@ -72,11 +72,14 @@ import {
   runCpsat,
 } from "../../services/judging/schedule/cpsat-runner";
 import { reconcileDueDrafts } from "../../services/judging/evaluation-store";
+import { holdsEveryRating } from "../../services/judging/scoring-sql";
 import { moveChoices } from "../../services/judging/schedule/moves";
 import {
   staffedRoomIds,
   withStatus,
 } from "../../services/judging/schedule/board";
+import { judgeProgressById } from "../../services/judging/schedule/judge-progress";
+import type { JudgeProgress } from "../../services/judging/schedule/judge-progress";
 import {
   appointmentTimes,
   firstSlotFrom,
@@ -541,7 +544,7 @@ async function loadBoard(
             entryId: judgingEvaluations.entryId,
             challengeId: judgingEvaluations.challengeId,
             appointmentId: judgingEvaluations.appointmentId,
-            isComplete: judgingEvaluations.isComplete,
+            ratingsComplete: holdsEveryRating(hackathonId),
           })
           .from(judgingEvaluations)
           .where(eq(judgingEvaluations.hackathonId, hackathonId))
@@ -564,18 +567,15 @@ async function loadBoard(
       rootOf(inventory.challenges, c.id)?.id ?? null,
     ]),
   );
+  const rootIdOf = (id: string) => roots.get(id) ?? null;
   return {
     schedule,
     inventory,
     plan: selectPlan(inventory),
     names: namesOf(inventory),
-    appointments: withStatus(
-      booked,
-      evaluations,
-      presence,
-      (id) => roots.get(id) ?? null,
-      now,
-    ),
+    evaluations,
+    rootIdOf,
+    appointments: withStatus(booked, evaluations, presence, rootIdOf, now),
     staffed: staffedRoomIds(presence, now),
   };
 }
@@ -594,9 +594,12 @@ async function loadJudging(db: JudgingDb, board: Board, schedule: SavedSchedule)
     readRoster(db, hackathonId, board.inventory),
     db
       .select({
+        judgeId: judgingEvaluationDrafts.judgeId,
         entryId: judgingEvaluationDrafts.entryId,
         challengeId: judgingEvaluationDrafts.challengeId,
         appointmentId: judgingEvaluationDrafts.appointmentId,
+        updatedAt: judgingEvaluationDrafts.updatedAt,
+        deadlineAt: judgingEvaluationDrafts.deadlineAt,
       })
       .from(judgingEvaluationDrafts)
       .where(eq(judgingEvaluationDrafts.hackathonId, hackathonId)),
@@ -639,6 +642,7 @@ async function loadJudging(db: JudgingDb, board: Board, schedule: SavedSchedule)
   return {
     roster,
     saved,
+    drafts,
     plan: planOfSaved(board, timing, saved, roster),
     timing,
   };
@@ -1258,6 +1262,19 @@ export const judgingScheduleRouter = createTRPCRouter({
       const assignable = new Set(
         judging?.saved.filter((s) => s.open && !s.removed).map((s) => s.id),
       );
+      // Deleted, or no longer in this challenge, since the schedule was saved.
+      const isRemoved = (a: Board["appointments"][number]) =>
+        !!a.entryDeletedAt || !planned.has(taskKey(a.entryId, a.challengeId));
+      // Where each assigned judge has got on a presentation that has started.
+      const progress = judging
+        ? judgeProgressById(
+            board.appointments.filter((a) => !isRemoved(a)),
+            board.evaluations,
+            judging.drafts,
+            board.rootIdOf,
+            now,
+          )
+        : new Map<string, JudgeProgress>();
 
       return {
         serverNow: now,
@@ -1290,9 +1307,7 @@ export const judgingScheduleRouter = createTRPCRouter({
           id: a.id,
           entryId: a.entryId,
           entryTitle: a.entryTitle,
-          // Deleted, or no longer in this challenge, since the schedule was saved.
-          removed:
-            !!a.entryDeletedAt || !planned.has(taskKey(a.entryId, a.challengeId)),
+          removed: isRemoved(a),
           challengeId: a.challengeId,
           challengeLabel: names.label(a.challengeId),
           roomId: a.roomId,
@@ -1309,6 +1324,7 @@ export const judgingScheduleRouter = createTRPCRouter({
             ? (judging?.roster.names.get(a.assignedJudgeId) ?? "Removed judge")
             : null,
           canAssignJudge: assignable.has(a.id),
+          judgeProgress: progress.get(a.id) ?? null,
         })),
         judging: judging ? describeBoardJudging(judging, board, now) : null,
         unscheduled: schedule
