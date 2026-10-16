@@ -71,7 +71,6 @@ describe("evaluationTiming", () => {
       const write = scheduled({ evaluation, graceMs: DEADLINE_GRACE_MS });
       expect(evaluationTiming(write, inGrace)).toMatchObject({
         canEdit: true,
-        deadlineAt: null,
       });
       expect(evaluationTiming(write, pastGrace)).toMatchObject({
         canEdit: false,
@@ -80,6 +79,23 @@ describe("evaluationTiming", () => {
       expect(
         evaluationTiming(scheduled({ evaluation }), inGrace),
       ).toMatchObject({ canEdit: false, ended: true });
+    }
+  });
+
+  it("still reports the deadline to a write in the grace window", () => {
+    // The deadline is already past, but a draft first saved now still has to
+    // carry it, or nothing submits the draft for the judge.
+    const inGrace = new Date(deadlineAt.getTime() + DEADLINE_GRACE_MS - 1);
+    for (const evaluation of [null, { appointmentId: "appt-1" }]) {
+      const timing = evaluationTiming(
+        scheduled({ evaluation, graceMs: DEADLINE_GRACE_MS }),
+        inGrace,
+      );
+      expect(timing).toEqual({
+        canEdit: true,
+        deadlineAt,
+        appointmentId: "appt-1",
+      });
     }
   });
 
