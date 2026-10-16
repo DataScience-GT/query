@@ -35,14 +35,45 @@ export function queueOrder(
     .map((item) => item.entryId);
 }
 
-/** The next project for the judge to grade: the first open one in their queue. */
-export function nextToGrade(
+type Candidate = { entryId: string; grading: GradingState };
+
+// How many open projects at the front of their queue a judge may start at an
+// untimed challenge. Calibration depends on each judge's sample being random.
+// A small window lets a judge skip a team that is away from its table without
+// letting them pick projects.
+export const QUEUE_WINDOW = 3;
+
+/**
+ * The open projects a judge is offered: the first `window` of them in their
+ * queue order. A scheduled challenge passes Infinity, since the schedule
+ * already decides who sees what.
+ */
+export function queueWindow(
   judgeId: string,
   challengeId: string,
-  candidates: readonly { entryId: string; grading: GradingState }[],
-): string | null {
+  candidates: readonly Candidate[],
+  window = QUEUE_WINDOW,
+): string[] {
   const open = candidates
     .filter((candidate) => candidate.grading === "open")
     .map((candidate) => candidate.entryId);
-  return queueOrder(judgeId, challengeId, open)[0] ?? null;
+  return queueOrder(judgeId, challengeId, open).slice(0, window);
+}
+
+/**
+ * The next project for the judge to grade: the first of the projects their
+ * queue offers that they have not skipped.
+ */
+export function nextToGrade(
+  judgeId: string,
+  challengeId: string,
+  candidates: readonly Candidate[],
+  options: { skip?: readonly string[]; window?: number } = {},
+): string | null {
+  const skip = new Set(options.skip);
+  return (
+    queueWindow(judgeId, challengeId, candidates, options.window).find(
+      (entryId) => !skip.has(entryId),
+    ) ?? null
+  );
 }

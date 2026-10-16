@@ -23,8 +23,8 @@ import { DeskAnnouncements } from "./DeskAnnouncements";
 import { EvaluationSheet } from "./EvaluationSheet";
 import { GuestNameGate } from "./GuestNameGate";
 import { MySubmissions } from "./MySubmissions";
-import { DEFAULT_FILTERS, ProjectQueue } from "./ProjectQueue";
-import type { QueueFilters } from "./ProjectQueue";
+import { DEFAULT_FILTERS, NO_SKIPS, ProjectQueue } from "./ProjectQueue";
+import type { QueueFilters, SkipState } from "./ProjectQueue";
 import { RoomSwitcher } from "./RoomSwitcher";
 import { Shortlist } from "./Shortlist";
 import { ICON_STROKE, deskMeta, deskPage, deskStatus } from "./desk";
@@ -222,6 +222,8 @@ function Desk({
   const searchParams = useSearchParams();
   const [view, setView] = useState<View>("projects");
   const [filters, setFilters] = useState<QueueFilters>(DEFAULT_FILTERS);
+  // Kept here, with the filters, because the project sheet replaces the list.
+  const [skips, setSkips] = useState<SkipState>(NO_SKIPS);
   const [pickingRoom, setPickingRoom] = useState(false);
   // Whether the open project was opened from this page, so closing it can
   // step back in history instead of stacking another entry.
@@ -264,6 +266,7 @@ function Desk({
           entryId={projectId}
           challengeId={projectChallenge}
           onClose={close}
+          onGraded={() => setSkips(NO_SKIPS)}
           onPickRoom={
             isMember
               ? () => {
@@ -353,6 +356,8 @@ function Desk({
                   filters={filters}
                   onFilters={setFilters}
                   onOpen={open}
+                  skips={skips}
+                  onSkips={setSkips}
                   onShowSubmitted={() => setView("submitted")}
                   onPickRoom={isMember ? () => setPickingRoom(true) : undefined}
                 />

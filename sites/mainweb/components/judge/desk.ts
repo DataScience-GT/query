@@ -109,6 +109,14 @@ export function inOrAt(kind: StationKind) {
   return kind === "table" ? "at" : "in";
 }
 
+/** The most skips the desk sends to `nextProject`. */
+export const MAX_SKIPS = 20;
+
+/** `skipped` with `entryId` last; past MAX_SKIPS the oldest are dropped. */
+export function addSkip(skipped: readonly string[], entryId: string): string[] {
+  return [...skipped.filter((id) => id !== entryId), entryId].slice(-MAX_SKIPS);
+}
+
 /** A link's host, for a label: "github.com". */
 export function linkHost(href: string) {
   try {

@@ -16,9 +16,11 @@ import {
   evaluatedChallenge,
   guestScope,
   inJudgeScope,
+  memberScope,
   reconcileDueDrafts,
 } from "./evaluation-store";
 import type { ChallengeRow, Seat } from "./evaluation-store";
+import type { Answers } from "./evaluation";
 import { GRADING_HOLD_MS } from "./grading-hold";
 import type { Judge } from "./principal";
 import type { DrizzleDB } from "@query/db";
@@ -85,11 +87,34 @@ describe("guest scope", () => {
   });
 });
 
+describe("member scope", () => {
+  it("is General's challenges alone for a judge with no seat", () => {
+    expect([...memberScope(challenges, null)]).toEqual(["general"]);
+  });
+
+  it("adds a sponsor's challenge, and what is below it, from its room", () => {
+    expect([...memberScope(challenges, seat("sponsor"))].sort()).toEqual([
+      "general",
+      "sponsor",
+    ]);
+    expect([...memberScope(challenges, seat("mlh"))].sort()).toEqual([
+      "domain",
+      "general",
+      "mlh",
+      "mongo",
+    ]);
+  });
+
+  it("does not let a seat at General open a sponsor's challenge", () => {
+    expect([...memberScope(challenges, seat("general"))]).toEqual(["general"]);
+  });
+});
+
 describe("evaluatedChallenge", () => {
   it("evaluates a child challenge under its root", () => {
-    expect(evaluatedChallenge(member, challenges, "mongo", null).id).toBe(
-      "mlh",
-    );
+    expect(
+      evaluatedChallenge(member, challenges, "mongo", seat("mlh")).id,
+    ).toBe("mlh");
   });
 
   it("defaults a member to their room's challenge, then General", () => {
@@ -101,11 +126,64 @@ describe("evaluatedChallenge", () => {
     );
   });
 
-  it("falls back to the first root when there is no General", () => {
+  it("has nothing for a member to default to when there is only sponsors'", () => {
     const noGeneral = challenges.filter((c) => c.id !== "general");
-    expect(evaluatedChallenge(member, noGeneral, undefined, null).id).toBe(
-      "sponsor",
-    );
+    expect(() =>
+      evaluatedChallenge(member, noGeneral, undefined, null),
+    ).toThrowError(expect.objectContaining({ code: "FORBIDDEN" }));
+    expect(
+      evaluatedChallenge(member, noGeneral, undefined, seat("sponsor")).id,
+    ).toBe("sponsor");
+  });
+
+  describe("sponsor challenges", () => {
+    const refused = (label: string) =>
+      expect.objectContaining({
+        code: "FORBIDDEN",
+        message: `Sponsor judges grade ${label}. Sit in its room to grade it.`,
+      });
+
+    it("refuses a table judge with no seat", () => {
+      expect(() =>
+        evaluatedChallenge(member, challenges, "sponsor", null),
+      ).toThrowError(refused("sponsor"));
+    });
+
+    it("refuses a table judge seated at another challenge's room", () => {
+      expect(() =>
+        evaluatedChallenge(member, challenges, "sponsor", seat("general")),
+      ).toThrowError(refused("sponsor"));
+      expect(() =>
+        evaluatedChallenge(member, challenges, "sponsor", seat("mlh")),
+      ).toThrowError(refused("sponsor"));
+    });
+
+    it("names the root when the judge asked for a prize inside a group", () => {
+      expect(() =>
+        evaluatedChallenge(member, challenges, "mongo", null),
+      ).toThrowError(refused("mlh"));
+    });
+
+    it("lets a table judge grade it from a seat in its room", () => {
+      expect(
+        evaluatedChallenge(member, challenges, "sponsor", seat("sponsor")).id,
+      ).toBe("sponsor");
+    });
+
+    it("keeps General open whatever the seat", () => {
+      expect(evaluatedChallenge(member, challenges, "general", null).id).toBe(
+        "general",
+      );
+      expect(
+        evaluatedChallenge(member, challenges, "general", seat("sponsor")).id,
+      ).toBe("general");
+    });
+
+    it("leaves a guest on their room's challenge, seat or none", () => {
+      expect(evaluatedChallenge(guest, challenges, "mongo", null).id).toBe(
+        "mlh",
+      );
+    });
   });
 
   it("keeps a guest on their room's challenge", () => {
@@ -255,19 +333,20 @@ const lockKeys = (events: Event[]) =>
     .map((event) => dialect.sqlToQuery(event.query as SQL).params[0]);
 
 const RATING = "10000000-0000-4000-8000-000000000001";
+const RESPONSE = "10000000-0000-4000-8000-000000000002";
 const due = (
   id: string,
   judgeId: string,
   entryId: string,
   challengeId = "c1",
+  answers: Answers = { ratings: { [RATING]: 4 }, responses: {} },
 ) => ({
   id,
   judgeId,
   entryId,
   challengeId,
   appointmentId: "a1",
-  ratings: { [RATING]: 4 },
-  responses: {},
+  ...answers,
   deadlineAt: new Date("2026-04-18T15:00:00Z"),
 });
 
@@ -287,6 +366,14 @@ describe("reconcileDueDrafts and graded once", () => {
           label: "Impact",
           description: "",
           required: true,
+          guestVisibility: null,
+        },
+        {
+          id: RESPONSE,
+          kind: "response",
+          label: "Feedback",
+          description: "",
+          required: false,
           guestVisibility: null,
         },
       ],
@@ -329,6 +416,29 @@ describe("reconcileDueDrafts and graded once", () => {
     // The answers stay; only the deadline goes.
     expect(events.some((e) => e.kind === "delete")).toBe(false);
     expect(events.some((e) => e.kind === "update")).toBe(true);
+  });
+
+  it("keeps a due draft with nothing in it, from a judge who only opened the project", async () => {
+    const opened = due("d1", "j1", "e1", "c1", { ratings: {}, responses: {} });
+    const { db, events } = fakeDb(answersFor([opened]));
+
+    await reconcileDueDrafts(db, "h", new Date("2026-04-18T15:05:00Z"));
+
+    expect(written(events, judgingEvaluations)).toHaveLength(0);
+    expect(events.some((e) => e.kind === "delete")).toBe(false);
+    expect(events.some((e) => e.kind === "update")).toBe(true);
+  });
+
+  it("still submits a due draft with only a written response in it", async () => {
+    const answered = due("d1", "j1", "e1", "c1", {
+      ratings: {},
+      responses: { [RESPONSE]: { value: "Clear demo.", isPublic: false } },
+    });
+    const { db, events } = fakeDb(answersFor([answered]));
+
+    await reconcileDueDrafts(db, "h", new Date("2026-04-18T15:05:00Z"));
+
+    expect(written(events, judgingEvaluations)).toHaveLength(1);
   });
 
   it("looks for a grade from any judge, not just the draft's", async () => {

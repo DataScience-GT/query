@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ExternalLink, Eye, EyeOff } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
@@ -62,6 +62,7 @@ export function EvaluationSheet({
   entryId,
   challengeId,
   onClose,
+  onGraded,
   onPickRoom,
 }: {
   hackathonId: string;
@@ -70,6 +71,8 @@ export function EvaluationSheet({
   entryId: string;
   challengeId: string | undefined;
   onClose: () => void;
+  /** The judge submitted their first evaluation of this project. */
+  onGraded?: () => void;
   /** Members only: leaves the project for the room picker. */
   onPickRoom?: () => void;
 }) {
@@ -79,6 +82,48 @@ export function EvaluationSheet({
     { refetchInterval: 15_000 },
   );
   const now = useServerNow(sheet.data?.serverNow, sheet.dataUpdatedAt);
+  const utils = trpc.useUtils();
+
+  // Opening an open project to grade it takes it: the hold starts now, not at
+  // the first save, so another judge is not sent to the same table. One call
+  // for each time it is opened. Another judge getting there first shows as the
+  // sheet's usual refusal; any other refusal is kept to say so here.
+  const { refetch } = sheet;
+  const openKey =
+    sheet.data &&
+    sheet.data.grading === "open" &&
+    sheet.data.access.canEdit &&
+    !sheet.data.evaluation
+      ? `${sheet.data.entry.id}:${sheet.data.challenge.id}`
+      : null;
+  const challengeToStart = sheet.data?.challenge.id;
+  const started = useRef<string | null>(null);
+  const [refused, setRefused] = useState<{
+    entryId: string;
+    message: string;
+  } | null>(null);
+  const { mutate: startGrading } = trpc.judging.desk.startGrading.useMutation({
+    onSuccess: () =>
+      void utils.judging.desk.projects.invalidate({ hackathonId }),
+    onError: (error, variables) => {
+      if (error.data?.code === "CONFLICT") {
+        void refetch();
+      } else {
+        setRefused({
+          entryId: variables.entryId,
+          message: trpcErrorMessage(
+            error,
+            "This project did not open for you. Try again.",
+          ),
+        });
+      }
+    },
+  });
+  useEffect(() => {
+    if (!openKey || started.current === openKey) return;
+    started.current = openKey;
+    startGrading({ hackathonId, entryId, challengeId: challengeToStart });
+  }, [openKey, hackathonId, entryId, challengeToStart, startGrading]);
 
   // The project list may have been scrolled far down; the project starts at
   // its title.
@@ -145,6 +190,8 @@ export function EvaluationSheet({
           void sheet.refetch().then(() => setReloads((n) => n + 1))
         }
         onNext={onClose}
+        onGraded={onGraded}
+        refusal={refused?.entryId === entryId ? refused.message : null}
         onPickRoom={onPickRoom}
       />
     </>
@@ -160,6 +207,8 @@ function EvaluationForm({
   refresh,
   onReload,
   onNext,
+  onGraded,
+  refusal,
   onPickRoom,
 }: {
   hackathonId: string;
@@ -173,6 +222,9 @@ function EvaluationForm({
   onReload: () => void;
   /** Back to the queue, where the next project waits. */
   onNext: () => void;
+  onGraded?: () => void;
+  /** Why opening the project for grading was refused, if it was. */
+  refusal: string | null;
   onPickRoom?: () => void;
 }) {
   const utils = trpc.useUtils();
@@ -236,7 +288,7 @@ function EvaluationForm({
   const opensNow = opensIn !== null && opensIn <= 0;
 
   const submit = trpc.judging.desk.submit.useMutation();
-  const writable = access.canEdit && !timeUp;
+  const writable = access.canEdit && !timeUp && !refusal;
   const editable = writable && !sending;
 
   const autosave = useDraftAutosave({
@@ -310,6 +362,7 @@ function EvaluationForm({
           void utils.judging.desk.project.invalidate({ hackathonId });
           void utils.judging.desk.projects.invalidate({ hackathonId });
           void utils.judging.desk.myEvaluations.invalidate({ hackathonId });
+          if (!evaluation) onGraded?.();
         },
         onError: (error) => {
           release();
@@ -429,6 +482,13 @@ function EvaluationForm({
       </header>
 
       <AccessNotice data={data} opensIn={opensIn} onPickRoom={onPickRoom} />
+
+      {refusal && (
+        <div role="alert" className="mt-6">
+          <p className={deskStatus("warning")}>Not open to you yet</p>
+          <p className={`mt-1 ${body}`}>{refusal}</p>
+        </div>
+      )}
 
       {entry.flagged && (
         <div className="mt-6">
