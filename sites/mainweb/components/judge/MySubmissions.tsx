@@ -16,7 +16,10 @@ import type { Submission } from "./desk";
 
 function standing(row: Submission) {
   if (row.withdrawn) return { tone: "neutral" as const, text: "Withdrawn" };
-  if (!row.isComplete) return { tone: "warning" as const, text: "Incomplete" };
+  // The score shows once placings count the evaluation: every rating is in.
+  if (row.score === null) {
+    return { tone: "warning" as const, text: "Incomplete" };
+  }
   return { tone: "success" as const, text: `Score ${formatScore(row.score)}` };
 }
 

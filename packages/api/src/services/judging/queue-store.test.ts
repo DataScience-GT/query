@@ -11,7 +11,7 @@ import {
   judgingSchedules,
 } from "@query/db";
 import { QUEUE_REFUSAL, assertQueueOffers, loadQueue } from "./queue-store";
-import { QUEUE_WINDOW, queueOrder } from "./queue";
+import { QUEUE_WINDOW, queueOrder, queueWindow } from "./queue";
 import type { ChallengeRow, Seat } from "./evaluation-store";
 import { GRADING_HOLD_MS } from "./grading-hold";
 
@@ -257,6 +257,121 @@ describe("loadQueue", () => {
       expect(queue.timed).toBe(true);
       expect(queue.needsRoom).toBe(false);
       expect(queue.candidates.map((c) => c.entryId)).toEqual(["entry-1"]);
+    });
+
+    describe("with a judge assigned to each presentation", () => {
+      const running = (entryId: string, assignedJudgeId: string | null) => ({
+        id: `slot-${entryId}`,
+        entryId,
+        startsAt: minutesAgo(2),
+        deadlineAt: minutesAhead(8),
+        assignedJudgeId,
+      });
+      const here = input({ challenge: sponsor, seat: seat("sponsor") });
+
+      it("leaves out a presentation still reserved for another judge", async () => {
+        const { db } = fakeDb(
+          world({
+            [appointments]: [
+              running("entry-0", "other"),
+              running("entry-1", JUDGE),
+              running("entry-2", null),
+            ],
+          }),
+        );
+
+        const queue = await loadQueue(db, here);
+
+        expect(queue.candidates.map((c) => c.entryId)).toEqual([
+          "entry-1",
+          "entry-2",
+        ]);
+      });
+
+      it("says which presentations are the judge's own", async () => {
+        const { db } = fakeDb(
+          world({
+            [appointments]: [
+              running("entry-0", "other"),
+              running("entry-1", JUDGE),
+              running("entry-2", null),
+            ],
+          }),
+        );
+
+        const queue = await loadQueue(db, here);
+
+        expect(
+          Object.fromEntries(
+            queue.candidates.map((c) => [c.entryId, c.assigned ?? false]),
+          ),
+        ).toEqual({ "entry-1": true, "entry-2": false });
+      });
+
+      it("opens a presentation to the judge once its takeover time has passed", async () => {
+        const late = (entryId: string) => ({
+          ...running(entryId, "other"),
+          startsAt: minutesAgo(6),
+          deadlineAt: minutesAhead(4),
+        });
+        const { db } = fakeDb(
+          world({
+            [appointments]: [late("entry-0"), running("entry-1", "other")],
+          }),
+        );
+
+        const queue = await loadQueue(db, here);
+
+        expect(queue.candidates.map((c) => c.entryId)).toEqual(["entry-0"]);
+        // Open for takeover, not the judge's own.
+        expect(queue.candidates[0].assigned).toBeUndefined();
+      });
+
+      it("offers the judge's own presentation before the ones open to everyone", async () => {
+        const { db } = fakeDb(
+          world({
+            [appointments]: [
+              running("entry-0", null),
+              running("entry-1", null),
+              running("entry-2", JUDGE),
+            ],
+          }),
+        );
+
+        const queue = await loadQueue(db, here);
+
+        expect(
+          queueWindow(JUDGE, "sponsor", queue.candidates, Infinity)[0],
+        ).toBe("entry-2");
+      });
+
+      it("still keeps a presentation another judge holds off the judge", async () => {
+        const { db } = fakeDb(
+          world({
+            [appointments]: [
+              { ...running("entry-0", "other"), startsAt: minutesAgo(6) },
+            ],
+            [drafts]: [
+              {
+                entryId: "entry-0",
+                judgeId: "other",
+                updatedAt: minutesAgo(1),
+                deadlineAt: minutesAhead(4),
+                revision: 1,
+              },
+            ],
+          }),
+        );
+
+        const queue = await loadQueue(db, here);
+
+        expect(queue.candidates).toEqual([
+          { entryId: "entry-0", grading: "in_progress" },
+        ]);
+        expect(
+          queueWindow(JUDGE, "sponsor", queue.candidates, Infinity),
+        ).toEqual([]);
+      });
     });
   });
 

@@ -318,6 +318,7 @@ describe.each(judgesUnderTest)(
         for (const project of result.projects) {
           expect(typeof project.flagged).toBe("boolean");
           expect(Object.keys(project).sort()).toEqual([
+            "assignedToYou",
             "challenges",
             "flagged",
             "grading",
@@ -326,6 +327,7 @@ describe.each(judgesUnderTest)(
             "myEvaluation",
             "participantCount",
             "presentation",
+            "reservedUntil",
             "title",
           ]);
         }

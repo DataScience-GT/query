@@ -6,6 +6,7 @@ import {
   countdownTone,
   formatScore,
   linkHost,
+  nextAssignment,
   nextPresentation,
   roomPlace,
   startsIn,
@@ -107,6 +108,60 @@ describe("nextPresentation", () => {
     const finished = { id: "a", presentation: slot(0), myEvaluation: null };
     expect(nextPresentation([finished], now)).toBeNull();
     expect(nextPresentation([], now)).toBeNull();
+  });
+
+  it("puts a presentation assigned to the judge that is running now first", () => {
+    const earlier = { id: "a", presentation: slot(8), myEvaluation: null };
+    const mine = {
+      id: "b",
+      presentation: slot(12),
+      myEvaluation: null,
+      assignedToYou: true,
+    };
+    expect(nextPresentation([earlier, mine], now)?.id).toBe("b");
+    expect(nextPresentation([mine, earlier], now)?.id).toBe("b");
+  });
+
+  it("leaves an assigned one that has not started to its place in time", () => {
+    const running = { id: "a", presentation: slot(10), myEvaluation: null };
+    const mine = {
+      id: "b",
+      presentation: slot(20),
+      myEvaluation: null,
+      assignedToYou: true,
+    };
+    expect(nextPresentation([running, mine], now)?.id).toBe("a");
+  });
+
+  it("skips an assigned one the judge has judged", () => {
+    const judged = {
+      id: "a",
+      presentation: slot(10),
+      myEvaluation: { revision: 1 },
+      assignedToYou: true,
+    };
+    const open = { id: "b", presentation: slot(12), myEvaluation: null };
+    expect(nextPresentation([judged, open], now)?.id).toBe("b");
+  });
+});
+
+describe("nextAssignment", () => {
+  const item = (id: string, graded = false, takenOver = false) => ({
+    id,
+    graded,
+    takenOver,
+  });
+
+  it("is the first presentation nobody has graded or taken over", () => {
+    expect(
+      nextAssignment([item("a", true), item("b", false, true), item("c")])?.id,
+    ).toBe("c");
+    expect(nextAssignment([item("a"), item("b")])?.id).toBe("a");
+  });
+
+  it("is null when nothing is left", () => {
+    expect(nextAssignment([item("a", true)])).toBeNull();
+    expect(nextAssignment([])).toBeNull();
   });
 });
 

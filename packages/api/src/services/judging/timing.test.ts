@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { DEADLINE_GRACE_MS, evaluationTiming } from "./timing";
+import {
+  DEADLINE_GRACE_MS,
+  TAKEOVER_AFTER_MS,
+  evaluationTiming,
+  reservedUntil,
+  takeoverAt,
+} from "./timing";
 import type { TimingInput } from "./timing";
 
 const startsAt = new Date("2027-02-08T15:00:00Z");
@@ -9,6 +15,7 @@ const during = new Date("2027-02-08T15:03:00Z");
 const afterDeadline = new Date("2027-02-08T15:09:00Z");
 
 const scheduled = (over: Partial<TimingInput> = {}): TimingInput => ({
+  judgeId: "judge-a",
   hasSchedule: true,
   mode: "scheduled",
   challengeId: "general",
@@ -70,9 +77,9 @@ describe("evaluationTiming", () => {
         canEdit: false,
         ended: true,
       });
-      expect(evaluationTiming(scheduled({ evaluation }), inGrace)).toMatchObject(
-        { canEdit: false, ended: true },
-      );
+      expect(
+        evaluationTiming(scheduled({ evaluation }), inGrace),
+      ).toMatchObject({ canEdit: false, ended: true });
     }
   });
 
@@ -144,5 +151,151 @@ describe("evaluationTiming", () => {
     const timing = evaluationTiming(scheduled({ appointment: null }), during);
     expect(timing.canEdit).toBe(false);
     if (!timing.canEdit) expect(timing.reason).toMatch(/no presentation slot/);
+  });
+});
+
+describe("TAKEOVER_AFTER_MS", () => {
+  it("is five minutes", () => {
+    expect(TAKEOVER_AFTER_MS).toBe(5 * 60_000);
+    expect(takeoverAt(startsAt)).toEqual(new Date("2027-02-08T15:05:00Z"));
+  });
+});
+
+describe("reservedUntil", () => {
+  const assigned = { startsAt, assignedJudgeId: "judge-b" };
+  const takeover = takeoverAt(startsAt);
+
+  it("is the takeover time while a presentation is kept for another judge", () => {
+    for (const now of [before, startsAt, during]) {
+      expect(reservedUntil(assigned, "judge-a", now)).toEqual(takeover);
+    }
+  });
+
+  it("is over from the takeover time on", () => {
+    expect(
+      reservedUntil(assigned, "judge-a", new Date(takeover.getTime() - 1)),
+    ).toEqual(takeover);
+    expect(reservedUntil(assigned, "judge-a", takeover)).toBeNull();
+    expect(reservedUntil(assigned, "judge-a", afterDeadline)).toBeNull();
+  });
+
+  it("keeps nothing from the judge it is assigned to", () => {
+    expect(reservedUntil(assigned, "judge-b", during)).toBeNull();
+  });
+
+  it("keeps nothing when nobody is assigned", () => {
+    expect(reservedUntil({ startsAt }, "judge-a", during)).toBeNull();
+    expect(
+      reservedUntil({ startsAt, assignedJudgeId: null }, "judge-a", during),
+    ).toBeNull();
+    expect(reservedUntil(null, "judge-a", during)).toBeNull();
+  });
+});
+
+describe("evaluationTiming for an assigned presentation", () => {
+  const appointment = (assignedJudgeId: string | null) => ({
+    id: "appt-1",
+    startsAt,
+    deadlineAt,
+    assignedJudgeId,
+  });
+  const mine = scheduled({ appointment: appointment("judge-a") });
+  const theirs = scheduled({ appointment: appointment("judge-b") });
+  const takeover = takeoverAt(startsAt);
+
+  it("is the assigned judge's from the start", () => {
+    expect(evaluationTiming(mine, startsAt)).toEqual({
+      canEdit: true,
+      deadlineAt,
+      appointmentId: "appt-1",
+    });
+    expect(evaluationTiming(mine, before)).toMatchObject({
+      canEdit: false,
+      opensAt: startsAt,
+    });
+  });
+
+  it("keeps another judge out until the takeover time, and says when it opens", () => {
+    for (const now of [before, startsAt, during]) {
+      const timing = evaluationTiming(theirs, now);
+      expect(timing).toMatchObject({
+        canEdit: false,
+        opensAt: takeover,
+        ended: false,
+      });
+    }
+  });
+
+  it("tells another judge why without saying who", () => {
+    const timing = evaluationTiming(theirs, during);
+    if (timing.canEdit) throw new Error("expected a refusal");
+    expect(timing.reason).toBe(
+      "Another judge is assigned to this presentation. If they have not started 5 minutes in, you can take it.",
+    );
+    expect(timing.reason).not.toContain("judge-b");
+  });
+
+  it("lets another judge take it from the takeover time", () => {
+    expect(evaluationTiming(theirs, takeover)).toEqual({
+      canEdit: true,
+      deadlineAt,
+      appointmentId: "appt-1",
+    });
+    expect(
+      evaluationTiming(theirs, new Date(takeover.getTime() - 1)),
+    ).toMatchObject({ canEdit: false, opensAt: takeover });
+  });
+
+  it("still needs the judge who takes over in a room serving the challenge", () => {
+    expect(
+      evaluationTiming({ ...theirs, presenceChallengeId: "mlh" }, takeover),
+    ).toMatchObject({ canEdit: false, opensAt: null, ended: false });
+  });
+
+  it("names the reservation before the room: joining one does not help yet", () => {
+    expect(
+      evaluationTiming({ ...theirs, presenceChallengeId: null }, during),
+    ).toMatchObject({ canEdit: false, opensAt: takeover });
+  });
+
+  it("is a first-come presentation when nobody is assigned", () => {
+    const open = scheduled({ appointment: appointment(null) });
+    expect(evaluationTiming(open, startsAt)).toMatchObject({ canEdit: true });
+  });
+
+  it("lets the end win over the reservation", () => {
+    const short = scheduled({
+      appointment: {
+        id: "appt-1",
+        startsAt,
+        deadlineAt: new Date("2027-02-08T15:03:00Z"),
+        assignedJudgeId: "judge-b",
+      },
+    });
+    expect(
+      evaluationTiming(short, new Date("2027-02-08T15:04:00Z")),
+    ).toMatchObject({ canEdit: false, ended: true });
+  });
+
+  it("leaves a judge's own evaluation theirs, whoever it was assigned to", () => {
+    expect(
+      evaluationTiming(
+        { ...theirs, evaluation: { appointmentId: "appt-1" } },
+        during,
+      ),
+    ).toEqual({ canEdit: true, deadlineAt, appointmentId: "appt-1" });
+  });
+
+  it("ignores an assignment where nothing is timed", () => {
+    for (const over of [
+      { mode: "remote" as const },
+      { mode: "unscheduled" as const },
+      { hasSchedule: false },
+    ]) {
+      expect(evaluationTiming({ ...theirs, ...over }, during)).toMatchObject({
+        canEdit: true,
+        deadlineAt: null,
+      });
+    }
   });
 });

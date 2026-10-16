@@ -16,11 +16,25 @@ import type { ChallengeMode } from "./scope";
 //
 // Where nothing is timed, a submitted evaluation stays editable while judging
 // is open.
+//
+// A presentation can have one judge assigned to it. From its start until
+// TAKEOVER_AFTER_MS later only that judge may start grading it. After that any
+// judge who may grade it there can, as long as the assigned judge has not
+// started (their draft holds the project, see grading-hold.ts). The assignment
+// is never rewritten to hand the project over.
 
 /** How long after a deadline a write sent before it still lands. */
 export const DEADLINE_GRACE_MS = 15_000;
 
+// The assigned judge may be walking over from another room, so the first
+// minutes are theirs. After that a project is better graded by someone in the
+// room than not at all.
+/** How long after a presentation starts only its assigned judge may grade it. */
+export const TAKEOVER_AFTER_MS = 5 * 60_000;
+
 export type TimingInput = {
+  /** The judge asking. */
+  judgeId: string;
   /** Whether the edition has a saved schedule. */
   hasSchedule: boolean;
   /** The challenge's effective mode (its root's). */
@@ -30,7 +44,13 @@ export type TimingInput = {
   /** This judge's submitted evaluation of the project for the challenge. */
   evaluation: { appointmentId: string | null } | null;
   /** The project's presentation for the challenge in the saved schedule. */
-  appointment: { id: string; startsAt: Date; deadlineAt: Date } | null;
+  appointment: {
+    id: string;
+    startsAt: Date;
+    deadlineAt: Date;
+    /** The judge the presentation is assigned to; null or absent for none. */
+    assignedJudgeId?: string | null;
+  } | null;
   /** The challenge served by the room the judge is sitting in, if any. */
   presenceChallengeId: string | null;
   /** DEADLINE_GRACE_MS for a write; reads leave it at 0. */
@@ -55,6 +75,31 @@ export type EvaluationTiming =
 
 const ENDED =
   "Judging for this presentation ended at its deadline, so scores for it are final.";
+
+// Never names the judge.
+const RESERVED = `Another judge is assigned to this presentation. If they have not started ${TAKEOVER_AFTER_MS / 60_000} minutes in, you can take it.`;
+
+/** When a presentation assigned to someone else opens to everyone else. */
+export function takeoverAt(startsAt: Date): Date {
+  return new Date(startsAt.getTime() + TAKEOVER_AFTER_MS);
+}
+
+/**
+ * When a presentation opens to `judgeId`, if it is held back for another judge
+ * until then. Null when nobody is assigned, the judge is the one assigned, or
+ * the takeover time has passed. Whether the assigned judge has started is not
+ * decided here: a draft of theirs holds the project (grading-hold.ts).
+ */
+export function reservedUntil(
+  appointment: { startsAt: Date; assignedJudgeId?: string | null } | null,
+  judgeId: string,
+  now: Date,
+): Date | null {
+  const assigned = appointment?.assignedJudgeId ?? null;
+  if (!appointment || !assigned || assigned === judgeId) return null;
+  const opens = takeoverAt(appointment.startsAt);
+  return now < opens ? opens : null;
+}
 
 export function evaluationTiming(
   input: TimingInput,
@@ -94,6 +139,17 @@ export function evaluationTiming(
 
   if (ended) {
     return { canEdit: false, reason: ENDED, opensAt: null, ended: true };
+  }
+
+  // Before the room: nothing the judge does now helps until the takeover time.
+  const reserved = reservedUntil(input.appointment, input.judgeId, now);
+  if (reserved) {
+    return {
+      canEdit: false,
+      reason: RESERVED,
+      opensAt: reserved,
+      ended: false,
+    };
   }
 
   if (input.presenceChallengeId !== input.challengeId) {

@@ -9,6 +9,7 @@ export type ListedProject = ProjectList["projects"][number];
 export type ProjectSheet = Desk["project"];
 export type Submission = Desk["myEvaluations"][number];
 export type ShortlistSection = Desk["deliberation"]["list"][number];
+export type Assignment = Desk["itinerary"]["presentations"][number];
 
 /**
  * The desk's column. Narrower than the member pages: it is read on a phone
@@ -78,25 +79,41 @@ export function formatScore(score: number | null) {
 
 /**
  * The presentation a seated judge should do now, or next: the earliest one
- * still running or yet to start that they have not evaluated.
+ * still running or yet to start that they have not evaluated. One assigned to
+ * them that is running now comes before the rest.
  */
 export function nextPresentation<
   P extends {
     presentation: { startsAt: Date; endsAt: Date } | null;
     myEvaluation: unknown;
+    assignedToYou?: boolean;
   },
 >(projects: readonly P[], now: number): P | null {
   let next: P | null = null;
+  let nextRank = Infinity;
   let nextStart = Infinity;
   for (const project of projects) {
     const slot = project.presentation;
     if (!slot || project.myEvaluation || slot.endsAt.getTime() <= now) continue;
-    if (slot.startsAt.getTime() < nextStart) {
+    const start = slot.startsAt.getTime();
+    const rank = project.assignedToYou && start <= now ? 0 : 1;
+    if (rank < nextRank || (rank === nextRank && start < nextStart)) {
       next = project;
-      nextStart = slot.startsAt.getTime();
+      nextRank = rank;
+      nextStart = start;
     }
   }
   return next;
+}
+
+/**
+ * The assigned presentation to go to next: the first, in the order the server
+ * sends them (soonest first), that nobody has graded or taken over.
+ */
+export function nextAssignment<
+  A extends { graded: boolean; takenOver: boolean },
+>(assignments: readonly A[]): A | null {
+  return assignments.find((a) => !a.graded && !a.takenOver) ?? null;
 }
 
 /** Room, then building: "1116 · Klaus". */
