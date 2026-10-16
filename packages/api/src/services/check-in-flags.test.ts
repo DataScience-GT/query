@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TRPCError } from "@trpc/server";
-import { PgDialect } from "drizzle-orm/pg-core";
+import { PgDialect, getTableConfig } from "drizzle-orm/pg-core";
 import {
   hackathonCheckInFlags,
   hackathonEvents,
@@ -34,6 +34,41 @@ const breach: CheckInRuleBreakDetails = {
 
 const render = (condition: unknown) =>
   new PgDialect().sqlToQuery(condition as never);
+
+// ---------------------------------------------------------------------------
+// The table
+
+describe("hackathonCheckInFlags", () => {
+  const foreignKey = (name: string) =>
+    getTableConfig(hackathonCheckInFlags).foreignKeys.find(
+      (key) => key.getName() === name,
+    )!;
+
+  // Deleting an event must not delete the record that someone broke the rules
+  // at it: prize review reads these long after a session is cancelled.
+  it.each([
+    ["event_id", "check_in_flag_event_fk", hackathonCheckInFlags.eventId],
+    [
+      "conflict_event_id",
+      "check_in_flag_conflict_event_fk",
+      hackathonCheckInFlags.conflictEventId,
+    ],
+  ])(
+    "keeps the flag and clears %s when that event is deleted",
+    (_, name, column) => {
+      const key = foreignKey(name);
+      expect(key.reference().foreignTable).toBe(hackathonEvents);
+      expect(key.onDelete).toBe("set null");
+      expect(column.notNull).toBe(false);
+    },
+  );
+
+  it("still goes with its participant", () => {
+    const key = foreignKey("check_in_flag_participant_fk");
+    expect(key.onDelete).toBe("cascade");
+    expect(hackathonCheckInFlags.participantId.notNull).toBe(true);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Writing
@@ -452,6 +487,93 @@ describe("reading flags", () => {
           dismissed: false,
         },
       ]);
+    });
+
+    it("still lists a flag whose event was deleted, under a stand-in name", async () => {
+      const { db, calls } = fakeReadDb(
+        table(
+          [
+            hackathonCheckInFlags,
+            [flagRow("f1", { teamId: "team-1", eventId: null })],
+          ],
+          [hackathonEvents, events],
+          [
+            judgingEntries,
+            [{ entryId: "e1", teamId: "team-1", submittedById: null }],
+          ],
+        ),
+      );
+
+      const [flag] = (await checkInFlagsForEntries(db, HACK, ["e1"])).get(
+        "e1",
+      )!;
+
+      expect(flag).toMatchObject({
+        id: "f1",
+        eventName: "A deleted event",
+        conflictEventName: "BNY Workshop",
+      });
+      // Only the events that still have an id are looked up.
+      const lookup = render(
+        calls.find((c) => c.table === hackathonEvents)!.where,
+      );
+      expect(lookup.params).toEqual(["event-1"]);
+    });
+
+    it("still lists a flag whose conflicting event was deleted", async () => {
+      const { db } = fakeReadDb(
+        table(
+          [
+            hackathonCheckInFlags,
+            [flagRow("f1", { teamId: "team-1", conflictEventId: null })],
+          ],
+          [hackathonEvents, events],
+          [
+            judgingEntries,
+            [{ entryId: "e1", teamId: "team-1", submittedById: null }],
+          ],
+        ),
+      );
+
+      const [flag] = (await checkInFlagsForEntries(db, HACK, ["e1"])).get(
+        "e1",
+      )!;
+
+      expect(flag).toMatchObject({
+        eventName: "Full Sail Fireside",
+        conflictEventName: "A deleted event",
+      });
+    });
+
+    it("still lists a flag when both events were deleted", async () => {
+      const { db } = fakeReadDb(
+        table(
+          [
+            hackathonCheckInFlags,
+            [
+              flagRow("f1", {
+                teamId: "team-1",
+                eventId: null,
+                conflictEventId: null,
+              }),
+            ],
+          ],
+          [
+            judgingEntries,
+            [{ entryId: "e1", teamId: "team-1", submittedById: null }],
+          ],
+        ),
+      );
+
+      const [flag] = (await checkInFlagsForEntries(db, HACK, ["e1"])).get(
+        "e1",
+      )!;
+
+      expect(flag).toMatchObject({
+        eventName: "A deleted event",
+        conflictEventName: "A deleted event",
+        dismissed: false,
+      });
     });
 
     it("falls back to the account name, then the email, when the registration has none", async () => {
