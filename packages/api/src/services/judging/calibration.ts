@@ -11,11 +11,13 @@
 // A pool is one root challenge: sponsor judges are compared only with the other
 // judges of that sponsor's challenge, table judges with table judges, and a
 // judge who grades in two challenges gets separate parameters in each. Within a
-// pool, over complete evaluations with a score s (the mean of its ratings):
+// pool, over evaluations that hold every rating, with a score s (the mean of
+// its ratings):
 //
 //   mu       the pool's mean
-//   drift    a judge's grades in order (submittedAt, then id): the slope of s on
-//            the centred order index, shrunk, removed: s' = s - slope * (i - mean i)
+//   drift    a judge's grades in order (submittedAt, then id), from
+//            MIN_DRIFT_GRADES of them: the slope of s on the centred order
+//            index, shrunk, removed: s' = s - slope * (i - mean i)
 //   sd       the pool's population standard deviation of s' with each judge's
 //            own mean taken out (judges with two or more grades)
 //   offset   a = shrink * (mean(s') - mu): stricter (below 0) or more lenient
@@ -29,11 +31,31 @@ import { evaluationScore } from "./scoring";
 
 // Pseudo-evaluations: a judge with n grades is trusted n / (n + K) of the way,
 // so one with few grades is pulled toward no correction. K_A is for the offset,
-// K_B for the spread, K_D for the drift (a trend needs more grades than a mean
-// to be believed).
+// K_B for the spread, K_D for the drift.
+//
+// K_D is far the largest because a trend is the hardest habit to see. Each
+// grade is also the quality of the project it happened to be, which varies by
+// about 0.7 of a point, so a judge with no drift at all still has a fitted one
+// from first grade to last, off by an sd of 0.5 of a point over 20 grades, 0.4
+// over 30 and 0.3 over 60. K_D = 10 passed most of that on as correction: the
+// sd of the drift taken off judges with none was 0.32 of a point at 30 grades.
+// K_D = 150 holds it under 0.1 at every size from 20 to 100 grades (0.07 at 30,
+// 0.09 at 60). Both are measured on simulated judges in calibration.test.ts,
+// "drift tuning".
+//
+// The price is that a real drift is taken out by the same share, n / (n + K_D):
+// 17% of it at 30 grades, 29% at 60. Half a point of real drift across a day is
+// mostly left in. Taking most of it out as well was the aim, and no weight does
+// both: at that size a real drift and the one chance invents look alike, so a
+// smaller K_D gives the invented correction back as fast as the real one (0.15
+// of a point at K_D = 60). Both would take some 150 grades from each judge.
 export const K_A = 3;
 export const K_B = 6;
-export const K_D = 10;
+export const K_D = 150;
+// Fewest grades before a drift is fitted. Below this chance alone moves the
+// fitted drift by half a point or more (0.9 at 6 grades), as much as a real
+// one worth finding, so none is fitted.
+export const MIN_DRIFT_GRADES = 20;
 
 const MIN_SPREAD = 0.5;
 const MAX_SPREAD = 2;
@@ -49,7 +71,8 @@ export type CalibrationEvaluation = {
   challengeId: string;
   entryId: string;
   submittedAt: Date;
-  isComplete: boolean;
+  /** Holds a rating for every rating item of the rubric; only these count. */
+  ratingsComplete: boolean;
   /** The 1-5 rating values it holds. */
   ratings: readonly number[];
 };
@@ -57,7 +80,7 @@ export type CalibrationEvaluation = {
 export type JudgeCalibration = {
   judgeId: string;
   challengeId: string;
-  /** Complete, scored evaluations the judge has in this challenge. */
+  /** Counted, scored evaluations the judge has in this challenge. */
   evaluations: number;
   /** Rating points taken off the judge's scores. Positive: more lenient than the pool. */
   offset: number;
@@ -68,7 +91,7 @@ export type JudgeCalibration = {
 };
 
 export type Calibration = {
-  /** The calibrated score of each complete, scored evaluation, by id. */
+  /** The calibrated score of each counted, scored evaluation, by id. */
   adjusted: Map<string, number>;
   judges: JudgeCalibration[];
 };
@@ -112,16 +135,17 @@ function groupBy<T>(items: readonly T[], key: (item: T) => string) {
 }
 
 /**
- * Calibrated scores for every complete evaluation, and what was learned about
- * each judge. Incomplete evaluations, and complete ones with no ratings, are
- * left out of both. The result does not depend on the order of the input.
+ * Calibrated scores for every evaluation that holds every rating, and what was
+ * learned about each judge. Evaluations short of a rating, and ones with no
+ * ratings at all, are left out of both. The result does not depend on the order
+ * of the input.
  */
 export function calibrate(
   evaluations: readonly CalibrationEvaluation[],
 ): Calibration {
   const graded: Graded[] = [];
   for (const evaluation of evaluations) {
-    if (!evaluation.isComplete) continue;
+    if (!evaluation.ratingsComplete) continue;
     const score = evaluationScore(evaluation.ratings);
     if (score === null) continue;
     graded.push({
@@ -155,10 +179,9 @@ export function calibrate(
         const scores = grades.map((g) => g.score);
         const centre = (n - 1) / 2;
 
-        // Least-squares slope of score on the centred order index. Three
-        // grades is the fewest that can show a trend.
+        // Least-squares slope of score on the centred order index.
         let slope = 0;
-        if (n >= 3) {
+        if (n >= MIN_DRIFT_GRADES) {
           const average = mean(scores);
           let along = 0;
           let across = 0;

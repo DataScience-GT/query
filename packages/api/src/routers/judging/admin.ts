@@ -30,6 +30,7 @@ import {
   judgingEvaluationDrafts,
   judgingEvaluations,
   judgingGuestSessions,
+  judgingPlacements,
   judgingPresence,
   judgingRoomLinks,
   judgingRooms,
@@ -46,6 +47,7 @@ import {
   ensureJudgingConfig,
 } from "../../services/judging/config";
 import type { JudgingDb } from "../../services/judging/config";
+import { lockGrading } from "../../services/judging/evaluation-store";
 import { effectiveMode, sameLabel } from "../../services/judging/scope";
 import {
   assertStructureEditable,
@@ -2535,6 +2537,108 @@ export const judgingAdminRouter = createTRPCRouter({
         });
       }
       return { cleared: !!cleared };
+    }),
+
+  /**
+   * Deletes one evaluation and any draft for the same project and challenge, so
+   * the project is open for another judge to grade (grading-hold.ts). The
+   * ratings, responses and revisions go with the evaluation by cascade. Allowed
+   * while judging is closed, as setPrizeEligibility is: closing freezes judges'
+   * writes, not the organiser's decisions on a project. No judge can grade the
+   * project until judging is open again. The draft placings still hold the old
+   * grade until results are computed again.
+   *
+   * Refused while results are published: the public list was ranked on it.
+   */
+  reopenGrade: isAdmin
+    .input(hackathonInput.extend({ evaluationId: uuid }))
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const reopened = await db.transaction(async (tx) => {
+        // Takes the config lock, which holds off every judge write and a
+        // publish while the grade is deleted.
+        await lockEdition(tx, input.hackathonId);
+
+        const [published] = await tx
+          .select({ value: count() })
+          .from(judgingPlacements)
+          .where(
+            and(
+              eq(judgingPlacements.hackathonId, input.hackathonId),
+              isNotNull(judgingPlacements.publishedAt),
+            ),
+          );
+        if ((published?.value ?? 0) > 0) {
+          throw refuse(
+            "Results are published. Unpublish them first, then reopen the grade and compute results again.",
+          );
+        }
+
+        const [evaluation] = await tx
+          .select({
+            entryId: judgingEvaluations.entryId,
+            challengeId: judgingEvaluations.challengeId,
+            judgeId: judgingEvaluations.judgeId,
+            revision: judgingEvaluations.revision,
+            isComplete: judgingEvaluations.isComplete,
+          })
+          .from(judgingEvaluations)
+          .where(
+            and(
+              eq(judgingEvaluations.id, input.evaluationId),
+              eq(judgingEvaluations.hackathonId, input.hackathonId),
+            ),
+          )
+          .limit(1);
+        if (!evaluation) {
+          throw notFound("That evaluation is gone. Refresh the list.");
+        }
+
+        // The drafts first, then the project's grading lock: the order the
+        // deadline submission takes them in, so the two cannot deadlock.
+        const drafts = await tx
+          .select({ id: judgingEvaluationDrafts.id })
+          .from(judgingEvaluationDrafts)
+          .where(
+            and(
+              eq(judgingEvaluationDrafts.entryId, evaluation.entryId),
+              eq(judgingEvaluationDrafts.challengeId, evaluation.challengeId),
+            ),
+          )
+          .for("update");
+        await lockGrading(tx, evaluation.entryId, evaluation.challengeId);
+
+        if (drafts.length > 0) {
+          await tx.delete(judgingEvaluationDrafts).where(
+            inArray(
+              judgingEvaluationDrafts.id,
+              drafts.map((draft) => draft.id),
+            ),
+          );
+        }
+        await tx
+          .delete(judgingEvaluations)
+          .where(eq(judgingEvaluations.id, input.evaluationId));
+
+        return { ...evaluation, drafts: drafts.length };
+      });
+
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "judging.reopenGrade",
+        resourceId: input.evaluationId,
+        severity: "critical",
+        metadata: {
+          hackathonId: input.hackathonId,
+          entryId: reopened.entryId,
+          challengeId: reopened.challengeId,
+          judgeId: reopened.judgeId,
+          revision: reopened.revision,
+          wasComplete: reopened.isComplete,
+          draftsDeleted: reopened.drafts,
+        },
+      });
+      return { reopened: true, drafts: reopened.drafts };
     }),
 
   // ---------------------------------------------------------------------

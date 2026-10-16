@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   evaluationScore,
+  hasEveryRating,
   meanOrNull,
   overallScore,
   rankByScore,
@@ -19,6 +20,23 @@ describe("meanOrNull", () => {
   });
 });
 
+describe("hasEveryRating", () => {
+  it("is whether the evaluation rated every rating item", () => {
+    expect(hasEveryRating([5, 4, 3], 3)).toBe(true);
+    expect(hasEveryRating([5, 4], 3)).toBe(false);
+    expect(hasEveryRating([], 3)).toBe(false);
+  });
+
+  it("does not need to be told about written responses", () => {
+    // Four rating items, however many responses the rubric also asks for.
+    expect(hasEveryRating([1, 2, 3, 4], 4)).toBe(true);
+  });
+
+  it("has nothing to miss on a rubric with no rating items", () => {
+    expect(hasEveryRating([], 0)).toBe(true);
+  });
+});
+
 describe("evaluationScore", () => {
   it("is the mean of the ratings", () => {
     expect(evaluationScore([5, 4, 3])).toBe(4);
@@ -31,15 +49,15 @@ describe("evaluationScore", () => {
 });
 
 const evals: ScoredEvaluation[] = [
-  { challengeId: "general", isComplete: true, ratings: [5, 5, 5] }, // 5
-  { challengeId: "general", isComplete: true, ratings: [3, 3, 3] }, // 3
-  { challengeId: "general", isComplete: false, ratings: [1, 1] }, // ignored
-  { challengeId: "mongo", isComplete: true, ratings: [4, 2] }, // 3
-  { challengeId: "mongo", isComplete: true, ratings: [] }, // no score
+  { challengeId: "general", ratingsComplete: true, ratings: [5, 5, 5] }, // 5
+  { challengeId: "general", ratingsComplete: true, ratings: [3, 3, 3] }, // 3
+  { challengeId: "general", ratingsComplete: false, ratings: [1, 1] }, // short of a rating: ignored
+  { challengeId: "mongo", ratingsComplete: true, ratings: [4, 2] }, // 3
+  { challengeId: "mongo", ratingsComplete: true, ratings: [] }, // no score
 ];
 
 describe("scopedScore", () => {
-  it("averages complete evaluations in that challenge only", () => {
+  it("averages evaluations with every rating in that challenge only", () => {
     expect(scopedScore(evals, "general")).toEqual({ score: 4, count: 2 });
     expect(scopedScore(evals, "mongo")).toEqual({ score: 3, count: 1 });
   });
@@ -48,7 +66,7 @@ describe("scopedScore", () => {
     expect(scopedScore(evals, "other")).toEqual({ score: null, count: 0 });
     expect(
       scopedScore(
-        [{ challengeId: "general", isComplete: false, ratings: [5] }],
+        [{ challengeId: "general", ratingsComplete: false, ratings: [5] }],
         "general",
       ),
     ).toEqual({ score: null, count: 0 });
@@ -56,7 +74,7 @@ describe("scopedScore", () => {
 });
 
 describe("overallScore", () => {
-  it("weighs every complete evaluation the same, across challenges", () => {
+  it("weighs every counted evaluation the same, across challenges", () => {
     // (5 + 3 + 3) / 3
     expect(overallScore(evals)).toEqual({ score: 11 / 3, count: 3 });
   });
@@ -66,26 +84,56 @@ describe("overallScore", () => {
   });
 });
 
+describe("which evaluations count", () => {
+  const score = (over: Partial<ScoredEvaluation>) =>
+    overallScore([{ challengeId: "general", ratings: [4, 2], ...over }]);
+
+  it("counts one with every rating, though a written response is missing", () => {
+    // An auto-submit at the hard end: not complete in the database, but all
+    // its ratings are there.
+    expect(score({ ratingsComplete: true, isComplete: false })).toEqual({
+      score: 3,
+      count: 1,
+    });
+  });
+
+  it("leaves out one short of a rating, though it was submitted whole", () => {
+    expect(score({ ratingsComplete: false, isComplete: true })).toEqual({
+      score: null,
+      count: 0,
+    });
+  });
+
+  it("reads isComplete from a caller that gives no ratingsComplete", () => {
+    expect(score({ isComplete: true })).toEqual({ score: 3, count: 1 });
+    expect(score({ isComplete: false })).toEqual({ score: null, count: 0 });
+  });
+
+  it("counts nothing when told nothing", () => {
+    expect(score({})).toEqual({ score: null, count: 0 });
+  });
+});
+
 describe("an adjusted score", () => {
   const adjusted: ScoredEvaluation[] = [
     {
       challengeId: "general",
-      isComplete: true,
+      ratingsComplete: true,
       ratings: [5, 5],
       adjustedScore: 4,
     },
     {
       challengeId: "general",
-      isComplete: true,
+      ratingsComplete: true,
       ratings: [3, 3],
       adjustedScore: 3.5,
     },
     // No adjusted score: the mean of its ratings counts.
-    { challengeId: "general", isComplete: true, ratings: [2, 4] },
-    // Incomplete is still left out, adjusted or not.
+    { challengeId: "general", ratingsComplete: true, ratings: [2, 4] },
+    // Short of a rating is still left out, adjusted or not.
     {
       challengeId: "general",
-      isComplete: false,
+      ratingsComplete: false,
       ratings: [1],
       adjustedScore: 1,
     },
@@ -98,9 +146,9 @@ describe("an adjusted score", () => {
   });
 
   it("leaves evaluations without one on the raw mean", () => {
-    const raw = adjusted.map(({ challengeId, isComplete, ratings }) => ({
+    const raw = adjusted.map(({ challengeId, ratingsComplete, ratings }) => ({
       challengeId,
-      isComplete,
+      ratingsComplete,
       ratings,
     }));
     // (5 + 3 + 3) / 3

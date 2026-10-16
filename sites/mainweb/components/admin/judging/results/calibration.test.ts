@@ -21,7 +21,7 @@ describe("describeJudge", () => {
   it("calls a judge in line when nothing stands out", () => {
     expect(describeJudge(judge())).toEqual(["In line with the other judges"]);
     expect(
-      describeJudge(judge({ offset: 0.1, spread: 0.9, drift: -0.2 })),
+      describeJudge(judge({ offset: 0.1, spread: 0.9, drift: -0.15 })),
     ).toEqual(["In line with the other judges"]);
   });
 
@@ -44,23 +44,23 @@ describe("describeJudge", () => {
   });
 
   it("says when a judge changed over the day", () => {
-    expect(describeJudge(judge({ drift: -0.8 }))).toEqual([
+    expect(describeJudge(judge({ drift: -0.4 }))).toEqual([
       "Got harsher through the day",
     ]);
-    expect(describeJudge(judge({ drift: 0.7 }))).toEqual([
+    expect(describeJudge(judge({ drift: 0.3 }))).toEqual([
       "Got more lenient through the day",
     ]);
   });
 
   it("does not read a habit into what chance alone gives a judge", () => {
     expect(
-      describeJudge(judge({ grades: 30, offset: -0.15, drift: 0.45 })),
+      describeJudge(judge({ grades: 30, offset: -0.15, drift: 0.15 })),
     ).toEqual(["In line with the other judges"]);
   });
 
   it("lists everything that applies", () => {
     expect(
-      describeJudge(judge({ offset: -0.3, spread: 0.7, drift: -0.6 })),
+      describeJudge(judge({ offset: -0.3, spread: 0.7, drift: -0.25 })),
     ).toEqual([
       "Stricter than average by 0.30",
       "Scores bunched together",

@@ -17,7 +17,7 @@ const actualCalibrate = async () =>
 const leaveAsRaw: typeof calibrate = (evaluations) => ({
   adjusted: new Map(
     evaluations
-      .filter((e) => e.isComplete && e.ratings.length > 0)
+      .filter((e) => e.ratingsComplete && e.ratings.length > 0)
       .map((e) => [
         e.id,
         e.ratings.reduce((sum, value) => sum + value, 0) / e.ratings.length,
@@ -31,7 +31,7 @@ const evaluation = (
   entryId: string,
   challengeId: string,
   ratings: number[],
-  isComplete = true,
+  ratingsComplete = true,
   over: Partial<PlacementEvaluation> = {},
 ): PlacementEvaluation => {
   count += 1;
@@ -42,7 +42,7 @@ const evaluation = (
     entryId,
     challengeId,
     ratings,
-    isComplete,
+    ratingsComplete,
     ...over,
   };
 };
@@ -112,7 +112,7 @@ describe("computePlacements", () => {
     );
   });
 
-  it("counts complete evaluations only and leaves unscored projects out", () => {
+  it("counts evaluations with every rating only and leaves unscored projects out", () => {
     const placements = computePlacements({
       entryIds: ["a", "b"],
       memberships: [
@@ -247,7 +247,7 @@ describe("computePlacements with judge calibration", () => {
     );
   });
 
-  it("calibrates once, over the live entries' complete evaluations only", () => {
+  it("calibrates once, over the live entries' evaluations only", () => {
     const evaluations = [
       evaluation("a", "general", [4], true, { judgeId: "one" }),
       evaluation("b", "sponsor", [3], true, { judgeId: "two" }),

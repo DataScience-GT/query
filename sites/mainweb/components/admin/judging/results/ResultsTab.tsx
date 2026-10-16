@@ -23,7 +23,12 @@ import {
   eventClock,
   eventMoment,
 } from "@/components/hackathon/judging/event-time";
-import { plural, useRefreshJudging } from "@/components/admin/judging/shared";
+import {
+  ErrorLine,
+  NoticeLine,
+  plural,
+  useRefreshJudging,
+} from "@/components/admin/judging/shared";
 import {
   describeJudge,
   judgeNumbers,
@@ -44,10 +49,24 @@ type AuditRow = RouterOutputs["judging"]["results"]["evaluationAudit"][number];
 const score = (value: number | null) =>
   value === null ? "No score" : value.toFixed(2);
 
+// An evaluation counts toward the placings once every rating is in, so one
+// submitted at the deadline with a response left empty still does.
+const gradeBadge = (
+  state: "complete" | "incomplete" | "drafting",
+  counted: boolean,
+) =>
+  state === "complete"
+    ? { tone: "success" as const, text: "Complete" }
+    : state === "drafting"
+      ? { tone: "neutral" as const, text: "Still writing" }
+      : counted
+        ? { tone: "warning" as const, text: "Counts, response missing" }
+        : { tone: "warning" as const, text: "Incomplete, not counted" };
+
 /**
- * Ranking and releasing results: compute draft placings from complete
- * evaluations, check them, publish them to the hackathon's Results tab, and
- * look behind any number at who scored what.
+ * Ranking and releasing results: compute draft placings from the evaluations,
+ * check them, publish them to the hackathon's Results tab, look behind any
+ * number at who scored what, and reopen a grade for another judge.
  */
 export function ResultsTab({ hackathonId }: { hackathonId: string }) {
   const utils = trpc.useUtils();
@@ -302,8 +321,8 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
         {scopes.length === 0 ? (
           <p className={body}>
             {computedAt
-              ? "No project has a complete evaluation yet, so nothing was ranked. Compute again once judges submit."
-              : "Compute results once judges have submitted. Each challenge and the overall list rank projects by the mean of their complete evaluations, each adjusted for how strict or generous its judge is; ties share a placing."}
+              ? "No project has an evaluation with every rating yet, so nothing was ranked. Compute again once judges submit."
+              : "Compute results once judges have submitted. Each challenge and the overall list rank projects by the mean of their evaluations that have every rating, each adjusted for how strict or generous its judge is; ties share a placing."}
           </p>
         ) : (
           <div className="space-y-10">
@@ -489,6 +508,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
       <section ref={auditRef} className={`scroll-mt-6 ${sectionRule}`}>
         <EvaluationAudit
           hackathonId={hackathonId}
+          published={published}
           entryFilter={entryFilter}
           onClearFilter={() => setEntryFilter(null)}
         />
@@ -543,13 +563,19 @@ function CalibrationChallengeRow({
 
 function EvaluationAudit({
   hackathonId,
+  published,
   entryFilter,
   onClearFilter,
 }: {
   hackathonId: string;
+  published: boolean;
   entryFilter: { id: string; title: string } | null;
   onClearFilter: () => void;
 }) {
+  const readOnly = useReadOnly();
+  const refreshJudging = useRefreshJudging();
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [shown, setShown] = useState(AUDIT_PAGE);
   const [expanded, setExpanded] = useState<{
     id: string;
@@ -560,6 +586,22 @@ function EvaluationAudit({
     { hackathonId, entryId: entryFilter?.id },
     { refetchInterval: POLL_MS, placeholderData: (previous) => previous },
   );
+
+  // Deleting the grade changes the project list and the judges' queues as
+  // well as this one, so refresh all of judging.
+  const reopen = trpc.judging.admin.reopenGrade.useMutation({
+    onSuccess: () => {
+      setError(null);
+      setNotice(
+        "The grade is deleted and another judge can grade the project. Compute results again to update the placings.",
+      );
+      void refreshJudging();
+    },
+    onError: (e) => {
+      setNotice(null);
+      setError(trpcErrorMessage(e, "That did not go through. Try again."));
+    },
+  });
 
   const toggle = (id: string, view: "appointment" | "history") =>
     setExpanded((current) =>
@@ -586,6 +628,17 @@ function EvaluationAudit({
             Show every project
           </button>
         </p>
+      )}
+
+      {error && (
+        <div className="mt-4">
+          <ErrorLine>{error}</ErrorLine>
+        </div>
+      )}
+      {notice && (
+        <div className="mt-4">
+          <NoticeLine>{notice}</NoticeLine>
+        </div>
       )}
 
       {audit.isLoading ? (
@@ -618,6 +671,28 @@ function EvaluationAudit({
                 row={row}
                 expanded={expanded?.id === row.id ? expanded.view : null}
                 onToggle={(view) => toggle(row.id, view)}
+                reopenDisabled={readOnly || published || reopen.isPending}
+                reopenTitle={
+                  readOnly
+                    ? READ_ONLY_TITLE
+                    : published
+                      ? "Unpublish first to reopen a grade."
+                      : undefined
+                }
+                reopening={
+                  reopen.isPending && reopen.variables?.evaluationId === row.id
+                }
+                onReopen={() => {
+                  if (
+                    !window.confirm(
+                      `Reopen ${row.title} for grading? ${row.judgeName}'s grade is deleted, with its ratings, responses and history, and another judge can grade the project. This cannot be undone.`,
+                    )
+                  )
+                    return;
+                  setError(null);
+                  setNotice(null);
+                  reopen.mutate({ hackathonId, evaluationId: row.id });
+                }}
               />
             ))}
           </ul>
@@ -641,12 +716,24 @@ function AuditItem({
   row,
   expanded,
   onToggle,
+  reopenDisabled,
+  reopenTitle,
+  reopening,
+  onReopen,
 }: {
   hackathonId: string;
   row: AuditRow;
   expanded: "appointment" | "history" | null;
   onToggle: (view: "appointment" | "history") => void;
+  reopenDisabled: boolean;
+  reopenTitle: string | undefined;
+  reopening: boolean;
+  onReopen: () => void;
 }) {
+  const badge = gradeBadge(
+    row.isComplete ? "complete" : "incomplete",
+    row.counted,
+  );
   return (
     <li className="border-b border-[var(--border-subtle)] py-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-6">
@@ -666,9 +753,7 @@ function AuditItem({
           <span className="text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">
             {score(row.score)}
           </span>
-          <span className={status(row.isComplete ? "success" : "warning")}>
-            {row.isComplete ? "Complete" : "Incomplete"}
-          </span>
+          <span className={status(badge.tone)}>{badge.text}</span>
           {row.appointmentId && (
             <button
               type="button"
@@ -686,6 +771,15 @@ function AuditItem({
             className={textLink}
           >
             History
+          </button>
+          <button
+            type="button"
+            onClick={onReopen}
+            disabled={reopenDisabled}
+            title={reopenTitle}
+            className={`${textLink} disabled:cursor-not-allowed disabled:opacity-50`}
+          >
+            {reopening ? "Reopening…" : "Reopen for grading"}
           </button>
         </div>
       </div>
@@ -725,7 +819,7 @@ function AppointmentDetail({
     );
   }
 
-  const { appointment, average, completeCount, hasResultsElsewhere, judges } =
+  const { appointment, average, countedCount, hasResultsElsewhere, judges } =
     detail.data;
   const where = [appointment.building, appointment.room]
     .filter(Boolean)
@@ -742,13 +836,13 @@ function AppointmentDetail({
         <span className="font-semibold text-[var(--text-primary)]">
           {score(average)}
         </span>{" "}
-        from {completeCount} complete{" "}
-        {completeCount === 1 ? "evaluation" : "evaluations"}.
+        from {countedCount} counted{" "}
+        {countedCount === 1 ? "evaluation" : "evaluations"}.
       </p>
       {hasResultsElsewhere && (
         <p className={meta}>
-          This project also has complete evaluations for this challenge outside
-          this slot.
+          This project also has evaluations for this challenge outside this
+          slot.
         </p>
       )}
       {judges.length === 0 ? (
@@ -766,18 +860,10 @@ function AppointmentDetail({
                 </p>
                 <span
                   className={status(
-                    judge.status === "complete"
-                      ? "success"
-                      : judge.status === "incomplete"
-                        ? "warning"
-                        : "neutral",
+                    gradeBadge(judge.status, judge.counted).tone,
                   )}
                 >
-                  {judge.status === "complete"
-                    ? "Complete"
-                    : judge.status === "incomplete"
-                      ? "Incomplete"
-                      : "Still writing"}
+                  {gradeBadge(judge.status, judge.counted).text}
                 </span>
                 {judge.score !== null && (
                   <span className="text-[15px] tabular-nums text-[var(--text-primary)]">
