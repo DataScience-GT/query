@@ -297,6 +297,7 @@ function EntryRow({
 }) {
   const readOnly = useReadOnly();
   const refresh = useRefreshJudging();
+  const utils = trpc.useUtils();
   const [editing, setEditing] = useState(false);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -304,6 +305,13 @@ function EntryRow({
   const done = () => {
     setError(null);
     void refresh();
+  };
+  // Removing or restoring a project and changing its prize eligibility all
+  // change the public results. The portal keeps that query for minutes, so
+  // drop its copy too, as the Results tab does for eligibility.
+  const doneResults = () => {
+    done();
+    void utils.hackathon.getResults.invalidate();
   };
   const setChallenges = trpc.judging.admin.setEntryChallenges.useMutation({
     onSuccess: () => {
@@ -313,11 +321,11 @@ function EntryRow({
     onError: (e) => setError(trpcErrorMessage(e, "Could not save the challenges.")),
   });
   const remove = trpc.judging.admin.removeEntry.useMutation({
-    onSuccess: done,
+    onSuccess: doneResults,
     onError: (e) => setError(trpcErrorMessage(e, "Could not remove the project.")),
   });
   const restore = trpc.judging.admin.restoreEntry.useMutation({
-    onSuccess: done,
+    onSuccess: doneResults,
     onError: (e) => setError(trpcErrorMessage(e, "Could not restore the project.")),
   });
   const dismiss = trpc.judging.admin.dismissCheckInFlag.useMutation({
@@ -325,7 +333,7 @@ function EntryRow({
     onError: (e) => setError(trpcErrorMessage(e, "Could not update the flag.")),
   });
   const setEligible = trpc.judging.admin.setPrizeEligibility.useMutation({
-    onSuccess: done,
+    onSuccess: doneResults,
     onError: (e) =>
       setError(trpcErrorMessage(e, "Could not change prize eligibility.")),
   });
