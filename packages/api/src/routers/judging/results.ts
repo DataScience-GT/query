@@ -400,7 +400,7 @@ export const judgingResultsRouter = createTRPCRouter({
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
           message:
-            "There is nothing to publish yet. Compute results first, once judges have submitted.",
+            "There is nothing to publish yet. Compute results first, once judges have submitted. Reopening a grade clears the draft placings, so compute again after one.",
         });
       }
       const rows = await tx

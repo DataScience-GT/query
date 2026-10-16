@@ -590,10 +590,12 @@ function EvaluationAudit({
   // Deleting the grade changes the project list and the judges' queues as
   // well as this one, so refresh all of judging.
   const reopen = trpc.judging.admin.reopenGrade.useMutation({
-    onSuccess: () => {
+    onSuccess: (result) => {
       setError(null);
       setNotice(
-        "The grade is deleted and another judge can grade the project. Compute results again to update the placings.",
+        result.placings > 0
+          ? "The grade is deleted and another judge can grade the project. The draft placings were ranked with it, so they are cleared. Compute results again once the project is graded."
+          : "The grade is deleted and another judge can grade the project. Compute results again once it is graded.",
       );
       void refreshJudging();
     },
@@ -685,7 +687,7 @@ function EvaluationAudit({
                 onReopen={() => {
                   if (
                     !window.confirm(
-                      `Reopen ${row.title} for grading? ${row.judgeName}'s grade is deleted, with its ratings, responses and history, and another judge can grade the project. This cannot be undone.`,
+                      `Reopen ${row.title} for grading? ${row.judgeName}'s grade is deleted, with its ratings, responses and history, and another judge can grade the project. The draft placings are cleared until you compute results again. This cannot be undone.`,
                     )
                   )
                     return;

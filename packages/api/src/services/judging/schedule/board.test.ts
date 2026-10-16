@@ -27,7 +27,7 @@ const evaluation = (over: Partial<BoardEvaluation>): BoardEvaluation => ({
   entryId: "a",
   challengeId: "mlh",
   appointmentId: null,
-  isComplete: true,
+  ratingsComplete: true,
   ...over,
 });
 
