@@ -318,7 +318,7 @@ export async function checkInFlagsForEntries(
   ];
   const [events, entriesByFlag] = await Promise.all([
     eventIds.length === 0
-      ? []
+      ? ([] as { id: string; name: string }[])
       : db
           .select({ id: hackathonEvents.id, name: hackathonEvents.name })
           .from(hackathonEvents)
