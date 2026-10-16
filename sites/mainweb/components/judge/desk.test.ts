@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  MAX_SKIPS,
+  addSkip,
   countdown,
   countdownTone,
   formatScore,
@@ -154,5 +156,32 @@ describe("stationGroups", () => {
       ),
     ).toEqual([[null, ["a", "b"]]]);
     expect(stationGroups([])).toEqual([]);
+  });
+});
+
+describe("addSkip", () => {
+  it("adds the project last", () => {
+    expect(addSkip([], "a")).toEqual(["a"]);
+    expect(addSkip(["a", "b"], "c")).toEqual(["a", "b", "c"]);
+  });
+
+  it("holds a project once, moved to the end", () => {
+    expect(addSkip(["a", "b", "c"], "a")).toEqual(["b", "c", "a"]);
+  });
+
+  it("drops the oldest past what the API takes", () => {
+    const full = Array.from({ length: MAX_SKIPS }, (_, i) => `e${i}`);
+
+    const next = addSkip(full, "new");
+
+    expect(next).toHaveLength(MAX_SKIPS);
+    expect(next[0]).toBe("e1");
+    expect(next.at(-1)).toBe("new");
+  });
+
+  it("leaves the list it was given alone", () => {
+    const skipped = ["a"];
+    addSkip(skipped, "b");
+    expect(skipped).toEqual(["a"]);
   });
 });

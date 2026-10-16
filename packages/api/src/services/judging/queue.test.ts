@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextToGrade, queueOrder } from "./queue";
+import { QUEUE_WINDOW, nextToGrade, queueOrder, queueWindow } from "./queue";
 import type { GradingState } from "./grading-hold";
 
 const CHALLENGE = "c0000000-0000-4000-8000-000000000001";
@@ -131,5 +131,76 @@ describe("nextToGrade", () => {
     );
     for (const entryId of picked) expect(scope).toContain(entryId);
     expect(new Set(picked).size).toBeGreaterThan(1);
+  });
+});
+
+describe("queueWindow", () => {
+  it("is the first few open projects in the judge's order", () => {
+    expect(QUEUE_WINDOW).toBe(3);
+    expect(queueWindow(judges[0], CHALLENGE, entries.map(open))).toEqual(
+      queueOrder(judges[0], CHALLENGE, entries).slice(0, QUEUE_WINDOW),
+    );
+  });
+
+  it("counts only open projects, so held and graded ones do not use it up", () => {
+    const order = queueOrder(judges[0], CHALLENGE, entries);
+    const candidates = entries.map((entryId) => {
+      if (entryId === order[0]) return state(entryId, "graded");
+      if (entryId === order[1]) return state(entryId, "in_progress");
+      if (entryId === order[2]) return state(entryId, "mine");
+      return open(entryId);
+    });
+    expect(queueWindow(judges[0], CHALLENGE, candidates)).toEqual(
+      order.slice(3, 3 + QUEUE_WINDOW),
+    );
+  });
+
+  it("is shorter when fewer projects are open", () => {
+    expect(
+      queueWindow(judges[0], CHALLENGE, entries.slice(0, 2).map(open)),
+    ).toHaveLength(2);
+    expect(queueWindow(judges[0], CHALLENGE, [])).toEqual([]);
+  });
+
+  it("is every open project when the window is unlimited", () => {
+    expect(
+      queueWindow(judges[0], CHALLENGE, entries.map(open), Infinity),
+    ).toEqual(queueOrder(judges[0], CHALLENGE, entries));
+  });
+
+  it("differs from judge to judge, so each draws their own sample", () => {
+    const windows = new Set(
+      judges.map((judge) =>
+        queueWindow(judge, CHALLENGE, entries.map(open)).join(),
+      ),
+    );
+    expect(windows.size).toBeGreaterThan(30);
+  });
+});
+
+describe("nextToGrade with skips", () => {
+  const order = queueOrder(judges[0], CHALLENGE, entries);
+  const next = (skip: string[], window?: number) =>
+    nextToGrade(judges[0], CHALLENGE, entries.map(open), { skip, window });
+
+  it("passes over a skipped project to the next one in the window", () => {
+    expect(next([order[0]])).toBe(order[1]);
+    expect(next([order[0], order[1]])).toBe(order[2]);
+  });
+
+  it("is nothing once every project in the window is skipped", () => {
+    expect(next(order.slice(0, QUEUE_WINDOW))).toBeNull();
+  });
+
+  it("never reaches past the window for a project that was not skipped", () => {
+    expect(next(order.slice(0, QUEUE_WINDOW))).not.toBe(order[QUEUE_WINDOW]);
+  });
+
+  it("ignores a skipped project outside the window", () => {
+    expect(next([order[10]])).toBe(order[0]);
+  });
+
+  it("reaches as far as an unlimited window goes", () => {
+    expect(next(order.slice(0, 5), Infinity)).toBe(order[5]);
   });
 });

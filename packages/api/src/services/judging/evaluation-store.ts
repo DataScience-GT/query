@@ -37,7 +37,12 @@ import type { CheckedAnswers } from "./evaluation";
 import { gradingLockKey, gradingRefusal, gradingStateOf } from "./grading-hold";
 import { GUEST_SESSION_ENDED } from "./principal";
 import type { Judge } from "./principal";
-import { descendantsOf, effectiveMode, rootOf } from "./scope";
+import {
+  descendantsOf,
+  effectiveMode,
+  isSponsorChallenge,
+  rootOf,
+} from "./scope";
 import type { ChallengeMode } from "./scope";
 import { DEADLINE_GRACE_MS, evaluationTiming } from "./timing";
 import type { EvaluationTiming } from "./timing";
@@ -139,9 +144,36 @@ export async function seatOf(
 }
 
 /**
+ * Sponsor challenges belong to the sponsor's own judges: a member (table)
+ * judge grades one only while seated in a room that serves it.
+ */
+function memberMayGrade(root: ChallengeRow, seat: Seat | null): boolean {
+  return !isSponsorChallenge(root) || seat?.challengeId === root.id;
+}
+
+/**
+ * The challenges a member judge may pick right now: the general ones, and a
+ * sponsor's (with everything below it) only from a seat in its room.
+ */
+export function memberScope(
+  challenges: readonly ChallengeRow[],
+  seat: Seat | null,
+): Set<string> {
+  return new Set(
+    challenges
+      .filter((c) => {
+        const root = rootOf(challenges, c.id);
+        return !!root && memberMayGrade(root, seat);
+      })
+      .map((c) => c.id),
+  );
+}
+
+/**
  * The root challenge a judge is evaluating. A guest always evaluates their
  * room's; a filter they pass has to sit inside it. A member evaluates the root
- * of what they picked, or else the room they sit in, or else General.
+ * of what they picked, or else the room they sit in, or else General, and
+ * only a sponsor's challenge from a seat in the room that serves it.
  */
 export function evaluatedChallenge(
   judge: Judge,
@@ -172,6 +204,12 @@ export function evaluatedChallenge(
       code: "PRECONDITION_FAILED",
       message:
         "This hackathon has no judging challenges yet. Ask an organiser to import projects first.",
+    });
+  }
+  if (judge.kind === "member" && !memberMayGrade(root, seat)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: `Sponsor judges grade ${root.label}. Sit in its room to grade it.`,
     });
   }
   return root;
@@ -562,7 +600,8 @@ const RECONCILE_BATCH = 50;
  * first) wins over this. A draft that can no longer be submitted (the guest's
  * session was revoked before the deadline, the project was withdrawn, the
  * schedule was dropped, another judge already graded the project) keeps its
- * answers and loses its deadline.
+ * answers and loses its deadline. So does a draft with no answers in it: the
+ * judge only opened the project (desk.startGrading), and that is not a grade.
  *
  * Each project is graded once, so the batch takes the grading lock of every
  * project it touches before it writes anything: in key order, and ahead of any
@@ -686,7 +725,11 @@ export async function reconcileDueDrafts(
       }
 
       const check = checkAnswers(rubric, draft, kind, "lenient");
-      if (!check.ok) {
+      if (
+        !check.ok ||
+        (check.answers.ratings.length === 0 &&
+          check.answers.responses.length === 0)
+      ) {
         await retain(draft.id);
         continue;
       }

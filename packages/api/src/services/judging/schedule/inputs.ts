@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { rootOf } from "../scope";
+import { isSponsorChallenge, rootOf } from "../scope";
 import type { ChallengeMode } from "../scope";
 import { gridOf } from "./slots";
 import type { ScheduleTiming } from "./slots";
@@ -86,8 +86,8 @@ export function selectPlan(source: {
   memberships: readonly SourceMembership[];
 }): { rooms: PlanRoom[]; tasks: PlanTask[] } {
   const scheduled = scheduledChallengeIds(source.challenges);
-  const general = new Set(
-    source.challenges.filter((c) => c.isGeneral).map((c) => c.id),
+  const sponsor = new Set(
+    source.challenges.filter(isSponsorChallenge).map((c) => c.id),
   );
 
   const rooms = source.rooms
@@ -111,7 +111,7 @@ export function selectPlan(source: {
     tasks.push({
       entryId: row.entryId,
       challengeId: row.challengeId,
-      sponsor: !general.has(row.challengeId),
+      sponsor: sponsor.has(row.challengeId),
     });
   }
   tasks.sort(byTask);
