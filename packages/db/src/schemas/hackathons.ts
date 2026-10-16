@@ -525,10 +525,12 @@ export const hackathonCheckInFlags = pgTable(
     // Postgres's 63-char limit, and the conflict event one lands on exactly 63;
     // the event one is named to match.
     participantId: uuid("participant_id").notNull(),
-    // The event they tried to enter.
-    eventId: uuid("event_id").notNull(),
-    // The event they were already in.
-    conflictEventId: uuid("conflict_event_id").notNull(),
+    // The event they tried to enter. Cleared if the event is deleted: the flag
+    // is the only record of the rule break, and prize review still needs it
+    // after a session is cancelled. Always set when the flag is written.
+    eventId: uuid("event_id"),
+    // The event they were already in. Cleared the same way.
+    conflictEventId: uuid("conflict_event_id"),
     rule: text("rule", { enum: ["overlap", "too_soon"] }).notNull(),
     method: text("method", { enum: ["scan", "code", "manual"] }).notNull(),
     // The hacker on a code, staff otherwise.
@@ -547,6 +549,8 @@ export const hackathonCheckInFlags = pgTable(
     }),
   },
   (table) => [
+    // Nulls are distinct in a unique index, so clearing a deleted event's id
+    // never makes two flags collide here.
     uniqueIndex("check_in_flag_attempt_idx").on(
       table.participantId,
       table.eventId,
@@ -562,12 +566,12 @@ export const hackathonCheckInFlags = pgTable(
       name: "check_in_flag_event_fk",
       columns: [table.eventId],
       foreignColumns: [hackathonEvents.id],
-    }).onDelete("cascade"),
+    }).onDelete("set null"),
     foreignKey({
       name: "check_in_flag_conflict_event_fk",
       columns: [table.conflictEventId],
       foreignColumns: [hackathonEvents.id],
-    }).onDelete("cascade"),
+    }).onDelete("set null"),
   ],
 );
 

@@ -27,9 +27,9 @@ export type CheckInFlagView = {
   id: string;
   participantName: string;
   rule: "overlap" | "too_soon";
-  /** The event they tried to enter. */
+  /** The event they tried to enter, or "A deleted event" once it is gone. */
   eventName: string;
-  /** The event they were already in. */
+  /** The event they were already in, worded the same way if deleted. */
   conflictEventName: string;
   method: "scan" | "code" | "manual";
   attempts: number;
@@ -308,8 +308,13 @@ export async function checkInFlagsForEntries(
     .where(eq(hackathonCheckInFlags.hackathonId, hackathonId));
   if (rows.length === 0) return result;
 
+  // A deleted event leaves its id null on the flag; there is nothing to look up.
   const eventIds = [
-    ...new Set(rows.flatMap((row) => [row.eventId, row.conflictEventId])),
+    ...new Set(
+      rows
+        .flatMap((row) => [row.eventId, row.conflictEventId])
+        .filter((id) => id !== null),
+    ),
   ];
   const [events, entriesByFlag] = await Promise.all([
     db
@@ -319,6 +324,8 @@ export async function checkInFlagsForEntries(
     entriesFor(db, hackathonId, rows),
   ]);
   const eventName = new Map(events.map((event) => [event.id, event.name]));
+  const nameOf = (id: string | null) =>
+    (id ? eventName.get(id) : undefined) ?? "A deleted event";
 
   const wanted = entryIds ? new Set(entryIds) : null;
   const views: [CheckInFlagView, string[]][] = [];
@@ -332,9 +339,8 @@ export async function checkInFlagsForEntries(
         id: row.id,
         participantName: fullName(personName(row), row.email),
         rule: row.rule,
-        eventName: eventName.get(row.eventId) ?? "A deleted event",
-        conflictEventName:
-          eventName.get(row.conflictEventId) ?? "A deleted event",
+        eventName: nameOf(row.eventId),
+        conflictEventName: nameOf(row.conflictEventId),
         method: row.method,
         attempts: row.attempts,
         createdAt: row.createdAt,
