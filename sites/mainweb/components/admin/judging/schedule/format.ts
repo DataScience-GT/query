@@ -112,6 +112,17 @@ export const STATUS: Record<AppointmentStatus, StatusStyle> = {
   future: { label: "Upcoming", tone: "neutral" },
 };
 
+/** Where the judge assigned to a started presentation has got, beside their name. */
+export const JUDGE_PROGRESS: Record<
+  NonNullable<ScheduleBoard["appointments"][number]["judgeProgress"]>,
+  StatusStyle
+> = {
+  grading: { label: "Grading", tone: "accent" },
+  graded: { label: "Graded", tone: "success" },
+  taken_over: { label: "Taken over", tone: "neutral" },
+  not_started: { label: "Assigned judge has not started", tone: "warning" },
+};
+
 export const STATUS_ORDER: AppointmentStatus[] = [
   "pending",
   "missed",

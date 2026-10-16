@@ -247,14 +247,15 @@ export function InfoTab({
 
   // Switching tabs unmounts this one, so the answers are kept as they change.
   // The consents are left out on purpose: they are ticked fresh at submit.
+  // So are gender, race and the emergency contact: this portal is used on
+  // shared and borrowed laptops, and sensitive personal details should not
+  // sit in localStorage in clear text.
   const draft = JSON.stringify({
     firstName,
     lastName,
     phone,
     age,
-    gender,
     pronouns,
-    race,
     underrepresented,
     school,
     major,
@@ -269,8 +270,6 @@ export function InfoTab({
     whyAttend,
     shirtSize,
     dietary,
-    emergencyContact,
-    emergencyPhone,
     needsHardware,
   });
   useEffect(() => {
@@ -293,9 +292,7 @@ export function InfoTab({
       lastName: setLastName,
       phone: setPhone,
       age: setAge,
-      gender: setGender,
       pronouns: setPronouns,
-      race: setRace,
       school: setSchool,
       major: setMajor,
       graduationYear: setGraduationYear,
@@ -305,8 +302,6 @@ export function InfoTab({
       linkedinUrl: setLinkedinUrl,
       githubUrl: setGithubUrl,
       whyAttend: setWhyAttend,
-      emergencyContact: setEmergencyContact,
-      emergencyPhone: setEmergencyPhone,
     };
     for (const [key, set] of Object.entries(text)) {
       const value = saved[key];

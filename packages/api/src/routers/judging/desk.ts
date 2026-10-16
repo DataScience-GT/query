@@ -1,6 +1,16 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  ilike,
+  inArray,
+  isNull,
+  or,
+} from "drizzle-orm";
 import {
   hackathons,
   judgeAssignments,
@@ -24,6 +34,7 @@ import {
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import type { JudgingTx as Tx } from "../../services/judging/config";
+import { flaggedEntryIds } from "../../services/check-in-flags";
 import { createTRPCRouter, publicProcedure } from "../../trpc";
 import { isUniqueViolation } from "../../middleware/db-errors";
 import {
@@ -36,6 +47,7 @@ import type { Judge } from "../../services/judging/principal";
 import {
   assertGuestSeated,
   assertJudgingOpen,
+  claimGrading,
   evaluatedChallenge,
   evaluationAccess,
   guestScope,
@@ -43,20 +55,43 @@ import {
   loadChallenges,
   loadEntryInChallenge,
   loadRubric,
+  memberScope,
   reconcileDueDrafts,
   seatOf,
   writeEvaluation,
 } from "../../services/judging/evaluation-store";
+import {
+  DEADLINE_GRACE_MS,
+  reservedUntil as reservedUntilOf,
+} from "../../services/judging/timing";
 import type { ChallengeRow } from "../../services/judging/evaluation-store";
+import {
+  gradingRefusal,
+  gradingStateOf,
+  gradingStates,
+} from "../../services/judging/grading-hold";
+import type { GradingState } from "../../services/judging/grading-hold";
+import {
+  QUEUE_WINDOW,
+  nextToGrade,
+  queueOrder,
+  queueWindow,
+} from "../../services/judging/queue";
+import {
+  assertQueueOffers,
+  loadQueue,
+} from "../../services/judging/queue-store";
 import {
   checkAnswers,
   responseVisibility,
 } from "../../services/judging/evaluation";
 import {
   evaluationScore,
+  hasEveryRating,
   overallScore,
   scopedScore,
 } from "../../services/judging/scoring";
+import { holdsEveryRating } from "../../services/judging/scoring-sql";
 import { effectiveMode, rootOf, sameLabel } from "../../services/judging/scope";
 import {
   groupSections,
@@ -268,6 +303,20 @@ async function openRoomId(db: DrizzleDB, judgeId: string) {
     )
     .limit(1);
   return seat?.roomId ?? null;
+}
+
+/**
+ * A member's seat, for the rule that a sponsor's challenge is graded from its
+ * room. A guest is locked to their room's challenge and needs no seat.
+ */
+function memberSeat(
+  db: DrizzleDB,
+  judge: Judge,
+  challenges: readonly ChallengeRow[],
+) {
+  return judge.kind === "member"
+    ? seatOf(db, judge.judgeId, challenges)
+    : Promise.resolve(null);
 }
 
 /** The track a member judge asked for when they applied, or null. */
@@ -502,6 +551,7 @@ const deliberationRouter = createTRPCRouter({
     ),
 
   // Only a project the judge has finished: a shortlist ranks what they saw.
+  // Finished is what placings count: every rating in, written response or not.
   add: judgeProcedure
     .input(
       z.object({
@@ -528,7 +578,7 @@ const deliberationRouter = createTRPCRouter({
             and(
               eq(judgingEvaluations.judgeId, ctx.judge.judgeId),
               eq(judgingEvaluations.entryId, input.entryId),
-              eq(judgingEvaluations.isComplete, true),
+              holdsEveryRating(input.hackathonId),
               isNull(judgingEntries.deletedAt),
             ),
           )
@@ -693,10 +743,12 @@ export const judgingDeskRouter = createTRPCRouter({
     const seat = judge ? await seatOf(db, judge.judgeId, challenges) : null;
     const roomId =
       principal.kind === "guest" ? principal.roomId : (seat?.roomId ?? null);
+    // A guest sees their room's challenge; a table judge sees General's and,
+    // from a seat in its room, a sponsor's.
     const visible =
       principal.kind === "guest"
         ? guestScope(challenges, principal.roomChallengeId)
-        : null;
+        : memberScope(challenges, seat);
 
     return {
       kind: principal.kind,
@@ -709,7 +761,7 @@ export const judgingDeskRouter = createTRPCRouter({
       showAllScores: principal.kind === "member" && switches.showAllScores,
       room: roomId ? await roomSummary(db, roomId, challenges) : null,
       challenges: challenges
-        .filter((c) => !visible || visible.has(c.id))
+        .filter((c) => visible.has(c.id))
         .map((c) => ({
           id: c.id,
           label: c.label,
@@ -918,6 +970,10 @@ export const judgingDeskRouter = createTRPCRouter({
 
   // The projects to judge for one challenge. By default: in presentation
   // order, only those presenting in the judge's room, not yet judged by them.
+  // Each says whether it is still open to grade: a project is graded once, so
+  // one another judge graded or holds is listed after the open ones, as is
+  // one still reserved for the judge assigned to it, with when it opens.
+  // Presentations assigned to this judge come first, marked as theirs.
   projects: judgeProcedure
     .input(
       z.object({
@@ -1009,6 +1065,7 @@ export const judgingDeskRouter = createTRPCRouter({
               startsAt: judgingAppointments.startsAt,
               deadlineAt: judgingAppointments.deadlineAt,
               endsAt: judgingAppointments.endsAt,
+              assignedJudgeId: judgingAppointments.assignedJudgeId,
             })
             .from(judgingAppointments)
             .innerJoin(
@@ -1027,35 +1084,75 @@ export const judgingDeskRouter = createTRPCRouter({
               ),
             )
         : [];
-      const mine = await db
+      // Every judge's, to tell which projects someone has: a judge is only
+      // ever shown their own.
+      const evaluations = await db
         .select({
           entryId: judgingEvaluations.entryId,
+          judgeId: judgingEvaluations.judgeId,
           revision: judgingEvaluations.revision,
-          isComplete: judgingEvaluations.isComplete,
+          // Every rating in, as placings count it.
+          counted: holdsEveryRating(input.hackathonId),
         })
         .from(judgingEvaluations)
         .where(
           and(
-            eq(judgingEvaluations.judgeId, judge.judgeId),
             eq(judgingEvaluations.challengeId, challenge.id),
             inArray(judgingEvaluations.entryId, entryIds),
           ),
         );
       const drafts = await db
-        .select({ entryId: judgingEvaluationDrafts.entryId })
+        .select({
+          entryId: judgingEvaluationDrafts.entryId,
+          judgeId: judgingEvaluationDrafts.judgeId,
+          updatedAt: judgingEvaluationDrafts.updatedAt,
+          deadlineAt: judgingEvaluationDrafts.deadlineAt,
+          revision: judgingEvaluationDrafts.revision,
+        })
         .from(judgingEvaluationDrafts)
         .where(
           and(
-            eq(judgingEvaluationDrafts.judgeId, judge.judgeId),
             eq(judgingEvaluationDrafts.challengeId, challenge.id),
             inArray(judgingEvaluationDrafts.entryId, entryIds),
           ),
         );
       const tags = await tagsOf(db, judge, challenges, entryIds);
+      // One yes or no per project and nothing else. Who was flagged and why
+      // is for organisers; this list is polled by every judge, guests included.
+      const flagged = await flaggedEntryIds(db, input.hackathonId, entryIds);
 
       const presentationOf = new Map(presentations.map((p) => [p.entryId, p]));
-      const evaluationOf = new Map(mine.map((e) => [e.entryId, e]));
-      const drafted = new Set(drafts.map((d) => d.entryId));
+      const evaluationOf = new Map(
+        evaluations
+          .filter((e) => e.judgeId === judge.judgeId)
+          .map((e) => [e.entryId, e]),
+      );
+      // A draft the judge has saved to. Opening a project makes an empty one
+      // (startGrading), and that is not a draft saved.
+      const drafted = new Set(
+        drafts
+          .filter((d) => d.judgeId === judge.judgeId && d.revision > 0)
+          .map((d) => d.entryId),
+      );
+      // A scheduled challenge's presentation assigned to another judge is kept
+      // for them until its takeover time. Never says which judge.
+      const now = new Date();
+      const timed = !!schedule && mode === "scheduled";
+      const reserved = new Map<string, Date>();
+      if (timed) {
+        for (const presentation of presentations) {
+          const until = reservedUntilOf(presentation, judge.judgeId, now);
+          if (until) reserved.set(presentation.entryId, until);
+        }
+      }
+      const grading = gradingStates(
+        judge.judgeId,
+        entryIds,
+        evaluations,
+        drafts,
+        now,
+        reserved,
+      );
 
       const inView = entries.filter(
         (entry) =>
@@ -1064,16 +1161,15 @@ export const judgingDeskRouter = createTRPCRouter({
             presentationOf.get(entry.id)?.roomId !== seat?.roomId
           ),
       );
-      // An incomplete evaluation (time ran out on it) still has work to do, so
-      // only finished ones are hidden.
+      // Judged means the evaluation counts, as placings count it: every rating
+      // in, written response or not. One missing a rating is not hidden.
       const judgedCount = inView.filter(
-        (entry) => evaluationOf.get(entry.id)?.isComplete,
+        (entry) => evaluationOf.get(entry.id)?.counted,
       ).length;
 
       const projects = inView
         .filter(
-          (entry) =>
-            !(input.hideJudged && evaluationOf.get(entry.id)?.isComplete),
+          (entry) => !(input.hideJudged && evaluationOf.get(entry.id)?.counted),
         )
         .map((entry) => {
           const presentation = presentationOf.get(entry.id);
@@ -1081,6 +1177,7 @@ export const judgingDeskRouter = createTRPCRouter({
           return {
             ...entry,
             challenges: tags.get(entry.id) ?? [],
+            flagged: flagged.has(entry.id),
             presentation: presentation
               ? {
                   id: presentation.id,
@@ -1095,17 +1192,58 @@ export const judgingDeskRouter = createTRPCRouter({
             myEvaluation: evaluation
               ? {
                   revision: evaluation.revision,
-                  isComplete: evaluation.isComplete,
+                  counted: evaluation.counted,
                 }
               : null,
             hasDraft: drafted.has(entry.id),
+            grading: grading.get(entry.id) ?? ("open" as const),
+            // When a reserved project opens to this judge.
+            reservedUntil:
+              grading.get(entry.id) === "reserved"
+                ? (reserved.get(entry.id) ?? null)
+                : null,
+            assignedToYou:
+              timed && presentation?.assignedJudgeId === judge.judgeId,
           };
         });
 
+      // What the judge can still do comes first, then projects another judge
+      // is grading or is assigned, then those another judge graded.
+      const standing = (state: GradingState) =>
+        state === "graded"
+          ? 2
+          : state === "in_progress" || state === "reserved"
+            ? 1
+            : 0;
       const byTitle = (a: { title: string }, b: { title: string }) =>
         a.title.localeCompare(b.title);
+      // Nothing is timed here, so open projects follow the judge's own queue,
+      // the order Grade next project walks: the natural pick is the fair one.
+      const queued =
+        input.sort === "scheduled" && (!schedule || mode !== "scheduled")
+          ? new Map(
+              queueOrder(
+                judge.judgeId,
+                challenge.id,
+                projects.filter((p) => p.grading === "open").map((p) => p.id),
+              ).map((id, place) => [id, place]),
+            )
+          : null;
       projects.sort((a, b) => {
-        if (input.sort === "scheduled") {
+        const open = standing(a.grading) - standing(b.grading);
+        if (open !== 0) return open;
+        if (queued) {
+          // The judge's own come first, then the open ones in queue order.
+          const mine =
+            Number(b.grading === "mine") - Number(a.grading === "mine");
+          if (mine !== 0) return mine;
+          const at = queued.get(a.id);
+          const bt = queued.get(b.id);
+          if (at !== undefined && bt !== undefined) return at - bt;
+        } else if (input.sort === "scheduled") {
+          // Their own assigned presentations lead, in start order.
+          const assigned = Number(b.assignedToYou) - Number(a.assignedToYou);
+          if (assigned !== 0) return assigned;
           const at = a.presentation?.startsAt.getTime() ?? Infinity;
           const bt = b.presentation?.startsAt.getTime() ?? Infinity;
           if (at !== bt) return at - bt;
@@ -1115,6 +1253,106 @@ export const judgingDeskRouter = createTRPCRouter({
 
       return { ...base, judgedCount, projects };
     }),
+
+  // The presentations assigned to this judge that have not ended, soonest
+  // first: what they are to judge and where to go for it. Only the judge's
+  // own; whether another judge graded or took one over is told without saying
+  // who. A project has no table of its own here: a table is a room whose kind
+  // says so.
+  itinerary: judgeProcedure.query(async ({ ctx, input }) => {
+    const db = ctx.db;
+    const { judge } = ctx;
+    await reconcileDueDrafts(db, input.hackathonId);
+
+    const now = new Date();
+    const [schedule] = await db
+      .select({ id: judgingSchedules.id })
+      .from(judgingSchedules)
+      .where(eq(judgingSchedules.hackathonId, input.hackathonId))
+      .limit(1);
+    if (!schedule) return { presentations: [], serverNow: now };
+
+    const rows = await db
+      .select({
+        id: judgingAppointments.id,
+        entryId: judgingAppointments.entryId,
+        challengeId: judgingAppointments.challengeId,
+        title: judgingEntries.title,
+        roomId: judgingRooms.id,
+        roomName: judgingRooms.name,
+        roomKind: judgingRooms.kind,
+        buildingName: judgingBuildings.name,
+        startsAt: judgingAppointments.startsAt,
+        deadlineAt: judgingAppointments.deadlineAt,
+      })
+      .from(judgingAppointments)
+      .innerJoin(
+        judgingEntries,
+        eq(judgingEntries.id, judgingAppointments.entryId),
+      )
+      .innerJoin(judgingRooms, eq(judgingRooms.id, judgingAppointments.roomId))
+      .leftJoin(
+        judgingBuildings,
+        eq(judgingBuildings.id, judgingRooms.buildingId),
+      )
+      .where(
+        and(
+          eq(judgingAppointments.scheduleId, schedule.id),
+          eq(judgingAppointments.assignedJudgeId, judge.judgeId),
+          gt(judgingAppointments.deadlineAt, now),
+          isNull(judgingEntries.deletedAt),
+        ),
+      )
+      .orderBy(asc(judgingAppointments.startsAt));
+    if (rows.length === 0) return { presentations: [], serverNow: now };
+
+    const challenges = await loadChallenges(db, input.hackathonId);
+    const labelOf = new Map(challenges.map((c) => [c.id, c.label]));
+    const roomId =
+      judge.kind === "guest"
+        ? judge.roomId
+        : ((await seatOf(db, judge.judgeId, challenges))?.roomId ?? null);
+
+    const entryIds = [...new Set(rows.map((row) => row.entryId))];
+    const evaluations = await db
+      .select({
+        entryId: judgingEvaluations.entryId,
+        challengeId: judgingEvaluations.challengeId,
+        judgeId: judgingEvaluations.judgeId,
+      })
+      .from(judgingEvaluations)
+      .where(inArray(judgingEvaluations.entryId, entryIds));
+    const drafts = await db
+      .select({
+        entryId: judgingEvaluationDrafts.entryId,
+        challengeId: judgingEvaluationDrafts.challengeId,
+        judgeId: judgingEvaluationDrafts.judgeId,
+        updatedAt: judgingEvaluationDrafts.updatedAt,
+        deadlineAt: judgingEvaluationDrafts.deadlineAt,
+      })
+      .from(judgingEvaluationDrafts)
+      .where(inArray(judgingEvaluationDrafts.entryId, entryIds));
+
+    return {
+      presentations: rows.map((row) => {
+        const same = (task: { entryId: string; challengeId: string }) =>
+          task.entryId === row.entryId && task.challengeId === row.challengeId;
+        const graders = evaluations.filter(same);
+        return {
+          ...row,
+          challengeLabel: labelOf.get(row.challengeId) ?? "",
+          // Graded by anyone: nothing is left to do for it.
+          graded: graders.length > 0,
+          // Another judge started it after the takeover time.
+          takenOver:
+            gradingStateOf(judge.judgeId, graders, drafts.filter(same), now) ===
+            "in_progress",
+          inRoom: row.roomId === roomId,
+        };
+      }),
+      serverNow: now,
+    };
+  }),
 
   // One project as the evaluation editor needs it: the project (names only
   // for the team), the rubric, the judge's draft or evaluation, whether they
@@ -1150,6 +1388,8 @@ export const judgingDeskRouter = createTRPCRouter({
           asc(judgingEntryMembers.createdAt),
         );
       const tags = await tagsOf(db, judge, challenges, [entry.id]);
+      // A bare marker, as in the project list: never who or why.
+      const flagged = await flaggedEntryIds(db, input.hackathonId, [entry.id]);
       const rubric = await loadRubric(db, input.hackathonId);
       const switches = await judgingSwitches(db, input.hackathonId);
 
@@ -1187,17 +1427,61 @@ export const judgingDeskRouter = createTRPCRouter({
         )
         .limit(1);
 
-      const { timing, presentation } = await evaluationAccess(db, {
-        hackathonId: input.hackathonId,
-        judgeId: judge.judgeId,
-        entryId: entry.id,
-        challenge,
-        challenges,
-        evaluation: evaluation ?? null,
-      });
+      // Every judge's, narrowed to what says who has the project.
+      const graders = await db
+        .select({ judgeId: judgingEvaluations.judgeId })
+        .from(judgingEvaluations)
+        .where(
+          and(
+            eq(judgingEvaluations.entryId, entry.id),
+            eq(judgingEvaluations.challengeId, challenge.id),
+          ),
+        );
+      const holders = await db
+        .select({
+          judgeId: judgingEvaluationDrafts.judgeId,
+          updatedAt: judgingEvaluationDrafts.updatedAt,
+          deadlineAt: judgingEvaluationDrafts.deadlineAt,
+        })
+        .from(judgingEvaluationDrafts)
+        .where(
+          and(
+            eq(judgingEvaluationDrafts.entryId, entry.id),
+            eq(judgingEvaluationDrafts.challengeId, challenge.id),
+          ),
+        );
+      const { timing, presentation, reservedUntil } = await evaluationAccess(
+        db,
+        {
+          hackathonId: input.hackathonId,
+          judgeId: judge.judgeId,
+          entryId: entry.id,
+          challenge,
+          challenges,
+          evaluation: evaluation ?? null,
+        },
+      );
+      const grading = gradingStateOf(
+        judge.judgeId,
+        graders,
+        holders,
+        new Date(),
+        reservedUntil,
+      );
+      // Another judge's project stays readable; it cannot be written to.
+      // One reserved for another judge is shut by the timing, which says when
+      // it opens.
+      const gradedElsewhere = gradingRefusal(grading, challenge.label);
       const presentationRoom = presentation
         ? await roomSummary(db, presentation.roomId, challenges)
         : null;
+
+      // An evaluation counts once it rated every rating item, as placings
+      // count it: a draft submitted at the deadline with a response left
+      // empty still does.
+      const ratingItems = rubric.filter(
+        (item) => item.kind === "rating",
+      ).length;
 
       // A judge sees how a project is scoring once they have judged it
       // themselves, or (members only) when organisers show every score.
@@ -1209,27 +1493,25 @@ export const judgingDeskRouter = createTRPCRouter({
         overall: ReturnType<typeof overallScore> | null;
       } | null = null;
       if (scoresVisible) {
-        const complete = await db
+        const submitted = await db
           .select({
             id: judgingEvaluations.id,
             challengeId: judgingEvaluations.challengeId,
           })
           .from(judgingEvaluations)
-          .where(
-            and(
-              eq(judgingEvaluations.entryId, entry.id),
-              eq(judgingEvaluations.isComplete, true),
-            ),
-          );
+          .where(eq(judgingEvaluations.entryId, entry.id));
         const answers = await answersOf(
           db,
-          complete.map((e) => e.id),
+          submitted.map((e) => e.id),
         );
-        const scored = complete.map((e) => ({
-          challengeId: e.challengeId,
-          isComplete: true,
-          ratings: Object.values(answers.get(e.id)?.ratings ?? {}),
-        }));
+        const scored = submitted.map((e) => {
+          const ratings = Object.values(answers.get(e.id)?.ratings ?? {});
+          return {
+            challengeId: e.challengeId,
+            ratingsComplete: hasEveryRating(ratings, ratingItems),
+            ratings,
+          };
+        });
         scores = {
           challenge: scopedScore(scored, challenge.id),
           overall: judge.kind === "member" ? overallScore(scored) : null,
@@ -1246,6 +1528,7 @@ export const judgingDeskRouter = createTRPCRouter({
           ...entry,
           members: members.map((member) => member.name),
           challenges: tags.get(entry.id) ?? [],
+          flagged: flagged.has(entry.id),
         },
         challenge: {
           id: challenge.id,
@@ -1275,28 +1558,43 @@ export const judgingDeskRouter = createTRPCRouter({
               updatedAt: evaluation.updatedAt,
               ratings: mine?.ratings ?? {},
               responses: mine?.responses ?? {},
-              score: evaluation.isComplete
+              score: hasEveryRating(
+                Object.values(mine?.ratings ?? {}),
+                ratingItems,
+              )
                 ? evaluationScore(Object.values(mine?.ratings ?? {}))
                 : null,
             }
           : null,
         draft: draft ?? null,
+        // Where the project stands for this judge: theirs, graded by another
+        // judge, being graded by one, reserved for the judge assigned to it,
+        // or open. Never which judge.
+        grading,
         access: {
           judgingState: switches.state,
-          canEdit: open && timing.canEdit,
+          canEdit: open && timing.canEdit && !gradedElsewhere,
           reason: !open
             ? switches.state === "closed"
               ? CLOSED
               : NOT_OPEN_YET
-            : timing.canEdit
-              ? null
-              : timing.reason,
-          deadlineAt: timing.canEdit ? timing.deadlineAt : null,
-          opensAt: timing.canEdit ? null : timing.opensAt,
+            : (gradedElsewhere ?? (timing.canEdit ? null : timing.reason)),
+          // Shut because another judge graded the project or is grading it.
+          gradedElsewhere: gradedElsewhere !== null,
+          deadlineAt:
+            timing.canEdit && !gradedElsewhere ? timing.deadlineAt : null,
+          opensAt: timing.canEdit || gradedElsewhere ? null : timing.opensAt,
+          // Shut because the presentation's deadline passed: scores are final.
+          ended: open && !gradedElsewhere && !timing.canEdit && timing.ended,
           // Shut only because the judge is not in the room that serves this
           // challenge: a slot exists and has no start to wait for.
           needsRoom:
-            open && !timing.canEdit && !timing.opensAt && presentation !== null,
+            open &&
+            !gradedElsewhere &&
+            !timing.canEdit &&
+            !timing.opensAt &&
+            !timing.ended &&
+            presentation !== null,
         },
         presentation:
           presentation && presentationRoom
@@ -1311,6 +1609,274 @@ export const judgingDeskRouter = createTRPCRouter({
         scores,
         serverNow: new Date(),
       };
+    }),
+
+  // The next project for this judge to grade, in the challenge they pick or
+  // the one they sit at. Each judge walks the projects in an order of their own
+  // (services/judging/queue.ts), so judges at one table rarely reach for the
+  // same one. Only open projects: not graded, not held by another judge. At an
+  // untimed challenge only the first QUEUE_WINDOW of them are on offer, and
+  // `skip` passes over projects the judge turned down (a team away from its
+  // table). At a scheduled challenge, only presentations running now in the
+  // judge's room.
+  nextProject: judgeProcedure
+    .input(
+      z.object({
+        challengeId: uuid.optional(),
+        skip: z.array(uuid).max(20).default([]),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const db = ctx.db;
+      const { judge } = ctx;
+      await reconcileDueDrafts(db, input.hackathonId);
+
+      const challenges = await loadChallenges(db, input.hackathonId);
+      const seat = await seatOf(db, judge.judgeId, challenges);
+      const challenge = evaluatedChallenge(
+        judge,
+        challenges,
+        input.challengeId,
+        seat,
+      );
+      const mode = modeOf(challenges, challenge);
+      const found = (
+        entryId: string | null,
+        needsRoom = false,
+        allSkipped = false,
+      ) => ({
+        challenge: { id: challenge.id, label: challenge.label, mode },
+        entryId,
+        needsRoom,
+        allSkipped,
+      });
+
+      const queue = await loadQueue(db, {
+        hackathonId: input.hackathonId,
+        judgeId: judge.judgeId,
+        challenge,
+        seat,
+        filterId: input.challengeId,
+      });
+      if (queue.needsRoom) return found(null, true);
+
+      // The schedule decides who sees what at a scheduled challenge.
+      const window = queue.timed ? Infinity : QUEUE_WINDOW;
+      const entryId = nextToGrade(
+        judge.judgeId,
+        challenge.id,
+        queue.candidates,
+        { skip: input.skip, window },
+      );
+      const allSkipped =
+        entryId === null &&
+        queueWindow(judge.judgeId, challenge.id, queue.candidates, window)
+          .length > 0;
+      return found(entryId, false, allSkipped);
+    }),
+
+  // Opening a project to grade it. Runs the checks a first save would (the
+  // project is free, the queue offers it) and, when it passes, creates or
+  // touches the judge's draft with no answers needed, so the hold starts as
+  // the judge opens the project rather than at their first save. The draft
+  // keeps saveDraft's deadline and revision, so the editor carries on from it.
+  startGrading: judgeProcedure
+    .input(z.object({ entryId: uuid, challengeId: uuid.optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db;
+      const { judge } = ctx;
+      await reconcileDueDrafts(db, input.hackathonId);
+
+      const challenges = await loadChallenges(db, input.hackathonId);
+      const challenge = evaluatedChallenge(
+        judge,
+        challenges,
+        input.challengeId,
+        await memberSeat(db, judge, challenges),
+      );
+
+      try {
+        return await db.transaction(async (tx) => {
+          await assertJudgingOpen(tx, input.hackathonId);
+          await assertGuestSeated(tx, judge);
+          await loadEntryInChallenge(tx, {
+            hackathonId: input.hackathonId,
+            entryId: input.entryId,
+            challenge,
+          });
+
+          const [draft] = await tx
+            .select({
+              id: judgingEvaluationDrafts.id,
+              revision: judgingEvaluationDrafts.revision,
+              deadlineAt: judgingEvaluationDrafts.deadlineAt,
+            })
+            .from(judgingEvaluationDrafts)
+            .where(
+              taskOf(
+                judgingEvaluationDrafts,
+                judge.judgeId,
+                input.entryId,
+                challenge.id,
+              ),
+            )
+            .for("update")
+            .limit(1);
+          const [evaluation] = await tx
+            .select({ id: judgingEvaluations.id })
+            .from(judgingEvaluations)
+            .where(
+              taskOf(
+                judgingEvaluations,
+                judge.judgeId,
+                input.entryId,
+                challenge.id,
+              ),
+            )
+            .limit(1);
+          // Their own graded project is theirs to edit; there is nothing to hold.
+          if (evaluation) {
+            return {
+              held: false,
+              revision: draft?.revision ?? 0,
+              deadlineAt: draft?.deadlineAt ?? null,
+            };
+          }
+
+          await claimGrading(tx, {
+            judgeId: judge.judgeId,
+            entryId: input.entryId,
+            challenge,
+          });
+          if (!draft) {
+            await assertQueueOffers(tx, {
+              hackathonId: input.hackathonId,
+              judgeId: judge.judgeId,
+              entryId: input.entryId,
+              challenge,
+              challenges,
+            });
+          }
+
+          const { timing } = await evaluationAccess(tx, {
+            hackathonId: input.hackathonId,
+            judgeId: judge.judgeId,
+            entryId: input.entryId,
+            challenge,
+            challenges,
+            evaluation: null,
+            graceMs: DEADLINE_GRACE_MS,
+          });
+          if (!timing.canEdit) {
+            throw new TRPCError({
+              code: "PRECONDITION_FAILED",
+              message: timing.reason,
+            });
+          }
+
+          // As saveDraft stamps a draft that is not an edit of an evaluation.
+          const deadlineAt = timing.deadlineAt ?? draft?.deadlineAt ?? null;
+          const now = new Date();
+          if (draft) {
+            await tx
+              .update(judgingEvaluationDrafts)
+              .set({
+                appointmentId: timing.appointmentId,
+                deadlineAt,
+                updatedAt: now,
+              })
+              .where(eq(judgingEvaluationDrafts.id, draft.id));
+          } else {
+            await tx.insert(judgingEvaluationDrafts).values({
+              hackathonId: input.hackathonId,
+              judgeId: judge.judgeId,
+              entryId: input.entryId,
+              challengeId: challenge.id,
+              ratings: {},
+              responses: {},
+              appointmentId: timing.appointmentId,
+              deadlineAt,
+              revision: 0,
+              updatedAt: now,
+            });
+          }
+
+          return { held: true, revision: draft?.revision ?? 0, deadlineAt };
+        });
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "This project was just opened from another window. Reload to pick up the latest.",
+          });
+        }
+        throw error;
+      }
+    }),
+
+  // Gives back a project the judge opened (startGrading) and never saved to:
+  // deletes their own draft while it is still revision 0, and only when they
+  // have no evaluation of the project. A saved draft is work and stays. Called
+  // when the judge skips a project or leaves its sheet unsaved, so a skipped
+  // project is not held for GRADING_HOLD_MS and an accidental open of a
+  // scheduled presentation is not held until its deadline. It touches only the
+  // judge's own draft, so it needs no seat or sponsor check.
+  releaseGrading: judgeProcedure
+    .input(z.object({ entryId: uuid, challengeId: uuid.optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db;
+      const { judge } = ctx;
+
+      const challenges = await loadChallenges(db, input.hackathonId);
+      const challengeId = input.challengeId
+        ? rootOf(challenges, input.challengeId)?.id
+        : evaluatedChallenge(
+            judge,
+            challenges,
+            undefined,
+            await memberSeat(db, judge, challenges),
+          ).id;
+      if (!challengeId) return { released: false };
+
+      return db.transaction(async (tx) => {
+        const [draft] = await tx
+          .select({
+            id: judgingEvaluationDrafts.id,
+            revision: judgingEvaluationDrafts.revision,
+          })
+          .from(judgingEvaluationDrafts)
+          .where(
+            taskOf(
+              judgingEvaluationDrafts,
+              judge.judgeId,
+              input.entryId,
+              challengeId,
+            ),
+          )
+          .for("update")
+          .limit(1);
+        if (!draft || draft.revision > 0) return { released: false };
+
+        const [evaluation] = await tx
+          .select({ id: judgingEvaluations.id })
+          .from(judgingEvaluations)
+          .where(
+            taskOf(
+              judgingEvaluations,
+              judge.judgeId,
+              input.entryId,
+              challengeId,
+            ),
+          )
+          .limit(1);
+        if (evaluation) return { released: false };
+
+        await tx
+          .delete(judgingEvaluationDrafts)
+          .where(eq(judgingEvaluationDrafts.id, draft.id));
+        return { released: true };
+      });
     }),
 
   // Autosave. `revision` is the draft revision the editor last saw (0 for
@@ -1337,7 +1903,7 @@ export const judgingDeskRouter = createTRPCRouter({
         judge,
         challenges,
         input.challengeId,
-        null,
+        await memberSeat(db, judge, challenges),
       );
       const rubric = await loadRubric(db, input.hackathonId);
       const check = checkAnswers(rubric, input, judge.kind, "strict");
@@ -1385,12 +1951,32 @@ export const judgingDeskRouter = createTRPCRouter({
             )
             .limit(1);
 
+          // A project is graded once: a judge who has not graded it yet
+          // needs it free. Their own draft is locked above, ahead of this.
+          if (!evaluation) {
+            await claimGrading(tx, {
+              judgeId: judge.judgeId,
+              entryId: input.entryId,
+              challenge,
+            });
+            // Starting a project means taking one their queue offers.
+            if (!draft) {
+              await assertQueueOffers(tx, {
+                hackathonId: input.hackathonId,
+                judgeId: judge.judgeId,
+                entryId: input.entryId,
+                challenge,
+                challenges,
+              });
+            }
+          }
+
           if ((draft?.revision ?? 0) !== input.revision) {
             throw new TRPCError({
               code: "CONFLICT",
               message:
                 evaluation && !draft
-                  ? "Time ran out, so your answers were submitted for you. Reload to see them; you can still edit."
+                  ? "Time ran out, so your saved answers were submitted for you. Reload to see them."
                   : "Your answers changed in another window. Reload to pick up the latest before you keep going.",
             });
           }
@@ -1402,6 +1988,7 @@ export const judgingDeskRouter = createTRPCRouter({
             challenge,
             challenges,
             evaluation: evaluation ?? null,
+            graceMs: DEADLINE_GRACE_MS,
           });
           if (!timing.canEdit) {
             throw new TRPCError({
@@ -1479,7 +2066,7 @@ export const judgingDeskRouter = createTRPCRouter({
         judge,
         challenges,
         input.challengeId,
-        null,
+        await memberSeat(db, judge, challenges),
       );
       const rubric = await loadRubric(db, input.hackathonId);
       const check = checkAnswers(rubric, input, judge.kind, "strict");
@@ -1505,7 +2092,7 @@ export const judgingDeskRouter = createTRPCRouter({
 
           // The draft first: a deadline submission holding it finishes
           // before this reads the evaluation, and then sees the result.
-          await tx
+          const [draft] = await tx
             .select({ id: judgingEvaluationDrafts.id })
             .from(judgingEvaluationDrafts)
             .where(
@@ -1536,12 +2123,32 @@ export const judgingDeskRouter = createTRPCRouter({
             .for("update")
             .limit(1);
 
+          // A project is graded once: a first submission needs it free. The
+          // judge's own draft and evaluation are locked above, ahead of this.
+          if (!existing) {
+            await claimGrading(tx, {
+              judgeId: judge.judgeId,
+              entryId: input.entryId,
+              challenge,
+            });
+            // Starting a project means taking one their queue offers.
+            if (!draft) {
+              await assertQueueOffers(tx, {
+                hackathonId: input.hackathonId,
+                judgeId: judge.judgeId,
+                entryId: input.entryId,
+                challenge,
+                challenges,
+              });
+            }
+          }
+
           if ((existing?.revision ?? 0) !== input.expectedRevision) {
             throw new TRPCError({
               code: "CONFLICT",
               message:
                 existing?.autoSubmittedAt && input.expectedRevision === 0
-                  ? "Time ran out, so your answers were submitted for you. Reload to see them; you can still edit."
+                  ? "Time ran out, so your saved answers were submitted for you. Reload to see them."
                   : "This evaluation changed in another window. Reload to see the latest before you submit.",
             });
           }
@@ -1553,6 +2160,7 @@ export const judgingDeskRouter = createTRPCRouter({
             challenge,
             challenges,
             evaluation: existing ?? null,
+            graceMs: DEADLINE_GRACE_MS,
           });
           if (!timing.canEdit) {
             throw new TRPCError({
@@ -1643,15 +2251,20 @@ export const judgingDeskRouter = createTRPCRouter({
       db,
       rows.map((row) => row.id),
     );
+    // The score shows once the evaluation counts, as placings count it.
+    const ratingItems = (await loadRubric(db, input.hackathonId)).filter(
+      (item) => item.kind === "rating",
+    ).length;
     return rows.map(({ deletedAt, ...row }) => {
       const mine = answers.get(row.id) ?? { ratings: {}, responses: {} };
+      const ratings = Object.values(mine.ratings);
       return {
         ...row,
         withdrawn: deletedAt !== null,
         ratings: mine.ratings,
         responses: mine.responses,
-        score: row.isComplete
-          ? evaluationScore(Object.values(mine.ratings))
+        score: hasEveryRating(ratings, ratingItems)
+          ? evaluationScore(ratings)
           : null,
       };
     });

@@ -23,12 +23,14 @@ import {
 import {
   ErrorLine,
   plural,
+  shortTime,
   useRefreshJudging,
 } from "@/components/admin/judging/shared";
 import type { Challenge } from "@/components/admin/judging/shared";
 
 type Entry =
   RouterOutputs["judging"]["admin"]["listEntries"]["entries"][number];
+type CheckInFlag = Entry["checkInFlags"][number];
 
 const PAGE_SIZE = 50;
 
@@ -44,6 +46,30 @@ const STATUSES = [
   { id: "all", label: "Both" },
 ] as const;
 
+const FLAG_METHOD = {
+  code: "event code",
+  scan: "badge scan",
+  manual: "manual check-in",
+} as const;
+
+/**
+ * One refused check-in as an organiser reads it. The data does not keep how
+ * many minutes apart the two check-ins were, so the too-soon rule says what
+ * the limit is.
+ */
+function flagLine(flag: CheckInFlag) {
+  const gap = flag.rule === "overlap" ? "same time" : "under 30 minutes apart";
+  return [
+    `${flag.participantName} tried ${flag.eventName} while checked into ${flag.conflictEventName} (${gap})`,
+    FLAG_METHOD[flag.method],
+    flag.attempts > 1 ? plural(flag.attempts, "try", "tries") : null,
+    shortTime(flag.lastAttemptAt),
+    flag.dismissed ? "dismissed" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 /** The projects in judging, with their challenges and remove/restore. */
 export function EntriesList({ hackathonId }: { hackathonId: string }) {
   const [search, setSearch] = useState("");
@@ -51,6 +77,7 @@ export function EntriesList({ hackathonId }: { hackathonId: string }) {
   const [source, setSource] = useState<(typeof SOURCES)[number]["id"]>("all");
   const [state, setState] = useState<(typeof STATUSES)[number]["id"]>("live");
   const [challengeId, setChallengeId] = useState("");
+  const [flagged, setFlagged] = useState(false);
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -65,6 +92,7 @@ export function EntriesList({ hackathonId }: { hackathonId: string }) {
       source,
       status: state,
       challengeId: challengeId || undefined,
+      flagged: flagged || undefined,
       page,
       pageSize: PAGE_SIZE,
     },
@@ -77,7 +105,8 @@ export function EntriesList({ hackathonId }: { hackathonId: string }) {
   const tree = (challenges.data?.challenges ?? []).filter((c) => !c.parentId);
   const data = entries.data;
   const pages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
-  const filtered = !!query || source !== "all" || state !== "live" || !!challengeId;
+  const filtered =
+    !!query || source !== "all" || state !== "live" || !!challengeId || flagged;
 
   return (
     <div>
@@ -172,6 +201,21 @@ export function EntriesList({ hackathonId }: { hackathonId: string }) {
             {option.label}
           </button>
         ))}
+        <span
+          className="mx-1 w-px self-stretch bg-[var(--border-subtle)]"
+          aria-hidden="true"
+        />
+        <button
+          type="button"
+          aria-pressed={flagged}
+          onClick={() => {
+            setFlagged((on) => !on);
+            setPage(1);
+          }}
+          className={chip(flagged)}
+        >
+          Flagged
+        </button>
       </div>
 
       <div className="mt-6">
@@ -203,6 +247,7 @@ export function EntriesList({ hackathonId }: { hackathonId: string }) {
             {data.entries.map((entry) => (
               <EntryRow
                 key={entry.id}
+                hackathonId={hackathonId}
                 entry={entry}
                 challenges={challenges.data?.challenges ?? []}
               />
@@ -242,14 +287,17 @@ export function EntriesList({ hackathonId }: { hackathonId: string }) {
 }
 
 function EntryRow({
+  hackathonId,
   entry,
   challenges,
 }: {
+  hackathonId: string;
   entry: Entry;
   challenges: Challenge[];
 }) {
   const readOnly = useReadOnly();
   const refresh = useRefreshJudging();
+  const utils = trpc.useUtils();
   const [editing, setEditing] = useState(false);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -257,6 +305,13 @@ function EntryRow({
   const done = () => {
     setError(null);
     void refresh();
+  };
+  // Removing or restoring a project and changing its prize eligibility all
+  // change the public results. The portal keeps that query for minutes, so
+  // drop its copy too, as the Results tab does for eligibility.
+  const doneResults = () => {
+    done();
+    void utils.hackathon.getResults.invalidate();
   };
   const setChallenges = trpc.judging.admin.setEntryChallenges.useMutation({
     onSuccess: () => {
@@ -266,19 +321,34 @@ function EntryRow({
     onError: (e) => setError(trpcErrorMessage(e, "Could not save the challenges.")),
   });
   const remove = trpc.judging.admin.removeEntry.useMutation({
-    onSuccess: done,
+    onSuccess: doneResults,
     onError: (e) => setError(trpcErrorMessage(e, "Could not remove the project.")),
   });
   const restore = trpc.judging.admin.restoreEntry.useMutation({
-    onSuccess: done,
+    onSuccess: doneResults,
     onError: (e) => setError(trpcErrorMessage(e, "Could not restore the project.")),
+  });
+  const dismiss = trpc.judging.admin.dismissCheckInFlag.useMutation({
+    onSuccess: done,
+    onError: (e) => setError(trpcErrorMessage(e, "Could not update the flag.")),
+  });
+  const setEligible = trpc.judging.admin.setPrizeEligibility.useMutation({
+    onSuccess: doneResults,
+    onError: (e) =>
+      setError(trpcErrorMessage(e, "Could not change prize eligibility.")),
   });
 
   const optIns = entry.challenges.filter((c) => c.isOptIn);
   const derived = entry.challenges.filter((c) => !c.isOptIn);
   const linked = entry.members.filter((m) => m.linked).length;
   const removed = !!entry.deletedAt;
-  const busy = setChallenges.isPending || remove.isPending || restore.isPending;
+  const openFlags = entry.checkInFlags.filter((flag) => !flag.dismissed).length;
+  const busy =
+    setChallenges.isPending ||
+    remove.isPending ||
+    restore.isPending ||
+    dismiss.isPending ||
+    setEligible.isPending;
 
   const openEditor = () => {
     setChosen(new Set(optIns.map((c) => c.challengeId)));
@@ -293,6 +363,14 @@ function EntryRow({
           <p className={`flex flex-wrap items-center gap-x-2 ${label}`}>
             {entry.source === "devpost" ? "Devpost" : "Portal"}
             {removed && <span className={status("danger")}>Removed</span>}
+            {openFlags > 0 && (
+              <span className={status("warning")}>
+                {plural(openFlags, "check-in flag")}
+              </span>
+            )}
+            {entry.prizeIneligible && (
+              <span className={status("danger")}>Not eligible for prizes</span>
+            )}
           </p>
           <p className="mt-1 text-[15px] font-semibold text-[var(--text-primary)] break-words">
             {entry.title}
@@ -327,8 +405,40 @@ function EntryRow({
           {(entry.appointments > 0 || entry.completeEvaluations > 0) && (
             <p className={`mt-1 ${meta} tabular-nums`}>
               {plural(entry.appointments, "presentation")} scheduled ·{" "}
-              {plural(entry.completeEvaluations, "evaluation")} complete
+              {plural(entry.completeEvaluations, "evaluation")} counted
             </p>
+          )}
+          {entry.checkInFlags.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {entry.checkInFlags.map((flag) => (
+                <li
+                  key={flag.id}
+                  className={`flex flex-wrap items-baseline gap-x-3 gap-y-0.5 ${
+                    flag.dismissed
+                      ? meta
+                      : "text-[13px] text-[var(--text-secondary)]"
+                  }`}
+                >
+                  <span className="min-w-0 break-words">{flagLine(flag)}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      dismiss.mutate({
+                        hackathonId,
+                        flagId: flag.id,
+                        dismissed: !flag.dismissed,
+                      })
+                    }
+                    disabled={readOnly || busy}
+                    title={readOnly ? READ_ONLY_TITLE : undefined}
+                    aria-label={`${flag.dismissed ? "Restore" : "Dismiss"} the flag for ${flag.participantName}`}
+                    className={`${textLink} disabled:cursor-not-allowed disabled:opacity-50`}
+                  >
+                    {flag.dismissed ? "Restore" : "Dismiss"}
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -343,6 +453,47 @@ function EntryRow({
             >
               Challenges
             </button>
+          )}
+          {entry.prizeIneligible ? (
+            <button
+              type="button"
+              onClick={() =>
+                setEligible.mutate({
+                  hackathonId,
+                  entryId: entry.id,
+                  eligible: true,
+                })
+              }
+              disabled={readOnly || busy}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
+              className={btnSecondary}
+            >
+              {setEligible.isPending ? "Saving…" : "Make eligible again"}
+            </button>
+          ) : (
+            !removed && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      `Pull ${entry.title} from prizes? Judges still score it. It leaves the public Results tab at once and the placings when you compute again.`,
+                    )
+                  )
+                    return;
+                  setEligible.mutate({
+                    hackathonId,
+                    entryId: entry.id,
+                    eligible: false,
+                  });
+                }}
+                disabled={readOnly || busy}
+                title={readOnly ? READ_ONLY_TITLE : undefined}
+                className={btnDanger}
+              >
+                {setEligible.isPending ? "Saving…" : "Pull from prizes"}
+              </button>
+            )
           )}
           {removed ? (
             <button

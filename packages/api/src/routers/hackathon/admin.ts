@@ -14,6 +14,7 @@ import {
   recordEventAttendance,
   searchParticipants,
 } from "../../services/points";
+import { flaggingRuleBreaks } from "../../services/check-in-flags";
 import { CacheKeys } from "../../middleware/cache";
 import { MASS_EMAIL_BATCH } from "../../services/email-limits";
 import {
@@ -272,14 +273,16 @@ async function checkInParticipant(
 
   // 4. Record attendance. The unique index is the real guard, and
   // recordEventAttendance turns a racing scanner's 23505 into the same
-  // conflict as the read above.
+  // conflict as the read above. It also refuses an event that overlaps, or
+  // comes too soon after, one this person is already in; that refusal ends the
+  // scan before the promotion below.
   // Attendance and the roster promotion are one transaction. Split, a promotion
   // failing after the attendance row committed left the scan half-done — and
   // the retry hits the duplicate guard, so that attendee could never submit.
   // Rolling the attendance back makes a rescan the fix.
   let promotedToCheckedIn = false;
 
-  await ctx.db.transaction(async (tx) => {
+  const attendAndPromote = () => ctx.db.transaction(async (tx) => {
     await recordEventAttendance(tx, attendance);
 
     // The first scan is the check-in. `checked_in` previously had no writer
@@ -305,6 +308,10 @@ async function checkInParticipant(
 
     promotedToCheckedIn = !!promoted;
   });
+
+  // A refusal for the check-in rules rolls that transaction back, so the flag
+  // for organisers is written here, on the pool, once it has.
+  await flaggingRuleBreaks(ctx.db, input.hackathonId, attendAndPromote);
 
   // A scan changes one event's attendee count and, on the first one, this
   // attendee's roster row. This runs at every door all weekend, so eviction
@@ -1313,7 +1320,14 @@ export const hackathonAdminRouter = createTRPCRouter({
             eq(hackathonEvents.id, input.eventId),
             eq(hackathonEvents.hackathonId, input.hackathonId),
           ),
-          columns: { id: true, name: true, points: true, endTime: true },
+          columns: {
+            id: true,
+            name: true,
+            type: true,
+            points: true,
+            startTime: true,
+            endTime: true,
+          },
         }),
       ]);
 
@@ -1349,12 +1363,17 @@ export const hackathonAdminRouter = createTRPCRouter({
         });
       }
 
-      const { pointsAwarded } = await recordEventAttendance(db, {
-        event,
-        participant: { id: participant.id, name },
-        method: "manual",
-        actorId: ctx.userId,
-      });
+      const { pointsAwarded } = await flaggingRuleBreaks(
+        db,
+        input.hackathonId,
+        () =>
+          recordEventAttendance(db, {
+            event,
+            participant: { id: participant.id, name },
+            method: "manual",
+            actorId: ctx.userId,
+          }),
+      );
 
       ctx.cache.delete(`hackathon:${input.hackathonId}:events`);
 

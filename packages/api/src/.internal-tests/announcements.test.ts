@@ -148,6 +148,7 @@ vi.mock("@query/db", () => {
       email: "email",
       sentAt: "sent_at",
       failedAt: "failed_at",
+      claimedAt: "claimed_at",
     },
   };
 });
@@ -512,6 +513,43 @@ describe("Announcements", () => {
 
       expect(res.inAppOnly).toBe(false);
       expect(recipientRowsOf()[0]).not.toHaveProperty("sentAt");
+    });
+
+    /**
+     * The counts are SQL aggregates, so the rows here are canned as the query
+     * would return them. What this pins is the router's side: an all-stamped,
+     * never-claimed announcement is reported as in-app with nothing pending,
+     * and `pending` is taken from the query rather than derived from
+     * total - sent - failed, which would read 2 here and put it under
+     * "Unfinished sends".
+     */
+    it("lists an in-app announcement as published, not as an unfinished send", async () => {
+      asAdmin();
+      mockSelectRows.mockReturnValue([
+        {
+          id: ANNOUNCEMENT,
+          subject: "Registration is open",
+          audience: "interested",
+          createdAt: new Date("2026-02-01T12:00:00Z"),
+          total: 2,
+          sent: 0,
+          failed: 0,
+          pending: 0,
+          inAppOnly: true,
+        },
+      ]);
+
+      const [first] = await callerFor(ADMIN).hackathon.listAnnouncements({
+        hackathonId: HACK,
+      });
+
+      expect(first).toMatchObject({
+        total: 2,
+        sent: 0,
+        failed: 0,
+        pending: 0,
+        inAppOnly: true,
+      });
     });
   });
 

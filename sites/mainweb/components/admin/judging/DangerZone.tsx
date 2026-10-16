@@ -28,6 +28,12 @@ type ResetId =
   | "resetSetup"
   | "resetAll";
 
+const CLEARS_RESULTS = new Set<ResetId>([
+  "dropEvaluations",
+  "resetProjects",
+  "resetAll",
+]);
+
 /** The way back, each reset behind the edition's name typed out. */
 export function DangerZone({
   hackathonId,
@@ -38,6 +44,7 @@ export function DangerZone({
 }) {
   const readOnly = useReadOnly();
   const refresh = useRefreshJudging();
+  const utils = trpc.useUtils();
   const [open, setOpen] = useState<ResetId | null>(null);
   const [typed, setTyped] = useState("");
   const [summary, setSummary] = useState<{ id: ResetId; text: string } | null>(
@@ -49,6 +56,9 @@ export function DangerZone({
     setTyped("");
     setSummary({ id, text });
     void refresh();
+    // These clear the public results too, and the portal keeps that query for
+    // minutes.
+    if (CLEARS_RESULTS.has(id)) void utils.hackathon.getResults.invalidate();
   };
 
   const mutations = {

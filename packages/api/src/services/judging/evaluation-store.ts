@@ -1,5 +1,16 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  lte,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import {
   judgingAppointments,
   judgingChallenges,
@@ -23,11 +34,21 @@ import type { DrizzleDB } from "@query/db";
 import type { JudgingDb, JudgingTx } from "./config";
 import { checkAnswers, snapshotOf } from "./evaluation";
 import type { CheckedAnswers } from "./evaluation";
+import { gradingLockKey, gradingRefusal, gradingStateOf } from "./grading-hold";
 import { GUEST_SESSION_ENDED } from "./principal";
 import type { Judge } from "./principal";
-import { descendantsOf, effectiveMode, rootOf } from "./scope";
+import {
+  descendantsOf,
+  effectiveMode,
+  isSponsorChallenge,
+  rootOf,
+} from "./scope";
 import type { ChallengeMode } from "./scope";
-import { evaluationTiming } from "./timing";
+import {
+  DEADLINE_GRACE_MS,
+  evaluationTiming,
+  reservedUntil as reservedUntilOf,
+} from "./timing";
 import type { EvaluationTiming } from "./timing";
 
 // The judge desk's reads and writes around one evaluation: which challenge a
@@ -127,9 +148,36 @@ export async function seatOf(
 }
 
 /**
+ * Sponsor challenges belong to the sponsor's own judges: a member (table)
+ * judge grades one only while seated in a room that serves it.
+ */
+function memberMayGrade(root: ChallengeRow, seat: Seat | null): boolean {
+  return !isSponsorChallenge(root) || seat?.challengeId === root.id;
+}
+
+/**
+ * The challenges a member judge may pick right now: the general ones, and a
+ * sponsor's (with everything below it) only from a seat in its room.
+ */
+export function memberScope(
+  challenges: readonly ChallengeRow[],
+  seat: Seat | null,
+): Set<string> {
+  return new Set(
+    challenges
+      .filter((c) => {
+        const root = rootOf(challenges, c.id);
+        return !!root && memberMayGrade(root, seat);
+      })
+      .map((c) => c.id),
+  );
+}
+
+/**
  * The root challenge a judge is evaluating. A guest always evaluates their
  * room's; a filter they pass has to sit inside it. A member evaluates the root
- * of what they picked, or else the room they sit in, or else General.
+ * of what they picked, or else the room they sit in, or else General, and
+ * only a sponsor's challenge from a seat in the room that serves it.
  */
 export function evaluatedChallenge(
   judge: Judge,
@@ -160,6 +208,12 @@ export function evaluatedChallenge(
       code: "PRECONDITION_FAILED",
       message:
         "This hackathon has no judging challenges yet. Ask an organiser to import projects first.",
+    });
+  }
+  if (judge.kind === "member" && !memberMayGrade(root, seat)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: `Sponsor judges grade ${root.label}. Sit in its room to grade it.`,
     });
   }
   return root;
@@ -306,12 +360,21 @@ export type Presentation = {
   startsAt: Date;
   deadlineAt: Date;
   endsAt: Date;
+  /** For the timing rules only: never send it to a judge. */
+  assignedJudgeId: string | null;
 };
 
 /**
  * Whether `judge` may write their evaluation of an entry for a challenge now,
  * with the presentation it is tied to. Reads the saved schedule and where the
- * judge sits; the rule itself is services/judging/timing.ts.
+ * judge sits; the rule itself is services/judging/timing.ts. A presentation
+ * assigned to another judge is refused until its takeover time, which is how a
+ * claim honours the assignment: every claim runs this inside the transaction
+ * that holds the grading lock (claimGrading), and the assigned judge's draft
+ * keeps others off once they have started.
+ *
+ * `reservedUntil` is when the project opens to this judge if it is held back
+ * for another judge until then, for the grading state a read reports.
  */
 export async function evaluationAccess(
   db: JudgingDb,
@@ -322,9 +385,15 @@ export async function evaluationAccess(
     challenge: ChallengeRow;
     challenges: readonly ChallengeRow[];
     evaluation: { appointmentId: string | null } | null;
+    /** DEADLINE_GRACE_MS when the caller is writing. */
+    graceMs?: number;
   },
   now = new Date(),
-): Promise<{ timing: EvaluationTiming; presentation: Presentation | null }> {
+): Promise<{
+  timing: EvaluationTiming;
+  presentation: Presentation | null;
+  reservedUntil: Date | null;
+}> {
   const [schedule] = await db
     .select({ id: judgingSchedules.id })
     .from(judgingSchedules)
@@ -339,6 +408,7 @@ export async function evaluationAccess(
           startsAt: judgingAppointments.startsAt,
           deadlineAt: judgingAppointments.deadlineAt,
           endsAt: judgingAppointments.endsAt,
+          assignedJudgeId: judgingAppointments.assignedJudgeId,
         })
         .from(judgingAppointments)
         .where(
@@ -352,18 +422,95 @@ export async function evaluationAccess(
     : [];
 
   const seat = await seatOf(db, input.judgeId, input.challenges);
+  const mode =
+    effectiveMode(input.challenges, input.challenge.id) ?? "scheduled";
   const timing = evaluationTiming(
     {
+      judgeId: input.judgeId,
       hasSchedule: !!schedule,
-      mode: effectiveMode(input.challenges, input.challenge.id) ?? "scheduled",
+      mode,
       challengeId: input.challenge.id,
       evaluation: input.evaluation,
       appointment: presentation ?? null,
       presenceChallengeId: seat?.challengeId ?? null,
+      graceMs: input.graceMs,
     },
     now,
   );
-  return { timing, presentation: presentation ?? null };
+  // A judge's own evaluation is theirs whoever the presentation was assigned to.
+  const reservedUntil =
+    schedule && mode === "scheduled" && !input.evaluation
+      ? reservedUntilOf(presentation ?? null, input.judgeId, now)
+      : null;
+  return { timing, presentation: presentation ?? null, reservedUntil };
+}
+
+/**
+ * Serialises the writers of one project's grade for one challenge until the
+ * transaction ends: a judge's submit, another judge's first save, and the
+ * deadline submission each check that nobody else has the project and then
+ * write, which two of them cannot do at once. Transaction-level, so it is safe
+ * behind the connection pooler. Take a draft's row lock before this one, and
+ * take several in key order (gradingLockKey), so the locks cannot deadlock.
+ */
+export async function lockGrading(
+  tx: JudgingTx,
+  entryId: string,
+  challengeId: string,
+) {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${gradingLockKey(entryId, challengeId)}::text, 0))`,
+  );
+}
+
+/**
+ * For a judge who has not graded a project yet and is about to write to it:
+ * takes the project's grading lock, then refuses if another judge has graded
+ * it or is grading it now (see grading-hold.ts). Run it after the judge's own
+ * rows are locked, and skip it for a judge editing their own evaluation.
+ *
+ * This is also what keeps a late takeover off a presentation whose assigned
+ * judge has started: their draft holds it. Whether the judge may claim a
+ * presentation assigned to someone else yet is evaluationAccess's call, run
+ * next under this lock.
+ */
+export async function claimGrading(
+  tx: JudgingTx,
+  input: { judgeId: string; entryId: string; challenge: ChallengeRow },
+  now = new Date(),
+) {
+  await lockGrading(tx, input.entryId, input.challenge.id);
+
+  const evaluations = await tx
+    .select({ judgeId: judgingEvaluations.judgeId })
+    .from(judgingEvaluations)
+    .where(
+      and(
+        eq(judgingEvaluations.entryId, input.entryId),
+        eq(judgingEvaluations.challengeId, input.challenge.id),
+        ne(judgingEvaluations.judgeId, input.judgeId),
+      ),
+    );
+  const drafts = await tx
+    .select({
+      judgeId: judgingEvaluationDrafts.judgeId,
+      updatedAt: judgingEvaluationDrafts.updatedAt,
+      deadlineAt: judgingEvaluationDrafts.deadlineAt,
+    })
+    .from(judgingEvaluationDrafts)
+    .where(
+      and(
+        eq(judgingEvaluationDrafts.entryId, input.entryId),
+        eq(judgingEvaluationDrafts.challengeId, input.challenge.id),
+        ne(judgingEvaluationDrafts.judgeId, input.judgeId),
+      ),
+    );
+
+  const refusal = gradingRefusal(
+    gradingStateOf(input.judgeId, evaluations, drafts, now),
+    input.challenge.label,
+  );
+  if (refusal) throw new TRPCError({ code: "CONFLICT", message: refusal });
 }
 
 /**
@@ -483,16 +630,26 @@ const RECONCILE_BATCH = 50;
  * draft is submitted once, and a judge's own submit (which locks the draft
  * first) wins over this. A draft that can no longer be submitted (the guest's
  * session was revoked before the deadline, the project was withdrawn, the
- * schedule was dropped) keeps its answers and loses its deadline.
+ * schedule was dropped, another judge already graded the project) keeps its
+ * answers and loses its deadline. So does a draft with no answers in it: the
+ * judge only opened the project (desk.startGrading), and that is not a grade.
+ *
+ * Each project is graded once, so the batch takes the grading lock of every
+ * project it touches before it writes anything: in key order, and ahead of any
+ * write, so it cannot deadlock with another batch or with a judge's submit.
  */
 export async function reconcileDueDrafts(
   db: DrizzleDB,
   hackathonId: string,
   now = new Date(),
 ) {
+  // Waits out the grace a judge's own submit gets, so the two never race.
   const due = and(
     eq(judgingEvaluationDrafts.hackathonId, hackathonId),
-    lte(judgingEvaluationDrafts.deadlineAt, now),
+    lte(
+      judgingEvaluationDrafts.deadlineAt,
+      new Date(now.getTime() - DEADLINE_GRACE_MS),
+    ),
     or(
       eq(judgingConfigs.state, "open"),
       and(
@@ -549,6 +706,17 @@ export async function reconcileDueDrafts(
       );
     const kindOf = new Map(kinds.map((judge) => [judge.id, judge.kind]));
 
+    const locks = new Map(
+      drafts.map((draft) => [
+        gradingLockKey(draft.entryId, draft.challengeId),
+        draft,
+      ]),
+    );
+    for (const key of [...locks.keys()].sort()) {
+      const draft = locks.get(key)!;
+      await lockGrading(tx, draft.entryId, draft.challengeId);
+    }
+
     const retain = (draftId: string) =>
       tx
         .update(judgingEvaluationDrafts)
@@ -575,20 +743,24 @@ export async function reconcileDueDrafts(
         .from(judgingEvaluations)
         .where(
           and(
-            eq(judgingEvaluations.judgeId, draft.judgeId),
             eq(judgingEvaluations.entryId, draft.entryId),
             eq(judgingEvaluations.challengeId, draft.challengeId),
           ),
         )
         .limit(1);
       if (existing) {
-        // Never overwrite a result the judge submitted themselves.
+        // Never overwrite a result the judge submitted themselves, and a
+        // project another judge graded is graded.
         await retain(draft.id);
         continue;
       }
 
       const check = checkAnswers(rubric, draft, kind, "lenient");
-      if (!check.ok) {
+      if (
+        !check.ok ||
+        (check.answers.ratings.length === 0 &&
+          check.answers.responses.length === 0)
+      ) {
         await retain(draft.id);
         continue;
       }

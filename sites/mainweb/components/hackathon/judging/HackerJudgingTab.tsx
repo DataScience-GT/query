@@ -167,6 +167,7 @@ export function HackerJudgingTab({ hackathonId }: { hackathonId: string }) {
   const whereAndWhen = itineraryEntryId !== null && (
     <section className={claim ? undefined : sectionRule}>
       <h3 className={sectionTitle}>Where and when</h3>
+      <p className={`mt-2 ${meta}`}>Each challenge grades your project once.</p>
       <div className="mt-5">
         {itinerary.isLoading ? (
           <p className={body}>Loading times and places…</p>

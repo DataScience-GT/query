@@ -9,7 +9,9 @@ import {
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
+import { notHackathonBanned } from "../../middleware/procedures";
 import { rateLimit } from "../../middleware/security";
+import { flaggingRuleBreaks } from "../../services/check-in-flags";
 import {
   isSoldOut,
   leaderboardName,
@@ -213,8 +215,11 @@ export const pointsMeRouter = createTRPCRouter({
   }),
 
   // Self check-in with the code shown at the event. Every refusal says what
-  // to do instead, since the hacker is standing in a doorway reading it.
-  checkIn: protectedProcedure
+  // to do instead, since the hacker is standing in a doorway reading it. Behind
+  // the ban gate because it writes: a banned hacker who kept their
+  // registration could otherwise keep collecting points. The reads above stay
+  // open, as with the rest of the API.
+  checkIn: notHackathonBanned
     .input(scope.extend({ code: z.string().max(32) }))
     .mutation(async ({ ctx, input }) => {
       // There are 31^6 codes; this keeps anyone from walking the space. Per
@@ -263,6 +268,7 @@ export const pointsMeRouter = createTRPCRouter({
         columns: {
           id: true,
           name: true,
+          type: true,
           points: true,
           startTime: true,
           endTime: true,
@@ -299,12 +305,20 @@ export const pointsMeRouter = createTRPCRouter({
         });
       }
 
-      const { pointsAwarded } = await recordEventAttendance(db, {
-        event,
-        participant: { id: participant.id, name: "You" },
-        method: "code",
-        actorId: ctx.userId,
-      });
+      // A refusal for the check-in rules is recorded for organisers, on the
+      // pool and outside the transaction it rolled back. The hacker sees only
+      // the refusal.
+      const { pointsAwarded } = await flaggingRuleBreaks(
+        db,
+        input.hackathonId,
+        () =>
+          recordEventAttendance(db, {
+            event,
+            participant: { id: participant.id, name: "You" },
+            method: "code",
+            actorId: ctx.userId,
+          }),
+      );
 
       // The public schedule shows how many people came.
       ctx.cache.delete(`hackathon:${input.hackathonId}:events`);
