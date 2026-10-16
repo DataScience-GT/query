@@ -60,7 +60,10 @@ export type TimingInput = {
 export type EvaluationTiming =
   | {
       canEdit: true;
-      /** Set while a presentation is running: the draft is submitted then. */
+      /**
+       * Set while a presentation has not ended: the draft is submitted then.
+       * A write in the grace window gets a deadline that has just passed.
+       */
       deadlineAt: Date | null;
       appointmentId: string | null;
     }
@@ -118,7 +121,7 @@ export function evaluationTiming(
     return {
       canEdit: true,
       // Counts down the time left to edit; nothing is submitted for the judge.
-      deadlineAt: deadline && now < deadline ? deadline : null,
+      deadlineAt: deadline,
       appointmentId: input.evaluation.appointmentId,
     };
   }
@@ -172,10 +175,12 @@ export function evaluationTiming(
     };
   }
 
+  // Not ended, so the deadline is still ahead or inside the write grace. A
+  // draft first saved in the grace window must still carry it, or nothing
+  // submits it for the judge.
   return {
     canEdit: true,
-    deadlineAt:
-      now < input.appointment.deadlineAt ? input.appointment.deadlineAt : null,
+    deadlineAt: input.appointment.deadlineAt,
     appointmentId: input.appointment.id,
   };
 }

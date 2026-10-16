@@ -33,8 +33,12 @@ import {
   judgingSchedules,
 } from "@query/db";
 import { judgingDeskRouter } from "../routers/judging/desk";
+import { reconcileDueDrafts } from "../services/judging/evaluation-store";
 import { GRADING_HOLD_MS } from "../services/judging/grading-hold";
-import { TAKEOVER_AFTER_MS } from "../services/judging/timing";
+import {
+  DEADLINE_GRACE_MS,
+  TAKEOVER_AFTER_MS,
+} from "../services/judging/timing";
 
 const HACK = "6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b";
 const GENERAL = "0c4a8e10-2b3d-4c5e-9f60-7a8b9c0d1e2f";
@@ -412,6 +416,89 @@ describe("claiming a presentation assigned to a judge", () => {
     );
 
     await expect(go()).resolves.toMatchObject({ revision: 1 });
+  });
+});
+
+describe("a first save in the write grace window", () => {
+  // The deadline passed five seconds ago, inside DEADLINE_GRACE_MS, so a
+  // write still lands. The draft has to carry the deadline, or nothing ever
+  // submits it for the judge.
+  const late = () => {
+    const deadlineAt = new Date(Date.now() - 5_000);
+    return {
+      deadlineAt,
+      answers: world({ [slotsKey]: [slot(ME, 8, { deadlineAt })] }),
+    };
+  };
+  const draftWritten = (events: Event[]) =>
+    events.find((e) => e.kind === "insert" && e.table === drafts)?.values;
+
+  it("stamps the presentation's deadline on the draft", async () => {
+    const { deadlineAt, answers } = late();
+    const { save: go, events } = grade(answers);
+
+    await expect(go()).resolves.toMatchObject({ revision: 1, deadlineAt });
+    expect(draftWritten(events)).toMatchObject({
+      appointmentId: "slot-1",
+      deadlineAt,
+    });
+  });
+
+  it("stamps it when the judge opens the project", async () => {
+    const { deadlineAt, answers } = late();
+    const { start, events } = grade(answers);
+
+    await expect(start()).resolves.toMatchObject({ held: true, deadlineAt });
+    expect(draftWritten(events)).toMatchObject({ deadlineAt });
+  });
+
+  it("is submitted for the judge as of the deadline", async () => {
+    const { deadlineAt, answers } = late();
+    const { save: go, events } = grade(answers);
+    await go();
+    const saved = draftWritten(events);
+    expect(saved?.deadlineAt).toEqual(deadlineAt);
+
+    const later = fakeDb(
+      world({
+        [via(judgingEvaluationDrafts, judgingConfigs)]: [
+          { id: "draft-1", ...saved },
+        ],
+        [via(judgingJudges)]: [{ id: ME, kind: "member" }],
+      }),
+    );
+    await reconcileDueDrafts(
+      later.db as never,
+      HACK,
+      new Date(deadlineAt.getTime() + DEADLINE_GRACE_MS),
+    );
+
+    const evaluation = later.events.find(
+      (e) => e.kind === "insert" && e.table === evaluations,
+    );
+    expect(evaluation?.values).toMatchObject({
+      judgeId: ME,
+      appointmentId: "slot-1",
+      submittedAt: deadlineAt,
+      autoSubmittedAt: deadlineAt,
+    });
+    expect(
+      later.events.some((e) => e.kind === "delete" && e.table === drafts),
+    ).toBe(true);
+  });
+
+  it("still never times an edit of a submitted evaluation", async () => {
+    const { answers } = late();
+    const { save: go, events } = grade({
+      ...answers,
+      [evaluations]: byCall([{ appointmentId: "slot-1" }]),
+    });
+
+    await expect(go()).resolves.toMatchObject({
+      revision: 1,
+      deadlineAt: null,
+    });
+    expect(draftWritten(events)).toMatchObject({ deadlineAt: null });
   });
 });
 

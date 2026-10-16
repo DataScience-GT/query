@@ -1890,21 +1890,24 @@ describe("desk.startGrading: the hold starts when a project is opened", () => {
       });
     });
 
-    it("keeps the draft's own deadline once the slot's has just passed", async () => {
-      const kept = minutesAhead(2);
-      // Within the grace a write still gets, the slot gives no new deadline.
+    it("stamps the slot's deadline once it has just passed, inside the write grace", async () => {
+      const passed = new Date(Date.now() - 5_000);
+      // Within the grace a write still gets, the slot still gives its
+      // deadline, so the draft is submitted for the judge when it is due.
       const { caller, events } = desk({
-        ...presenting(minutesAgo(10), new Date(Date.now() - 5_000)),
-        [drafts]: byCall([{ id: "mine", revision: 2, deadlineAt: kept }]),
+        ...presenting(minutesAgo(10), passed),
+        [drafts]: byCall([
+          { id: "mine", revision: 2, deadlineAt: minutesAhead(2) },
+        ]),
       });
 
       const result = await caller.startGrading(start(E_OPEN, SPONSOR));
 
-      expect(result).toEqual({ held: true, revision: 2, deadlineAt: kept });
+      expect(result).toEqual({ held: true, revision: 2, deadlineAt: passed });
       const touched = events.find(
         (e) => e.kind === "update" && e.table === drafts,
       );
-      expect(touched?.values).toMatchObject({ deadlineAt: kept });
+      expect(touched?.values).toMatchObject({ deadlineAt: passed });
     });
 
     it("does not start before the presentation does", async () => {
