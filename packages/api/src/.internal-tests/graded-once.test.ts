@@ -18,6 +18,8 @@ import {
   judgingBuildings,
   judgingChallenges,
   judgingConfigs,
+  judgingDeliberationEntries,
+  judgingDeliberationSections,
   judgingEntries,
   judgingEntryChallenges,
   judgingEntryMembers,
@@ -43,6 +45,7 @@ const ME = "1d5b9f21-3c4e-4d6f-8a70-8b9c0d1e2f3a";
 const OTHER = "1d5b9f22-3c4e-4d6f-8a70-8b9c0d1e2f3a";
 const ROOM = "2e6ca032-4d5f-4e70-9b81-9c0d1e2f3a4b";
 const RATING = "3f7db143-5e60-4f81-8c92-0d1e2f3a4b5c";
+const SECTION = "5a9fd365-7082-41a3-8eb4-2f3a4b5c6d01";
 
 const E_OPEN = "40e8c254-6f71-4092-9da3-1e2f3a4b5c01";
 const E_MINE = "40e8c254-6f71-4092-9da3-1e2f3a4b5c02";
@@ -86,6 +89,8 @@ type Event = {
   table?: string;
   where?: SQL;
   values?: Record<string, unknown>;
+  /** What a select asked for. */
+  fields?: Record<string, unknown>;
 };
 
 /** The nth read of a table gets the nth list. */
@@ -104,7 +109,7 @@ function fakeDb(answers: Answers) {
     return typeof answer === "function" ? answer(call) : answer;
   };
 
-  const select = () => {
+  const select = (fields?: Record<string, unknown>) => {
     const joined: unknown[] = [];
     let from: unknown;
     let where: SQL | undefined;
@@ -122,7 +127,7 @@ function fakeDb(answers: Answers) {
         fail: (error: unknown) => unknown,
       ) => {
         const key = via(from, ...joined);
-        events.push({ kind: "select", table: key, where });
+        events.push({ kind: "select", table: key, where, fields });
         return Promise.resolve(rowsFor(key)).then(ok, fail);
       },
     };
@@ -490,8 +495,8 @@ describe("desk.projects: each project's grading state", () => {
         entry(E_OPEN, "Echo"),
       ],
       [evaluations]: [
-        { entryId: E_MINE, judgeId: ME, revision: 1, isComplete: true },
-        { entryId: E_GRADED, judgeId: OTHER, revision: 1, isComplete: true },
+        { entryId: E_MINE, judgeId: ME, revision: 1, counted: true },
+        { entryId: E_GRADED, judgeId: OTHER, revision: 1, counted: true },
       ],
       [drafts]: [
         {
@@ -581,7 +586,7 @@ describe("desk.projects: each project's grading state", () => {
     const result = await list(
       guestWorld({
         [evaluations]: [
-          { entryId: E_OPEN, judgeId: OTHER, revision: 1, isComplete: true },
+          { entryId: E_OPEN, judgeId: OTHER, revision: 1, counted: true },
         ],
       }),
       guestCtx,
@@ -590,6 +595,71 @@ describe("desk.projects: each project's grading state", () => {
     expect(result.challenge.id).toBe(SPONSOR);
     expect(result.projects.map((p) => p.grading)).toEqual(["graded"]);
     expect(JSON.stringify(result)).not.toContain(OTHER);
+  });
+
+  it("calls a project judged once its evaluation counts, as placings do", async () => {
+    const answers = memberWorld({
+      [via(judgingEntries, judgingEntryChallenges)]: [
+        entry(E_MINE, "Alpha"),
+        entry(E_OPEN, "Bravo"),
+      ],
+      // Alpha holds every rating, a written response left empty when time
+      // ran out. Bravo lacks a rating.
+      [evaluations]: [
+        { entryId: E_MINE, judgeId: ME, revision: 1, counted: true },
+        { entryId: E_OPEN, judgeId: ME, revision: 1, counted: false },
+      ],
+    });
+    const { db, events } = fakeDb(answers);
+    const shown = await judgingDeskRouter.createCaller(memberCtx(db)).projects({
+      hackathonId: HACK,
+      inMyRoomOnly: false,
+      hideJudged: false,
+    });
+
+    expect(shown.judgedCount).toBe(1);
+    expect(
+      Object.fromEntries(
+        shown.projects.map((p) => [p.id, p.myEvaluation?.counted]),
+      ),
+    ).toEqual({ [E_MINE]: true, [E_OPEN]: false });
+    // The database applies scoring.hasEveryRating's rule, not the judge's
+    // "answered everything" flag.
+    const read = events.find(
+      (e) => e.table === evaluations && e.fields && "counted" in e.fields,
+    );
+    expect(read?.fields).not.toHaveProperty("isComplete");
+    expect(
+      new PgDialect().sqlToQuery(read?.fields?.counted as SQL).sql,
+    ).toContain('"judging_evaluation_rating"');
+
+    const hidden = await judgingDeskRouter
+      .createCaller(memberCtx(fakeDb(answers).db))
+      .projects({ hackathonId: HACK, inMyRoomOnly: false, hideJudged: true });
+    expect(hidden.projects.map((p) => p.id)).toEqual([E_OPEN]);
+  });
+});
+
+describe("desk.deliberation.add: what can go on a shortlist", () => {
+  it("takes a project once the judge's evaluation counts, as placings do", async () => {
+    const { db, events } = fakeDb(
+      memberWorld({ [via(judgingDeliberationSections)]: [{ id: SECTION }] }),
+    );
+
+    await expect(
+      judgingDeskRouter.createCaller(memberCtx(db)).deliberation.add({
+        hackathonId: HACK,
+        sectionId: SECTION,
+        entryId: E_OPEN,
+      }),
+    ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    const read = events.find(
+      (e) => e.table === via(judgingEvaluations, judgingEntries),
+    );
+    const clause = new PgDialect().sqlToQuery(read?.where as SQL).sql;
+    expect(clause).toContain('"judging_evaluation_rating"');
+    expect(clause).not.toContain("is_complete");
+    expect(wrote(events, judgingDeliberationEntries)).toBe(false);
   });
 });
 
@@ -1495,7 +1565,7 @@ describe("desk.projects: open projects in the judge's queue order", () => {
           },
         ],
         [evaluations]: [
-          { entryId: GRADED, judgeId: OTHER, revision: 1, isComplete: true },
+          { entryId: GRADED, judgeId: OTHER, revision: 1, counted: true },
         ],
         ...over,
       }),

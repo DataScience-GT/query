@@ -22,6 +22,7 @@ import {
 import { DeskAnnouncements } from "./DeskAnnouncements";
 import { EvaluationSheet } from "./EvaluationSheet";
 import { GuestNameGate } from "./GuestNameGate";
+import { Itinerary } from "./Itinerary";
 import { MySubmissions } from "./MySubmissions";
 import { DEFAULT_FILTERS, NO_SKIPS, ProjectQueue } from "./ProjectQueue";
 import type { QueueFilters, SkipState } from "./ProjectQueue";
@@ -335,6 +336,13 @@ function Desk({
       )}
 
       {!pickingRoom && <DeskAnnouncements hackathonId={hackathonId} />}
+
+      {!pickingRoom && (
+        <Itinerary
+          hackathonId={hackathonId}
+          onPickRoom={isMember ? () => setPickingRoom(true) : undefined}
+        />
+      )}
 
       {/* Picking a room is a mode: the list waits until the judge is done. */}
       {!pickingRoom &&

@@ -105,10 +105,13 @@ export function Shortlist({
   ].some((m) => m.isPending);
   const sections = list.data ?? [];
 
-  // A project judged for two challenges is still one project to rank.
+  // A project judged for two challenges is still one project to rank. One
+  // with a score counts, as placings count it, so it can go on the shortlist.
   const finished = new Map<string, string>();
   for (const row of mine.data ?? []) {
-    if (row.isComplete && !row.withdrawn) finished.set(row.entryId, row.title);
+    if (row.score !== null && !row.withdrawn) {
+      finished.set(row.entryId, row.title);
+    }
   }
 
   const actions: Actions = {

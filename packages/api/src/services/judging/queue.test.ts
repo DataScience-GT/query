@@ -178,6 +178,69 @@ describe("queueWindow", () => {
   });
 });
 
+describe("presentations assigned to the judge", () => {
+  const order = queueOrder(judges[0], CHALLENGE, entries);
+  const assigned = (entryId: string) => ({
+    entryId,
+    grading: "open" as const,
+    assigned: true,
+  });
+  // The judge's own come first, whatever place their queue gives them.
+  const mine = [order[7], order[3]];
+  const candidates = entries.map((entryId) =>
+    mine.includes(entryId) ? assigned(entryId) : open(entryId),
+  );
+
+  it("leads the window, each group in the judge's own order", () => {
+    expect(
+      queueWindow(judges[0], CHALLENGE, candidates, Infinity).slice(0, 4),
+    ).toEqual([order[3], order[7], order[0], order[1]]);
+  });
+
+  it("is what the judge is sent to next, ahead of the rest of the queue", () => {
+    expect(
+      nextToGrade(judges[0], CHALLENGE, candidates, { window: Infinity }),
+    ).toBe(order[3]);
+  });
+
+  it("passes over a skipped one, then the other, then the rest", () => {
+    const next = (skip: string[]) =>
+      nextToGrade(judges[0], CHALLENGE, candidates, { skip, window: Infinity });
+    expect(next([order[3]])).toBe(order[7]);
+    expect(next([order[3], order[7]])).toBe(order[0]);
+  });
+
+  it("does not offer one that is not open", () => {
+    const taken = entries.map((entryId) =>
+      entryId === order[3]
+        ? { entryId, grading: "graded" as const, assigned: true }
+        : mine.includes(entryId)
+          ? assigned(entryId)
+          : open(entryId),
+    );
+    expect(nextToGrade(judges[0], CHALLENGE, taken, { window: Infinity })).toBe(
+      order[7],
+    );
+  });
+
+  it("changes nothing for projects with no assignment", () => {
+    expect(queueWindow(judges[0], CHALLENGE, entries.map(open))).toEqual(
+      order.slice(0, QUEUE_WINDOW),
+    );
+    expect(
+      queueWindow(
+        judges[0],
+        CHALLENGE,
+        entries.map((entryId) => ({
+          entryId,
+          grading: "open" as const,
+          assigned: false,
+        })),
+      ),
+    ).toEqual(order.slice(0, QUEUE_WINDOW));
+  });
+});
+
 describe("nextToGrade with skips", () => {
   const order = queueOrder(judges[0], CHALLENGE, entries);
   const next = (skip: string[], window?: number) =>

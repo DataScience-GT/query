@@ -35,7 +35,12 @@ export function queueOrder(
     .map((item) => item.entryId);
 }
 
-type Candidate = { entryId: string; grading: GradingState };
+type Candidate = {
+  entryId: string;
+  grading: GradingState;
+  /** A presentation assigned to this judge (scheduled challenges only). */
+  assigned?: boolean;
+};
 
 // How many open projects at the front of their queue a judge may start at an
 // untimed challenge. Calibration depends on each judge's sample being random.
@@ -45,8 +50,9 @@ export const QUEUE_WINDOW = 3;
 
 /**
  * The open projects a judge is offered: the first `window` of them in their
- * queue order. A scheduled challenge passes Infinity, since the schedule
- * already decides who sees what.
+ * queue order, with the presentations assigned to the judge ahead of the rest
+ * (each group in that order). A scheduled challenge passes Infinity, since the
+ * schedule already decides who sees what.
  */
 export function queueWindow(
   judgeId: string,
@@ -54,10 +60,19 @@ export function queueWindow(
   candidates: readonly Candidate[],
   window = QUEUE_WINDOW,
 ): string[] {
-  const open = candidates
-    .filter((candidate) => candidate.grading === "open")
-    .map((candidate) => candidate.entryId);
-  return queueOrder(judgeId, challengeId, open).slice(0, window);
+  const open = candidates.filter((candidate) => candidate.grading === "open");
+  const assigned = new Set(
+    open.filter((c) => c.assigned).map((c) => c.entryId),
+  );
+  const ordered = queueOrder(
+    judgeId,
+    challengeId,
+    open.map((candidate) => candidate.entryId),
+  );
+  return [
+    ...ordered.filter((entryId) => assigned.has(entryId)),
+    ...ordered.filter((entryId) => !assigned.has(entryId)),
+  ].slice(0, window);
 }
 
 /**

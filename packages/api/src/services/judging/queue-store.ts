@@ -28,9 +28,11 @@ export type Queue = {
   /**
    * The challenge's projects and where each stands for the judge. A project
    * the judge has only opened counts as open (see loadQueue). For a timed
-   * challenge, only the presentations running now in the judge's room.
+   * challenge, only the presentations running now in the judge's room that
+   * the judge may start: not one still reserved for another judge (timing.ts).
+   * Those assigned to the judge say so.
    */
-  candidates: { entryId: string; grading: GradingState }[];
+  candidates: { entryId: string; grading: GradingState; assigned?: boolean }[];
 };
 
 /**
@@ -152,6 +154,7 @@ export async function loadQueue(
         entryId: judgingAppointments.entryId,
         startsAt: judgingAppointments.startsAt,
         deadlineAt: judgingAppointments.deadlineAt,
+        assignedJudgeId: judgingAppointments.assignedJudgeId,
       })
       .from(judgingAppointments)
       .where(
@@ -168,6 +171,7 @@ export async function loadQueue(
           (slot) =>
             evaluationTiming(
               {
+                judgeId: input.judgeId,
                 hasSchedule: true,
                 mode: challenge.mode,
                 challengeId: challenge.id,
@@ -180,7 +184,14 @@ export async function loadQueue(
         )
         .map((slot) => slot.entryId),
     );
-    candidates = candidates.filter((c) => running.has(c.entryId));
+    const assigned = new Set(
+      slots
+        .filter((slot) => slot.assignedJudgeId === input.judgeId)
+        .map((slot) => slot.entryId),
+    );
+    candidates = candidates
+      .filter((c) => running.has(c.entryId))
+      .map((c) => (assigned.has(c.entryId) ? { ...c, assigned: true } : c));
   }
 
   return queue(candidates);

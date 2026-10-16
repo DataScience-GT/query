@@ -136,6 +136,46 @@ describe("gradingStateOf", () => {
     expect(gradingStateOf("me", [], [old, fresh], NOW)).toBe("mine");
     expect(gradingStateOf("them", [], [old, fresh], NOW)).toBe("in_progress");
   });
+
+  describe("reserved for the judge assigned to it", () => {
+    const until = ahead(3 * 60_000);
+
+    it("is reserved while a free project is kept back", () => {
+      expect(gradingStateOf("me", [], [], NOW, until)).toBe("reserved");
+    });
+
+    it("is open once nothing is kept back", () => {
+      expect(gradingStateOf("me", [], [], NOW, null)).toBe("open");
+    });
+
+    it("is reserved past another judge's stale draft", () => {
+      expect(
+        gradingStateOf(
+          "me",
+          [],
+          [draft("them", { updatedAt: ago(GRADING_HOLD_MS + 1) })],
+          NOW,
+          until,
+        ),
+      ).toBe("reserved");
+    });
+
+    it("gives way to the assigned judge's draft: in progress, not reserved", () => {
+      expect(gradingStateOf("me", [], [draft("them")], NOW, until)).toBe(
+        "in_progress",
+      );
+    });
+
+    it("gives way to a grade, and to the judge's own work", () => {
+      expect(gradingStateOf("me", [{ judgeId: "them" }], [], NOW, until)).toBe(
+        "graded",
+      );
+      expect(gradingStateOf("me", [{ judgeId: "me" }], [], NOW, until)).toBe(
+        "mine",
+      );
+      expect(gradingStateOf("me", [], [draft("me")], NOW, until)).toBe("mine");
+    });
+  });
 });
 
 describe("gradingStates", () => {
@@ -154,6 +194,26 @@ describe("gradingStates", () => {
       mine: "mine",
       theirs: "graded",
       held: "in_progress",
+      free: "open",
+    });
+  });
+
+  it("marks the projects kept back for another judge", () => {
+    const until = ahead(60_000);
+    const states = gradingStates(
+      "me",
+      ["kept", "kept-but-held", "free"],
+      [],
+      [{ entryId: "kept-but-held", ...draft("them") }],
+      NOW,
+      new Map([
+        ["kept", until],
+        ["kept-but-held", until],
+      ]),
+    );
+    expect(Object.fromEntries(states)).toEqual({
+      kept: "reserved",
+      "kept-but-held": "in_progress",
       free: "open",
     });
   });
@@ -187,6 +247,10 @@ describe("gradingRefusal", () => {
   it("lets a judge write to a project that is theirs or open", () => {
     expect(gradingRefusal("mine", "General")).toBeNull();
     expect(gradingRefusal("open", "General")).toBeNull();
+  });
+
+  it("leaves a reserved project to the timing rules, which say when it opens", () => {
+    expect(gradingRefusal("reserved", "General")).toBeNull();
   });
 });
 

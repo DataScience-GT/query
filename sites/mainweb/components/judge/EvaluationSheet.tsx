@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ExternalLink, Eye, EyeOff } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
@@ -102,9 +102,49 @@ export function EvaluationSheet({
     entryId: string;
     message: string;
   } | null>(null);
-  const { mutate: startGrading } = trpc.judging.desk.startGrading.useMutation({
-    onSuccess: () =>
+
+  // The hold taken on opening is given back when the judge leaves the project
+  // with nothing saved (back, close, another project), so an accidental open
+  // does not keep a presentation from the judge it was assigned to, or a
+  // project from the others, for the length of the hold. Once. The server only
+  // deletes a draft still at revision 0, so a late call cannot lose answers,
+  // and a failure is not worth telling the judge: the hold lapses by itself.
+  const viewing = useRef<string | null>(null);
+  const holding = useRef<{
+    entryId: string;
+    challengeId: string | undefined;
+  } | null>(null);
+  const { mutate: release } = trpc.judging.desk.releaseGrading.useMutation({
+    onSettled: () =>
       void utils.judging.desk.projects.invalidate({ hackathonId }),
+  });
+  // Answers reached the server, so there is nothing to give back.
+  const markSaved = useCallback(() => {
+    holding.current = null;
+  }, []);
+  useEffect(() => {
+    viewing.current = entryId;
+    return () => {
+      viewing.current = null;
+      const held = holding.current;
+      holding.current = null;
+      if (held) release({ hackathonId, ...held });
+    };
+  }, [entryId, hackathonId, release]);
+
+  const { mutate: startGrading } = trpc.judging.desk.startGrading.useMutation({
+    onSuccess: (result, variables) => {
+      void utils.judging.desk.projects.invalidate({ hackathonId });
+      // Held with nothing saved. The judge may have left before this
+      // answered, and then there is no one to give it back later.
+      if (!result.held || result.revision > 0) return;
+      const held = {
+        entryId: variables.entryId,
+        challengeId: variables.challengeId,
+      };
+      if (viewing.current === variables.entryId) holding.current = held;
+      else release({ hackathonId, ...held });
+    },
     onError: (error, variables) => {
       if (error.data?.code === "CONFLICT") {
         void refetch();
@@ -191,6 +231,7 @@ export function EvaluationSheet({
         }
         onNext={onClose}
         onGraded={onGraded}
+        onSaved={markSaved}
         refusal={refused?.entryId === entryId ? refused.message : null}
         onPickRoom={onPickRoom}
       />
@@ -208,6 +249,7 @@ function EvaluationForm({
   onReload,
   onNext,
   onGraded,
+  onSaved,
   refusal,
   onPickRoom,
 }: {
@@ -223,6 +265,8 @@ function EvaluationForm({
   /** Back to the queue, where the next project waits. */
   onNext: () => void;
   onGraded?: () => void;
+  /** Answers reached the server, so there is nothing to give back. */
+  onSaved?: () => void;
   /** Why opening the project for grading was refused, if it was. */
   refusal: string | null;
   onPickRoom?: () => void;
@@ -308,6 +352,10 @@ function EvaluationForm({
       }),
   });
   const { hold, release } = autosave;
+  const savedAt = autosave.status.kind === "saved" ? autosave.status.at : null;
+  useEffect(() => {
+    if (savedAt) onSaved?.();
+  }, [savedAt, onSaved]);
 
   // A phone that locks mid-presentation leaves a countdown nobody can see.
   useScreenWake(deadlineAt !== null);
@@ -362,6 +410,8 @@ function EvaluationForm({
           void utils.judging.desk.project.invalidate({ hackathonId });
           void utils.judging.desk.projects.invalidate({ hackathonId });
           void utils.judging.desk.myEvaluations.invalidate({ hackathonId });
+          void utils.judging.desk.itinerary.invalidate({ hackathonId });
+          onSaved?.();
           if (!evaluation) onGraded?.();
         },
         onError: (error) => {
@@ -854,7 +904,9 @@ function AccessNotice({
         <p className={`mt-1 ${body}`}>
           {evaluation.isComplete
             ? "Time ran out with every question answered."
-            : "Time ran out before you finished, so it counts as incomplete."}
+            : evaluation.score !== null
+              ? "Time ran out before you wrote every answer. Every rating is in, so it counts."
+              : "Time ran out before you rated everything, so it does not count."}
         </p>
       </div>
     );

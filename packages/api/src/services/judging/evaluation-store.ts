@@ -44,7 +44,11 @@ import {
   rootOf,
 } from "./scope";
 import type { ChallengeMode } from "./scope";
-import { DEADLINE_GRACE_MS, evaluationTiming } from "./timing";
+import {
+  DEADLINE_GRACE_MS,
+  evaluationTiming,
+  reservedUntil as reservedUntilOf,
+} from "./timing";
 import type { EvaluationTiming } from "./timing";
 
 // The judge desk's reads and writes around one evaluation: which challenge a
@@ -356,12 +360,21 @@ export type Presentation = {
   startsAt: Date;
   deadlineAt: Date;
   endsAt: Date;
+  /** For the timing rules only: never send it to a judge. */
+  assignedJudgeId: string | null;
 };
 
 /**
  * Whether `judge` may write their evaluation of an entry for a challenge now,
  * with the presentation it is tied to. Reads the saved schedule and where the
- * judge sits; the rule itself is services/judging/timing.ts.
+ * judge sits; the rule itself is services/judging/timing.ts. A presentation
+ * assigned to another judge is refused until its takeover time, which is how a
+ * claim honours the assignment: every claim runs this inside the transaction
+ * that holds the grading lock (claimGrading), and the assigned judge's draft
+ * keeps others off once they have started.
+ *
+ * `reservedUntil` is when the project opens to this judge if it is held back
+ * for another judge until then, for the grading state a read reports.
  */
 export async function evaluationAccess(
   db: JudgingDb,
@@ -376,7 +389,11 @@ export async function evaluationAccess(
     graceMs?: number;
   },
   now = new Date(),
-): Promise<{ timing: EvaluationTiming; presentation: Presentation | null }> {
+): Promise<{
+  timing: EvaluationTiming;
+  presentation: Presentation | null;
+  reservedUntil: Date | null;
+}> {
   const [schedule] = await db
     .select({ id: judgingSchedules.id })
     .from(judgingSchedules)
@@ -391,6 +408,7 @@ export async function evaluationAccess(
           startsAt: judgingAppointments.startsAt,
           deadlineAt: judgingAppointments.deadlineAt,
           endsAt: judgingAppointments.endsAt,
+          assignedJudgeId: judgingAppointments.assignedJudgeId,
         })
         .from(judgingAppointments)
         .where(
@@ -404,10 +422,13 @@ export async function evaluationAccess(
     : [];
 
   const seat = await seatOf(db, input.judgeId, input.challenges);
+  const mode =
+    effectiveMode(input.challenges, input.challenge.id) ?? "scheduled";
   const timing = evaluationTiming(
     {
+      judgeId: input.judgeId,
       hasSchedule: !!schedule,
-      mode: effectiveMode(input.challenges, input.challenge.id) ?? "scheduled",
+      mode,
       challengeId: input.challenge.id,
       evaluation: input.evaluation,
       appointment: presentation ?? null,
@@ -416,7 +437,12 @@ export async function evaluationAccess(
     },
     now,
   );
-  return { timing, presentation: presentation ?? null };
+  // A judge's own evaluation is theirs whoever the presentation was assigned to.
+  const reservedUntil =
+    schedule && mode === "scheduled" && !input.evaluation
+      ? reservedUntilOf(presentation ?? null, input.judgeId, now)
+      : null;
+  return { timing, presentation: presentation ?? null, reservedUntil };
 }
 
 /**
@@ -442,6 +468,11 @@ export async function lockGrading(
  * takes the project's grading lock, then refuses if another judge has graded
  * it or is grading it now (see grading-hold.ts). Run it after the judge's own
  * rows are locked, and skip it for a judge editing their own evaluation.
+ *
+ * This is also what keeps a late takeover off a presentation whose assigned
+ * judge has started: their draft holds it. Whether the judge may claim a
+ * presentation assigned to someone else yet is evaluationAccess's call, run
+ * next under this lock.
  */
 export async function claimGrading(
   tx: JudgingTx,

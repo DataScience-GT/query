@@ -68,13 +68,21 @@ function progress(
   project: ListedProject,
   now: number | null,
 ): { tone: Tone; text: string } | null {
-  if (project.myEvaluation?.isComplete)
-    return { tone: "success", text: "Judged" };
+  if (project.myEvaluation?.counted) return { tone: "success", text: "Judged" };
   if (project.myEvaluation) return { tone: "warning", text: "Incomplete" };
   // Another judge's, so the judge's own half-written draft is not the news.
   if (project.grading === "graded") return { tone: "neutral", text: "Graded" };
   if (project.grading === "in_progress") {
     return { tone: "neutral", text: "Being graded" };
+  }
+  // Never says which judge.
+  if (project.grading === "reserved") {
+    return {
+      tone: "neutral",
+      text: project.reservedUntil
+        ? `Reserved for another judge until ${clockTime(project.reservedUntil)}`
+        : "Reserved for another judge",
+    };
   }
   if (project.hasDraft) return { tone: "warning", text: "Draft saved" };
   const p = project.presentation;
@@ -141,6 +149,12 @@ export function ProjectQueue({
   );
   const now = useServerNow(list.data?.serverNow, list.dataUpdatedAt);
   const utils = trpc.useUtils();
+  // Skipping a project the judge only opened gives it back. A failure changes
+  // nothing the judge needs to hear: the hold lapses by itself.
+  const { mutate: release } = trpc.judging.desk.releaseGrading.useMutation({
+    onSettled: () =>
+      void utils.judging.desk.projects.invalidate({ hackathonId }),
+  });
   const [finding, setFinding] = useState(false);
   // Where the last "Grade next project" found nothing, and why.
   const [none, setNone] = useState<{
@@ -206,9 +220,12 @@ export function ProjectQueue({
 
   // With judged projects shown, a count of all of them hides how many are left.
   // The same goes for projects with other judges.
-  const judged = rest.filter((p) => p.myEvaluation?.isComplete).length;
+  const judged = rest.filter((p) => p.myEvaluation?.counted).length;
   const taken = rest.filter(
-    (p) => p.grading === "graded" || p.grading === "in_progress",
+    (p) =>
+      p.grading === "graded" ||
+      p.grading === "in_progress" ||
+      p.grading === "reserved",
   ).length;
   const mixed = (!filters.hideJudged && judged > 0) || taken > 0;
 
@@ -254,6 +271,7 @@ export function ProjectQueue({
   function skipOffered() {
     const { offered, skipped } = skips;
     if (!offered) return;
+    release({ hackathonId, entryId: offered, challengeId: challenge?.id });
     void gradeNext(addSkip(skipped, offered));
   }
   const offeredTitle = data?.projects.find(
@@ -277,6 +295,9 @@ export function ProjectQueue({
         <h2 className={`mt-2 ${itemTitle}`}>{next.title}</h2>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
           <p className={deskMeta}>{where(next, false)}</p>
+          {next.assignedToYou && (
+            <span className={deskStatus("accent")}>Assigned to you</span>
+          )}
           {next.flagged && (
             <span
               className={deskStatus("warning")}
@@ -512,6 +533,11 @@ export function ProjectQueue({
                             <span className={deskMeta}>
                               {where(project, data.roomFilter !== "applied")}
                             </span>
+                            {project.assignedToYou && (
+                              <span className={deskStatus("accent")}>
+                                Assigned to you
+                              </span>
+                            )}
                             {state && (
                               <span className={deskStatus(state.tone)}>
                                 {state.text}

@@ -15,9 +15,9 @@ export type ScoredEvaluation = {
    */
   ratingsComplete?: boolean;
   /**
-   * For a caller that only knows the evaluation was submitted whole, as the
-   * judge desk does, which implies every rating is there. Read only when
-   * ratingsComplete is not given.
+   * For a caller that only knows the evaluation was submitted whole, which
+   * implies every rating is there. Read only when ratingsComplete is not
+   * given.
    */
   isComplete?: boolean;
   /** The 1–5 rating values it holds. */
