@@ -48,6 +48,7 @@ import {
 } from "../../services/judging/config";
 import type { JudgingDb } from "../../services/judging/config";
 import { lockGrading } from "../../services/judging/evaluation-store";
+import { outerColumn } from "../../services/judging/outer-column";
 import { effectiveMode, sameLabel } from "../../services/judging/scope";
 import {
   assertStructureEditable,
@@ -352,7 +353,7 @@ export const judgingAdminRouter = createTRPCRouter({
           active: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is null)::int`,
           tables: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is null and ${judgingRooms.kind} = 'table')::int`,
           archived: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is not null)::int`,
-          linked: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is null and exists (select 1 from ${judgingRoomLinks} where ${judgingRoomLinks.roomId} = ${judgingRooms.id} and ${judgingRoomLinks.revokedAt} is null))::int`,
+          linked: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is null and exists (select 1 from ${judgingRoomLinks} where ${judgingRoomLinks.roomId} = ${outerColumn(judgingRooms, judgingRooms.id)} and ${judgingRoomLinks.revokedAt} is null))::int`,
         })
         .from(judgingRooms)
         .where(eq(judgingRooms.hackathonId, id)),
@@ -370,7 +371,7 @@ export const judgingAdminRouter = createTRPCRouter({
           windowEnd: judgingSchedules.windowEnd,
           firstResultAt: judgingSchedules.firstResultAt,
           createdAt: judgingSchedules.createdAt,
-          appointments: sql<number>`(select count(*)::int from ${judgingAppointments} where ${judgingAppointments.scheduleId} = ${judgingSchedules.id})`,
+          appointments: sql<number>`(select count(*)::int from ${judgingAppointments} where ${judgingAppointments.scheduleId} = ${outerColumn(judgingSchedules, judgingSchedules.id)})`,
         })
         .from(judgingSchedules)
         .where(eq(judgingSchedules.hackathonId, id))
