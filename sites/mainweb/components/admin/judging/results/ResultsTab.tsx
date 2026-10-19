@@ -23,9 +23,23 @@ import {
   eventClock,
   eventMoment,
 } from "@/components/hackathon/judging/event-time";
+import {
+  ErrorLine,
+  NoticeLine,
+  plural,
+  useRefreshJudging,
+} from "@/components/admin/judging/shared";
+import {
+  describeJudge,
+  judgeNumbers,
+} from "@/components/admin/judging/results/calibration";
+import type { CalibrationChallenge } from "@/components/admin/judging/results/calibration";
 
 // Officer screens poll every 10 seconds while judges are still submitting.
 const POLL_MS = 10_000;
+// A line above the lists that asks the organiser to look before they publish.
+const WARNING_BANNER =
+  "border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]";
 // Rows shown per placing list before "Show all".
 const PLACINGS_SHOWN = 10;
 const AUDIT_PAGE = 50;
@@ -35,18 +49,36 @@ type AuditRow = RouterOutputs["judging"]["results"]["evaluationAudit"][number];
 const score = (value: number | null) =>
   value === null ? "No score" : value.toFixed(2);
 
+// An evaluation counts toward the placings once every rating is in, so one
+// submitted at the deadline with a response left empty still does.
+const gradeBadge = (
+  state: "complete" | "incomplete" | "drafting",
+  counted: boolean,
+) =>
+  state === "complete"
+    ? { tone: "success" as const, text: "Complete" }
+    : state === "drafting"
+      ? { tone: "neutral" as const, text: "Still writing" }
+      : counted
+        ? { tone: "warning" as const, text: "Counts, response missing" }
+        : { tone: "warning" as const, text: "Incomplete, not counted" };
+
 /**
- * Ranking and releasing results: compute draft placings from complete
- * evaluations, check them, publish them to the hackathon's Results tab, and
- * look behind any number at who scored what.
+ * Ranking and releasing results: compute draft placings from the evaluations,
+ * check them, publish them to the hackathon's Results tab, look behind any
+ * number at who scored what, and reopen a grade for another judge.
  */
 export function ResultsTab({ hackathonId }: { hackathonId: string }) {
   const utils = trpc.useUtils();
   const readOnly = useReadOnly();
+  const refreshJudging = useRefreshJudging();
   const auditRef = useRef<HTMLElement>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [openScopes, setOpenScopes] = useState<Set<string>>(new Set());
+  const [openCalibration, setOpenCalibration] = useState<Set<string>>(
+    new Set(),
+  );
   const [entryFilter, setEntryFilter] = useState<{
     id: string;
     title: string;
@@ -78,6 +110,16 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
     onSuccess: refresh,
     onError,
   });
+  // The decision changes the Projects list and the public tab as well as this
+  // one, so refresh all of judging, then the public copy.
+  const setEligibility = trpc.judging.admin.setPrizeEligibility.useMutation({
+    onSuccess: () => {
+      setError(null);
+      void refreshJudging();
+      void utils.hackathon.getResults.invalidate();
+    },
+    onError,
+  });
   // Once placings are out the edition is over; offer to close it here rather
   // than send organisers back to the hackathon dashboard for one click.
   const edition = trpc.hackathon.getById.useQuery({ id: hackathonId });
@@ -89,6 +131,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
     compute.isPending ||
     publish.isPending ||
     unpublish.isPending ||
+    setEligibility.isPending ||
     complete.isPending;
 
   if (list.isLoading) {
@@ -112,9 +155,24 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
     );
   }
 
-  const { computedAt, publishedAt, evaluationsSinceCompute, scopes } =
-    list.data;
+  const {
+    computedAt,
+    publishedAt,
+    evaluationsSinceCompute,
+    scopes,
+    calibration,
+  } = list.data;
   const published = !!publishedAt;
+
+  // Teams, not rows: one team can place in several lists. A team already
+  // pulled from prizes has been decided, so it is not asked about again.
+  const flaggedPlaced = new Set(
+    scopes.flatMap((scope) =>
+      scope.placements
+        .filter((row) => row.openCheckInFlags > 0 && !row.prizeIneligible)
+        .map((row) => row.entryId),
+    ),
+  );
 
   const showEvaluations = (entry: { id: string; title: string }) => {
     setEntryFilter(entry);
@@ -228,7 +286,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
       </section>
 
       {evaluationsSinceCompute > 0 && (
-        <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
+        <p className={WARNING_BANNER}>
           {evaluationsSinceCompute}{" "}
           {evaluationsSinceCompute === 1
             ? "evaluation was"
@@ -237,6 +295,16 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
           {published
             ? "Unpublish, compute again and republish to include them."
             : "Compute again to include them."}
+        </p>
+      )}
+
+      {flaggedPlaced.size > 0 && (
+        <p className={WARNING_BANNER}>
+          {plural(flaggedPlaced.size, "placed team")}{" "}
+          {flaggedPlaced.size === 1 ? "has" : "have"} open check-in flags.{" "}
+          {published
+            ? "Review them in Projects. A team pulled from prizes leaves the public list at once."
+            : "Review them before you publish."}
         </p>
       )}
 
@@ -253,8 +321,8 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
         {scopes.length === 0 ? (
           <p className={body}>
             {computedAt
-              ? "No project has a complete evaluation yet, so nothing was ranked. Compute again once judges submit."
-              : "Compute results once judges have submitted. Each challenge and the overall list rank projects by the mean of their complete evaluations; ties share a placing."}
+              ? "No project has an evaluation with every rating yet, so nothing was ranked. Compute again once judges submit."
+              : "Compute results once judges have submitted. Each challenge and the overall list rank projects by the mean of their evaluations that have every rating, each adjusted for how strict or generous its judge is; ties share a placing."}
           </p>
         ) : (
           <div className="space-y-10">
@@ -263,6 +331,11 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
               const rows = open
                 ? scope.placements
                 : scope.placements.slice(0, PLACINGS_SHOWN);
+              // Rows computed before calibration existed have no raw score,
+              // and their score is the plain mean.
+              const calibrated = scope.placements.some(
+                (row) => row.rawScore !== null,
+              );
               return (
                 <div key={scope.scope}>
                   <div className="flex items-baseline justify-between gap-4">
@@ -272,6 +345,11 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
                       {scope.placements.length === 1 ? "project" : "projects"}
                     </span>
                   </div>
+                  {calibrated && (
+                    <p className={`mt-1 text-right ${label}`}>
+                      Adjusted for judge bias
+                    </p>
+                  )}
                   <ol className="mt-3 border-t border-[var(--border-subtle)]">
                     {rows.map((row) => (
                       <li
@@ -300,11 +378,70 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
                               Pulled from judging; hidden from the public list
                             </p>
                           )}
+                          {(row.openCheckInFlags > 0 ||
+                            row.prizeIneligible) && (
+                            <div className="mt-1 flex flex-col items-start gap-1">
+                              {row.openCheckInFlags > 0 && (
+                                <p className={status("warning")}>
+                                  {plural(
+                                    row.openCheckInFlags,
+                                    "open check-in flag",
+                                  )}
+                                  :{" "}
+                                  <a href="#projects" className={textLink}>
+                                    see Projects
+                                  </a>
+                                </p>
+                              )}
+                              {row.prizeIneligible && (
+                                <p className={status("danger")}>
+                                  Not eligible for prizes; recompute to move the
+                                  next team up
+                                </p>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (
+                                    !row.prizeIneligible &&
+                                    !window.confirm(
+                                      `Pull ${row.title} from prizes? Judges still score it. It leaves the public Results tab at once and the placings when you compute again.`,
+                                    )
+                                  )
+                                    return;
+                                  setError(null);
+                                  setEligibility.mutate({
+                                    hackathonId,
+                                    entryId: row.entryId,
+                                    eligible: row.prizeIneligible,
+                                  });
+                                }}
+                                disabled={readOnly || busy}
+                                title={readOnly ? READ_ONLY_TITLE : undefined}
+                                className={
+                                  row.prizeIneligible ? btnSecondary : btnDanger
+                                }
+                              >
+                                {setEligibility.isPending &&
+                                setEligibility.variables?.entryId ===
+                                  row.entryId
+                                  ? "Saving…"
+                                  : row.prizeIneligible
+                                    ? "Make eligible again"
+                                    : "Pull from prizes"}
+                              </button>
+                            </div>
+                          )}
                         </div>
                         <span className="text-right text-[13px] tabular-nums text-[var(--text-subtle)]">
                           <span className="text-[15px] font-semibold text-[var(--text-primary)]">
                             {score(row.score)}
                           </span>{" "}
+                          {row.rawScore !== null && (
+                            <span title="The plain mean, before the adjustment">
+                              raw {row.rawScore.toFixed(2)}{" "}
+                            </span>
+                          )}
                           · {row.evaluationCount}{" "}
                           {row.evaluationCount === 1 ? "eval" : "evals"}
                         </span>
@@ -336,9 +473,42 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
         )}
       </section>
 
+      {calibration.length > 0 && (
+        <section className={sectionRule}>
+          <h3 className={itemTitle}>Judge calibration</h3>
+          <p className={`mt-1 ${meta}`}>
+            Each project is graded once, so a strict or generous judge moves
+            every project they graded. Scores above are adjusted for that,
+            comparing judges only within their own challenge. Judges and hackers
+            see none of this.
+          </p>
+          <div className="mt-3 border-t border-[var(--border-subtle)]">
+            {calibration.map((challenge) => (
+              <CalibrationChallengeRow
+                key={challenge.challengeId}
+                challenge={challenge}
+                open={openCalibration.has(challenge.challengeId)}
+                onToggle={() =>
+                  setOpenCalibration((previous) => {
+                    const next = new Set(previous);
+                    if (next.has(challenge.challengeId)) {
+                      next.delete(challenge.challengeId);
+                    } else {
+                      next.add(challenge.challengeId);
+                    }
+                    return next;
+                  })
+                }
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       <section ref={auditRef} className={`scroll-mt-6 ${sectionRule}`}>
         <EvaluationAudit
           hackathonId={hackathonId}
+          published={published}
           entryFilter={entryFilter}
           onClearFilter={() => setEntryFilter(null)}
         />
@@ -347,15 +517,65 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
   );
 }
 
+function CalibrationChallengeRow({
+  challenge,
+  open,
+  onToggle,
+}: {
+  challenge: CalibrationChallenge;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="border-b border-[var(--border-subtle)] py-3">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={onToggle}
+        className="flex w-full items-baseline justify-between gap-4 text-left"
+      >
+        <span className="text-[15px] font-semibold text-[var(--text-primary)]">
+          {challenge.challenge}
+        </span>
+        <span className={meta}>
+          {plural(challenge.judges.length, "judge")} · {open ? "Hide" : "Show"}
+        </span>
+      </button>
+      {open && (
+        <ul className="mt-3 space-y-3">
+          {challenge.judges.map((judge) => (
+            <li key={judge.judgeId}>
+              <p className="text-[15px] text-[var(--text-primary)]">
+                <span className="font-semibold">{judge.judgeName}</span>
+                {judge.kind === "guest" && (
+                  <span className={meta}> (guest)</span>
+                )}
+              </p>
+              <p className={body}>{describeJudge(judge).join(" · ")}</p>
+              <p className={`${meta} tabular-nums`}>{judgeNumbers(judge)}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function EvaluationAudit({
   hackathonId,
+  published,
   entryFilter,
   onClearFilter,
 }: {
   hackathonId: string;
+  published: boolean;
   entryFilter: { id: string; title: string } | null;
   onClearFilter: () => void;
 }) {
+  const readOnly = useReadOnly();
+  const refreshJudging = useRefreshJudging();
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [shown, setShown] = useState(AUDIT_PAGE);
   const [expanded, setExpanded] = useState<{
     id: string;
@@ -366,6 +586,24 @@ function EvaluationAudit({
     { hackathonId, entryId: entryFilter?.id },
     { refetchInterval: POLL_MS, placeholderData: (previous) => previous },
   );
+
+  // Deleting the grade changes the project list and the judges' queues as
+  // well as this one, so refresh all of judging.
+  const reopen = trpc.judging.admin.reopenGrade.useMutation({
+    onSuccess: (result) => {
+      setError(null);
+      setNotice(
+        result.placings > 0
+          ? "The grade is deleted and another judge can grade the project. The draft placings were ranked with it, so they are cleared. Compute results again once the project is graded."
+          : "The grade is deleted and another judge can grade the project. Compute results again once it is graded.",
+      );
+      void refreshJudging();
+    },
+    onError: (e) => {
+      setNotice(null);
+      setError(trpcErrorMessage(e, "That did not go through. Try again."));
+    },
+  });
 
   const toggle = (id: string, view: "appointment" | "history") =>
     setExpanded((current) =>
@@ -392,6 +630,17 @@ function EvaluationAudit({
             Show every project
           </button>
         </p>
+      )}
+
+      {error && (
+        <div className="mt-4">
+          <ErrorLine>{error}</ErrorLine>
+        </div>
+      )}
+      {notice && (
+        <div className="mt-4">
+          <NoticeLine>{notice}</NoticeLine>
+        </div>
       )}
 
       {audit.isLoading ? (
@@ -424,6 +673,28 @@ function EvaluationAudit({
                 row={row}
                 expanded={expanded?.id === row.id ? expanded.view : null}
                 onToggle={(view) => toggle(row.id, view)}
+                reopenDisabled={readOnly || published || reopen.isPending}
+                reopenTitle={
+                  readOnly
+                    ? READ_ONLY_TITLE
+                    : published
+                      ? "Unpublish first to reopen a grade."
+                      : undefined
+                }
+                reopening={
+                  reopen.isPending && reopen.variables?.evaluationId === row.id
+                }
+                onReopen={() => {
+                  if (
+                    !window.confirm(
+                      `Reopen ${row.title} for grading? ${row.judgeName}'s grade is deleted, with its ratings, responses and history, and another judge can grade the project. The draft placings are cleared until you compute results again. This cannot be undone.`,
+                    )
+                  )
+                    return;
+                  setError(null);
+                  setNotice(null);
+                  reopen.mutate({ hackathonId, evaluationId: row.id });
+                }}
               />
             ))}
           </ul>
@@ -447,12 +718,24 @@ function AuditItem({
   row,
   expanded,
   onToggle,
+  reopenDisabled,
+  reopenTitle,
+  reopening,
+  onReopen,
 }: {
   hackathonId: string;
   row: AuditRow;
   expanded: "appointment" | "history" | null;
   onToggle: (view: "appointment" | "history") => void;
+  reopenDisabled: boolean;
+  reopenTitle: string | undefined;
+  reopening: boolean;
+  onReopen: () => void;
 }) {
+  const badge = gradeBadge(
+    row.isComplete ? "complete" : "incomplete",
+    row.counted,
+  );
   return (
     <li className="border-b border-[var(--border-subtle)] py-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-6">
@@ -472,9 +755,7 @@ function AuditItem({
           <span className="text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">
             {score(row.score)}
           </span>
-          <span className={status(row.isComplete ? "success" : "warning")}>
-            {row.isComplete ? "Complete" : "Incomplete"}
-          </span>
+          <span className={status(badge.tone)}>{badge.text}</span>
           {row.appointmentId && (
             <button
               type="button"
@@ -492,6 +773,15 @@ function AuditItem({
             className={textLink}
           >
             History
+          </button>
+          <button
+            type="button"
+            onClick={onReopen}
+            disabled={reopenDisabled}
+            title={reopenTitle}
+            className={`${textLink} disabled:cursor-not-allowed disabled:opacity-50`}
+          >
+            {reopening ? "Reopening…" : "Reopen for grading"}
           </button>
         </div>
       </div>
@@ -531,7 +821,7 @@ function AppointmentDetail({
     );
   }
 
-  const { appointment, average, completeCount, hasResultsElsewhere, judges } =
+  const { appointment, average, countedCount, hasResultsElsewhere, judges } =
     detail.data;
   const where = [appointment.building, appointment.room]
     .filter(Boolean)
@@ -548,13 +838,13 @@ function AppointmentDetail({
         <span className="font-semibold text-[var(--text-primary)]">
           {score(average)}
         </span>{" "}
-        from {completeCount} complete{" "}
-        {completeCount === 1 ? "evaluation" : "evaluations"}.
+        from {countedCount} counted{" "}
+        {countedCount === 1 ? "evaluation" : "evaluations"}.
       </p>
       {hasResultsElsewhere && (
         <p className={meta}>
-          This project also has complete evaluations for this challenge outside
-          this slot.
+          This project also has evaluations for this challenge outside this
+          slot.
         </p>
       )}
       {judges.length === 0 ? (
@@ -572,18 +862,10 @@ function AppointmentDetail({
                 </p>
                 <span
                   className={status(
-                    judge.status === "complete"
-                      ? "success"
-                      : judge.status === "incomplete"
-                        ? "warning"
-                        : "neutral",
+                    gradeBadge(judge.status, judge.counted).tone,
                   )}
                 >
-                  {judge.status === "complete"
-                    ? "Complete"
-                    : judge.status === "incomplete"
-                      ? "Incomplete"
-                      : "Still writing"}
+                  {gradeBadge(judge.status, judge.counted).text}
                 </span>
                 {judge.score !== null && (
                   <span className="text-[15px] tabular-nums text-[var(--text-primary)]">

@@ -15,13 +15,13 @@ describe("appointmentStatus", () => {
     expect(appointmentStatus(slot, after)).toBe("missed");
   });
 
-  it("is complete when every submitted evaluation is complete", () => {
+  it("is complete when every submitted evaluation holds every rating", () => {
     const slot = {
       startsAt,
       endsAt,
       evaluations: [
-        { judgeId: "a", isComplete: true },
-        { judgeId: "b", isComplete: true },
+        { judgeId: "a", ratingsComplete: true },
+        { judgeId: "b", ratingsComplete: true },
       ],
       presentJudgeIds: ["a", "b"],
     };
@@ -29,13 +29,13 @@ describe("appointmentStatus", () => {
     expect(appointmentStatus(slot, after)).toBe("complete");
   });
 
-  it("is incomplete when an evaluation was auto-submitted unfinished", () => {
+  it("is incomplete when an evaluation was auto-submitted short of a rating", () => {
     const slot = {
       startsAt,
       endsAt,
       evaluations: [
-        { judgeId: "a", isComplete: true },
-        { judgeId: "b", isComplete: false },
+        { judgeId: "a", ratingsComplete: true },
+        { judgeId: "b", ratingsComplete: false },
       ],
     };
     expect(appointmentStatus(slot, after)).toBe("incomplete");
@@ -45,7 +45,7 @@ describe("appointmentStatus", () => {
     const slot = {
       startsAt,
       endsAt,
-      evaluations: [{ judgeId: "a", isComplete: true }],
+      evaluations: [{ judgeId: "a", ratingsComplete: true }],
       presentJudgeIds: ["a", "b"],
     };
     expect(appointmentStatus(slot, during)).toBe("incomplete");
@@ -55,7 +55,7 @@ describe("appointmentStatus", () => {
     const slot = {
       startsAt,
       endsAt,
-      evaluations: [{ judgeId: "a", isComplete: true }],
+      evaluations: [{ judgeId: "a", ratingsComplete: true }],
     };
     expect(appointmentStatus(slot, before)).toBe("complete");
   });

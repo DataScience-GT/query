@@ -147,6 +147,14 @@ export const createTransactionMock = ({
     if (select) {
       tx.select = (...selectArgs: any[]) => ({
         from: (...fromArgs: any[]) => ({
+          // A join is a plain read, never a locking one; the hook gets the
+          // joined table as a fifth argument.
+          innerJoin: (...joinArgs: any[]) => ({
+            where: (...wArgs: any[]) =>
+              Promise.resolve(
+                select("select", selectArgs, fromArgs, wArgs, joinArgs),
+              ),
+          }),
           // Lazy: `.for("update")` must be the thing that takes the lock, and
           // eagerly building the unlocked promise would run the query twice.
           where: (...wArgs: any[]) => {

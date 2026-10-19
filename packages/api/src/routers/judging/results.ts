@@ -10,6 +10,7 @@ import {
   inArray,
   isNotNull,
   isNull,
+  max,
   ne,
   or,
 } from "drizzle-orm";
@@ -33,15 +34,23 @@ import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter } from "../../trpc";
 import { isAdmin } from "../../middleware/procedures";
 import { recordAdminAction } from "../../middleware/audit";
+import { CacheKeys } from "../../middleware/cache";
+import type { CacheService } from "../../middleware/cache";
 import { assertHackathonExists } from "../../services/judging/config";
 import { reconcileDueDrafts } from "../../services/judging/evaluation-store";
 import type { JudgingDb } from "../../services/judging/config";
 import { lockJudgingConfig } from "../../services/judging/claims";
+import { calibrate } from "../../services/judging/calibration";
+import { checkInFlagsForEntries } from "../../services/check-in-flags";
 import {
   notifyResultsPublished,
   resultsPublishedBefore,
 } from "../../services/judging/notify";
-import { evaluationScore, meanOrNull } from "../../services/judging/scoring";
+import {
+  evaluationScore,
+  hasEveryRating,
+  meanOrNull,
+} from "../../services/judging/scoring";
 import {
   OVERALL_SCOPE,
   computePlacements,
@@ -82,12 +91,193 @@ async function ratingsOf(db: JudgingDb, evaluationIds: string[]) {
   );
 }
 
+/** How many rating items the rubric has: an evaluation counts once it rates them all. */
+async function ratingItemCount(db: JudgingDb, hackathonId: string) {
+  const [row] = await db
+    .select({ n: count() })
+    .from(judgingRubricItems)
+    .where(
+      and(
+        eq(judgingRubricItems.hackathonId, hackathonId),
+        eq(judgingRubricItems.kind, "rating"),
+      ),
+    );
+  return row?.n ?? 0;
+}
+
+/**
+ * Every evaluation in the edition with its ratings, and whether it rated every
+ * rating item: what compute ranks and the judge calibration summary reads.
+ * Scoring and calibration count the ones that did, whether or not a written
+ * response was left empty, which is how a draft submitted at the hard end reads.
+ * The ratings are joined rather than listed by id, since an edition's
+ * evaluations run to thousands.
+ */
+async function evaluationsForScoring(db: JudgingDb, hackathonId: string) {
+  const evaluations = await db
+    .select({
+      id: judgingEvaluations.id,
+      entryId: judgingEvaluations.entryId,
+      challengeId: judgingEvaluations.challengeId,
+      judgeId: judgingEvaluations.judgeId,
+      submittedAt: judgingEvaluations.submittedAt,
+    })
+    .from(judgingEvaluations)
+    .where(eq(judgingEvaluations.hackathonId, hackathonId));
+  const ratingRows = await db
+    .select({
+      evaluationId: judgingEvaluationRatings.evaluationId,
+      value: judgingEvaluationRatings.value,
+    })
+    .from(judgingEvaluationRatings)
+    .innerJoin(
+      judgingEvaluations,
+      eq(judgingEvaluations.id, judgingEvaluationRatings.evaluationId),
+    )
+    .where(eq(judgingEvaluations.hackathonId, hackathonId));
+  const ratingItems = await ratingItemCount(db, hackathonId);
+  const ratings = groupRatings(ratingRows);
+  return evaluations.map((evaluation) => {
+    const values = ratings.get(evaluation.id) ?? [];
+    return {
+      ...evaluation,
+      ratings: values,
+      ratingsComplete: hasEveryRating(values, ratingItems),
+    };
+  });
+}
+
+// Two decimals, and never a negative zero.
+const round2 = (value: number) => Math.round(value * 100) / 100 || 0;
+
+// The list polls every 10 seconds; calibrating on each poll reads and sorts the
+// whole edition's evaluations, so the result is kept for this long.
+const CALIBRATION_TTL_SECONDS = 60;
+
+/** The entries compute ranks: live and still eligible for prizes. */
+const rankedEntries = (hackathonId: string) =>
+  and(
+    eq(judgingEntries.hackathonId, hackathonId),
+    isNull(judgingEntries.deletedAt),
+    isNull(judgingEntries.prizeIneligibleAt),
+  );
+
+/**
+ * What a calibration was computed from, as a cache key suffix: how many
+ * evaluations the edition has and when one was last saved, and the same two for
+ * its ranked entries. A new, edited or deleted evaluation (a reopened grade is
+ * one), or an entry pulled from prizes, withdrawn or restored, moves one of the
+ * four, so the next read calibrates afresh. The one pair that cancels out is a
+ * grade deleted while a draft is submitted as of an earlier deadline, both
+ * between two polls; the TTL holds that to a minute. Two aggregates; nothing is
+ * listed.
+ */
+async function calibrationFingerprint(db: JudgingDb, hackathonId: string) {
+  const [[evaluations], [entries]] = await Promise.all([
+    db
+      .select({ n: count(), latest: max(judgingEvaluations.updatedAt) })
+      .from(judgingEvaluations)
+      .where(eq(judgingEvaluations.hackathonId, hackathonId)),
+    db
+      .select({ n: count(), latest: max(judgingEntries.updatedAt) })
+      .from(judgingEntries)
+      .where(rankedEntries(hackathonId)),
+  ]);
+  return [
+    evaluations?.n ?? 0,
+    evaluations?.latest?.getTime() ?? 0,
+    entries?.n ?? 0,
+    entries?.latest?.getTime() ?? 0,
+  ].join(":");
+}
+
+/**
+ * How each judge's scores are being adjusted, grouped by challenge: the
+ * organiser's window onto what compute does. Read from the current evaluations
+ * of live, prize-eligible entries, the same ones compute calibrates. Judges and
+ * hackers never get this; only the organiser's results list returns it.
+ *
+ * The calibration is cached per edition (see calibrationFingerprint). compute
+ * does not read it: a ranking is always calibrated from the evaluations as they
+ * stand.
+ */
+async function judgeCalibrations(
+  db: JudgingDb,
+  cache: CacheService,
+  hackathonId: string,
+) {
+  const key = `${CacheKeys.judgingCalibration(hackathonId)}:${await calibrationFingerprint(db, hackathonId)}`;
+  const calibrated = await cache.getOrSet(
+    key,
+    async () => {
+      const [evaluations, entries] = await Promise.all([
+        evaluationsForScoring(db, hackathonId),
+        db
+          .select({ id: judgingEntries.id })
+          .from(judgingEntries)
+          .where(rankedEntries(hackathonId)),
+      ]);
+      const live = new Set(entries.map((entry) => entry.id));
+      return calibrate(
+        evaluations.filter((evaluation) => live.has(evaluation.entryId)),
+      ).judges;
+    },
+    CALIBRATION_TTL_SECONDS,
+  );
+  if (calibrated.length === 0) return [];
+
+  const [judges, challenges] = await Promise.all([
+    db
+      .select({
+        id: judgingJudges.id,
+        displayName: judgingJudges.displayName,
+        kind: judgingJudges.kind,
+      })
+      .from(judgingJudges)
+      .where(eq(judgingJudges.hackathonId, hackathonId)),
+    db
+      .select({ id: judgingChallenges.id, label: judgingChallenges.label })
+      .from(judgingChallenges)
+      .where(eq(judgingChallenges.hackathonId, hackathonId))
+      .orderBy(
+        asc(judgingChallenges.displayOrder),
+        asc(judgingChallenges.label),
+      ),
+  ]);
+  const judgeOf = new Map(judges.map((judge) => [judge.id, judge]));
+
+  return challenges
+    .map((challenge) => ({
+      challengeId: challenge.id,
+      challenge: challenge.label,
+      judges: calibrated
+        .filter(
+          (row) => row.challengeId === challenge.id && judgeOf.has(row.judgeId),
+        )
+        .map((row) => {
+          const judge = judgeOf.get(row.judgeId)!;
+          return {
+            judgeId: row.judgeId,
+            judgeName: judge.displayName,
+            kind: judge.kind,
+            grades: row.evaluations,
+            offset: round2(row.offset),
+            spread: round2(row.spread),
+            drift: round2(row.drift),
+          };
+        })
+        .sort((a, b) => a.judgeName.localeCompare(b.judgeName)),
+    }))
+    .filter((challenge) => challenge.judges.length > 0);
+}
+
 // Computing and publishing placements, and the organiser's view of what each
 // judge submitted.
 export const judgingResultsRouter = createTRPCRouter({
-  // Replaces the draft placings with a fresh ranking from every complete
-  // evaluation. Refused while results are published: recomputing then would
-  // either change the public list under people's feet or silently pull it.
+  // Replaces the draft placings with a fresh ranking from every evaluation that
+  // holds every rating. Refused while results are published: recomputing then
+  // would either change the public list under people's feet or silently pull
+  // it.
   compute: isAdmin.input(hackathonInput).mutation(async ({ ctx, input }) => {
     const db = ctx.db as DrizzleDB;
     await assertHackathonExists(db, input.hackathonId);
@@ -115,6 +305,10 @@ export const judgingResultsRouter = createTRPCRouter({
         });
       }
 
+      // Judges still score a team an organiser pulled from prizes, so its
+      // evaluations stay as they are; it just cannot place. Leaving it out of
+      // the entry set is enough, because computePlacements ignores
+      // evaluations of any entry it was not given.
       const entries = await tx
         .select({ id: judgingEntries.id })
         .from(judgingEntries)
@@ -122,6 +316,7 @@ export const judgingResultsRouter = createTRPCRouter({
           and(
             eq(judgingEntries.hackathonId, input.hackathonId),
             isNull(judgingEntries.deletedAt),
+            isNull(judgingEntries.prizeIneligibleAt),
           ),
         );
       const memberships = await tx
@@ -139,48 +334,16 @@ export const judgingResultsRouter = createTRPCRouter({
           asc(judgingChallenges.displayOrder),
           asc(judgingChallenges.label),
         );
-      const evaluations = await tx
-        .select({
-          id: judgingEvaluations.id,
-          entryId: judgingEvaluations.entryId,
-          challengeId: judgingEvaluations.challengeId,
-          isComplete: judgingEvaluations.isComplete,
-        })
-        .from(judgingEvaluations)
-        .where(
-          and(
-            eq(judgingEvaluations.hackathonId, input.hackathonId),
-            eq(judgingEvaluations.isComplete, true),
-          ),
-        );
-      // Joined rather than listed by id: an edition's evaluations run to
-      // thousands, and the filter is the same one as above.
-      const ratingRows = await tx
-        .select({
-          evaluationId: judgingEvaluationRatings.evaluationId,
-          value: judgingEvaluationRatings.value,
-        })
-        .from(judgingEvaluationRatings)
-        .innerJoin(
-          judgingEvaluations,
-          eq(judgingEvaluations.id, judgingEvaluationRatings.evaluationId),
-        )
-        .where(
-          and(
-            eq(judgingEvaluations.hackathonId, input.hackathonId),
-            eq(judgingEvaluations.isComplete, true),
-          ),
-        );
-      const ratings = groupRatings(ratingRows);
+      const evaluations = await evaluationsForScoring(tx, input.hackathonId);
 
+      // Each evaluation is calibrated for its judge before it is scored.
+      // Always from the evaluations as they stand, never from the cache that
+      // the list keeps for its calibration summary.
       const placements = computePlacements({
         entryIds: entries.map((entry) => entry.id),
         memberships,
         challenges,
-        evaluations: evaluations.map((evaluation) => ({
-          ...evaluation,
-          ratings: ratings.get(evaluation.id) ?? [],
-        })),
+        evaluations,
       });
 
       await tx
@@ -195,6 +358,7 @@ export const judgingResultsRouter = createTRPCRouter({
             scopeLabel: placement.scopeLabel,
             placement: placement.placement,
             score: formatScore(placement.score),
+            rawScore: formatScore(placement.rawScore),
             evaluationCount: placement.evaluationCount,
             computedAt: now,
           })),
@@ -204,7 +368,9 @@ export const judgingResultsRouter = createTRPCRouter({
       return {
         placements: placements.length,
         scopes: new Set(placements.map((placement) => placement.scope)).size,
-        evaluations: evaluations.length,
+        evaluations: evaluations.filter(
+          (evaluation) => evaluation.ratingsComplete,
+        ).length,
       };
     });
 
@@ -234,7 +400,7 @@ export const judgingResultsRouter = createTRPCRouter({
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
           message:
-            "There is nothing to publish yet. Compute results first, once judges have submitted.",
+            "There is nothing to publish yet. Compute results first, once judges have submitted. Reopening a grade clears the draft placings, so compute again after one.",
         });
       }
       const rows = await tx
@@ -305,12 +471,14 @@ export const judgingResultsRouter = createTRPCRouter({
         scopeLabel: judgingPlacements.scopeLabel,
         placement: judgingPlacements.placement,
         score: judgingPlacements.score,
+        rawScore: judgingPlacements.rawScore,
         evaluationCount: judgingPlacements.evaluationCount,
         publishedAt: judgingPlacements.publishedAt,
         computedAt: judgingPlacements.computedAt,
         entryId: judgingEntries.id,
         title: judgingEntries.title,
         deletedAt: judgingEntries.deletedAt,
+        prizeIneligibleAt: judgingEntries.prizeIneligibleAt,
       })
       .from(judgingPlacements)
       .innerJoin(
@@ -346,6 +514,19 @@ export const judgingResultsRouter = createTRPCRouter({
       evaluationsSinceCompute = since?.n ?? 0;
     }
 
+    // An organiser decides these teams' prizes, so each row says how many
+    // flags are still open. The flag detail (who, which events) stays in the
+    // Projects section; this payload carries the count and nothing else.
+    const flags = await checkInFlagsForEntries(db, input.hackathonId, [
+      ...new Set(rows.map((row) => row.entryId)),
+    ]);
+    const openFlags = new Map(
+      [...flags].map(([entryId, views]) => [
+        entryId,
+        views.filter((view) => !view.dismissed).length,
+      ]),
+    );
+
     const scopes = new Map<
       string,
       {
@@ -356,10 +537,17 @@ export const judgingResultsRouter = createTRPCRouter({
           entryId: string;
           title: string;
           placement: number;
+          /** Adjusted for judge bias; this is what the placing ranks on. */
           score: number | null;
+          /** The plain mean of the same evaluations. Null on older rows. */
+          rawScore: number | null;
           evaluationCount: number;
           /** Pulled from judging since; getResults already hides it. */
           withdrawn: boolean;
+          /** Check-in flags nobody has dismissed. Only the count leaves here. */
+          openCheckInFlags: number;
+          /** Pulled from prizes; getResults hides it and a recompute drops it. */
+          prizeIneligible: boolean;
         }[];
       }
     >();
@@ -375,8 +563,11 @@ export const judgingResultsRouter = createTRPCRouter({
         title: row.title,
         placement: row.placement,
         score: toScore(row.score),
+        rawScore: toScore(row.rawScore),
         evaluationCount: row.evaluationCount,
         withdrawn: !!row.deletedAt,
+        openCheckInFlags: openFlags.get(row.entryId) ?? 0,
+        prizeIneligible: !!row.prizeIneligibleAt,
       });
       scopes.set(row.scope, scope);
     }
@@ -385,6 +576,9 @@ export const judgingResultsRouter = createTRPCRouter({
       computedAt,
       publishedAt,
       evaluationsSinceCompute,
+      calibration: computedAt
+        ? await judgeCalibrations(db, ctx.cache, input.hackathonId)
+        : [],
       scopes: [...scopes.values()].sort(
         (a, b) =>
           Number(b.scope === OVERALL_SCOPE) -
@@ -395,7 +589,8 @@ export const judgingResultsRouter = createTRPCRouter({
   }),
 
   // One presentation's results: each judge who wrote or started an
-  // evaluation, their ratings and responses once complete, and the mean.
+  // evaluation, their ratings and responses once every rating is in, and the
+  // mean.
   appointmentResults: isAdmin
     .input(hackathonInput.extend({ appointmentId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -485,8 +680,8 @@ export const judgingResultsRouter = createTRPCRouter({
               eq(judgingEvaluationDrafts.appointmentId, appointment.id),
             ),
           ),
-        // Complete evaluations of the same project and challenge outside this
-        // slot: an untimed visit, or a slot it was moved from.
+        // Evaluations of the same project and challenge outside this slot: an
+        // untimed visit, or a slot it was moved from.
         db
           .select({ id: judgingEvaluations.id })
           .from(judgingEvaluations)
@@ -495,7 +690,6 @@ export const judgingResultsRouter = createTRPCRouter({
               eq(judgingEvaluations.hackathonId, input.hackathonId),
               eq(judgingEvaluations.entryId, appointment.entryId),
               eq(judgingEvaluations.challengeId, appointment.challengeId),
-              eq(judgingEvaluations.isComplete, true),
               or(
                 isNull(judgingEvaluations.appointmentId),
                 ne(judgingEvaluations.appointmentId, appointment.id),
@@ -505,10 +699,8 @@ export const judgingResultsRouter = createTRPCRouter({
           .limit(1),
       ]);
 
-      const completeIds = evaluations
-        .filter((evaluation) => evaluation.isComplete)
-        .map((evaluation) => evaluation.id);
-      const [ratings, responses] = completeIds.length
+      const evaluationIds = evaluations.map((evaluation) => evaluation.id);
+      const [ratings, responses, ratingItems] = evaluationIds.length
         ? await Promise.all([
             db
               .select({
@@ -523,7 +715,7 @@ export const judgingResultsRouter = createTRPCRouter({
                 eq(judgingRubricItems.id, judgingEvaluationRatings.itemId),
               )
               .where(
-                inArray(judgingEvaluationRatings.evaluationId, completeIds),
+                inArray(judgingEvaluationRatings.evaluationId, evaluationIds),
               )
               .orderBy(asc(judgingRubricItems.displayOrder)),
             db
@@ -540,18 +732,34 @@ export const judgingResultsRouter = createTRPCRouter({
                 eq(judgingRubricItems.id, judgingEvaluationResponses.itemId),
               )
               .where(
-                inArray(judgingEvaluationResponses.evaluationId, completeIds),
+                inArray(judgingEvaluationResponses.evaluationId, evaluationIds),
               )
               .orderBy(asc(judgingRubricItems.displayOrder)),
+            ratingItemCount(db, input.hackathonId),
           ])
-        : [[], []];
+        : [[], [], 0];
+
+      // An evaluation counts once it rated every item, whether or not it
+      // answered every written question.
+      const counted = new Set(
+        evaluations
+          .filter((evaluation) =>
+            hasEveryRating(
+              ratings
+                .filter((rating) => rating.evaluationId === evaluation.id)
+                .map((rating) => rating.value),
+              ratingItems,
+            ),
+          )
+          .map((evaluation) => evaluation.id),
+      );
 
       const judged = new Set(
         evaluations.map((evaluation) => evaluation.judgeId),
       );
       const judges = [
         ...evaluations.map((evaluation) => {
-          const own = evaluation.isComplete
+          const own = counted.has(evaluation.id)
             ? ratings.filter((rating) => rating.evaluationId === evaluation.id)
             : [];
           return {
@@ -563,6 +771,7 @@ export const judgingResultsRouter = createTRPCRouter({
               ? ("complete" as const)
               : ("incomplete" as const),
             autoSubmitted: !!evaluation.autoSubmittedAt,
+            counted: counted.has(evaluation.id),
             updatedAt: evaluation.updatedAt,
             score: evaluationScore(own.map((rating) => rating.value)),
             ratings: own.map(({ itemId, label, value }) => ({
@@ -570,7 +779,7 @@ export const judgingResultsRouter = createTRPCRouter({
               label,
               value,
             })),
-            responses: evaluation.isComplete
+            responses: counted.has(evaluation.id)
               ? responses
                   .filter((response) => response.evaluationId === evaluation.id)
                   .map(({ itemId, label, value, isPublic }) => ({
@@ -592,6 +801,7 @@ export const judgingResultsRouter = createTRPCRouter({
             evaluationId: null,
             status: "drafting" as const,
             autoSubmitted: false,
+            counted: false,
             updatedAt: draft.updatedAt,
             score: null,
             ratings: [],
@@ -599,15 +809,15 @@ export const judgingResultsRouter = createTRPCRouter({
           })),
       ].sort((a, b) => a.judgeName.localeCompare(b.judgeName));
 
-      const complete = judges.filter((judge) => judge.status === "complete");
+      const counting = judges.filter((judge) => judge.counted);
       return {
         appointment,
         average: meanOrNull(
-          complete
+          counting
             .map((judge) => judge.score)
             .filter((score): score is number => score !== null),
         ),
-        completeCount: complete.length,
+        countedCount: counting.length,
         hasResultsElsewhere: elsewhere.length > 0,
         judges,
       };
@@ -666,12 +876,15 @@ export const judgingResultsRouter = createTRPCRouter({
         db,
         rows.map((row) => row.id),
       );
+      const ratingItems = await ratingItemCount(db, input.hackathonId);
 
       return rows.map(({ autoSubmittedAt, ...row }) => ({
         ...row,
         autoSubmitted: !!autoSubmittedAt,
         autoSubmittedAt,
         score: evaluationScore(ratings.get(row.id) ?? []),
+        // Whether placings count it: it rated every item.
+        counted: hasEveryRating(ratings.get(row.id) ?? [], ratingItems),
       }));
     }),
 

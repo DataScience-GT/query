@@ -11,6 +11,7 @@ import {
 import type { JudgingRoomKind } from "@query/db";
 import { ensureJudgingConfig } from "./config";
 import type { JudgingDb } from "./config";
+import { outerColumn } from "./outer-column";
 
 // The organiser's launch checklist: what has to be true before judges take
 // their rooms and tables and hackers look up their times. Reads every area's
@@ -282,7 +283,7 @@ export async function readChecklistFacts(
         kind: judgingRooms.kind,
         challengeId: judgingRooms.challengeId,
         hasBuilding: sql<boolean>`${judgingRooms.buildingId} is not null`,
-        hasLink: sql<boolean>`exists (select 1 from ${judgingRoomLinks} where ${judgingRoomLinks.roomId} = ${judgingRooms.id} and ${judgingRoomLinks.revokedAt} is null)`,
+        hasLink: sql<boolean>`exists (select 1 from ${judgingRoomLinks} where ${judgingRoomLinks.roomId} = ${outerColumn(judgingRooms, judgingRooms.id)} and ${judgingRoomLinks.revokedAt} is null)`,
       })
       .from(judgingRooms)
       .where(

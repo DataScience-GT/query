@@ -18,6 +18,7 @@ import {
 import type { Tone } from "@/components/portal/ui";
 import {
   ICON_STROKE,
+  addSkip,
   clockTime,
   deskLabel,
   deskMeta,
@@ -45,6 +46,15 @@ export const DEFAULT_FILTERS: QueueFilters = {
   inMyRoomOnly: true,
 };
 
+/**
+ * What the judge turned down since they last graded a project, and the
+ * project Grade next project last sent them to. The desk holds it, so it
+ * outlives the project sheet that replaces this list.
+ */
+export type SkipState = { skipped: string[]; offered: string | null };
+
+export const NO_SKIPS: SkipState = { skipped: [], offered: null };
+
 function useDebounced<T>(value: T, ms: number) {
   const [settled, setSettled] = useState(value);
   useEffect(() => {
@@ -58,9 +68,22 @@ function progress(
   project: ListedProject,
   now: number | null,
 ): { tone: Tone; text: string } | null {
-  if (project.myEvaluation?.isComplete)
-    return { tone: "success", text: "Judged" };
+  if (project.myEvaluation?.counted) return { tone: "success", text: "Judged" };
   if (project.myEvaluation) return { tone: "warning", text: "Incomplete" };
+  // Another judge's, so the judge's own half-written draft is not the news.
+  if (project.grading === "graded") return { tone: "neutral", text: "Graded" };
+  if (project.grading === "in_progress") {
+    return { tone: "neutral", text: "Being graded" };
+  }
+  // Never says which judge.
+  if (project.grading === "reserved") {
+    return {
+      tone: "neutral",
+      text: project.reservedUntil
+        ? `Reserved for another judge until ${clockTime(project.reservedUntil)}`
+        : "Reserved for another judge",
+    };
+  }
   if (project.hasDraft) return { tone: "warning", text: "Draft saved" };
   const p = project.presentation;
   if (
@@ -96,6 +119,8 @@ export function ProjectQueue({
   filters,
   onFilters,
   onOpen,
+  skips,
+  onSkips,
   onShowSubmitted,
   onPickRoom,
 }: {
@@ -104,6 +129,8 @@ export function ProjectQueue({
   filters: QueueFilters;
   onFilters: (next: QueueFilters) => void;
   onOpen: (entryId: string, challengeId: string) => void;
+  skips: SkipState;
+  onSkips: (next: SkipState) => void;
   /** Switches the desk to the judge's submitted evaluations. */
   onShowSubmitted: () => void;
   /** Members only: opens the room picker. */
@@ -121,6 +148,22 @@ export function ProjectQueue({
     { refetchInterval: 15_000, placeholderData: keepPreviousData },
   );
   const now = useServerNow(list.data?.serverNow, list.dataUpdatedAt);
+  const utils = trpc.useUtils();
+  // Skipping a project the judge only opened gives it back. A failure changes
+  // nothing the judge needs to hear: the hold lapses by itself.
+  const { mutate: release } = trpc.judging.desk.releaseGrading.useMutation({
+    onSettled: () =>
+      void utils.judging.desk.projects.invalidate({ hackathonId }),
+  });
+  const [finding, setFinding] = useState(false);
+  // Where the last "Grade next project" found nothing, and why.
+  const [none, setNone] = useState<{
+    challengeId: string;
+    label: string;
+    needsRoom: boolean;
+    allSkipped: boolean;
+  } | null>(null);
+  const [findError, setFindError] = useState<string | null>(null);
 
   // Tops are challenges whose parent the judge cannot see: the roots for a
   // member, the room's challenge for a guest.
@@ -145,10 +188,16 @@ export function ProjectQueue({
 
   const data = list.data;
   const challenge = data?.challenge;
-  // Only a presentation in the judge's own room is theirs to do next.
+  // Only a presentation in the judge's own room is theirs to do next, and not
+  // one that another judge has graded or is grading.
   const next =
     data && data.roomFilter === "applied" && now !== null
-      ? nextPresentation(data.projects, now)
+      ? nextPresentation(
+          data.projects.filter(
+            (p) => p.grading === "open" || p.grading === "mine",
+          ),
+          now,
+        )
       : null;
   const rest = data ? data.projects.filter((p) => p !== next) : [];
 
@@ -170,8 +219,64 @@ export function ProjectQueue({
   const emptyFirst = !!empty && !search;
 
   // With judged projects shown, a count of all of them hides how many are left.
-  const judged = rest.filter((p) => p.myEvaluation?.isComplete).length;
-  const mixed = !filters.hideJudged && judged > 0;
+  // The same goes for projects with other judges.
+  const judged = rest.filter((p) => p.myEvaluation?.counted).length;
+  const taken = rest.filter(
+    (p) =>
+      p.grading === "graded" ||
+      p.grading === "in_progress" ||
+      p.grading === "reserved",
+  ).length;
+  const mixed = (!filters.hideJudged && judged > 0) || taken > 0;
+
+  async function gradeNext(skipped = skips.skipped) {
+    if (!challenge) return;
+    setFinding(true);
+    setNone(null);
+    setFindError(null);
+    try {
+      const found = await utils.client.judging.desk.nextProject.query({
+        hackathonId,
+        challengeId: filters.challengeId ?? undefined,
+        skip: skipped,
+      });
+      // With everything on offer skipped, the skips start over, so trying
+      // again later goes back to the first of them: that team may be back.
+      onSkips(
+        found.allSkipped ? NO_SKIPS : { skipped, offered: found.entryId },
+      );
+      if (found.entryId) {
+        onOpen(found.entryId, found.challenge.id);
+      } else {
+        setNone({
+          challengeId: found.challenge.id,
+          label: found.challenge.label,
+          needsRoom: found.needsRoom,
+          allSkipped: found.allSkipped,
+        });
+      }
+    } catch (error) {
+      setFindError(
+        error instanceof Error && error.message
+          ? error.message
+          : "The next project did not load. Try again.",
+      );
+    } finally {
+      setFinding(false);
+    }
+  }
+
+  // For a team that is away from its table: passes over the project Grade next
+  // project last sent the judge to, and opens the one after it.
+  function skipOffered() {
+    const { offered, skipped } = skips;
+    if (!offered) return;
+    release({ hackathonId, entryId: offered, challengeId: challenge?.id });
+    void gradeNext(addSkip(skipped, offered));
+  }
+  const offeredTitle = data?.projects.find(
+    (p) => p.id === skips.offered,
+  )?.title;
 
   // Above the filters, so it is the first thing on a phone's screen. It only
   // exists in the judge's own room, which the heading already names.
@@ -188,7 +293,20 @@ export function ProjectQueue({
           </p>
         )}
         <h2 className={`mt-2 ${itemTitle}`}>{next.title}</h2>
-        <p className={`mt-1 ${deskMeta}`}>{where(next, false)}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p className={deskMeta}>{where(next, false)}</p>
+          {next.assignedToYou && (
+            <span className={deskStatus("accent")}>Assigned to you</span>
+          )}
+          {next.flagged && (
+            <span
+              className={deskStatus("warning")}
+              title="Organisers flagged this team for a check-in rule."
+            >
+              Flagged
+            </span>
+          )}
+        </div>
         <button
           type="button"
           className={`${btnPrimary} mt-5 min-h-11 w-full sm:w-auto`}
@@ -204,6 +322,66 @@ export function ProjectQueue({
       {upNext}
 
       {emptyFirst && <div className="mb-8">{empty}</div>}
+
+      {data && challenge && (
+        <div className="mb-6">
+          {context.state === "open" && (
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+              <button
+                type="button"
+                className={`${upNext ? btnSecondary : btnPrimary} min-h-11 w-full sm:w-auto`}
+                disabled={finding}
+                onClick={() => void gradeNext()}
+              >
+                {finding ? "Finding a project…" : "Grade next project"}
+              </button>
+              {skips.offered && (
+                <button
+                  type="button"
+                  className={`${textLink} min-h-11`}
+                  aria-label={offeredTitle ? `Skip ${offeredTitle}` : undefined}
+                  disabled={finding}
+                  onClick={skipOffered}
+                >
+                  Skip
+                </button>
+              )}
+            </div>
+          )}
+          {none?.challengeId === challenge.id && (
+            <p role="status" className={`mt-3 ${body}`}>
+              {none.needsRoom ? (
+                <>
+                  You are not seated where {none.label} is judged.{" "}
+                  {onPickRoom && (
+                    <button
+                      type="button"
+                      className={`${textLink} min-h-11`}
+                      onClick={onPickRoom}
+                    >
+                      Pick your room or table
+                    </button>
+                  )}
+                </>
+              ) : none.allSkipped ? (
+                "Everything your queue offers right now is skipped. Try again in a few minutes."
+              ) : (
+                `Nothing left to grade in ${none.label}.`
+              )}
+            </p>
+          )}
+          {findError && (
+            <p role="alert" className={`mt-3 ${body}`}>
+              {findError}
+            </p>
+          )}
+          <p className={`mt-2 ${deskMeta}`}>
+            Each project is graded once per challenge, by one judge.
+            {skips.offered &&
+              " Skip moves on if that team is away from its table."}
+          </p>
+        </div>
+      )}
 
       <div className="space-y-3">
         {context.challenges.length > 1 && (
@@ -323,7 +501,7 @@ export function ProjectQueue({
             >
               <h2 className={deskLabel}>
                 {mixed ? (
-                  `${rest.length - judged} ${next ? "more " : ""}to judge · ${judged} judged`
+                  `${rest.length - judged - taken} ${next ? "more " : ""}to judge${judged > 0 ? ` · ${judged} judged` : ""}${taken > 0 ? ` · ${taken} with other judges` : ""}`
                 ) : (
                   <>
                     {rest.length} {next ? "more " : ""}
@@ -355,9 +533,22 @@ export function ProjectQueue({
                             <span className={deskMeta}>
                               {where(project, data.roomFilter !== "applied")}
                             </span>
+                            {project.assignedToYou && (
+                              <span className={deskStatus("accent")}>
+                                Assigned to you
+                              </span>
+                            )}
                             {state && (
                               <span className={deskStatus(state.tone)}>
                                 {state.text}
+                              </span>
+                            )}
+                            {project.flagged && (
+                              <span
+                                className={deskStatus("warning")}
+                                title="Organisers flagged this team for a check-in rule."
+                              >
+                                Flagged
                               </span>
                             )}
                           </span>
@@ -407,8 +598,9 @@ function RoomFilterNote({
   if (filter === "untimed") {
     return (
       <p className={deskMeta}>
-        {challengeLabel} has no presentation times, so every project is listed.
-        Judge them in any order.
+        {challengeLabel} has no presentation times, so every project is listed,
+        open ones first in your own queue order. Use Grade next project to take
+        the next one.
       </p>
     );
   }

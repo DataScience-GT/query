@@ -195,7 +195,7 @@ export const hackathonBanCacheKey = (email: string) =>
 
 // Refuses people banned from hackathons. Goes on the procedures where someone
 // takes part — registering, the interest list, teams, submitting, applying to
-// judge — and not on reads or on the ways out (withdraw, leave), so a banned
+// judge, event-code check-in — and not on reads or on the ways out (withdraw, leave), so a banned
 // person can still see and undo what they already did. The ban is by email,
 // so it holds across providers and new accounts on the same address. Cached
 // 60s, the negative answer too; ban and unban clear the key.

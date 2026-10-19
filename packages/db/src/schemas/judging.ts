@@ -90,6 +90,14 @@ export const judgingEntries = pgTable(
     deletedById: text("deleted_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
+    // An organiser pulled this entry from prizes, usually after a check-in rule
+    // break. Judges still score it, so nothing about the room schedule changes;
+    // only placements and results leave it out.
+    prizeIneligibleAt: timestamp("prize_ineligible_at"),
+    prizeIneligibleById: text("prize_ineligible_by_id").references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -455,6 +463,12 @@ export const judgingAppointments = pgTable(
     endsAt: timestamp("ends_at").notNull(),
     // Compare-and-swap for moves made from two organiser screens at once.
     revision: integer("revision").notNull().default(0),
+    // The one judge who grades this presentation. Null until judges are
+    // assigned, and again if that judge is removed.
+    assignedJudgeId: uuid("assigned_judge_id").references(
+      () => judgingJudges.id,
+      { onDelete: "set null" },
+    ),
   },
   (table) => [
     uniqueIndex("judging_appointment_task_idx").on(
@@ -468,6 +482,7 @@ export const judgingAppointments = pgTable(
       table.startsAt,
     ),
     index("judging_appointment_entry_idx").on(table.entryId),
+    index("judging_appointment_judge_idx").on(table.assignedJudgeId),
     foreignKey({
       name: "judging_appointment_challenge_fk",
       columns: [table.challengeId],
@@ -758,7 +773,11 @@ export const judgingPlacements = pgTable(
     scope: text("scope").notNull().default("overall"),
     scopeLabel: text("scope_label").notNull().default("Overall"),
     placement: integer("placement").notNull(),
+    // Calibrated for judge bias: what the placing is ranked on.
     score: numeric("score", { precision: 4, scale: 2 }),
+    // The plain mean of the same evaluations. Null on rows computed before
+    // calibration existed.
+    rawScore: numeric("raw_score", { precision: 4, scale: 2 }),
     evaluationCount: integer("evaluation_count").notNull().default(0),
     publishedAt: timestamp("published_at"),
     computedAt: timestamp("computed_at").defaultNow().notNull(),

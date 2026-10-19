@@ -12,7 +12,8 @@ export type BoardEvaluation = {
   entryId: string;
   challengeId: string;
   appointmentId: string | null;
-  isComplete: boolean;
+  /** Holds every rating (scoring.hasEveryRating), so placings count it. */
+  ratingsComplete: boolean;
 };
 
 export type BoardPresence = {
@@ -31,6 +32,21 @@ type Booked = {
   startsAt: Date;
   endsAt: Date;
 };
+
+/**
+ * Whether an evaluation or draft of the appointment's project belongs to the
+ * appointment: it names it, or, when it names none, its challenge sits under
+ * the appointment's. The caller has matched the project.
+ */
+export function belongsTo(
+  appointment: { id: string; challengeId: string },
+  row: { challengeId: string; appointmentId: string | null },
+  rootIdOf: (challengeId: string) => string | null,
+): boolean {
+  return row.appointmentId
+    ? row.appointmentId === appointment.id
+    : rootIdOf(row.challengeId) === appointment.challengeId;
+}
 
 /** Rooms with a judge still in them and heard from in the last 15 minutes. */
 export function staffedRoomIds(
@@ -78,9 +94,7 @@ export function withStatus<A extends Booked>(
 
   return appointments.map((appointment) => {
     const mine = (byEntry.get(appointment.entryId) ?? []).filter((e) =>
-      e.appointmentId
-        ? e.appointmentId === appointment.id
-        : rootIdOf(e.challengeId) === appointment.challengeId,
+      belongsTo(appointment, e, rootIdOf),
     );
     // Seen in the room at some point during the slot. An open row's last
     // heartbeat stands in for when the judge left.

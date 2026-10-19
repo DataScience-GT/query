@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import { resolve } from "path";
 
 // Root config for `pnpm test`. The only thing it adds is mainweb's `@` alias,
@@ -9,5 +9,10 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "sites/mainweb"),
     },
+  },
+  // Agent worktrees live under .claude/worktrees inside the repo, and the
+  // path filters in `pnpm test` would otherwise match their copies too.
+  test: {
+    exclude: [...configDefaults.exclude, ".claude/**"],
   },
 });

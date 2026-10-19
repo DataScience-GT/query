@@ -223,6 +223,7 @@ export const hackathonContentRouter = createTRPCRouter({
                 submissionUrl: true,
                 demoLinks: true,
                 deletedAt: true,
+                prizeIneligibleAt: true,
               },
               with: {
                 sourceProject: {
@@ -251,9 +252,14 @@ export const hackathonContentRouter = createTRPCRouter({
           score: toScore(row.weightedScore),
         })),
         // A project an organiser pulled after placings went out leaves the
-        // public list at once, not at the next recompute.
+        // public list at once, not at the next recompute. So does a team
+        // pulled from prizes. Only the timestamp is read, to filter on; why it
+        // was pulled never reaches this cached, public payload.
         ...placements
-          .filter((row) => row.entry && !row.entry.deletedAt)
+          .filter(
+            (row) =>
+              row.entry && !row.entry.deletedAt && !row.entry.prizeIneligibleAt,
+          )
           .map((row) => ({
             id: row.id,
             scope: row.scope,

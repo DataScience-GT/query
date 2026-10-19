@@ -27,7 +27,7 @@ Files in `src/schemas/`, re-exported from `schemas/index.ts`. `drizzle.config.ts
 | `auth.ts` | `user`, `account`, `session`, `verificationToken` |
 | `members.ts` | `user_profile`, `member`, `membership_history` |
 | `admins.ts` | `admin` |
-| `hackathons.ts` | `hackathon`, `hackathon_team`, `hackathon_participant`, `hackathon_project`, `hackathon_interest`, `hackathon_event`, `hackathon_event_attendee`, `hackathon_announcement`, `hackathon_announcement_recipient` |
+| `hackathons.ts` | `hackathon`, `hackathon_team`, `hackathon_participant`, `hackathon_project`, `hackathon_interest`, `hackathon_event`, `hackathon_event_attendee`, `hackathon_check_in_flag`, `hackathon_announcement`, `hackathon_announcement_recipient` |
 | `judge.ts` | `judge`, `judge_assignment` (live roster); `judging_project`, `judge_vote`, `judge_queue`, `hackathon_result` (retired, kept for past editions) |
 | `judging.ts` | `judging_*`: config, entries and members, challenges, buildings, rooms and room links, judges, guest sessions, presence, schedule and appointments, rubric, evaluations, deliberation, placements |
 | `points.ts` | `hackathon_point_adjustment`, `hackathon_store_item`, `hackathon_store_purchase` |

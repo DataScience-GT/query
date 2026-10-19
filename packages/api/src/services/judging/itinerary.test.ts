@@ -118,25 +118,25 @@ describe("evaluationsForAppointment", () => {
         judgeId: "a",
         challengeId: "general",
         appointmentId: "s1",
-        isComplete: true,
+        ratingsComplete: true,
       },
       {
         judgeId: "b",
         challengeId: "general",
         appointmentId: null,
-        isComplete: true,
+        ratingsComplete: true,
       },
       {
         judgeId: "c",
         challengeId: "general",
         appointmentId: "s9",
-        isComplete: true,
+        ratingsComplete: true,
       },
       {
         judgeId: "d",
         challengeId: "sponsor",
         appointmentId: null,
-        isComplete: true,
+        ratingsComplete: true,
       },
     ];
     expect(
@@ -269,7 +269,7 @@ describe("buildItinerary", () => {
           judgeId: "j1",
           challengeId: "general",
           appointmentId: "s1",
-          isComplete: true,
+          ratingsComplete: true,
         },
       ],
       presence: [
@@ -295,7 +295,7 @@ describe("buildItinerary", () => {
           judgeId: "j1",
           challengeId: "general",
           appointmentId: "s1",
-          isComplete: true,
+          ratingsComplete: true,
         },
       ],
       presence: [
@@ -312,6 +312,22 @@ describe("buildItinerary", () => {
           joinedAt: at(-5),
           lastSeenAt: at(11),
           leftAt: null,
+        },
+      ],
+      now: at(12),
+    });
+    expect(itinerary.appointments[0]!.status).toBe("incomplete");
+  });
+
+  it("keeps a slot incomplete while an evaluation lacks a rating", () => {
+    const itinerary = buildItinerary({
+      ...base,
+      evaluations: [
+        {
+          judgeId: "j1",
+          challengeId: "general",
+          appointmentId: "s1",
+          ratingsComplete: false,
         },
       ],
       now: at(12),
@@ -341,12 +357,26 @@ describe("buildItinerary", () => {
           judgeId: "j1",
           challengeId: "mlh",
           appointmentId: null,
-          isComplete: true,
+          ratingsComplete: true,
         },
       ],
       now: at(5),
     });
     expect(judged.unscheduled[0]!.judged).toBe(true);
+
+    const unrated = buildItinerary({
+      ...base,
+      evaluations: [
+        {
+          judgeId: "j1",
+          challengeId: "mlh",
+          appointmentId: null,
+          ratingsComplete: false,
+        },
+      ],
+      now: at(5),
+    });
+    expect(unrated.unscheduled[0]!.judged).toBe(false);
   });
 });
 

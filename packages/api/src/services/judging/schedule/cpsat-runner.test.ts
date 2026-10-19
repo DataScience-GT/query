@@ -4,7 +4,12 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type * as ChildProcess from "node:child_process";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cpsatProblem, readCpsatSolution } from "./cpsat-bridge";
+import {
+  cpsatAssignmentProblem,
+  cpsatProblem,
+  readCpsatAssignments,
+  readCpsatSolution,
+} from "./cpsat-bridge";
 import { CPSAT_UNAVAILABLE, cpsatAvailable, runCpsat } from "./cpsat-runner";
 import type { PlanInputs } from "./inputs";
 
@@ -212,6 +217,44 @@ process.exitCode = 1;
     if (run.status === "failed") expect(run.reason).toContain("after 70 seconds");
   });
 
+  it("allows one more time limit when the script also assigns judges", async () => {
+    fakeScript(`setInterval(() => undefined, 1000);`);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const judged = cpsatProblem(inputs, "fp-test", undefined, [
+      { id: "m1", kind: "member", challengeIds: ["general", "sp1"], roomId: null },
+    ]);
+    const running = runCpsat(judged, { seconds: 5 });
+    while (spawned.length === 0) await new Promise((next) => setImmediate(next));
+    // 5 seconds for each of two attempts and for the judges, plus 60.
+    await vi.advanceTimersByTimeAsync(74_000);
+    expect(spawned[0]!.child.killed).toBe(false);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(spawned[0]!.child.killed).toBe(true);
+
+    const run = await running;
+    if (run.status === "failed") expect(run.reason).toContain("after 75 seconds");
+  });
+
+  it("allows a single time limit when the schedule is given and only judges are assigned", async () => {
+    fakeScript(`setInterval(() => undefined, 1000);`);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const placements = [{ entryId: "a", challengeId: "general", roomId: "g1", slot: 0 }];
+    const judged = cpsatAssignmentProblem(
+      { ...inputs, tasks: [inputs.tasks[0]!] },
+      placements,
+      [{ id: "m1", kind: "member", challengeIds: ["general"], roomId: null }],
+    );
+    const running = runCpsat(judged, { seconds: 5 });
+    while (spawned.length === 0) await new Promise((next) => setImmediate(next));
+    await vi.advanceTimersByTimeAsync(64_000);
+    expect(spawned[0]!.child.killed).toBe(false);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(spawned[0]!.child.killed).toBe(true);
+
+    const run = await running;
+    if (run.status === "failed") expect(run.reason).toContain("after 65 seconds");
+  });
+
   it("kills a run when its signal fires, and removes the problem file", async () => {
     // Would run for the full 70 seconds if nothing stopped it.
     fakeScript(`console.error("loading"); setInterval(() => undefined, 1000);`);
@@ -287,5 +330,67 @@ describe.runIf(realPython)("runCpsat with cpsat.py", () => {
     expect(readCpsatSolution(exampleInputs, example.fingerprint, run.solution)).toMatchObject({
       ok: true,
     });
+  });
+
+  it("assigns judges to the bundled example", { timeout: 120_000 }, async () => {
+    vi.stubEnv("JUDGING_CPSAT_PYTHON", realPython!);
+    vi.stubEnv("JUDGING_CPSAT_SCRIPT", "");
+    const example = JSON.parse(
+      readFileSync(
+        fileURLToPath(
+          new URL("../../../../scripts/judging-schedule/example-problem.json", import.meta.url),
+        ),
+        "utf8",
+      ),
+    );
+    const exampleInputs: PlanInputs = {
+      rooms: example.rooms.map((r: PlanInputs["rooms"][number]) => ({
+        id: r.id,
+        challengeId: r.challengeId,
+        buildingId: r.buildingId,
+      })),
+      tasks: example.tasks,
+      slots: example.slotCount,
+      sameGap: example.sameGap,
+      crossGap: example.crossGap,
+    };
+    const everything = [...new Set(example.tasks.map((t: { challengeId: string }) => t.challengeId))];
+    const judges = Array.from({ length: 8 }, (_, n) => ({
+      id: `judge-${n}`,
+      kind: "member" as const,
+      challengeIds: everything as string[],
+      roomId: null,
+    }));
+
+    const run = await runCpsat(
+      cpsatProblem(exampleInputs, example.fingerprint, undefined, judges),
+      { seconds: 5 },
+    );
+    expect(run).toMatchObject({ status: "solved" });
+    if (run.status !== "solved") return;
+    const read = readCpsatSolution(exampleInputs, example.fingerprint, run.solution, judges);
+    expect(read).toMatchObject({ ok: true, judging: { source: "cp-sat" } });
+    if (!read.ok) return;
+
+    // Then the same schedule again, only the judges: one assignment is kept.
+    const keep = read.judging.assignments.slice(0, 1);
+    const again = await runCpsat(
+      cpsatAssignmentProblem(exampleInputs, read.placements, judges, keep),
+      { seconds: 5 },
+    );
+    expect(again).toMatchObject({ status: "solved" });
+    if (again.status !== "solved") return;
+    const assigned = readCpsatAssignments(
+      exampleInputs,
+      read.placements,
+      judges,
+      keep,
+      again.solution,
+    );
+    expect(assigned).toMatchObject({ ok: true });
+    if (assigned.ok) {
+      expect(assigned.assignments).toEqual(expect.arrayContaining(keep));
+      expect(assigned.assignments).toHaveLength(read.placements.length);
+    }
   });
 });

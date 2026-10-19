@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ExternalLink, Eye, EyeOff } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
@@ -62,6 +62,7 @@ export function EvaluationSheet({
   entryId,
   challengeId,
   onClose,
+  onGraded,
   onPickRoom,
 }: {
   hackathonId: string;
@@ -70,6 +71,8 @@ export function EvaluationSheet({
   entryId: string;
   challengeId: string | undefined;
   onClose: () => void;
+  /** The judge submitted their first evaluation of this project. */
+  onGraded?: () => void;
   /** Members only: leaves the project for the room picker. */
   onPickRoom?: () => void;
 }) {
@@ -79,6 +82,88 @@ export function EvaluationSheet({
     { refetchInterval: 15_000 },
   );
   const now = useServerNow(sheet.data?.serverNow, sheet.dataUpdatedAt);
+  const utils = trpc.useUtils();
+
+  // Opening an open project to grade it takes it: the hold starts now, not at
+  // the first save, so another judge is not sent to the same table. One call
+  // for each time it is opened. Another judge getting there first shows as the
+  // sheet's usual refusal; any other refusal is kept to say so here.
+  const { refetch } = sheet;
+  const openKey =
+    sheet.data &&
+    sheet.data.grading === "open" &&
+    sheet.data.access.canEdit &&
+    !sheet.data.evaluation
+      ? `${sheet.data.entry.id}:${sheet.data.challenge.id}`
+      : null;
+  const challengeToStart = sheet.data?.challenge.id;
+  const started = useRef<string | null>(null);
+  const [refused, setRefused] = useState<{
+    entryId: string;
+    message: string;
+  } | null>(null);
+
+  // The hold taken on opening is given back when the judge leaves the project
+  // with nothing saved (back, close, another project), so an accidental open
+  // does not keep a presentation from the judge it was assigned to, or a
+  // project from the others, for the length of the hold. Once. The server only
+  // deletes a draft still at revision 0, so a late call cannot lose answers,
+  // and a failure is not worth telling the judge: the hold lapses by itself.
+  const viewing = useRef<string | null>(null);
+  const holding = useRef<{
+    entryId: string;
+    challengeId: string | undefined;
+  } | null>(null);
+  const { mutate: release } = trpc.judging.desk.releaseGrading.useMutation({
+    onSettled: () =>
+      void utils.judging.desk.projects.invalidate({ hackathonId }),
+  });
+  // Answers reached the server, so there is nothing to give back.
+  const markSaved = useCallback(() => {
+    holding.current = null;
+  }, []);
+  useEffect(() => {
+    viewing.current = entryId;
+    return () => {
+      viewing.current = null;
+      const held = holding.current;
+      holding.current = null;
+      if (held) release({ hackathonId, ...held });
+    };
+  }, [entryId, hackathonId, release]);
+
+  const { mutate: startGrading } = trpc.judging.desk.startGrading.useMutation({
+    onSuccess: (result, variables) => {
+      void utils.judging.desk.projects.invalidate({ hackathonId });
+      // Held with nothing saved. The judge may have left before this
+      // answered, and then there is no one to give it back later.
+      if (!result.held || result.revision > 0) return;
+      const held = {
+        entryId: variables.entryId,
+        challengeId: variables.challengeId,
+      };
+      if (viewing.current === variables.entryId) holding.current = held;
+      else release({ hackathonId, ...held });
+    },
+    onError: (error, variables) => {
+      if (error.data?.code === "CONFLICT") {
+        void refetch();
+      } else {
+        setRefused({
+          entryId: variables.entryId,
+          message: trpcErrorMessage(
+            error,
+            "This project did not open for you. Try again.",
+          ),
+        });
+      }
+    },
+  });
+  useEffect(() => {
+    if (!openKey || started.current === openKey) return;
+    started.current = openKey;
+    startGrading({ hackathonId, entryId, challengeId: challengeToStart });
+  }, [openKey, hackathonId, entryId, challengeToStart, startGrading]);
 
   // The project list may have been scrolled far down; the project starts at
   // its title.
@@ -145,6 +230,9 @@ export function EvaluationSheet({
           void sheet.refetch().then(() => setReloads((n) => n + 1))
         }
         onNext={onClose}
+        onGraded={onGraded}
+        onSaved={markSaved}
+        refusal={refused?.entryId === entryId ? refused.message : null}
         onPickRoom={onPickRoom}
       />
     </>
@@ -160,6 +248,9 @@ function EvaluationForm({
   refresh,
   onReload,
   onNext,
+  onGraded,
+  onSaved,
+  refusal,
   onPickRoom,
 }: {
   hackathonId: string;
@@ -173,6 +264,11 @@ function EvaluationForm({
   onReload: () => void;
   /** Back to the queue, where the next project waits. */
   onNext: () => void;
+  onGraded?: () => void;
+  /** Answers reached the server, so there is nothing to give back. */
+  onSaved?: () => void;
+  /** Why opening the project for grading was refused, if it was. */
+  refusal: string | null;
   onPickRoom?: () => void;
 }) {
   const utils = trpc.useUtils();
@@ -236,7 +332,7 @@ function EvaluationForm({
   const opensNow = opensIn !== null && opensIn <= 0;
 
   const submit = trpc.judging.desk.submit.useMutation();
-  const writable = access.canEdit && !timeUp;
+  const writable = access.canEdit && !timeUp && !refusal;
   const editable = writable && !sending;
 
   const autosave = useDraftAutosave({
@@ -256,6 +352,10 @@ function EvaluationForm({
       }),
   });
   const { hold, release } = autosave;
+  const savedAt = autosave.status.kind === "saved" ? autosave.status.at : null;
+  useEffect(() => {
+    if (savedAt) onSaved?.();
+  }, [savedAt, onSaved]);
 
   // A phone that locks mid-presentation leaves a countdown nobody can see.
   useScreenWake(deadlineAt !== null);
@@ -310,6 +410,9 @@ function EvaluationForm({
           void utils.judging.desk.project.invalidate({ hackathonId });
           void utils.judging.desk.projects.invalidate({ hackathonId });
           void utils.judging.desk.myEvaluations.invalidate({ hackathonId });
+          void utils.judging.desk.itinerary.invalidate({ hackathonId });
+          onSaved?.();
+          if (!evaluation) onGraded?.();
         },
         onError: (error) => {
           release();
@@ -429,6 +532,24 @@ function EvaluationForm({
       </header>
 
       <AccessNotice data={data} opensIn={opensIn} onPickRoom={onPickRoom} />
+
+      {refusal && (
+        <div role="alert" className="mt-6">
+          <p className={deskStatus("warning")}>Not open to you yet</p>
+          <p className={`mt-1 ${body}`}>{refusal}</p>
+        </div>
+      )}
+
+      {entry.flagged && (
+        <div className="mt-6">
+          <p className={deskStatus("warning")}>Flagged by organisers</p>
+          <p className={`mt-1 ${body}`}>
+            This team was flagged for a check-in rule. Judge the project as you
+            normally would. Organisers decide whether the team stays in the
+            prize running.
+          </p>
+        </div>
+      )}
 
       <form
         className="mt-8"
@@ -741,11 +862,24 @@ function AccessNotice({
       ? `Opens ${clockTime(access.opensAt)}${opensIn !== null && opensIn > 0 ? `, ${startsIn(opensIn)}` : ""}`
       : access.judgingState === "closed"
         ? "Read-only"
-        : "Not open to you yet";
+        : access.gradedElsewhere
+          ? data.grading === "graded"
+            ? "Already graded"
+            : "Being graded"
+          : access.ended
+            ? "Time is up"
+            : "Not open to you yet";
     return (
       <div className="mt-6">
         <p className={deskStatus("warning")}>{heading}</p>
         <p className={`mt-1 ${body}`}>{access.reason}</p>
+        {access.ended && evaluation && (
+          <p className={`mt-1 ${deskMeta}`}>
+            {evaluation.autoSubmittedAt
+              ? `Submitted for you at ${clockTime(evaluation.autoSubmittedAt)}${evaluation.isComplete ? "" : ", incomplete"}`
+              : `Submitted ${clockTime(evaluation.submittedAt)}`}
+          </p>
+        )}
         {access.needsRoom && onPickRoom && (
           <button
             type="button"
@@ -769,8 +903,10 @@ function AccessNotice({
         </p>
         <p className={`mt-1 ${body}`}>
           {evaluation.isComplete
-            ? "Time ran out with every question answered. You can still change your answers."
-            : "Time ran out before you finished, so it counts as incomplete. Answer the rest and submit again."}
+            ? "Time ran out with every question answered."
+            : evaluation.score !== null
+              ? "Time ran out before you wrote every answer. Every rating is in, so it counts."
+              : "Time ran out before you rated everything, so it does not count."}
         </p>
       </div>
     );
