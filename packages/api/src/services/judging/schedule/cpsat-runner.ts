@@ -7,7 +7,8 @@ import { dirname, join, resolve } from "node:path";
 // Runs the CP-SAT script on this server, for hosts that have a Python with
 // OR-Tools, so an organiser does not have to download the problem and run it
 // on a laptop. It is the same script fed the same problem file, and what it
-// prints is read exactly like an upload (readCpsatSolution): this file only
+// prints is read exactly like an upload (readCpsatSolution, or
+// readCpsatAssignments when only the judges are assigned): this file only
 // starts the process and reports how it ended, it never decides whether a
 // schedule is good.
 //
@@ -28,6 +29,17 @@ export const CPSAT_SECONDS = { min: 5, max: 60, default: 20 } as const;
 
 /** Lines of the script's log kept for error messages. */
 const LOG_LINES = 20;
+
+/**
+ * How many times the script may use its whole time limit on `problem`: twice
+ * to place the presentations (strict, then relaxed) unless the schedule is
+ * given, and once more to assign judges when there are any.
+ */
+function timeLimits(problem: unknown): number {
+  const shape = problem as { judges?: unknown; placements?: unknown } | null;
+  const judged = Array.isArray(shape?.judges) && shape.judges.length > 0;
+  return (Array.isArray(shape?.placements) ? 0 : 2) + (judged ? 1 : 0);
+}
 
 type Command = { python: string; script: string };
 
@@ -108,11 +120,12 @@ export async function runCpsat(
     Math.max(CPSAT_SECONDS.min, Math.round(options.seconds ?? CPSAT_SECONDS.default)),
   );
   const workers = Math.min(4, availableParallelism());
-  // Up to two attempts of `seconds` each. Starting Python, loading OR-Tools
-  // and building the model for each attempt come on top and do not depend
-  // on `seconds`: on a busy machine they took close to 30 seconds for a
-  // 2,000-presentation edition, so the margin leaves room for twice that.
-  const killAfter = seconds * 2 + 60;
+  // Up to two attempts of `seconds` each, and one more for the judges.
+  // Starting Python, loading OR-Tools and building the model for each attempt
+  // come on top and do not depend on `seconds`: on a busy machine they took
+  // close to 30 seconds for a 2,000-presentation edition, so the margin leaves
+  // room for twice that.
+  const killAfter = seconds * timeLimits(problem) + 60;
 
   // A directory of its own, so two runs at once never share a file.
   const dir = await mkdtemp(join(tmpdir(), "cpsat-"));

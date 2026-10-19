@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  MAX_SKIPS,
+  addSkip,
   countdown,
   countdownTone,
   formatScore,
   linkHost,
+  nextAssignment,
   nextPresentation,
   roomPlace,
   startsIn,
@@ -106,6 +109,60 @@ describe("nextPresentation", () => {
     expect(nextPresentation([finished], now)).toBeNull();
     expect(nextPresentation([], now)).toBeNull();
   });
+
+  it("puts a presentation assigned to the judge that is running now first", () => {
+    const earlier = { id: "a", presentation: slot(8), myEvaluation: null };
+    const mine = {
+      id: "b",
+      presentation: slot(12),
+      myEvaluation: null,
+      assignedToYou: true,
+    };
+    expect(nextPresentation([earlier, mine], now)?.id).toBe("b");
+    expect(nextPresentation([mine, earlier], now)?.id).toBe("b");
+  });
+
+  it("leaves an assigned one that has not started to its place in time", () => {
+    const running = { id: "a", presentation: slot(10), myEvaluation: null };
+    const mine = {
+      id: "b",
+      presentation: slot(20),
+      myEvaluation: null,
+      assignedToYou: true,
+    };
+    expect(nextPresentation([running, mine], now)?.id).toBe("a");
+  });
+
+  it("skips an assigned one the judge has judged", () => {
+    const judged = {
+      id: "a",
+      presentation: slot(10),
+      myEvaluation: { revision: 1 },
+      assignedToYou: true,
+    };
+    const open = { id: "b", presentation: slot(12), myEvaluation: null };
+    expect(nextPresentation([judged, open], now)?.id).toBe("b");
+  });
+});
+
+describe("nextAssignment", () => {
+  const item = (id: string, graded = false, takenOver = false) => ({
+    id,
+    graded,
+    takenOver,
+  });
+
+  it("is the first presentation nobody has graded or taken over", () => {
+    expect(
+      nextAssignment([item("a", true), item("b", false, true), item("c")])?.id,
+    ).toBe("c");
+    expect(nextAssignment([item("a"), item("b")])?.id).toBe("a");
+  });
+
+  it("is null when nothing is left", () => {
+    expect(nextAssignment([item("a", true)])).toBeNull();
+    expect(nextAssignment([])).toBeNull();
+  });
 });
 
 describe("stationGroups", () => {
@@ -154,5 +211,32 @@ describe("stationGroups", () => {
       ),
     ).toEqual([[null, ["a", "b"]]]);
     expect(stationGroups([])).toEqual([]);
+  });
+});
+
+describe("addSkip", () => {
+  it("adds the project last", () => {
+    expect(addSkip([], "a")).toEqual(["a"]);
+    expect(addSkip(["a", "b"], "c")).toEqual(["a", "b", "c"]);
+  });
+
+  it("holds a project once, moved to the end", () => {
+    expect(addSkip(["a", "b", "c"], "a")).toEqual(["b", "c", "a"]);
+  });
+
+  it("drops the oldest past what the API takes", () => {
+    const full = Array.from({ length: MAX_SKIPS }, (_, i) => `e${i}`);
+
+    const next = addSkip(full, "new");
+
+    expect(next).toHaveLength(MAX_SKIPS);
+    expect(next[0]).toBe("e1");
+    expect(next.at(-1)).toBe("new");
+  });
+
+  it("leaves the list it was given alone", () => {
+    const skipped = ["a"];
+    addSkip(skipped, "b");
+    expect(skipped).toEqual(["a"]);
   });
 });

@@ -35,6 +35,14 @@ export function rootOf<T extends ChallengeNode>(
   return null;
 }
 
+/**
+ * Whether a challenge is a sponsor's: every challenge but the general ones.
+ * The schedule and the judge desk both read the flag this way.
+ */
+export function isSponsorChallenge(challenge: { isGeneral: boolean }): boolean {
+  return !challenge.isGeneral;
+}
+
 /** How a challenge is judged: always its root's mode. Null when unknown. */
 export function effectiveMode(
   challenges: readonly ChallengeNode[],

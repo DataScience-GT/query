@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   descendantsOf,
   effectiveMode,
+  isSponsorChallenge,
   normalizeLabel,
   rootOf,
   sameLabel,
@@ -106,5 +107,12 @@ describe("labels", () => {
   it("does not match different labels", () => {
     expect(sameLabel("Best Use of MongoDB", "Best Use of Gemini")).toBe(false);
     expect(sameLabel("AI", "A I")).toBe(false);
+  });
+});
+
+describe("isSponsorChallenge", () => {
+  it("is every challenge but the general ones", () => {
+    expect(isSponsorChallenge({ isGeneral: false })).toBe(true);
+    expect(isSponsorChallenge({ isGeneral: true })).toBe(false);
   });
 });

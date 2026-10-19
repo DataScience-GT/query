@@ -112,6 +112,11 @@ export default function AdminEditionJudgingPage() {
               {stationCount(data.counts.rooms.active, data.counts.rooms.tables)}
             </span>
             <span>{plural(data.counts.judgesSeated, "judge")} seated</span>
+            {data.counts.checkInFlags.open > 0 && (
+              <span className={status("warning")}>
+                {plural(data.counts.checkInFlags.open, "open check-in flag")}
+              </span>
+            )}
             {data.config.emergencyMode && (
               <span className={status("danger")}>Emergency mode on</span>
             )}

@@ -21,6 +21,7 @@ import { ErrorLine, plural } from "@/components/admin/judging/shared";
 import {
   clock,
   fieldsFromTiming,
+  JUDGE_PROGRESS,
   STATUS,
   STATUS_ORDER,
   windowLabel,
@@ -30,6 +31,8 @@ import { RoomBoard } from "./RoomBoard";
 import type { BoardRoom } from "./RoomBoard";
 import { ChoiceDialog } from "./ChoiceDialog";
 import type { ChoiceTarget } from "./ChoiceDialog";
+import { JudgeDialog } from "./JudgeDialog";
+import { JudgesPanel } from "./JudgesPanel";
 
 type Saved = ScheduleBoard & {
   schedule: NonNullable<ScheduleBoard["schedule"]>;
@@ -61,6 +64,7 @@ export function LiveBoard({
   const [filter, setFilter] = useState<AppointmentStatus | "all">("all");
   const [search, setSearch] = useState("");
   const [target, setTarget] = useState<ChoiceTarget | null>(null);
+  const [judgeFor, setJudgeFor] = useState<string | null>(null);
   const [confirmingDrop, setConfirmingDrop] = useState(false);
 
   const drop = trpc.judging.schedule.drop.useMutation({
@@ -84,7 +88,8 @@ export function LiveBoard({
       (filter === "all" || a.status === filter) &&
       (!needle ||
         a.entryTitle.toLowerCase().includes(needle) ||
-        a.challengeLabel.toLowerCase().includes(needle)),
+        a.challengeLabel.toLowerCase().includes(needle) ||
+        a.assignedJudgeName?.toLowerCase().includes(needle)),
   );
 
   // Rooms that take appointments, then any an appointment still sits in
@@ -194,6 +199,14 @@ export function LiveBoard({
         </ErrorLine>
       )}
 
+      {board.judging && (
+        <JudgesPanel
+          hackathonId={hackathonId}
+          judging={board.judging}
+          windowStart={schedule.windowStart}
+        />
+      )}
+
       {board.unscheduled.length > 0 && (
         <section className={`${sectionRule} space-y-4`}>
           <div>
@@ -275,8 +288,8 @@ export function LiveBoard({
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Find a project or challenge"
-              aria-label="Find a project or challenge"
+              placeholder="Find a project, challenge or judge"
+              aria-label="Find a project, challenge or judge"
               className={`${input} pl-9`}
             />
           </div>
@@ -337,6 +350,25 @@ export function LiveBoard({
                     </span>
                   )}
                   {a.removed && <span className={meta}>No longer entered</span>}
+                  <span className={meta}>
+                    Judge: {a.assignedJudgeName ?? "none"}
+                  </span>
+                  {a.judgeProgress && (
+                    <span
+                      className={status(JUDGE_PROGRESS[a.judgeProgress].tone)}
+                    >
+                      {JUDGE_PROGRESS[a.judgeProgress].label}
+                    </span>
+                  )}
+                  {a.canAssignJudge && (
+                    <button
+                      type="button"
+                      onClick={() => setJudgeFor(a.id)}
+                      className={`${quietButton} py-1`}
+                    >
+                      {a.assignedJudgeId ? "Change judge" : "Pick judge"}
+                    </button>
+                  )}
                   {a.canMove && (
                     <button
                       type="button"
@@ -354,6 +386,16 @@ export function LiveBoard({
           </>
         )}
       </section>
+
+      {judgeFor && (
+        <JudgeDialog
+          key={judgeFor}
+          hackathonId={hackathonId}
+          appointmentId={judgeFor}
+          windowStart={schedule.windowStart}
+          onClose={() => setJudgeFor(null)}
+        />
+      )}
 
       {target && (
         <ChoiceDialog

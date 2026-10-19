@@ -91,7 +91,7 @@ export function ChecklistSection({
     {
       label: "Evaluations",
       value: counts.evaluations.complete,
-      detail: `complete of ${counts.evaluations.total} · ${plural(counts.evaluations.drafts, "draft")}`,
+      detail: `counted of ${counts.evaluations.total} · ${plural(counts.evaluations.drafts, "draft")}`,
     },
   ];
 

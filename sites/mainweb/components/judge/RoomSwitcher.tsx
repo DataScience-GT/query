@@ -38,6 +38,7 @@ export function RoomSwitcher({
       utils.judging.desk.context.invalidate({ hackathonId }),
       utils.judging.desk.rooms.invalidate({ hackathonId }),
       utils.judging.desk.projects.invalidate({ hackathonId }),
+      utils.judging.desk.itinerary.invalidate({ hackathonId }),
       utils.judging.desk.announcements.invalidate({ hackathonId }),
     ]);
     onDone(true);
