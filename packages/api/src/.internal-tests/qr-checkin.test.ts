@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
-import { db, events, eventCheckIns, hackathonEventAttendees } from "@query/db";
+import {
+  db,
+  events,
+  eventCheckIns,
+  hackathonCheckInFlags,
+  hackathonEventAttendees,
+} from "@query/db";
 // The real rule: a hardcoded "2026-fall" would fail every January.
 import { currentTerm } from "@query/db/services/membership";
 import { __onRollback } from "./_db-tx-mock";
@@ -21,6 +27,9 @@ const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
 const mockSelect = vi.fn();
+// A participant's earlier check-ins, which recordEventAttendance reads as
+// attendance joined to its event. Empty unless a test says otherwise.
+const mockEarlierAttendance = vi.fn<() => unknown[]>(() => []);
 
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");
@@ -100,7 +109,7 @@ vi.mock("@query/db", async () => {
         hackathonParticipants: table("hackathonParticipants"),
         hackathonTeams: table("hackathonTeams"),
         hackathonProjects: table("hackathonProjects"),
-        judgingProjects: table("judgingProjects"),
+        judgingEntries: table("judgingEntries"),
         hackathonEvents: table("hackathonEvents"),
         hackathonEventAttendees: table("hackathonEventAttendees"),
         members: table("members"),
@@ -172,11 +181,10 @@ vi.mock("@query/db", async () => {
       status: "status",
       submittedAt: "submitted_at",
     },
-    judgingProjects: {
+    judgingEntries: {
       id: "id",
       sourceProjectId: "source_project_id",
-      withdrawnAt: "withdrawn_at",
-      tableNumber: "table_number",
+      deletedAt: "deleted_at",
     },
     hackathonEvents: {
       id: "id",
@@ -188,6 +196,12 @@ vi.mock("@query/db", async () => {
     hackathonEventAttendees: {
       eventId: "event_id",
       participantId: "participant_id",
+    },
+    hackathonCheckInFlags: {
+      participantId: "participant_id",
+      eventId: "event_id",
+      conflictEventId: "conflict_event_id",
+      attempts: "attempts",
     },
     members: { id: "id", userId: "user_id", hackathonId: "hackathon_id" },
     events: {
@@ -262,7 +276,10 @@ describe("QR check-in", () => {
     cache.clear();
     // Aggregate reads default to "nothing there"; the concurrency tests below
     // override this to hand back the live row a FOR UPDATE would have locked.
-    mockSelect.mockReturnValue([{ count: 0 }]);
+    mockSelect.mockImplementation((_op, _sel, _from, _where, joined) =>
+      joined ? mockEarlierAttendance() : [{ count: 0 }],
+    );
+    mockEarlierAttendance.mockReturnValue([]);
   });
 
   const createMockCtx = (userId?: string) =>
@@ -834,10 +851,15 @@ describe("QR check-in", () => {
       expect(mockInsert).toHaveBeenCalledTimes(1);
       const [, insertArgs, valArgs] = mockInsert.mock.calls[0] as any[];
       expect(insertArgs[0]).toBe(hackathonEventAttendees);
-      expect(valArgs[0]).toEqual({
+      // The attendance row also says how it was recorded and by whom, and
+      // carries the event's points at the time of the scan.
+      expect(valArgs[0]).toMatchObject({
         eventId: HACK_EVENT,
         participantId: PARTICIPANT,
+        method: "scan",
       });
+      expect(valArgs[0]).toHaveProperty("pointsAwarded");
+      expect(valArgs[0]).toHaveProperty("checkedInById");
       // The roster write is what makes the analytics tile count real arrivals
       // rather than manual admin decisions — and what lets the team submit.
       const rosterWrite = mockUpdate.mock.calls[0];
@@ -892,6 +914,110 @@ describe("QR check-in", () => {
 
       expect(err.code).toBe("CONFLICT");
       expect(err.message).toMatch(/is already checked into/);
+    });
+
+    it("refuses a scan into an event that runs at the same time as one already attended", async () => {
+      // Named and typed outright: the default fixture reads as a meal, and
+      // meals are exempt.
+      const caller = scannerCtx({
+        event: hackEvent({
+          name: "Full Sail Fireside",
+          type: "sponsor_session",
+          endTime: new Date(Date.now() + HOUR),
+        }),
+      });
+      mockEarlierAttendance.mockReturnValue([
+        {
+          event: {
+            id: CLUB_EVENT,
+            name: "BNY Workshop",
+            type: "workshop",
+            startTime: new Date(Date.now() - 2 * HOUR),
+            endTime: new Date(Date.now() + 2 * HOUR),
+          },
+          checkedInAt: new Date(Date.now() - 90 * 60 * 1000),
+        },
+      ]);
+
+      const err: any = await caller.hackathon
+        .scanParticipantPass({
+          hackathonId: HACK_A,
+          eventId: HACK_EVENT,
+          participantId: PARTICIPANT,
+        })
+        .catch((e: unknown) => e);
+
+      expect(err.code).toBe("FORBIDDEN");
+      expect(err.message).toBe(
+        "Ada Lovelace is already checked into BNY Workshop, which runs at the same time as Full Sail Fireside. If that was a mistake, remove them from BNY Workshop first.",
+      );
+      // No attendance and no arrival, but the attempt is on record for
+      // organisers: it is the one write that survives the refusal.
+      const inserts = mockInsert.mock.calls as any[][];
+      expect(
+        inserts.filter((c) => c[1][0] === hackathonEventAttendees),
+      ).toHaveLength(0);
+      const flags = inserts.filter((c) => c[1][0] === hackathonCheckInFlags);
+      expect(flags).toHaveLength(1);
+      expect(flags[0]![2][0]).toMatchObject({
+        hackathonId: HACK_A,
+        participantId: PARTICIPANT,
+        eventId: HACK_EVENT,
+        conflictEventId: CLUB_EVENT,
+        rule: "overlap",
+        method: "scan",
+        attemptedById: "admin_user_id",
+        attempts: 1,
+      });
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("writes the flag after the refused scan has rolled back, not inside it", async () => {
+      const caller = scannerCtx({
+        event: hackEvent({
+          name: "Full Sail Fireside",
+          type: "sponsor_session",
+          endTime: new Date(Date.now() + HOUR),
+        }),
+      });
+      mockEarlierAttendance.mockReturnValue([
+        {
+          event: {
+            id: CLUB_EVENT,
+            name: "BNY Workshop",
+            type: "workshop",
+            startTime: new Date(Date.now() - 2 * HOUR),
+            endTime: new Date(Date.now() + 2 * HOUR),
+          },
+          checkedInAt: new Date(Date.now() - 90 * 60 * 1000),
+        },
+      ]);
+      // A write made through a transaction registers an undo that runs when the
+      // refusal throws; one made on the pool registers nothing.
+      let flagRolledBack = false;
+      mockInsert.mockImplementation((_op, [table]) => {
+        if (table === hackathonCheckInFlags) {
+          __onRollback(() => {
+            flagRolledBack = true;
+          });
+        }
+        return [{}];
+      });
+
+      await expect(
+        caller.hackathon.scanParticipantPass({
+          hackathonId: HACK_A,
+          eventId: HACK_EVENT,
+          participantId: PARTICIPANT,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      expect(
+        (mockInsert.mock.calls as any[][]).filter(
+          (c) => c[1][0] === hackathonCheckInFlags,
+        ),
+      ).toHaveLength(1);
+      expect(flagRolledBack).toBe(false);
     });
 
     // BUG: scanParticipantPass matches on (id, hackathonId) only
@@ -1051,6 +1177,23 @@ describe("QR check-in", () => {
       });
       // Their own pass id is still not something the form needs.
       expect(res.submittedById).toBeUndefined();
+    });
+
+    it("tells the team when their project is in judging", async () => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "hackathonParticipants")
+          return { id: PARTICIPANT, teamId: null };
+        if (table === "hackathonProjects")
+          return { id: "project_1", teamId: null, name: "Solo Entry" };
+        if (table === "judgingEntries") return { id: "entry_1" };
+        return undefined;
+      });
+
+      const res: any = await appRouter
+        .createCaller(createMockCtx("solo_user"))
+        .team.mySubmission({ hackathonId: HACK_A });
+
+      expect(res.inJudging).toBe(true);
     });
 
     // BUG: admin.ts:190 returns `updated: participantIds.length` — the count

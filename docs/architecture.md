@@ -54,7 +54,11 @@ Edition-scoped event operations. Everything hangs off `hackathon`.
 
 - Editions, interest list, registration, teams, project submission
 - Weekend schedule (`hackathon_event`) and badge scans
-- Judging (`judge`, `judging_project`, `judge_vote`, `judge_queue`, `hackathon_result`)
+- Judge roster (`judge`, `judge_assignment`): applications and approval
+- Judging: room-based judging with Devpost import — `judging_*` tables (`judging.ts`). The older pool-dispatch tables (`judging_project`, `judge_vote`, `judge_queue`, `hackathon_result`) are retired and kept for past editions' results
+- Points: `hackathon_event` points, staff adjustments and the point store (`points.ts`)
+- Event check-in rules: nobody is checked into two events that run at the same time, or into two less than 30 minutes apart (meals are exempt). `recordEventAttendance` enforces this for pass scans, event codes and manual check-in
+- Check-in rule-break flags: each refused attempt is recorded (`hackathon_check_in_flag`, `services/check-in-flags.ts`) and shown in judging on the hacker's team, in full to organisers and as a bare marker to judges. Organisers decide whether to pull the team from prizes (`judging_entry.prize_ineligible_at`). A flag outlives the events it names (deleting one clears its id and the organiser view shows "A deleted event"). Hackers never see flags, and they stay out of public and cached payloads
 - Announcements and acceptance waves
 
 Hackathon participation is **open to non-members**. Membership is not a registration requirement.
@@ -68,7 +72,7 @@ Hackathon participation is **open to non-members**. Membership is not a registra
 3. Browser calls `/api/trpc/*` via `@trpc/react-query`. Superjson is the transformer.
 4. `createContext` loads the NextAuth session (when `db` exists), attaches `userId`, client IP, and the in-process cache.
 5. Procedures run through DB-required, sanitizer, content-type, rate-limit / DDoS, and (for mutations) cache invalidation middleware.
-6. Role gates (`isAdmin`, `isScanner`, `isJudge`, `isProjectLeader`, `isSuperAdmin`) live in `packages/api/src/middleware/procedures.ts`. There is no `adminProcedure` alias that skips a role check.
+6. Role gates (`isAdmin`, `isScanner`, `isProjectLeader`, `isSuperAdmin`) live in `packages/api/src/middleware/procedures.ts`. There is no `adminProcedure` alias that skips a role check.
 
 ## Auth
 

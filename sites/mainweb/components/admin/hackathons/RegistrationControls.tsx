@@ -15,7 +15,10 @@ import {
   sectionTitle,
   status as statusClass,
 } from "@/components/portal/ui";
-import { toInputDate } from "@/components/admin/hackathons/constants";
+import {
+  localTimeZone,
+  toInputDate,
+} from "@/components/admin/hackathons/constants";
 import type { HackathonStatus } from "@/components/admin/hackathons/constants";
 
 /**
@@ -36,11 +39,26 @@ export function RegistrationControls({
   });
   const editionStatus = hackathon?.status ?? status;
 
+  const refresh = () => {
+    utils.hackathon.getById.invalidate({ id: hackathonId });
+    utils.hackathon.listAll.invalidate();
+  };
+
+  // Which of Open / Close is waiting on its inline "are you sure".
+  const [confirming, setConfirming] = React.useState<"open" | "close" | null>(
+    null,
+  );
+
   const updateHackathon = trpc.hackathon.update.useMutation({
     onSuccess: () => {
-      utils.hackathon.getById.invalidate({ id: hackathonId });
-      utils.hackathon.listAll.invalidate();
+      setConfirming(null);
+      refresh();
     },
+  });
+  // The deadline saves on its own as a field is left, so it gets its own
+  // saving / saved / error state apart from the Open and Close buttons.
+  const saveDeadline = trpc.hackathon.update.useMutation({
+    onSuccess: refresh,
   });
 
   const regDeadline = hackathon?.registrationDeadline
@@ -50,6 +68,13 @@ export function RegistrationControls({
 
   const registrationOpen =
     editionStatus === "open" || editionStatus === "in_progress";
+
+  // Opening an edition that is in progress, finished or cancelled would rewind
+  // it; only a draft, an announced edition or a closed one is ever opened here.
+  const canOpen =
+    editionStatus === "draft" ||
+    editionStatus === "announced" ||
+    editionStatus === "closed";
 
   /**
    * The interest list exists for one moment — this one — and nothing used to
@@ -123,69 +148,163 @@ export function RegistrationControls({
         <div className="flex items-end gap-3 flex-wrap">
           <div>
             <label htmlFor={`reg-deadline-${hackathonId}`} className={fieldLabel}>
-              Registration deadline
+              Registration deadline ({localTimeZone()})
+              <span
+                role="status"
+                className={`ml-2 font-normal ${saveDeadline.isError ? "text-[var(--danger)]" : "text-[var(--text-subtle)]"}`}
+              >
+                {saveDeadline.isPending
+                  ? "Saving…"
+                  : saveDeadline.isError
+                    ? "Not saved"
+                    : saveDeadline.isSuccess
+                      ? "Saved"
+                      : ""}
+              </span>
             </label>
+            {/* Saved as the field is left, not on every keystroke of a
+                datetime-local, which fires change per segment. Keyed on the
+                saved value so a refetch (or a late first load) shows it. */}
             <input
+              key={regDeadline?.toISOString() ?? "none"}
               id={`reg-deadline-${hackathonId}`}
               type="datetime-local"
-              aria-label="Registration deadline"
+              aria-label={`Registration deadline (${localTimeZone()})`}
               defaultValue={regDeadline ? toInputDate(regDeadline) : ""}
-              onChange={(e) => {
-                if (e.target.value) {
-                  updateHackathon.mutate({
-                    id: hackathonId,
-                    registrationDeadline: new Date(e.target.value),
-                  });
+              onChange={() => saveDeadline.reset()}
+              onBlur={(e) => {
+                // A half-typed date reads as "", and saving that would clear
+                // the deadline the organiser was only part-way through editing.
+                if (e.target.validity.badInput) return;
+                const value = e.target.value;
+                if (value === (regDeadline ? toInputDate(regDeadline) : "")) {
+                  return;
                 }
+                saveDeadline.mutate({
+                  id: hackathonId,
+                  registrationDeadline: value ? new Date(value) : null,
+                });
               }}
               disabled={readOnly}
               title={readOnly ? READ_ONLY_TITLE : undefined}
               className={`min-h-11 ${input.replace("w-full", "w-auto")}`}
             />
           </div>
-          {editionStatus !== "open" && (
-            <div className="flex flex-col gap-1">
+          {canOpen &&
+            (confirming === "open" ? (
+              <div className="flex flex-col gap-2">
+                <span className={meta}>
+                  {deadlinePassed
+                    ? "Applications open again and the deadline moves to the event end."
+                    : "Applications open to everyone."}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateHackathon.mutate({
+                        id: hackathonId,
+                        status: "open",
+                        // A passed deadline blocks signups even when status is
+                        // open, so reopening must also push the deadline out.
+                        ...(deadlinePassed && hackathon?.endDate
+                          ? {
+                              registrationDeadline: new Date(
+                                hackathon.endDate,
+                              ),
+                            }
+                          : {}),
+                      })
+                    }
+                    disabled={readOnly || updateHackathon.isPending}
+                    title={readOnly ? READ_ONLY_TITLE : undefined}
+                    className={btnPrimary}
+                  >
+                    {updateHackathon.isPending ? "Opening…" : "Yes, open"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(null)}
+                    disabled={updateHackathon.isPending}
+                    className={btnSecondary}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={() => setConfirming("open")}
+                  disabled={readOnly || updateHackathon.isPending}
+                  title={readOnly ? READ_ONLY_TITLE : undefined}
+                  className={btnPrimary}
+                >
+                  {deadlinePassed ? "Reopen registration" : "Open registration"}
+                </button>
+                {deadlinePassed && (
+                  <span className={meta}>
+                    Also moves the deadline to the event end
+                  </span>
+                )}
+              </div>
+            ))}
+          {editionStatus === "open" &&
+            (confirming === "close" ? (
+              <div className="flex flex-col gap-2">
+                <span className={meta}>
+                  New applications stop. Existing ones are kept.
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateHackathon.mutate({
+                        id: hackathonId,
+                        status: "closed",
+                      })
+                    }
+                    disabled={readOnly || updateHackathon.isPending}
+                    title={readOnly ? READ_ONLY_TITLE : undefined}
+                    className={btnDanger}
+                  >
+                    {updateHackathon.isPending ? "Closing…" : "Yes, close"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(null)}
+                    disabled={updateHackathon.isPending}
+                    className={btnSecondary}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
               <button
                 type="button"
-                onClick={() =>
-                  updateHackathon.mutate({
-                    id: hackathonId,
-                    status: "open",
-                    // A passed deadline blocks signups even when status is
-                    // open, so reopening must also push the deadline out.
-                    ...(deadlinePassed && hackathon?.endDate
-                      ? { registrationDeadline: new Date(hackathon.endDate) }
-                      : {}),
-                  })
-                }
+                onClick={() => setConfirming("close")}
                 disabled={readOnly || updateHackathon.isPending}
                 title={readOnly ? READ_ONLY_TITLE : undefined}
-                className={btnPrimary}
+                className={btnDanger}
               >
-                {deadlinePassed ? "Reopen registration" : "Open registration"}
+                Close registration
               </button>
-              {deadlinePassed && (
-                <span className={meta}>
-                  Also moves the deadline to the event end
-                </span>
-              )}
-            </div>
-          )}
-          {editionStatus === "open" && (
-            <button
-              type="button"
-              onClick={() =>
-                updateHackathon.mutate({ id: hackathonId, status: "closed" })
-              }
-              disabled={readOnly || updateHackathon.isPending}
-              title={readOnly ? READ_ONLY_TITLE : undefined}
-              className={btnDanger}
-            >
-              Close registration
-            </button>
-          )}
+            ))}
         </div>
       </div>
+
+      {(updateHackathon.isError || saveDeadline.isError) && (
+        <p
+          role="alert"
+          className="mt-4 border-l-2 border-[var(--danger)] pl-3 text-[13px] text-[var(--danger)]"
+        >
+          {updateHackathon.isError
+            ? updateHackathon.error.message
+            : `The deadline was not saved: ${saveDeadline.error?.message}`}
+        </p>
+      )}
 
       {editionStatus === "announced" && (
         <div className="mt-6 pt-5 border-t border-[var(--border-subtle)]">

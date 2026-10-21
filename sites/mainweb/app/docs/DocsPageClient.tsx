@@ -1150,7 +1150,7 @@ export default function DocsPageClient() {
                       title="/submit"
                       description="Project submission terminal"
                       items={[
-                        "Team create/join flow",
+                        "Team summary (managed on the Teams tab)",
                         "Project form with external links",
                         "Captain-only submission",
                       ]}
