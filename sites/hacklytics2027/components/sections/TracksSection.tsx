@@ -19,22 +19,25 @@ export default function TracksSection() {
 
   return (
     <section id="tracks" className="section-anchor relative border-t border-rule">
-      <div className="wrap py-24 md:py-32">
-        <p className="kicker mb-5">Four tracks</p>
-        <h2 className="section-title mb-14 md:mb-20">Tracks</h2>
+      <div className="wrap py-16 md:py-32">
+        <h2 className="section-title mb-10 md:mb-20">Tracks</h2>
 
-        {/* One plant per track, each standing on the same hairline. */}
+        {/* One plant per track, each standing on the same hairline. Each li
+            is a subgrid, so titles and descriptions line up across a row. The
+            space between rows is the li's pb-14, not a row gap, which the
+            subgrid would also put between a title and its description; -mb-14
+            takes it back off the last row. */}
         <ul
           ref={bedRef}
           data-bloom="off"
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-14"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 -mb-14"
         >
           {tracks.map((t, i) => (
-            <li key={t.title}>
+            <li key={t.title} className="grid grid-rows-subgrid row-span-3 pb-14">
               <div className="flex h-32 items-end border-b border-rule">
                 <BloomSprite map={t.sprite} scale={6} blooms index={i} />
               </div>
-              <h3 className="font-display font-bold text-[16px] sm:text-[17px] leading-snug text-ink mt-5">
+              <h3 className="font-display text-[16px] leading-snug text-ink mt-5">
                 {t.title}
               </h3>
               <p className="font-sans text-[17px] leading-[1.5] text-ink-2 mt-2">{t.description}</p>

@@ -5,10 +5,10 @@ import {
   hackathonParticipants,
   hackathonProjects,
   hackathonResults,
-  judgeQueue,
-  judgingProjects,
+  judgingEntries,
+  judgingPlacements,
 } from "@query/db";
-import { eq, and, inArray, isNotNull } from "drizzle-orm";
+import { eq, and, inArray, isNotNull, isNull } from "drizzle-orm";
 import { callerIsAdmin, isAdmin } from "../../middleware/procedures";
 import { recordAdminAction } from "../../middleware/audit";
 import { assertHackathonVisible } from "./visibility";
@@ -18,6 +18,25 @@ import type { DrizzleDB } from "@query/db";
 // its team has actually submitted it. Drafts stay hidden.
 const PUBLIC_PROJECT_STATUSES: (typeof hackathonProjects.$inferSelect)["status"][] =
   ["submitted", "judging", "winner"];
+
+/** One published placing, from either judging system, in the shape the results tab reads. */
+export type PublicResult = {
+  id: string;
+  /** "overall", a legacy track label, or a judging_challenge id. */
+  scope: string;
+  scopeLabel: string;
+  placement: number;
+  projectName: string;
+  teamName: string | null;
+  githubUrl: string | null;
+  demoUrl: string | null;
+  /** The Devpost page, for projects imported from Devpost. */
+  submissionUrl: string | null;
+  score: number | null;
+};
+
+const toScore = (value: string | null) =>
+  value === null || Number.isNaN(Number(value)) ? null : Number(value);
 
 export const hackathonContentRouter = createTRPCRouter({
   // Fixes a submitted project on a team's behalf. team.submitProject refuses
@@ -93,54 +112,57 @@ export const hackathonContentRouter = createTRPCRouter({
         });
       }
 
-      if (existing.status === "judging" && !input.force) {
+      // In judging either by status or because it was promoted into a judging
+      // entry that is still live.
+      const liveEntry = await db.query.judgingEntries.findFirst({
+        where: and(
+          eq(judgingEntries.sourceProjectId, input.projectId),
+          isNull(judgingEntries.deletedAt),
+        ),
+        columns: { id: true },
+      });
+      const inJudging = existing.status === "judging" || !!liveEntry;
+
+      if (inJudging && !input.force) {
         throw new TRPCError({
           code: "CONFLICT",
           message:
-            "Judges are already scoring this project. Withdrawing it removes it from the results — confirm to continue.",
+            "This project is in judging. Withdrawing it removes it from judging and the results — confirm to continue.",
         });
       }
 
-      await db
-        .update(hackathonProjects)
-        .set({
-          status: "draft",
-          submittedAt: null,
-          withdrawnByAdminAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(hackathonProjects.id, input.projectId));
+      await db.transaction(async (tx) => {
+        const now = new Date();
+        await tx
+          .update(hackathonProjects)
+          .set({
+            status: "draft",
+            submittedAt: null,
+            withdrawnByAdminAt: now,
+            updatedAt: now,
+          })
+          .where(eq(hackathonProjects.id, input.projectId));
 
-      // The judging entry has to go with it, or the CONFLICT message above is a
-      // lie: judges keep being routed to the table, the votes keep counting, and
-      // the project can still be published as a placing.
-      const pulled = await db
-        .update(judgingProjects)
-        .set({ withdrawnAt: new Date() })
-        .where(eq(judgingProjects.sourceProjectId, input.projectId))
-        .returning({ id: judgingProjects.id });
-
-      // Unscored slots go too. Every queue read (next table, vote, complete and
-      // next) otherwise kept sending judges to a table scan-to-start refuses.
-      // Completed slots stay: their votes are the record.
-      if (pulled.length > 0) {
-        await db.delete(judgeQueue).where(
-          and(
-            inArray(
-              judgeQueue.projectId,
-              pulled.map((row) => row.id),
+        // The judging entry goes with it, or judges keep seeing the project and
+        // it can still be published as a placing. Soft delete: evaluations
+        // already written keep pointing at it.
+        await tx
+          .update(judgingEntries)
+          .set({ deletedAt: now, deletedById: ctx.userId, updatedAt: now })
+          .where(
+            and(
+              eq(judgingEntries.sourceProjectId, input.projectId),
+              isNull(judgingEntries.deletedAt),
             ),
-            eq(judgeQueue.isCompleted, false),
-          ),
-        );
-      }
+          );
+      });
 
       await recordAdminAction(db, {
         userId: ctx.userId,
         action: "hackathon.adminWithdrawProject",
         resourceId: input.projectId,
-        // Pulling a project judges are actively scoring changes the results.
-        severity: existing.status === "judging" ? "critical" : "warn",
+        // Pulling a project that is in judging changes the results.
+        severity: inJudging ? "critical" : "warn",
         metadata: {
           hackathonId: existing.hackathonId,
           previousStatus: existing.status,
@@ -152,22 +174,28 @@ export const hackathonContentRouter = createTRPCRouter({
       ctx.cache.deletePattern(
         `hackathon:${existing.hackathonId}:public-projects*`,
       );
+      ctx.cache.delete(`hackathon:${existing.hackathonId}:results`);
 
       return { success: true };
     }),
 
-  // The published placings, for everyone. Reads only rows with publishedAt set,
-  // so a computed-but-unreviewed draft stays invisible until an organiser
-  // releases it, and unpublishing takes it back down.
+  // The published placings, for everyone: frozen rows from the retired
+  // pool-dispatch judging (past editions) and placements from room judging.
+  // Reads only published rows, so a computed-but-unreviewed draft stays
+  // invisible until an organiser releases it, and unpublishing takes it back
+  // down. Overall first, then each scope by label, then by placing.
   getResults: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
       await assertHackathonVisible(ctx, input.hackathonId);
 
       const cacheKey = `hackathon:${input.hackathonId}:results`;
+      const cached = ctx.cache.get<PublicResult[]>(cacheKey);
+      if (cached !== null) return cached;
 
-      const fetchResults = () =>
-        (ctx.db as DrizzleDB).query.hackathonResults.findMany({
+      const db = ctx.db as DrizzleDB;
+      const [legacy, placements] = await Promise.all([
+        db.query.hackathonResults.findMany({
           where: and(
             eq(hackathonResults.hackathonId, input.hackathonId),
             isNotNull(hackathonResults.publishedAt),
@@ -181,14 +209,82 @@ export const hackathonContentRouter = createTRPCRouter({
               with: { team: { columns: { id: true, name: true } } },
             },
           },
-          orderBy: (results, { asc }) => [asc(results.placement)],
-        });
+        }),
+        db.query.judgingPlacements.findMany({
+          where: and(
+            eq(judgingPlacements.hackathonId, input.hackathonId),
+            isNotNull(judgingPlacements.publishedAt),
+          ),
+          with: {
+            entry: {
+              columns: {
+                id: true,
+                title: true,
+                submissionUrl: true,
+                demoLinks: true,
+                deletedAt: true,
+                prizeIneligibleAt: true,
+              },
+              with: {
+                sourceProject: {
+                  columns: { id: true, githubUrl: true, demoUrl: true },
+                  with: { team: { columns: { id: true, name: true } } },
+                },
+              },
+            },
+          },
+        }),
+      ]);
 
-      const cached =
-        ctx.cache.get<Awaited<ReturnType<typeof fetchResults>>>(cacheKey);
-      if (cached !== null) return cached;
+      const results: PublicResult[] = [
+        ...legacy.map((row) => ({
+          id: row.id,
+          scope: row.track,
+          scopeLabel: row.track === "overall" ? "Overall" : row.track,
+          placement: row.placement,
+          projectName:
+            row.sourceProject?.name ?? row.project?.name ?? "Unknown project",
+          teamName:
+            row.sourceProject?.team?.name ?? row.project?.teamMembers ?? null,
+          githubUrl: row.sourceProject?.githubUrl ?? null,
+          demoUrl: row.sourceProject?.demoUrl ?? null,
+          submissionUrl: null,
+          score: toScore(row.weightedScore),
+        })),
+        // A project an organiser pulled after placings went out leaves the
+        // public list at once, not at the next recompute. So does a team
+        // pulled from prizes. Only the timestamp is read, to filter on; why it
+        // was pulled never reaches this cached, public payload.
+        ...placements
+          .filter(
+            (row) =>
+              row.entry && !row.entry.deletedAt && !row.entry.prizeIneligibleAt,
+          )
+          .map((row) => ({
+            id: row.id,
+            scope: row.scope,
+            scopeLabel: row.scopeLabel,
+            placement: row.placement,
+            projectName: row.entry?.title ?? "Unknown project",
+            teamName: row.entry?.sourceProject?.team?.name ?? null,
+            githubUrl: row.entry?.sourceProject?.githubUrl ?? null,
+            demoUrl:
+              row.entry?.sourceProject?.demoUrl ??
+              row.entry?.demoLinks[0] ??
+              null,
+            submissionUrl: row.entry?.submissionUrl ?? null,
+            score: toScore(row.score),
+          })),
+      ];
 
-      const results = await fetchResults();
+      results.sort(
+        (a, b) =>
+          Number(b.scope === "overall") - Number(a.scope === "overall") ||
+          a.scopeLabel.localeCompare(b.scopeLabel) ||
+          a.placement - b.placement ||
+          a.projectName.localeCompare(b.projectName),
+      );
+
       ctx.cache.set(cacheKey, results, 60);
       return results;
     }),

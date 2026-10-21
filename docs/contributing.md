@@ -18,7 +18,7 @@ Code owners: `.github/CODEOWNERS` assigns `*` to `@aamoghS`.
 1. Branch from `dev` unless you are fixing production.
 2. Keep club and hackathon concerns separate. Do not add `hackathon_id` to club tables.
 3. Put shared rules in the package that every caller can import. Membership grant/link logic belongs in `@query/db/services/membership`, not copied into auth, Stripe, and tRPC.
-4. Role checks go through `isAdmin` / `isScanner` / `isJudge` / `isProjectLeader` / `isSuperAdmin`. Do not invent an `adminProcedure` that is only `protectedProcedure`.
+4. Role checks go through `isAdmin` / `isScanner` / `isProjectLeader` / `isSuperAdmin`. Do not invent an `adminProcedure` that is only `protectedProcedure`.
 5. Dangerous HTML in tRPC input is **rejected**, not stripped. See [Security](./operations/security.md).
 6. Prices live in `packages/api/src/services/pricing.ts`. Do not hard-code dollar amounts in UI or Stripe calls.
 

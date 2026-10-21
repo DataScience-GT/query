@@ -29,8 +29,9 @@ scrape_configs:
   #
   # Read the numbers it returns with the instance model in mind. App Hosting
   # autoscales, so each scrape lands on one arbitrary instance:
-  #   - dsgt_members_*, dsgt_payments_* are read from the database on scrape and
-  #     are therefore correct regardless of which instance answered.
+  #   - dsgt_members_*, dsgt_payments_*, and dsgt_hackathon_* are read from the
+  #     database on scrape and are therefore correct regardless of which
+  #     instance answered.
   #   - counters and histograms are that one instance's, since its own start,
   #     and vanish when it scales down. Treat them as a sample, not a total.
   #

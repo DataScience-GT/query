@@ -6,6 +6,8 @@ import { resumeRouter } from "./routers/resume";
 import { hackathonRouter } from "./routers/hackathon";
 import { eventRouter } from "./routers/events";
 import { judgeRouter } from "./routers/judge";
+import { judgingRouter } from "./routers/judging";
+import { pointsRouter } from "./routers/points";
 import { stripeRouter } from "./routers/stripe";
 import { teamRouter } from "./routers/team";
 import { initiativeRouter } from "./routers/initiative";
@@ -20,6 +22,8 @@ export const appRouter = createTRPCRouter({
   hackathon: hackathonRouter,
   events: eventRouter,
   judge: judgeRouter,
+  judging: judgingRouter,
+  points: pointsRouter,
   stripe: stripeRouter,
   team: teamRouter,
   initiative: initiativeRouter,

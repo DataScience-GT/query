@@ -7,9 +7,14 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { LogOut, Menu, X, Sun, Moon, PanelLeftClose } from "lucide-react";
 import { useTheme } from "next-themes";
-import { usePortalContext } from "@/lib/use-portal-context";
+import { trpc } from "@/lib/trpc";
+import { canViewAdmin, usePortalContext } from "@/lib/use-portal-context";
 import { useIsClient } from "@/lib/use-is-client";
-import { isPortalNavActive, portalNavSections } from "@/lib/portal-nav";
+import {
+  isPortalNavActive,
+  navHackathon,
+  portalNavSections,
+} from "@/lib/portal-nav";
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
 
 interface PortalSidebarProps {
@@ -28,7 +33,19 @@ export default function PortalSidebar({
   const mounted = useIsClient();
 
   const { data: portalContext } = usePortalContext();
-  const sections = portalNavSections(portalContext);
+  // The portal context does not say who is registered where, so "My <edition>"
+  // costs one read of the registrations the dashboard and event page use too.
+  // Staff never get the item, so they never make it.
+  const { data: myRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, {
+    enabled: !!session && !!portalContext && !canViewAdmin(portalContext),
+  });
+  const sections = portalNavSections(
+    portalContext,
+    navHackathon(myRegs, new Date()),
+  );
+  const navHrefs = sections.flatMap((section) =>
+    section.items.map((item) => item.href),
+  );
 
   // Prevent scrolling when mobile menu is open
   useEffect(() => {
@@ -94,7 +111,7 @@ export default function PortalSidebar({
                 </h3>
                 <div className="flex flex-col border-t border-[var(--border-subtle)]">
                   {section.items.map((route) => {
-                    const isActive = isPortalNavActive(pathname, route.href);
+                    const isActive = isPortalNavActive(pathname, route.href, navHrefs);
                     return (
                       <Link
                         key={route.href}
@@ -206,7 +223,7 @@ export default function PortalSidebar({
               )}
               <div className="flex flex-col gap-px">
                 {section.items.map((route) => {
-                  const isActive = isPortalNavActive(pathname, route.href);
+                  const isActive = isPortalNavActive(pathname, route.href, navHrefs);
                   return (
                     <Link
                       key={route.href}

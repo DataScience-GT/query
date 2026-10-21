@@ -7,7 +7,7 @@ import {
   hackathonParticipants,
   hackathonProjects,
   hackathons,
-  judgingProjects,
+  judgingEntries,
 } from "@query/db";
 import { eq, and, or, isNull, isNotNull, inArray, lt, sql } from "drizzle-orm";
 import { VOLATILE_TTL } from "../middleware/cache";
@@ -664,6 +664,48 @@ export const teamRouter = createTRPCRouter({
       }
     }),
 
+  // Lets the captain stop new joins without disbanding. joinTeam already
+  // refuses a closed team; this is the only writer of the flag.
+  setOpen: protectedProcedure
+    .input(
+      z.object({
+        hackathonId: z.string().uuid("Invalid hackathon ID"),
+        teamId: z.string().uuid("Invalid team ID"),
+        isOpen: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await checkTeamEditWindow(ctx.db as DrizzleDB, input.hackathonId);
+
+      const db = ctx.db as NonNullable<typeof ctx.db>;
+      const team = await db.query.hackathonTeams.findFirst({
+        where: and(
+          eq(hackathonTeams.id, input.teamId),
+          eq(hackathonTeams.hackathonId, input.hackathonId),
+        ),
+      });
+
+      if (!team)
+        throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
+      if (team.captainId !== (ctx.userId as string)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the captain can open or close the team.",
+        });
+      }
+
+      await db
+        .update(hackathonTeams)
+        .set({ isOpen: input.isOpen, updatedAt: new Date() })
+        .where(eq(hackathonTeams.id, team.id));
+
+      // Not in CACHE_INVALIDATION_MAP, so the namespace fallback would sweep
+      // `team:*` and leave the cached roster list showing the old flag.
+      ctx.cache.delete(`hackathon:${input.hackathonId}:teams`);
+
+      return { success: true };
+    }),
+
   submitProject: notHackathonBanned
     .input(
       z.object({
@@ -681,8 +723,8 @@ export const teamRouter = createTRPCRouter({
         technologies: z.array(z.string().max(60)).max(30).optional(),
         tracks: z.array(z.string().max(100)).max(20).optional(),
         challenges: z.array(z.string().max(100)).max(20).optional(),
-        // Judge routing filters on exactly this, and nothing else ever set it — every
-        // CreateX judge got an empty pool.
+        // Promoting submissions into judging files the project under the CreateX
+        // challenge from this flag.
         isCreateX: z.boolean().optional(),
         githubUrl: z
           .string()
@@ -743,10 +785,10 @@ export const teamRouter = createTRPCRouter({
         });
       }
 
-      // Judge routing matches on these strings, so only what this hackathon
-      // offers is kept. Dropped rather than refused: the form pre-fills a saved
-      // project's tracks but only shows current ones, so a track removed since
-      // could not be unticked and every edit would fail.
+      // Promotion into judging matches these strings to challenges by label, so
+      // only what this hackathon offers is kept. Dropped rather than refused:
+      // the form pre-fills a saved project's tracks but only shows current ones,
+      // so a track removed since could not be unticked and every edit would fail.
       const offered = (allowed: string[] | null, picked?: string[]) =>
         picked && allowed?.length
           ? picked.filter((value) => allowed.includes(value))
@@ -798,15 +840,15 @@ export const teamRouter = createTRPCRouter({
               throw new TRPCError({
                 code: "FORBIDDEN",
                 message:
-                  "Project edits are closed. Devposts must be final 34 hours after the hacking starts.",
+                  "Project edits are closed. Submissions must be final 34 hours after the hacking starts.",
               });
             }
 
             // An organiser pulled it: re-saving would put it back in the gallery.
-            // The column covers a pull before judging; the judging row covers
-            // pulls made before the column existed (a team can only withdraw
-            // before judging has the project, so a withdrawn judging entry means
-            // an organiser did it).
+            // The column covers a pull made from the admin projects screen; a
+            // removed judging entry covers one made from judging (a team can
+            // only withdraw before judging has the project, so a removed
+            // judging entry means an organiser did it).
             if (existingProject?.withdrawnByAdminAt) {
               throw new TRPCError({
                 code: "FORBIDDEN",
@@ -815,10 +857,10 @@ export const teamRouter = createTRPCRouter({
               });
             }
             if (existingProject) {
-              const pulled = await tx.query.judgingProjects.findFirst({
+              const pulled = await tx.query.judgingEntries.findFirst({
                 where: and(
-                  eq(judgingProjects.sourceProjectId, existingProject.id),
-                  isNotNull(judgingProjects.withdrawnAt),
+                  eq(judgingEntries.sourceProjectId, existingProject.id),
+                  isNotNull(judgingEntries.deletedAt),
                 ),
                 columns: { id: true },
               });
@@ -1000,8 +1042,20 @@ export const teamRouter = createTRPCRouter({
           }
 
           // Once judging has it, withdrawing would pull a project out from under scores
-          // that already reference it.
-          if (project.status === "judging" || project.status === "winner") {
+          // that already reference it. Judging has it when the status says so or
+          // when it was promoted into a judging entry that is still live.
+          const inJudging = await tx.query.judgingEntries.findFirst({
+            where: and(
+              eq(judgingEntries.sourceProjectId, project.id),
+              isNull(judgingEntries.deletedAt),
+            ),
+            columns: { id: true },
+          });
+          if (
+            project.status === "judging" ||
+            project.status === "winner" ||
+            inJudging
+          ) {
             throw new TRPCError({
               code: "FORBIDDEN",
               message:
@@ -1140,17 +1194,17 @@ export const teamRouter = createTRPCRouter({
       });
       if (!project) return null;
 
-      // Judges are sent to a table number; the team is the one party that was
-      // never told it. Null until the project is promoted to judging.
-      const judging = await db.query.judgingProjects.findFirst({
+      // Whether the project made it into judging, so the submit page can send
+      // the team to their judging times instead of leaving them guessing.
+      const judging = await db.query.judgingEntries.findFirst({
         where: and(
-          eq(judgingProjects.sourceProjectId, project.id),
-          isNull(judgingProjects.withdrawnAt),
+          eq(judgingEntries.sourceProjectId, project.id),
+          isNull(judgingEntries.deletedAt),
         ),
-        columns: { tableNumber: true },
+        columns: { id: true },
       });
 
-      return { ...project, tableNumber: judging?.tableNumber ?? null };
+      return { ...project, inJudging: !!judging };
     }),
 
   // Every project the caller owns, across hackathons. Reading off the team
