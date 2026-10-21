@@ -32,15 +32,19 @@ Schedule copy lives in `components/sections/Schedule/data.ts`.
 
 ## Interest CTA
 
-`lib/links.ts` is the only outbound destination. The Typeform this replaced was pasted in four files and drifted.
+`lib/links.ts` is the only outbound destination. The Typeform URL was once pasted in four files and drifted.
 
-Interest requires a portal account (verified email). The CTA is:
+Every Notify me button and link (header, mobile menu, hero, FAQ, footer) points at `INTEREST_URL`, a Typeform, for now. On phones 356px and wider the header keeps a compact Notify me button beside the menu toggle, so the CTA does not hide inside the hamburger menu.
+
+Once registration opens on the portal, swap `INTEREST_URL` back to `PORTAL_INTEREST_URL`, which signs the visitor in first:
 
 ```
 {PORTAL_ORIGIN}/login?callbackUrl=/hacklytics
 ```
 
 `callbackUrl` is encoded so it survives the email-code hop through `/verify`. The portal only honors same-origin paths.
+
+The footer also links to the portal for the two audiences that are not waiting on the list: **Hacker portal** (`PORTAL_HACKATHON_URL`, `{PORTAL_ORIGIN}/hacklytics`) and **Judge Hacklytics** (`JUDGE_URL`, sign-in with `callbackUrl=/judge`).
 
 ## Deploy
 

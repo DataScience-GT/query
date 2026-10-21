@@ -28,10 +28,11 @@ Config: `packages/api/vitest.config.ts`. Includes `src/**/*.test.ts` and `src/.i
 | Hackathon flow | `hackathon-flow.test.ts`, `hackathon-admin-edge.test.ts`, `hackathon-interest.test.ts` |
 | Payments | `stripe-payments.test.ts` |
 | QR / check-in | `qr-checkin.test.ts` |
+| Check-in rule-break flags | `services/check-in-flags.test.ts`, `.internal-tests/check-in-flags-*.test.ts` |
 | Security / sanitizer / rate limit | `security.test.ts`, `resilience.test.ts` |
 | Judges / participants / initiatives / bootcamp / announcements | matching `*-edge.test.ts` / `bootcamp.test.ts` / `announcements.test.ts` |
 | Portal context | `services/portal-context.test.ts`, `routers/user/portal-context.test.ts` |
-| Judge helpers | `routers/judge/helpers.test.ts` |
+| Judging scoring, scope, room links | `services/judging/*.test.ts` |
 
 Tests use `src/test/create-mock-context.ts` and `.internal-tests/_db-tx-mock.ts` rather than a live database.
 

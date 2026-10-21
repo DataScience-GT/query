@@ -1,0 +1,26 @@
+# Alerts for a live hackathon edition. The series are database gauges, so
+# they are the same number on every instance. See monitoring/README.md.
+
+groups:
+  - name: hackathon
+    rules:
+      # Judging switched on, tables assigned, and still no scores. Thirty
+      # minutes is long enough that flipping the switch before judges reach
+      # the room does not page, and short enough that a broken submit does
+      # not sit through a whole judging block.
+      - alert: HackathonJudgingIdle
+        expr: >-
+          (
+            dsgt_hackathon_judging_active > 0
+            and on (edition) (dsgt_hackathon_judging_projects > 0)
+          )
+          unless on (edition) (dsgt_hackathon_votes > 0)
+        for: 30m
+        labels:
+          severity: page
+        annotations:
+          summary: "Judging is on for {{ $labels.edition }} and no scores have landed"
+          description: >-
+            The edition has judging switched on and projects on the floor, and
+            the vote count is still zero. Judges may be blocked from
+            submitting, or judging was opened before anyone was at a table.

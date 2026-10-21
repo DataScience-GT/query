@@ -17,6 +17,7 @@ import {
   sectionTitle,
   textLink,
 } from "@/components/portal/ui";
+import type { HackathonStatus } from "@/components/admin/hackathons/constants";
 
 const AUDIENCES = [
   {
@@ -40,38 +41,174 @@ const AUDIENCES = [
     hint: "Checked in at the door",
   },
   {
+    id: "waitlisted" as const,
+    label: "Waitlisted",
+    hint: "Still waiting on a seat — left out of the registered audiences",
+  },
+  {
+    id: "rejected" as const,
+    label: "Rejected",
+    hint: "Turned down — left out of the registered audiences",
+  },
+  {
     id: "not_accepted" as const,
-    label: "Not accepted",
-    hint: "Rejected and waitlisted — excluded from every other audience",
+    label: "Rejected and waitlisted",
+    hint: "Both groups in one send, so the message has to fit both",
   },
 ];
 
-/**
- * A starting point for the one message that is hard to write, and easy to get
- * wrong by sending the wrong tone from a blank box. Entirely editable — it is
- * prefilled only when the audience is selected and nothing has been typed yet.
- */
-const NOT_ACCEPTED_TEMPLATE = {
-  subject: "An update on your application",
-  heading: "An update on your application",
-  body: [
-    "Thank you for applying. We had far more applications than places this year, and we were not able to offer you one.",
-    "This is not a judgement of you or your work — the numbers simply did not allow it, and turning people down is the part of running this we like least.",
-    "We would genuinely welcome an application from you next time, and our other events are open to everyone in the meantime.",
-  ].join("\n\n"),
-};
-
 type Audience = (typeof AUDIENCES)[number]["id"];
 
-export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
-  const [audience, setAudience] = useState<Audience>("interested");
+/**
+ * Starting points for the messages that are hard to write, and easy to get
+ * wrong by sending the wrong tone from a blank box. Entirely editable — they
+ * are prefilled only when the audience is selected and nothing has been typed
+ * yet. Waitlisted and rejected differ on purpose: telling someone still in line
+ * for a seat that there is no place for them is the mistake. The combined
+ * audience has none, because no one message is right for both.
+ */
+const TEMPLATES: Partial<
+  Record<Audience, { subject: string; heading: string; body: string }>
+> = {
+  waitlisted: {
+    subject: "You are on the waitlist",
+    heading: "You are on our waitlist",
+    body: [
+      "Thank you for applying. We have more applications than places, so you are on our waitlist for now rather than accepted.",
+      "Places open up as people confirm or drop out. If one opens for you we will email you straight away, so please keep an eye on this address.",
+      "You do not need to do anything. If you can no longer attend, let us know so we can offer your place to someone else.",
+    ].join("\n\n"),
+  },
+  rejected: {
+    subject: "An update on your application",
+    heading: "An update on your application",
+    body: [
+      "Thank you for applying. We had far more applications than places this year, and we were not able to offer you one.",
+      "This is not a judgement of you or your work — the numbers simply did not allow it, and turning people down is the part of running this we like least.",
+      "We would genuinely welcome an application from you next time, and our other events are open to everyone in the meantime.",
+    ].join("\n\n"),
+  },
+};
+
+// The audience an organiser most likely wants at each stage of an edition.
+const defaultAudience = (status: HackathonStatus): Audience =>
+  status === "draft" || status === "announced"
+    ? "interested"
+    : status === "in_progress"
+      ? "checked_in"
+      : "registered";
+
+/**
+ * What the message will look like in an inbox, before anything is sent. The
+ * email's own shell (packages/auth/src/email.ts) is not exported, so this
+ * mirrors it: same palette, the body split on blank lines into paragraphs,
+ * single line breaks kept, and the button only when it has a label and a link.
+ * React escapes the text the way the email does, so markup typed into the box
+ * shows as typed.
+ */
+function EmailPreview({
+  subject,
+  heading,
+  body,
+  ctaLabel,
+  ctaUrl,
+}: {
+  subject: string;
+  heading: string;
+  body: string;
+  ctaLabel: string;
+  ctaUrl: string;
+}) {
+  return (
+    <div>
+      <p className={label}>Preview</p>
+      <p className={`mt-1 ${meta}`}>Subject: {subject.trim() || "—"}</p>
+      <div
+        className="mt-2 max-w-[600px] overflow-hidden"
+        style={{ background: "#0f172a", borderRadius: 16 }}
+      >
+        <div
+          style={{
+            height: 4,
+            background: "linear-gradient(90deg, #10b981 0%, #0ea5e9 100%)",
+          }}
+        />
+        <div style={{ padding: "40px 20px", textAlign: "center" }}>
+          <p style={{ color: "#f8fafc", fontSize: 24, fontWeight: 300 }}>
+            DataScience
+            <span style={{ fontWeight: 600, color: "#10b981" }}>GT</span>
+          </p>
+          <p
+            style={{
+              color: "#f8fafc",
+              fontSize: 20,
+              fontWeight: 400,
+              margin: "24px 0 16px",
+            }}
+          >
+            {heading.trim()}
+          </p>
+          <div
+            style={{
+              color: "#94a3b8",
+              fontSize: 15,
+              lineHeight: 1.6,
+              textAlign: "left",
+            }}
+          >
+            {body
+              .trim()
+              .split(/\n{2,}/)
+              .map((paragraph, index) => (
+                <p
+                  key={index}
+                  style={{ margin: "0 0 16px 0", whiteSpace: "pre-line" }}
+                >
+                  {paragraph}
+                </p>
+              ))}
+          </div>
+          {ctaLabel.trim() && ctaUrl.trim() && (
+            <span
+              style={{
+                display: "inline-block",
+                marginTop: 8,
+                padding: "14px 32px",
+                background: "#10b981",
+                color: "#052e21",
+                fontWeight: 700,
+                fontSize: 14,
+                letterSpacing: 0.5,
+              }}
+            >
+              {ctaLabel.trim()}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function AnnouncementsTab({
+  hackathonId,
+  status,
+}: {
+  hackathonId: string;
+  status: HackathonStatus;
+}) {
+  const [audience, setAudience] = useState<Audience>(() =>
+    defaultAudience(status),
+  );
   const [subject, setSubject] = useState("");
   const [heading, setHeading] = useState("");
   const [body, setBody] = useState("");
   const [ctaLabel, setCtaLabel] = useState("");
   const [ctaUrl, setCtaUrl] = useState("");
+  const [inAppOnly, setInAppOnly] = useState(false);
 
   const [sending, setSending] = useState(false);
+  const [testNote, setTestNote] = useState<string | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showInterest, setShowInterest] = useState(true);
@@ -95,17 +232,26 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
 
   const createAnnouncement = trpc.hackathon.createAnnouncement.useMutation();
   const sendBatch = trpc.hackathon.sendBatch.useMutation();
+  const sendTest = trpc.hackathon.sendTestToMe.useMutation();
 
   const recipientCount = counts?.[audience] ?? 0;
 
   const unfinished =
     announcements?.filter((a) => a.pending > 0) ?? [];
-  const canSend =
+  const composed =
     subject.trim().length > 0 &&
     heading.trim().length > 0 &&
-    body.trim().length > 0 &&
-    recipientCount > 0 &&
-    !sending;
+    body.trim().length > 0;
+  const canSend = composed && recipientCount > 0 && !sending;
+
+  // Exactly what createAnnouncement and sendTestToMe both receive.
+  const message = () => ({
+    subject: subject.trim(),
+    heading: heading.trim(),
+    body: body.trim(),
+    ctaLabel: ctaLabel.trim() || undefined,
+    ctaUrl: ctaUrl.trim() || undefined,
+  });
 
   /**
    * Walks an announcement's remaining recipients until the server reports none.
@@ -154,29 +300,77 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
     utils.hackathon.listAnnouncements.invalidate({ hackathonId });
   };
 
+  /**
+   * Picks the audience and, when the form is untouched, its template. Untouched
+   * means blank or still an unedited template from the previous card, so moving
+   * from Waitlisted to Rejected swaps the wording instead of leaving the wrong
+   * message behind. An organiser part-way through writing something must never
+   * have it overwritten.
+   */
+  const selectAudience = (next: Audience) => {
+    setAudience(next);
+    const untouched =
+      (!subject.trim() && !heading.trim() && !body.trim()) ||
+      Object.values(TEMPLATES).some(
+        (t) => t.subject === subject && t.heading === heading && t.body === body,
+      );
+    if (!untouched) return;
+    const template = TEMPLATES[next];
+    setSubject(template?.subject ?? "");
+    setHeading(template?.heading ?? "");
+    setBody(template?.body ?? "");
+  };
+
+  /**
+   * One email to the signed-in organiser, so the real thing can be read in an
+   * inbox first. Writes no announcement and touches no recipient.
+   */
+  const handleTest = async () => {
+    setError(null);
+    setTestNote(null);
+
+    try {
+      const result = await sendTest.mutateAsync(message());
+      setTestNote(`Test sent to ${result.sentTo}.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Test email failed");
+    }
+  };
+
   const handleSend = async () => {
+    const audienceLabel = AUDIENCES.find((a) => a.id === audience)?.label;
     if (
       !window.confirm(
-        `Send "${subject}" to ${recipientCount} recipient(s)?\n\nThis cannot be unsent.`,
+        inAppOnly
+          ? `Publish "${subject}" on the event page of ${recipientCount} recipient(s) (${audienceLabel})?\n\nNo email is sent. This cannot be unpublished.`
+          : `Send "${subject}" to ${recipientCount} recipient(s) (${audienceLabel})?\n\nThis cannot be unsent.`,
       )
     )
       return;
 
     setSending(true);
     setError(null);
+    setTestNote(null);
 
     try {
       const created = await createAnnouncement.mutateAsync({
         hackathonId,
         audience,
-        subject: subject.trim(),
-        heading: heading.trim(),
-        body: body.trim(),
-        ctaLabel: ctaLabel.trim() || undefined,
-        ctaUrl: ctaUrl.trim() || undefined,
+        inAppOnly,
+        ...message(),
       });
 
       utils.hackathon.listAnnouncements.invalidate({ hackathonId });
+
+      // Nothing to send: the rows are written already delivered.
+      if (created.inAppOnly) {
+        setProgress(
+          `Published on the event page of ${created.totalRecipients}. No email sent.`,
+        );
+        setSending(false);
+        return;
+      }
+
       await drain(created.announcementId, created.totalRecipients);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Announcement failed");
@@ -238,26 +432,12 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
 
         <fieldset className="mt-6">
           <legend className={`${label} mb-3`}>Audience</legend>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-x-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-5">
             {AUDIENCES.map((option) => (
               <button
                 key={option.id}
                 type="button"
-                onClick={() => {
-                  setAudience(option.id);
-                  // Only into an untouched form: an organiser part-way through
-                  // writing something must never have it overwritten.
-                  if (
-                    option.id === "not_accepted" &&
-                    !subject.trim() &&
-                    !heading.trim() &&
-                    !body.trim()
-                  ) {
-                    setSubject(NOT_ACCEPTED_TEMPLATE.subject);
-                    setHeading(NOT_ACCEPTED_TEMPLATE.heading);
-                    setBody(NOT_ACCEPTED_TEMPLATE.body);
-                  }
-                }}
+                onClick={() => selectAudience(option.id)}
                 aria-pressed={audience === option.id}
                 className={`py-3 text-left border-t-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                   audience === option.id
@@ -359,17 +539,66 @@ export function AnnouncementsTab({ hackathonId }: { hackathonId: string }) {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={readOnly || !canSend}
-            title={readOnly ? READ_ONLY_TITLE : undefined}
-            className={`${btnPrimary} w-full sm:w-auto`}
-          >
-            {sending
-              ? "Sending…"
-              : `Send to ${recipientCount} recipient(s)`}
-          </button>
+          {composed && (
+            <EmailPreview
+              subject={subject}
+              heading={heading}
+              body={body}
+              ctaLabel={ctaLabel}
+              ctaUrl={ctaUrl}
+            />
+          )}
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={inAppOnly}
+              onChange={(e) => setInAppOnly(e.target.checked)}
+              // Mid-send it would only relabel a send already under way.
+              disabled={sending}
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)] cursor-pointer disabled:cursor-not-allowed"
+            />
+            <span className={bodyText}>
+              In app only. Show it on each recipient&apos;s event page and send
+              no email.
+            </span>
+          </label>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={readOnly || !canSend}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
+              className={`${btnPrimary} w-full sm:w-auto`}
+            >
+              {sending
+                ? inAppOnly
+                  ? "Publishing…"
+                  : "Sending…"
+                : inAppOnly
+                  ? `Publish to ${recipientCount} recipient(s)`
+                  : `Send to ${recipientCount} recipient(s)`}
+            </button>
+            <button
+              type="button"
+              onClick={handleTest}
+              disabled={readOnly || !composed || sending || sendTest.isPending}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
+              className={`${btnSecondary} w-full sm:w-auto`}
+            >
+              {sendTest.isPending ? "Sending test…" : "Send test to me"}
+            </button>
+          </div>
+
+          {testNote && (
+            <p
+              role="status"
+              className="border-l-2 border-accent pl-3 text-[15px] text-[var(--text-primary)]"
+            >
+              {testNote}
+            </p>
+          )}
 
           {error && (
             <p

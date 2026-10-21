@@ -1,17 +1,8 @@
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure } from "../trpc";
-import {
-  admins,
-  hackathonBans,
-  users,
-  judges,
-  judgingProjects,
-  judgeQueue,
-  projectLeaders,
-} from "@query/db";
+import { protectedProcedure, textUploadProcedure } from "../trpc";
+import { admins, hackathonBans, users, projectLeaders } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import { CacheKeys } from "./cache";
-import { resolveHackathonId } from "../services/portal-context";
 import {
   isStaffRole,
   isBugTesterRole,
@@ -101,7 +92,7 @@ const READ_ONLY_MESSAGE =
 // mutation behind this gate (and isSuperAdmin, built on it) refuses them
 // without each procedure having to remember to. Cached 60s per user to avoid
 // a round trip on every request.
-export const isAdmin = protectedProcedure.use(async ({ ctx, next, type }) => {
+const requireAdmin = async (ctx: Context, type: string) => {
   const admin = await loadAdminRow(ctx);
 
   const readOnly = !!admin && isBugTesterRole(admin.role);
@@ -117,8 +108,22 @@ export const isAdmin = protectedProcedure.use(async ({ ctx, next, type }) => {
     throw new TRPCError({ code: "FORBIDDEN", message: READ_ONLY_MESSAGE });
   }
 
+  return admin;
+};
+
+export const isAdmin = protectedProcedure.use(async ({ ctx, next, type }) => {
+  const admin = await requireAdmin(ctx, type);
   return next({ ctx: { ...ctx, admin } });
 });
+
+// isAdmin for a file uploaded as text (a Devpost export): the same check, on
+// a procedure that takes up to 12 MB and does not refuse markup in prose.
+export const isAdminUpload = textUploadProcedure.use(
+  async ({ ctx, next, type }) => {
+    const admin = await requireAdmin(ctx, type);
+    return next({ ctx: { ...ctx, admin } });
+  },
+);
 
 // Super admin. Must be used after isAdmin.
 export const isSuperAdmin = isAdmin.use(async ({ ctx, next }) => {
@@ -184,93 +189,13 @@ export const isProjectLeader = protectedProcedure.use(async ({ ctx, next }) => {
   });
 });
 
-// Verifies the caller is an active judge for a specific hackathon. Cached 60s
-// per user per hackathon.
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export const isJudge = protectedProcedure.use(async ({ ctx, next, getRawInput }) => {
-  const db = ctx.db as NonNullable<typeof ctx.db>;
-
-  // Try to resolve hackathonId from rawInput
-  const rawInput = await getRawInput();
-  let hackathonId: string | undefined;
-  if (rawInput && typeof rawInput === "object") {
-    const inputObj = rawInput as Record<string, unknown>;
-    // This runs before the procedure's own schema, and every id below goes into
-    // a uuid column: a malformed one made Postgres throw, surfacing as a 500.
-    for (const key of ["hackathonId", "projectId", "queueId"]) {
-      const value = inputObj[key];
-      if (typeof value === "string" && !UUID_PATTERN.test(value)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: `Invalid ${key}` });
-      }
-    }
-    if (typeof inputObj.hackathonId === "string") {
-      hackathonId = inputObj.hackathonId;
-    } else if (typeof inputObj.projectId === "string") {
-      const project = await db.query.judgingProjects.findFirst({
-        where: eq(judgingProjects.id, inputObj.projectId),
-        columns: { hackathonId: true },
-      });
-      hackathonId = project?.hackathonId;
-    } else if (typeof inputObj.queueId === "string") {
-      const queue = await db.query.judgeQueue.findFirst({
-        where: eq(judgeQueue.id, inputObj.queueId),
-        columns: { hackathonId: true },
-      });
-      hackathonId = queue?.hackathonId;
-    }
-  }
-
-  // Fallback when the input names nothing that resolves. Shares the platform's
-  // single definition of "the current hackathon": ordering by start date alone
-  // picks next year's draft the day staff create it, which would authorize this
-  // judge against an edition they were never assigned to.
-  if (!hackathonId) {
-    hackathonId = await resolveHackathonId(db);
-  }
-
-  if (!hackathonId) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "No hackathon context found for judging",
-    });
-  }
-
-  const cacheKey = `${CacheKeys.judge(ctx.userId as string)}:${hackathonId}:role`;
-  let judge = ctx.cache.get<typeof judges.$inferSelect>(cacheKey);
-
-  if (!judge) {
-    judge =
-      (await db.query.judges.findFirst({
-        where: and(
-          eq(judges.userId, ctx.userId as string),
-          eq(judges.hackathonId, hackathonId),
-          eq(judges.isActive, true),
-        ),
-      })) ?? null;
-
-    if (judge) ctx.cache.set(cacheKey, judge, 60);
-  }
-
-  if (!judge) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Judge access required for this hackathon",
-      });
-    }
-
-    return next({ ctx: { ...ctx, judge } });
-  },
-);
-
 /** Cache key for a hackathon-ban lookup. Shared with the ban/unban mutations. */
 export const hackathonBanCacheKey = (email: string) =>
   `hackathon-ban:${email.trim().toLowerCase()}`;
 
 // Refuses people banned from hackathons. Goes on the procedures where someone
 // takes part — registering, the interest list, teams, submitting, applying to
-// judge — and not on reads or on the ways out (withdraw, leave), so a banned
+// judge, event-code check-in — and not on reads or on the ways out (withdraw, leave), so a banned
 // person can still see and undo what they already did. The ban is by email,
 // so it holds across providers and new accounts on the same address. Cached
 // 60s, the negative answer too; ban and unban clear the key.

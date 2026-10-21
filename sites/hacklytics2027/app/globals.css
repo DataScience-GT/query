@@ -10,6 +10,7 @@
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
   --color-rule: var(--rule);
+  --color-line: var(--line-border);
   --color-bloom: var(--bloom);
   --color-bloom-deep: var(--bloom-deep);
   --color-on-bloom: var(--on-bloom);
@@ -32,7 +33,7 @@
   --bloom-hover: #ff6a9d;
   --bloom-deep: #b8285a;
   --on-bloom: #16060c;
-  --line-border: #39413c;
+  --line-border: #626a64; /* ≥3:1 on ground */
 
   /* Neon halo on blooming flowers. */
   --glow-1: #ff4f8b;
@@ -59,7 +60,7 @@
   --bloom-hover: #a8134d;
   --bloom-deep: #8e0f41;
   --on-bloom: #ffffff;
-  --line-border: #bfc7c0;
+  --line-border: #838b85; /* ≥3:1 on ground */
 
   --glow-1: rgba(194, 24, 91, 0.55);
   --glow-2: rgba(194, 24, 91, 0.35);
@@ -80,7 +81,7 @@
     --bloom-hover: #a8134d;
     --bloom-deep: #8e0f41;
     --on-bloom: #ffffff;
-    --line-border: #bfc7c0;
+    --line-border: #838b85;
 
     --glow-1: rgba(194, 24, 91, 0.55);
     --glow-2: rgba(194, 24, 91, 0.35);
@@ -125,21 +126,25 @@ body {
     .wrap { padding-inline: 3rem; }
   }
 
-  /* Display type: the Silkscreen pixel face, bold. Pixel glyphs need their
-     own spacing, so no negative tracking. */
+  /* Display type: the Silkscreen pixel face at its one loaded weight (400).
+     Pixel glyphs need their own spacing, so no negative tracking. */
   .display {
     font-family: var(--font-display);
-    font-weight: 700;
+    font-weight: 400;
     letter-spacing: 0;
     line-height: 1;
   }
+  /* 32px, 48px from lg: multiples of 8, so a pixel cell is a whole 4 or 6px. */
   .section-title {
     font-family: var(--font-display);
-    font-weight: 700;
-    font-size: clamp(2rem, 1.4rem + 2.4vw, 3.25rem); /* 32–52px */
+    font-weight: 400;
+    font-size: 2rem;
     letter-spacing: 0;
     line-height: 1.05;
     color: var(--ink);
+  }
+  @media (min-width: 1024px) {
+    .section-title { font-size: 3rem; }
   }
 
   /* Silkscreen kicker: small, as written, one per section at most. */
@@ -148,7 +153,7 @@ body {
     font-size: 0.8125rem;
     line-height: 1.4;
     letter-spacing: 0.02em;
-    color: var(--bloom);
+    color: var(--ink-2);
   }
 
   /* Buttons: pills, verbs. Pink only for the action. */
@@ -171,7 +176,9 @@ body {
     color: var(--on-bloom);
   }
   .btn-bloom:hover { background: var(--bloom-hover); }
-  .btn-bloom:active { background: var(--bloom-deep); color: var(--ink); }
+  /* --bloom-deep is a dark pink in both themes, so the pressed label is white:
+     --ink is near-black in light (2:1) and --on-bloom is near-black in dark (3.3:1). */
+  .btn-bloom:active { background: var(--bloom-deep); color: #ffffff; }
   .btn-line {
     border: 1px solid var(--line-border);
     color: var(--ink);
@@ -249,7 +256,9 @@ body {
     flower-breathe 4s ease-in-out var(--t3) infinite;
 }
 /* Offscreen beds stop breathing (data-anim is kept by useBloomInView). */
-[data-anim="paused"] .flower-neon { animation-play-state: paused; }
+/* Only the breathing: the list matches flower-flash, flower-breathe, so a flash
+   cut off by scrolling away still finishes instead of freezing at 1.6x. */
+[data-anim="paused"] .flower-neon { animation-play-state: running, paused; }
 
 @keyframes flower-stem {
   from { clip-path: inset(100% 0 0 0); }

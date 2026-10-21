@@ -27,8 +27,11 @@ Files in `src/schemas/`, re-exported from `schemas/index.ts`. `drizzle.config.ts
 | `auth.ts` | `user`, `account`, `session`, `verificationToken` |
 | `members.ts` | `user_profile`, `member`, `membership_history` |
 | `admins.ts` | `admin` |
-| `hackathons.ts` | `hackathon`, `hackathon_team`, `hackathon_participant`, `hackathon_project`, `hackathon_interest`, `hackathon_event`, `hackathon_event_attendee`, `hackathon_announcement`, `hackathon_announcement_recipient` |
-| `judge.ts` | `judge`, `judge_assignment`, `judging_project`, `judge_vote`, `judge_queue`, `hackathon_result` |
+| `hackathons.ts` | `hackathon`, `hackathon_team`, `hackathon_participant`, `hackathon_project`, `hackathon_interest`, `hackathon_event`, `hackathon_event_attendee`, `hackathon_check_in_flag`, `hackathon_announcement`, `hackathon_announcement_recipient` |
+| `judge.ts` | `judge`, `judge_assignment` (live roster); `judging_project`, `judge_vote`, `judge_queue`, `hackathon_result` (retired, kept for past editions) |
+| `judging.ts` | `judging_*`: config, entries and members, challenges, buildings, rooms and room links, judges, guest sessions, presence, schedule and appointments, rubric, evaluations, deliberation, placements |
+| `points.ts` | `hackathon_point_adjustment`, `hackathon_store_item`, `hackathon_store_purchase` |
+| `retired.ts` | Enum types the retired panel judging service left in the database, declared so push does not try to drop them |
 | `initiatives.ts` | `project_leader`, `initiative`, `initiative_application` |
 | `events.ts` | `event`, `event_check_in` |
 | `bootcamp.ts` | `bootcamp_workshop` (metadata; the ZIPs are in Cloud Storage). `bootcamp_material` is legacy and unused |

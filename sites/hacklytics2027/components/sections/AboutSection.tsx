@@ -4,7 +4,7 @@ import React from "react";
 const AboutSection: React.FC = () => {
   return (
     <section id="about" className="section-anchor relative">
-      <div className="wrap py-24 md:py-32">
+      <div className="wrap py-16 md:py-32">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
           <div className="lg:col-span-5">
             <p className="kicker mb-5">About</p>

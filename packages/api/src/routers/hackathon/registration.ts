@@ -9,7 +9,7 @@ import {
   hackathonProjects,
   members,
 } from "@query/db";
-import { eq, and, isNull, ne } from "drizzle-orm";
+import { eq, and, inArray, isNull, ne } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { assertHackathonVisible } from "./visibility";
 import { evictParticipantCaches, syncCurrentParticipants } from "./admin";
@@ -37,68 +37,74 @@ const isDuplicateRegistration = (error: unknown) => {
   return false;
 };
 
+// The application form. Shared by register and updateMyRegistration so an
+// edit is held to exactly the rules the first submission was.
+const registrationForm = z.object({
+  hackathonId: z.string().uuid("Invalid hackathon ID"),
+  // Personal info
+  firstName: z.string().min(1).max(100),
+  lastName: z.string().min(1).max(100),
+  phone: z.string().min(1).max(30),
+  age: z.number().int().min(13).max(120),
+  gender: z.string().max(50).optional(),
+  pronouns: z.string().max(50).optional(),
+  race: z.string().max(100).optional(),
+  underrepresented: z.boolean().optional(),
+  // Academic info
+  school: z.string().min(1).max(300),
+  major: z.string().min(1).max(300),
+  // Relative to now: a fixed 2020-2035 accepted years already past and
+  // would start refusing real students in 2036.
+  graduationYear: z
+    .number()
+    .int()
+    .min(new Date().getFullYear() - 1)
+    .max(new Date().getFullYear() + 8),
+  levelOfStudy: z.enum([
+    "Freshman",
+    "Sophomore",
+    "Junior",
+    "Senior",
+    "Graduate",
+    "PhD",
+    "Other",
+  ]),
+  country: z.string().min(1).max(100),
+  firstGeneration: z.boolean().optional(),
+  // Experience
+  hackathonsAttended: z.number().int().min(0).max(100).optional(),
+  resumeUrl: z.string().url().max(500).optional().or(z.literal("")),
+  linkedinUrl: z.string().url().max(500).optional().or(z.literal("")),
+  githubUrl: z.string().url().max(500).optional().or(z.literal("")),
+  whyAttend: z
+    .string()
+    .trim()
+    .min(1, "Tell us why you want to attend")
+    .max(2000),
+  // Logistics
+  shirtSize: z.enum(["XS", "S", "M", "L", "XL", "XXL"]).optional(),
+  dietaryRestrictions: z.array(z.string().max(100)).max(10).optional(),
+  emergencyContact: z.string().max(200).optional(),
+  emergencyPhone: z.string().max(20).optional(),
+  needsHardware: z.boolean().optional(),
+  // Consent
+  agreeToCodeOfConduct: z
+    .boolean()
+    .refine((v) => v === true, {
+      message: "You must agree to the Code of Conduct",
+    }),
+  mlhCodeOfConduct: z.boolean().refine((v) => v === true, {
+    message: "You must agree to the MLH Code of Conduct",
+  }),
+  mlhDataSharing: z.boolean().refine((v) => v === true, {
+    message: "You must agree to share your registration with MLH",
+  }),
+  mlhInformationalEmails: z.boolean().optional(),
+});
+
 export const hackathonRegistrationRouter = createTRPCRouter({
   register: notHackathonBanned
-    .input(
-      z.object({
-        hackathonId: z.string().uuid("Invalid hackathon ID"),
-        // Personal info
-        firstName: z.string().min(1).max(100),
-        lastName: z.string().min(1).max(100),
-        phone: z.string().min(1).max(30),
-        age: z.number().int().min(13).max(120),
-        gender: z.string().max(50).optional(),
-        pronouns: z.string().max(50).optional(),
-        race: z.string().max(100).optional(),
-        underrepresented: z.boolean().optional(),
-        // Academic info
-        school: z.string().min(1).max(300),
-        major: z.string().min(1).max(300),
-        // Relative to now: a fixed 2020-2035 accepted years already past and
-        // would start refusing real students in 2036.
-        graduationYear: z
-          .number()
-          .int()
-          .min(new Date().getFullYear() - 1)
-          .max(new Date().getFullYear() + 8),
-        levelOfStudy: z.enum([
-          "Freshman",
-          "Sophomore",
-          "Junior",
-          "Senior",
-          "Graduate",
-          "PhD",
-          "Other",
-        ]),
-        country: z.string().min(1).max(100),
-        firstGeneration: z.boolean().optional(),
-        // Experience
-        hackathonsAttended: z.number().int().min(0).max(100).optional(),
-        resumeUrl: z.string().url().max(500).optional().or(z.literal("")),
-        linkedinUrl: z.string().url().max(500).optional().or(z.literal("")),
-        githubUrl: z.string().url().max(500).optional().or(z.literal("")),
-        whyAttend: z
-          .string()
-          .trim()
-          .min(1, "Tell us why you want to attend")
-          .max(2000),
-        // Logistics
-        shirtSize: z.enum(["XS", "S", "M", "L", "XL", "XXL"]).optional(),
-        dietaryRestrictions: z.array(z.string().max(100)).max(10).optional(),
-        emergencyContact: z.string().max(200).optional(),
-        emergencyPhone: z.string().max(20).optional(),
-        needsHardware: z.boolean().optional(),
-        // Consent
-        agreeToCodeOfConduct: z
-          .boolean()
-          .refine((v) => v === true, {
-            message: "You must agree to the Code of Conduct",
-          }),
-        mlhCodeOfConduct: z.boolean().optional(),
-        mlhDataSharing: z.boolean().optional(),
-        mlhInformationalEmails: z.boolean().optional(),
-      }),
-    )
+    .input(registrationForm)
     .mutation(async ({ ctx, input }) => {
       try {
         const { participant, hackathonName } = await (
@@ -326,6 +332,193 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       ]);
 
       return { success: true };
+    }),
+
+  // Fixes an application nobody has reviewed yet. Once an organiser decides, the
+  // answers are what they decided on, so the edit closes with the decision, and
+  // with registration itself. The three required consents are not asked again:
+  // they were needed to submit and stay as given.
+  updateMyRegistration: notHackathonBanned
+    .input(
+      registrationForm.omit({
+        agreeToCodeOfConduct: true,
+        mlhCodeOfConduct: true,
+        mlhDataSharing: true,
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const userId = ctx.userId as string;
+
+      const hackathon = await db.query.hackathons.findFirst({
+        where: eq(hackathons.id, input.hackathonId),
+        columns: { status: true, registrationDeadline: true },
+      });
+      if (!hackathon) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Hackathon not found",
+        });
+      }
+      if (
+        hackathon.status !== "open" ||
+        (hackathon.registrationDeadline &&
+          new Date() > hackathon.registrationDeadline)
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Registration has closed, so applications can't be edited.",
+        });
+      }
+
+      const participant = await db.query.hackathonParticipants.findFirst({
+        where: and(
+          eq(hackathonParticipants.hackathonId, input.hackathonId),
+          eq(hackathonParticipants.userId, userId),
+        ),
+        columns: { id: true, registrationStatus: true },
+      });
+      if (!participant) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "You are not registered for this hackathon.",
+        });
+      }
+      if (participant.registrationStatus !== "pending") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Your application has been reviewed, so it can't be edited.",
+        });
+      }
+
+      // The answers are replaced whole, as the form resubmits every field, so an
+      // optional one left blank clears what was there. The status is in the
+      // WHERE too: a decision landing after the read above must not be edited
+      // under.
+      const updated = await db
+        .update(hackathonParticipants)
+        .set({
+          firstName: input.firstName,
+          lastName: input.lastName,
+          phone: input.phone,
+          age: input.age,
+          gender: input.gender ?? null,
+          pronouns: input.pronouns ?? null,
+          race: input.race ?? null,
+          underrepresented: input.underrepresented ?? false,
+          school: input.school,
+          major: input.major,
+          graduationYear: input.graduationYear,
+          levelOfStudy: input.levelOfStudy,
+          country: input.country,
+          firstGeneration: input.firstGeneration ?? false,
+          hackathonsAttended: input.hackathonsAttended ?? null,
+          resumeUrl: input.resumeUrl || null,
+          linkedinUrl: input.linkedinUrl || null,
+          githubUrl: input.githubUrl || null,
+          whyAttend: input.whyAttend,
+          shirtSize: input.shirtSize ?? null,
+          dietaryRestrictions: input.dietaryRestrictions || [],
+          emergencyContact: input.emergencyContact ?? null,
+          emergencyPhone: input.emergencyPhone ?? null,
+          needsHardware: input.needsHardware ?? false,
+          mlhInformationalEmails: input.mlhInformationalEmails ?? false,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(hackathonParticipants.id, participant.id),
+            eq(hackathonParticipants.registrationStatus, "pending"),
+          ),
+        )
+        .returning({ id: hackathonParticipants.id });
+      if (updated.length === 0) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message:
+            "Your application was reviewed just now, so it can't be edited. Refresh the page.",
+        });
+      }
+
+      // Only this person's own list carries these answers; the public roster
+      // and the seat count are untouched.
+      ctx.cache.delete(`hackathon:registrations:${userId}`);
+
+      return { success: true };
+    }),
+
+  // An accepted hacker saying they are coming. A seat is held on the strength of
+  // an acceptance email, so organisers need to see who has not answered and free
+  // those seats for the waitlist. Repeating it keeps the first answer. Taking
+  // part, not a way out, so a ban refuses it like registering.
+  confirmAttendance: notHackathonBanned
+    .input(z.object({ hackathonId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const userId = ctx.userId as string;
+
+      const participant = await db.query.hackathonParticipants.findFirst({
+        where: and(
+          eq(hackathonParticipants.hackathonId, input.hackathonId),
+          eq(hackathonParticipants.userId, userId),
+        ),
+        columns: {
+          id: true,
+          registrationStatus: true,
+          attendanceConfirmedAt: true,
+        },
+      });
+      if (!participant) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "You are not registered for this hackathon.",
+        });
+      }
+
+      // checked_in is accepted too: a door scan landing before a stale tab's
+      // click should not read as an error.
+      if (
+        participant.registrationStatus !== "approved" &&
+        participant.registrationStatus !== "checked_in"
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only accepted hackers can confirm they are coming.",
+        });
+      }
+      if (participant.attendanceConfirmedAt) {
+        return { confirmedAt: participant.attendanceConfirmedAt };
+      }
+
+      const confirmedAt = new Date();
+      const updated = await db
+        .update(hackathonParticipants)
+        .set({ attendanceConfirmedAt: confirmedAt, updatedAt: confirmedAt })
+        .where(
+          and(
+            eq(hackathonParticipants.id, participant.id),
+            inArray(hackathonParticipants.registrationStatus, [
+              "approved",
+              "checked_in",
+            ]),
+            isNull(hackathonParticipants.attendanceConfirmedAt),
+          ),
+        )
+        .returning({ id: hackathonParticipants.id });
+      if (updated.length === 0) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message:
+            "Your registration changed just now. Refresh the page and try again.",
+        });
+      }
+
+      // The stamp shows on this person's own registration list and on the
+      // organisers' roster, which is not cached. The seat count, the public
+      // roster and the analytics did not move.
+      ctx.cache.delete(`hackathon:registrations:${userId}`);
+
+      return { confirmedAt };
     }),
 
   myRegistrations: protectedProcedure.query(async ({ ctx }) => {

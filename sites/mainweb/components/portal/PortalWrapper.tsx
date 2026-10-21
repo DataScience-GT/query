@@ -12,11 +12,14 @@ export default function PortalWrapper({
   const pathname = usePathname();
   // Pages inside (portal) that a signed-out stranger is meant to see. They need
   // the tRPC and session providers this group mounts, but a portal sidebar full
-  // of links they cannot use is the wrong first impression.
+  // of links they cannot use is the wrong first impression. Guest judges come
+  // in through a room's QR code with no account at all.
   const isAuthPage =
     pathname === "/login" ||
     pathname === "/verify" ||
-    pathname === "/hacklytics";
+    pathname === "/hacklytics" ||
+    pathname.startsWith("/judge/guest") ||
+    pathname.startsWith("/judge/activate");
 
   // Open by default: collapsed, the rail is a column of unlabeled icons.
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);

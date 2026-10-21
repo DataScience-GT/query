@@ -473,6 +473,8 @@ interface FormNavigationProps {
   onSubmit: () => void;
   onCancel: () => void;
   isSubmitting: boolean;
+  /** The last step's button, when it does not submit a new application. */
+  submitLabel?: string;
 }
 
 export function FormNavigation({
@@ -483,6 +485,7 @@ export function FormNavigation({
   onSubmit,
   onCancel,
   isSubmitting,
+  submitLabel = "Submit application",
 }: FormNavigationProps) {
   const isLastStep = step >= totalSteps - 1;
   return (
@@ -511,7 +514,7 @@ export function FormNavigation({
           disabled={isSubmitting}
           className={`${btnPrimary} w-full sm:w-auto`}
         >
-          {isSubmitting ? "Submitting…" : "Submit application"}
+          {isSubmitting ? "Submitting…" : submitLabel}
         </button>
       )}
       <button

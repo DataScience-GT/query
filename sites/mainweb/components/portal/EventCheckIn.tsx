@@ -1,9 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { QRScannerModal } from "@/components/portal/QRScannerModal";
 import { ScanResultModal } from "@/components/portal/ScanResultModal";
 import { trpc } from "@/lib/trpc";
+
+// A hackathon event poster is a link to this site's own check-in page, not a
+// club event code. Returns where that page is, or null for anything else.
+function hackathonCheckInPath(scanned: string): string | null {
+  try {
+    const url = new URL(scanned);
+    if (url.origin !== window.location.origin) return null;
+    return /^\/hackathons\/[^/]+\/checkin\/?$/.test(url.pathname)
+      ? `${url.pathname}${url.search}`
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Self check-in at an event door: scan the event QR, record attendance for the
@@ -14,6 +29,7 @@ import { trpc } from "@/lib/trpc";
  */
 export function useEventCheckIn() {
   const utils = trpc.useUtils();
+  const router = useRouter();
 
   const [showScanner, setShowScanner] = useState(false);
   const [scanResult, setScanResult] = useState<{
@@ -29,7 +45,7 @@ export function useEventCheckIn() {
     onSuccess: async (data) => {
       setScanResult({
         success: true,
-        message: "You're checked in.",
+        message: "Your attendance is recorded.",
         eventTitle: data.eventTitle,
       });
       setShowScanner(false);
@@ -67,6 +83,12 @@ export function useEventCheckIn() {
     if (!scannedData) return;
     if (scannedCodes.has(scannedData)) return;
     setScannedCodes((prev) => new Set(prev).add(scannedData));
+    const hackathonPath = hackathonCheckInPath(scannedData);
+    if (hackathonPath) {
+      setShowScanner(false);
+      router.push(hackathonPath);
+      return;
+    }
     setIsPaused(true);
     setIsProcessing(true);
     try {

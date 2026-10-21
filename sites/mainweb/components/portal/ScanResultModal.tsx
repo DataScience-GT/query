@@ -10,6 +10,9 @@ interface ScanResultModalProps {
   message: string;
   eventTitle?: string;
   onClose: () => void;
+  /** A desk scanning a queue offers this on failure, so the next badge is one
+   *  tap away. Without it the modal keeps its "scan again" advice. */
+  onScanAgain?: () => void;
 }
 
 export function ScanResultModal({
@@ -17,6 +20,7 @@ export function ScanResultModal({
   message,
   eventTitle,
   onClose,
+  onScanAgain,
 }: ScanResultModalProps) {
   return (
     <ModalWrapper onClose={onClose} maxWidth="md">
@@ -41,6 +45,11 @@ export function ScanResultModal({
           </h3>
         </div>
 
+        {/* The message names who was checked in; it used to show only on failure. */}
+        {success && message && (
+          <p className="text-[15px] text-[var(--text-secondary)]">{message}</p>
+        )}
+
         {/* Success Event Details */}
         {success && eventTitle && (
           <div className="border-t border-[var(--border-subtle)] pt-4">
@@ -54,21 +63,44 @@ export function ScanResultModal({
         {/* Error Message */}
         {!success && (
           <div className="border-t border-[var(--border-subtle)] pt-4">
-            <p className="text-[15px] text-[var(--danger)]">{message}</p>
+            <p className="text-[17px] leading-snug text-[var(--text-primary)]">
+              {message}
+            </p>
             <p className="mt-2 text-[13px] text-[var(--text-subtle)]">
-              Close this and scan the code again.
+              {onScanAgain
+                ? "If this looks wrong, send them to an organiser."
+                : "Close this and scan the code again."}
             </p>
           </div>
         )}
 
         {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          className={`w-full ${success ? btnPrimary : btnSecondary}`}
-        >
-          {success ? "Done" : "Close"}
-        </button>
+        {!success && onScanAgain ? (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={onScanAgain}
+              className={`w-full ${btnPrimary}`}
+            >
+              Scan next badge
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className={`w-full ${btnSecondary}`}
+            >
+              Close
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onClose}
+            className={`w-full ${success ? btnPrimary : btnSecondary}`}
+          >
+            {success ? "Done" : "Close"}
+          </button>
+        )}
       </div>
     </ModalWrapper>
   );
