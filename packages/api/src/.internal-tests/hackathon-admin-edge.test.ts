@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "../root";
+import { errorFormatter } from "../trpc";
 import { cache } from "../middleware/cache";
-import { db, hackathons, hackathonParticipants } from "@query/db";
+import {
+  db,
+  hackathons,
+  hackathonParticipants,
+  hackathonEventAttendees,
+  hackathonCheckInFlags,
+} from "@query/db";
 
 // Fully mock the DB at the file level. vi.mock factories are hoisted and
 // file-scoped, so this mirrors the shape used by hackathon-flow.test.ts.
@@ -14,6 +21,11 @@ const mockDelete = vi.fn();
 const mockCount = vi.fn();
 /** maxParticipants as the capacity check reads it; undefined = uncapped. */
 const mockMaxParticipants = vi.fn<() => number | undefined>(() => undefined);
+/**
+ * A participant's earlier check-ins as recordEventAttendance reads them:
+ * attendance joined to its event. Empty unless a test says otherwise.
+ */
+const mockEarlierAttendance = vi.fn<() => unknown[]>(() => []);
 // Acceptance emails are sent through a dynamic import; intercept it so we can
 // see exactly who a mass-approval actually mailed.
 const mockSendAcceptanceEmail = vi.fn();
@@ -106,7 +118,7 @@ vi.mock("@query/db", () => {
       select: vi.fn().mockImplementation(() => ({
         from: (tbl: any) => {
           const count = mockCount(tbl?._t) ?? 0;
-          return thenable([
+          const node = thenable([
             {
               count,
               n: count,
@@ -114,6 +126,10 @@ vi.mock("@query/db", () => {
                 tbl?._t === "hackathons" ? mockMaxParticipants() : undefined,
             },
           ]);
+          if (tbl?._t === "hackathonEventAttendees") {
+            node.innerJoin = () => thenable(mockEarlierAttendance());
+          }
+          return node;
         },
       })),
     },
@@ -151,6 +167,7 @@ vi.mock("@query/db", () => {
       userId: "user_id",
       registrationStatus: "registration_status",
       checkedInAt: "checked_in_at",
+      attendanceConfirmedAt: "attendance_confirmed_at",
     },
     hackathonTeams: {
       _t: "hackathonTeams",
@@ -179,6 +196,16 @@ vi.mock("@query/db", () => {
       eventId: "event_id",
       participantId: "participant_id",
       checkedInAt: "checked_in_at",
+    },
+    hackathonCheckInFlags: {
+      _t: "hackathonCheckInFlags",
+      id: "id",
+      hackathonId: "hackathon_id",
+      participantId: "participant_id",
+      eventId: "event_id",
+      conflictEventId: "conflict_event_id",
+      attempts: "attempts",
+      lastAttemptAt: "last_attempt_at",
     },
     members: {
       _t: "members",
@@ -286,6 +313,7 @@ describe("Hackathon admin management edge cases", () => {
     cache.clear();
     mockCount.mockReturnValue(0);
     mockMaxParticipants.mockImplementation(() => undefined);
+    mockEarlierAttendance.mockReturnValue([]);
     mockFindMany.mockReturnValue([]);
     mockInsert.mockReturnValue([{}]);
     mockUpdate.mockReturnValue([{}]);
@@ -498,12 +526,12 @@ describe("Hackathon admin management edge cases", () => {
       expect(mockUpdate).not.toHaveBeenCalled();
     });
 
-    it("keeps super-admin queries closed to a bug tester", async () => {
+    it("keeps the staff account lookup closed to a bug tester", async () => {
       const caller = testerCaller();
 
       await expect(
         caller.admin.findUserByEmail({ email: "someone@gatech.edu" }),
-      ).rejects.toThrow(/Super admin access required/);
+      ).rejects.toThrow(/Admin access required/);
     });
   });
 
@@ -535,6 +563,28 @@ describe("Hackathon admin management edge cases", () => {
       await expect(
         caller.team.createTeam({ hackathonId: HACK_A, name: "Team" } as never),
       ).rejects.toThrow(refused);
+      await expect(
+        caller.hackathon.confirmAttendance({ hackathonId: HACK_A }),
+      ).rejects.toThrow(refused);
+    });
+
+    // A banned hacker can keep a registration, so the code check-in is a way
+    // of taking part that has to stop at the gate, before any lookup.
+    it("refuses a banned hacker's event code check-in", async () => {
+      const caller = participant(true);
+
+      await expect(
+        caller.points.me.checkIn({ hackathonId: HACK_A, code: "ABC234" }),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message: expect.stringMatching(/can't take part in Hacklytics/),
+      });
+
+      expect(mockFindFirst).not.toHaveBeenCalledWith(
+        "hackathonParticipants",
+        expect.anything(),
+      );
+      expect(mockInsert).not.toHaveBeenCalled();
     });
 
     it("lets everyone else through the ban gate", async () => {
@@ -1115,6 +1165,539 @@ describe("Hackathon admin management edge cases", () => {
         }),
       ).rejects.toThrow(/already checked into/);
     });
+
+    it("records a pass scan as a scan", async () => {
+      const caller = scanCtx();
+
+      await caller.hackathon.scanParticipantPass({
+        hackathonId: HACK_A,
+        eventId: EVENT_A,
+        participantId: PART_A1,
+      });
+
+      const attendance = mockInsert.mock.calls.find(
+        (c) => c[1][0] === hackathonEventAttendees,
+      );
+      expect(attendance?.[2][0]).toMatchObject({ method: "scan" });
+    });
+
+    // The desk for a hacker with no phone. It is the scan's check-in, made by
+    // hand: same attendance row, same promotion, but recorded as manual and
+    // audited, since no pass was read to vouch for the person.
+    describe("Desk admit for a hacker without a phone", () => {
+      const admitInput = {
+        hackathonId: HACK_A,
+        eventId: EVENT_A,
+        participantId: PART_A1,
+      };
+
+      const accepted = {
+        id: PART_A1,
+        hackathonId: HACK_A,
+        registrationStatus: "approved",
+        user: { name: "Ada Lovelace", email: "ada@example.com" },
+      };
+      const lunch = {
+        id: EVENT_A,
+        hackathonId: HACK_A,
+        name: "Lunch",
+        startTime: new Date(Date.now() - HOUR),
+        endTime: new Date(Date.now() + HOUR),
+      };
+
+      it("checks an approved hacker in by id, as a manual check-in", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: accepted,
+          hackathonEvents: lunch,
+          hackathonEventAttendees: undefined,
+        });
+
+        const res = await caller.hackathon.admit(admitInput);
+
+        expect(res).toMatchObject({
+          checkedIn: true,
+          name: "Ada Lovelace",
+          eventName: "Lunch",
+        });
+        const attendance = mockInsert.mock.calls.find(
+          (c) => c[1][0] === hackathonEventAttendees,
+        );
+        expect(attendance?.[2][0]).toMatchObject({
+          participantId: PART_A1,
+          method: "manual",
+          checkedInById: ADMIN_USER,
+        });
+        const rosterWrite = mockUpdate.mock.calls.find(
+          (c) => c[1][0] === hackathonParticipants,
+        );
+        expect(rosterWrite?.[2][0]).toMatchObject({
+          registrationStatus: "checked_in",
+        });
+        expect(rosterWrite?.[2][0].checkedInAt).toBeInstanceOf(Date);
+      });
+
+      it("leaves a trail of who admitted whom", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: accepted,
+          hackathonEvents: lunch,
+          hackathonEventAttendees: undefined,
+        });
+
+        await caller.hackathon.admit(admitInput);
+
+        const values = mockInsert.mock.calls.map((c) => c[2]?.[0]);
+        expect(values).toContainEqual(
+          expect.objectContaining({
+            userId: ADMIN_USER,
+            action: "hackathon.admit",
+            resourceId: PART_A1,
+          }),
+        );
+      });
+
+      it("is open to a volunteer, who works the desk", async () => {
+        const caller = adminCaller(
+          {
+            hackathonParticipants: accepted,
+            hackathonEvents: lunch,
+            hackathonEventAttendees: undefined,
+          },
+          "volunteer",
+        );
+
+        await expect(caller.hackathon.admit(admitInput)).resolves.toMatchObject({
+          checkedIn: true,
+        });
+      });
+
+      it("refuses somebody who has not been accepted", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: { ...accepted, registrationStatus: "pending" },
+        });
+
+        await expect(caller.hackathon.admit(admitInput)).rejects.toThrow(
+          /not accepted/,
+        );
+        expect(mockUpdate).not.toHaveBeenCalled();
+      });
+
+      it("refuses an event that has already ended", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: accepted,
+          hackathonEvents: { ...lunch, endTime: new Date(Date.now() - HOUR) },
+        });
+
+        await expect(caller.hackathon.admit(admitInput)).rejects.toThrow(
+          /already ended/,
+        );
+      });
+
+      it("will not admit the same person into the event twice", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: accepted,
+          hackathonEvents: lunch,
+          hackathonEventAttendees: { id: "already" },
+        });
+
+        await expect(caller.hackathon.admit(admitInput)).rejects.toThrow(
+          /already checked into/,
+        );
+        expect(mockUpdate).not.toHaveBeenCalled();
+      });
+
+      it("refuses a bug tester", async () => {
+        const caller = adminCaller({}, "bug_tester");
+
+        await expect(caller.hackathon.admit(admitInput)).rejects.toThrow(
+          /read-only/,
+        );
+      });
+    });
+  });
+
+  // =====================================================================
+  // Organisers' rules for bad actors: nobody is in two events that run at the
+  // same time, or in two within 30 minutes. They live in recordEventAttendance,
+  // so every way of writing attendance is held to them.
+  describe("Event check-in rules", () => {
+    const MINUTE = 60 * 1000;
+
+    const person = {
+      id: PART_A1,
+      hackathonId: HACK_A,
+      registrationStatus: "checked_in",
+      firstName: "Ada",
+      lastName: "Lovelace",
+      user: { name: "Ada Lovelace", email: "ada@example.com" },
+    };
+    const fireside = {
+      id: EVENT_A,
+      hackathonId: HACK_A,
+      name: "Full Sail Fireside",
+      type: "sponsor_session",
+      points: 10,
+      selfCheckIn: true,
+      startTime: new Date(Date.now() - HOUR),
+      endTime: new Date(Date.now() + HOUR),
+    };
+
+    // A check-in for another event, as the attendance read returns it.
+    const earlier = (event: Record<string, unknown>, minutesAgo: number) => ({
+      event: {
+        id: "99999999-9999-4999-8999-999999999999",
+        name: "BNY Workshop",
+        type: "workshop",
+        startTime: new Date(Date.now() - 5 * HOUR),
+        endTime: new Date(Date.now() - 4 * HOUR),
+        ...event,
+      },
+      checkedInAt: new Date(Date.now() - minutesAgo * MINUTE),
+    });
+
+    // The hacker's own session, past the ban gate, with the event live.
+    const hackerCaller = () => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "users") return { email: "ada@example.com" };
+        if (table === "hackathonParticipants") return person;
+        if (table === "hackathonEvents") return fireside;
+        return undefined;
+      });
+      return appRouter.createCaller(createMockCtx("rules-hacker"));
+    };
+
+    const attendanceWrites = () =>
+      mockInsert.mock.calls.filter((c) => c[1][0] === hackathonEventAttendees);
+
+    // Each refused attempt leaves a flag for organisers; the values are the
+    // third element of the mock's recorded call.
+    const flagWrites = () =>
+      mockInsert.mock.calls.filter((c) => c[1][0] === hackathonCheckInFlags);
+
+    // The event the fixtures' earlier check-ins are for.
+    const BNY = "99999999-9999-4999-8999-999999999999";
+
+    it("refuses a code check-in into an event that overlaps one already attended", async () => {
+      const caller = hackerCaller();
+      mockEarlierAttendance.mockReturnValue([
+        earlier(
+          {
+            startTime: new Date(Date.now() - 30 * MINUTE),
+            endTime: new Date(Date.now() + 30 * MINUTE),
+          },
+          20,
+        ),
+      ]);
+
+      await expect(
+        caller.points.me.checkIn({ hackathonId: HACK_A, code: "ABC234" }),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message:
+          "You're already checked into BNY Workshop, which runs at the same time as Full Sail Fireside. You can check into one event at a time.",
+      });
+      expect(attendanceWrites()).toHaveLength(0);
+    });
+
+    it("lets a code check-in through when nothing overlaps and the last was long ago", async () => {
+      const caller = hackerCaller();
+      mockEarlierAttendance.mockReturnValue([earlier({}, 120)]);
+
+      await expect(
+        caller.points.me.checkIn({ hackathonId: HACK_A, code: "ABC234" }),
+      ).resolves.toMatchObject({ eventName: "Full Sail Fireside" });
+      expect(attendanceWrites()).toHaveLength(1);
+    });
+
+    it("refuses a pass scan within 30 minutes of the last check-in", async () => {
+      const caller = adminCaller({
+        hackathonParticipants: { ...person, registrationStatus: "approved" },
+        hackathonEvents: fireside,
+        hackathonEventAttendees: undefined,
+      });
+      mockEarlierAttendance.mockReturnValue([earlier({}, 10)]);
+
+      await expect(
+        caller.hackathon.scanParticipantPass({
+          hackathonId: HACK_A,
+          eventId: EVENT_A,
+          participantId: PART_A1,
+        }),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message:
+          "Ada Lovelace checked into BNY Workshop 10 minutes ago. Event check-ins have to be at least 30 minutes apart. If that was a mistake, remove them from BNY Workshop first.",
+      });
+      // The whole scan rolls back: no attendance, and no arrival either.
+      expect(attendanceWrites()).toHaveLength(0);
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("refuses a manual check-in into an event that overlaps one already attended", async () => {
+      const caller = adminCaller({
+        hackathonParticipants: person,
+        hackathonEvents: fireside,
+      });
+      mockEarlierAttendance.mockReturnValue([
+        earlier(
+          {
+            startTime: new Date(Date.now() - 30 * MINUTE),
+            endTime: new Date(Date.now() + 30 * MINUTE),
+          },
+          45,
+        ),
+      ]);
+
+      await expect(
+        caller.hackathon.manualEventCheckIn({
+          hackathonId: HACK_A,
+          eventId: EVENT_A,
+          participantId: PART_A1,
+        }),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message:
+          "Ada Lovelace is already checked into BNY Workshop, which runs at the same time as Full Sail Fireside. If that was a mistake, remove them from BNY Workshop first.",
+      });
+      expect(attendanceWrites()).toHaveLength(0);
+    });
+
+    describe("flags for organisers", () => {
+      const overlapping = () =>
+        earlier(
+          {
+            startTime: new Date(Date.now() - 30 * MINUTE),
+            endTime: new Date(Date.now() + 30 * MINUTE),
+          },
+          20,
+        );
+
+      it("records a refused code check-in against the hacker", async () => {
+        const caller = hackerCaller();
+        mockEarlierAttendance.mockReturnValue([overlapping()]);
+
+        await expect(
+          caller.points.me.checkIn({ hackathonId: HACK_A, code: "ABC234" }),
+        ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+        expect(flagWrites()).toHaveLength(1);
+        expect(flagWrites()[0]![2][0]).toEqual({
+          hackathonId: HACK_A,
+          participantId: PART_A1,
+          eventId: EVENT_A,
+          conflictEventId: BNY,
+          rule: "overlap",
+          method: "code",
+          attemptedById: "rules-hacker",
+          attempts: 1,
+          createdAt: expect.any(Date),
+          lastAttemptAt: expect.any(Date),
+        });
+      });
+
+      it("records a refused pass scan, with the staff member who scanned", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: { ...person, registrationStatus: "approved" },
+          hackathonEvents: fireside,
+          hackathonEventAttendees: undefined,
+        });
+        mockEarlierAttendance.mockReturnValue([earlier({}, 10)]);
+
+        await expect(
+          caller.hackathon.scanParticipantPass({
+            hackathonId: HACK_A,
+            eventId: EVENT_A,
+            participantId: PART_A1,
+          }),
+        ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+        expect(flagWrites()).toHaveLength(1);
+        expect(flagWrites()[0]![2][0]).toMatchObject({
+          hackathonId: HACK_A,
+          participantId: PART_A1,
+          eventId: EVENT_A,
+          conflictEventId: BNY,
+          rule: "too_soon",
+          method: "scan",
+          attemptedById: ADMIN_USER,
+        });
+      });
+
+      it("records a refused manual check-in", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: person,
+          hackathonEvents: fireside,
+        });
+        mockEarlierAttendance.mockReturnValue([overlapping()]);
+
+        await expect(
+          caller.hackathon.manualEventCheckIn({
+            hackathonId: HACK_A,
+            eventId: EVENT_A,
+            participantId: PART_A1,
+          }),
+        ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+        expect(flagWrites()).toHaveLength(1);
+        expect(flagWrites()[0]![2][0]).toMatchObject({
+          participantId: PART_A1,
+          rule: "overlap",
+          method: "manual",
+          attemptedById: ADMIN_USER,
+        });
+      });
+
+      it("records nothing for a check-in that goes through", async () => {
+        mockEarlierAttendance.mockReturnValue([earlier({}, 120)]);
+
+        await hackerCaller().points.me.checkIn({
+          hackathonId: HACK_A,
+          code: "ABC234",
+        });
+        await adminCaller({
+          hackathonParticipants: person,
+          hackathonEvents: fireside,
+        }).hackathon.manualEventCheckIn({
+          hackathonId: HACK_A,
+          eventId: EVENT_A,
+          participantId: PART_A1,
+        });
+
+        expect(attendanceWrites()).toHaveLength(2);
+        expect(flagWrites()).toHaveLength(0);
+      });
+
+      it("records nothing for a duplicate scan", async () => {
+        const caller = adminCaller({
+          hackathonParticipants: { ...person, registrationStatus: "approved" },
+          hackathonEvents: fireside,
+          hackathonEventAttendees: { id: "already" },
+        });
+
+        await expect(
+          caller.hackathon.scanParticipantPass({
+            hackathonId: HACK_A,
+            eventId: EVENT_A,
+            participantId: PART_A1,
+          }),
+        ).rejects.toMatchObject({ code: "CONFLICT" });
+
+        expect(flagWrites()).toHaveLength(0);
+      });
+
+      it("gives the hacker the same refusal when the flag cannot be written", async () => {
+        const consoleError = vi
+          .spyOn(console, "error")
+          .mockImplementation(() => undefined);
+        const caller = hackerCaller();
+        mockEarlierAttendance.mockReturnValue([overlapping()]);
+        mockInsert.mockImplementation((_op, [table]) => {
+          if (table === hackathonCheckInFlags) throw new Error("db is down");
+          return [{}];
+        });
+
+        await expect(
+          caller.points.me.checkIn({ hackathonId: HACK_A, code: "ABC234" }),
+        ).rejects.toMatchObject({
+          code: "FORBIDDEN",
+          message:
+            "You're already checked into BNY Workshop, which runs at the same time as Full Sail Fireside. You can check into one event at a time.",
+        });
+        expect(consoleError).toHaveBeenCalled();
+        consoleError.mockRestore();
+      });
+
+      it("keeps the flag out of what the hacker is sent", async () => {
+        const caller = hackerCaller();
+        mockEarlierAttendance.mockReturnValue([overlapping()]);
+
+        const error: any = await caller.points.me
+          .checkIn({ hackathonId: HACK_A, code: "ABC234" })
+          .catch((e: unknown) => e);
+
+        // The record rides on the error server side only; the formatter is what
+        // builds the response.
+        const response = JSON.stringify(
+          errorFormatter({
+            shape: {
+              message: error.message,
+              code: -32003,
+              data: {
+                code: "FORBIDDEN",
+                httpStatus: 403,
+                path: "points.me.checkIn",
+              },
+            },
+            error,
+          }),
+        );
+        expect(response).not.toContain(PART_A1);
+        expect(response).not.toContain(BNY);
+        expect(response).not.toContain("CheckInRuleBreak");
+        expect(response).not.toContain("conflictEventId");
+      });
+    });
+
+    it("does not hold a meal to the rules", async () => {
+      const caller = adminCaller({
+        hackathonParticipants: person,
+        hackathonEvents: { ...fireside, name: "Dinner", type: "meal" },
+      });
+      mockEarlierAttendance.mockReturnValue([
+        earlier(
+          {
+            startTime: new Date(Date.now() - 30 * MINUTE),
+            endTime: new Date(Date.now() + 30 * MINUTE),
+          },
+          5,
+        ),
+      ]);
+
+      await expect(
+        caller.hackathon.manualEventCheckIn({
+          hackathonId: HACK_A,
+          eventId: EVENT_A,
+          participantId: PART_A1,
+        }),
+      ).resolves.toMatchObject({ eventName: "Dinner" });
+      expect(attendanceWrites()).toHaveLength(1);
+    });
+  });
+
+  // =====================================================================
+  describe("Chasing unconfirmed seats", () => {
+    const whereOf = () =>
+      JSON.stringify(mockFindMany.mock.calls[0]?.[1]?.where);
+
+    it("narrows the roster to accepted hackers who have not said they are coming", async () => {
+      const caller = adminCaller();
+
+      await caller.hackathon.adminGetAttendees({
+        hackathonId: HACK_A,
+        unconfirmedOnly: true,
+      });
+
+      expect(whereOf()).toContain("attendance_confirmed_at");
+      expect(whereOf()).toContain("approved");
+    });
+
+    it("does not filter on confirmation unless asked", async () => {
+      const caller = adminCaller();
+
+      await caller.hackathon.adminGetAttendees({ hackathonId: HACK_A });
+
+      expect(whereOf()).not.toContain("attendance_confirmed_at");
+    });
+
+    it("applies the same filter to the export, so the file matches the list", async () => {
+      const caller = adminCaller();
+
+      await caller.hackathon.exportAttendees({
+        hackathonId: HACK_A,
+        unconfirmedOnly: true,
+      });
+
+      expect(whereOf()).toContain("attendance_confirmed_at");
+    });
   });
 
   // =====================================================================
@@ -1168,6 +1751,24 @@ describe("Hackathon admin management edge cases", () => {
       expect(written).toMatchObject({ tracks: null, rules: null });
       // theme was never sent, so it must not appear in the UPDATE at all.
       expect(written).not.toHaveProperty("theme");
+    });
+
+    // The edit form sends null for a blank deadline or cap. Before these were
+    // nullable, blanking either field silently kept the old value.
+    it("clears the registration deadline and the cap when sent null", async () => {
+      const caller = adminCaller({ hackathons: liveHackathon() });
+      mockUpdate.mockReturnValue([{ id: HACK_A }]);
+
+      await caller.hackathon.update({
+        id: HACK_A,
+        registrationDeadline: null,
+        maxParticipants: null,
+      });
+
+      expect(mockUpdate.mock.calls.at(-1)?.[2]?.[0]).toMatchObject({
+        registrationDeadline: null,
+        maxParticipants: null,
+      });
     });
 
     it("stores the tracks it was given", async () => {
@@ -1413,21 +2014,191 @@ describe("Hackathon admin management edge cases", () => {
         }),
       ).rejects.toThrow(/last super admin/i);
     });
+
+    // The check-in desk is staffed by volunteers, and a plain admin can get
+    // one a scanner login without waiting on a super admin. Every other role
+    // is still a super admin's to give.
+    describe("Staffing the check-in desk", () => {
+      const VOLUNTEER_USER = "volunteer_user";
+      const TARGET_ROW = "77777777-7777-4777-8777-777777777772";
+
+      /**
+       * The caller's own admins row first, then the row being changed — or
+       * nobody, for a first grant. The gate reads the caller before anything.
+       */
+      const asRole = (role: string, target?: Record<string, unknown> | null) => {
+        let reads = 0;
+        mockFindFirst.mockImplementation((table: string) => {
+          if (table === "users") return { id: VOLUNTEER_USER };
+          if (table !== "admins") return undefined;
+          reads += 1;
+          if (reads === 1) return adminRow(role);
+          if (target === null) return undefined;
+          return {
+            id: TARGET_ROW,
+            userId: VOLUNTEER_USER,
+            role: "volunteer",
+            isActive: true,
+            ...target,
+          };
+        });
+        return appRouter.createCaller(createMockCtx(ADMIN_USER));
+      };
+
+      const written = () => mockInsert.mock.calls.map((c) => c[2]?.[0]);
+
+      it("lets a plain admin grant the volunteer role", async () => {
+        const caller = asRole("admin", null);
+        mockInsert.mockReturnValue([{ id: TARGET_ROW, role: "volunteer" }]);
+
+        await expect(
+          caller.admin.create({ userId: VOLUNTEER_USER, role: "volunteer" }),
+        ).resolves.toMatchObject({ role: "volunteer" });
+        expect(written()).toContainEqual(
+          expect.objectContaining({ userId: VOLUNTEER_USER, role: "volunteer" }),
+        );
+      });
+
+      it("records who granted the role", async () => {
+        const caller = asRole("admin", null);
+        mockInsert.mockReturnValue([{ id: TARGET_ROW, role: "volunteer" }]);
+
+        await caller.admin.create({ userId: VOLUNTEER_USER, role: "volunteer" });
+
+        expect(written()).toContainEqual(
+          expect.objectContaining({
+            userId: ADMIN_USER,
+            action: "admin.create",
+            resourceId: VOLUNTEER_USER,
+          }),
+        );
+      });
+
+      it.each(["admin", "moderator", "super_admin", "bug_tester"] as const)(
+        "refuses a plain admin granting %s",
+        async (role) => {
+          const caller = asRole("admin", null);
+
+          await expect(
+            caller.admin.create({ userId: VOLUNTEER_USER, role }),
+          ).rejects.toThrow(/Super admin access required/);
+          expect(mockInsert).not.toHaveBeenCalled();
+        },
+      );
+
+      it("still lets a super admin grant any role", async () => {
+        const caller = asRole("super_admin", null);
+        mockInsert.mockReturnValue([{ id: TARGET_ROW, role: "admin" }]);
+
+        await expect(
+          caller.admin.create({ userId: VOLUNTEER_USER, role: "admin" }),
+        ).resolves.toBeDefined();
+      });
+
+      it("refuses a plain admin handing a volunteer permissions", async () => {
+        const caller = asRole("admin", null);
+
+        await expect(
+          caller.admin.create({
+            userId: VOLUNTEER_USER,
+            role: "volunteer",
+            permissions: ["everything"],
+          }),
+        ).rejects.toThrow(/Super admin access required/);
+        expect(mockInsert).not.toHaveBeenCalled();
+      });
+
+      it("refuses a bug tester granting anything", async () => {
+        const caller = asRole("bug_tester", null);
+
+        await expect(
+          caller.admin.create({ userId: VOLUNTEER_USER, role: "volunteer" }),
+        ).rejects.toThrow(/read-only/);
+      });
+
+      it("lets a plain admin revoke a volunteer", async () => {
+        const caller = asRole("admin");
+        mockUpdate.mockReturnValue([
+          { id: TARGET_ROW, role: "volunteer", isActive: false },
+        ]);
+
+        await expect(
+          caller.admin.update({ adminId: TARGET_ROW, isActive: false }),
+        ).resolves.toMatchObject({ isActive: false });
+        expect(written()).toContainEqual(
+          expect.objectContaining({
+            userId: ADMIN_USER,
+            action: "admin.update",
+            resourceId: VOLUNTEER_USER,
+          }),
+        );
+      });
+
+      it("lets a plain admin delete a volunteer", async () => {
+        const caller = asRole("admin");
+
+        await expect(
+          caller.admin.remove({ adminId: TARGET_ROW }),
+        ).resolves.toEqual({ success: true });
+        expect(mockDelete).toHaveBeenCalled();
+        expect(written()).toContainEqual(
+          expect.objectContaining({ action: "admin.remove" }),
+        );
+      });
+
+      it("refuses a plain admin promoting a volunteer", async () => {
+        const caller = asRole("admin");
+
+        await expect(
+          caller.admin.update({ adminId: TARGET_ROW, role: "admin" }),
+        ).rejects.toThrow(/Super admin access required/);
+        expect(mockUpdate).not.toHaveBeenCalled();
+      });
+
+      // Granting "volunteer" over a row that holds another role is a demotion.
+      // It must not be a way past the rule for revoking one.
+      it.each(["admin", "moderator", "super_admin"])(
+        "refuses a plain admin demoting, deactivating or deleting a %s",
+        async (held) => {
+          const caller = asRole("admin", { role: held });
+
+          await expect(
+            caller.admin.update({ adminId: TARGET_ROW, role: "volunteer" }),
+          ).rejects.toThrow(/Super admin access required/);
+          await expect(
+            caller.admin.update({ adminId: TARGET_ROW, isActive: false }),
+          ).rejects.toThrow(/Super admin access required/);
+          await expect(
+            caller.admin.remove({ adminId: TARGET_ROW }),
+          ).rejects.toThrow(/Super admin access required/);
+          expect(mockUpdate).not.toHaveBeenCalled();
+          expect(mockDelete).not.toHaveBeenCalled();
+        },
+      );
+
+      it("lets a plain admin look up who they are about to add", async () => {
+        const caller = asRole("admin");
+
+        await expect(
+          caller.admin.findUserByEmail({ email: "someone@gatech.edu" }),
+        ).resolves.toBeDefined();
+      });
+    });
   });
 
   // =====================================================================
   describe("Day-of dashboard", () => {
-    // BUG: analyticsOverview counts eventCheckIns (the club check-in table),
-    // not hackathonEventAttendees, which is what scanParticipantPass writes.
-    it("counts today's hackathon badge scans", async () => {
+    it("counts today's hackathon badge scans apart from club door check-ins", async () => {
       const caller = adminCaller({}, "admin");
       mockCount.mockImplementation((t: string) =>
-        t === "hackathonEventAttendees" ? 7 : 0,
+        t === "hackathonEventAttendees" ? 7 : t === "eventCheckIns" ? 2 : 0,
       );
 
       const res = await caller.admin.analyticsOverview();
 
-      expect(res.checkinsToday).toBe(7);
+      expect(res.badgeScansToday).toBe(7);
+      expect(res.doorCheckinsToday).toBe(2);
+      expect(res.checkinsToday).toBe(9);
     });
   });
 });

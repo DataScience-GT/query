@@ -1,0 +1,242 @@
+import { describe, expect, it } from "vitest";
+import {
+  MAX_SKIPS,
+  addSkip,
+  countdown,
+  countdownTone,
+  formatScore,
+  linkHost,
+  nextAssignment,
+  nextPresentation,
+  roomPlace,
+  startsIn,
+  stationGroups,
+} from "./desk";
+
+describe("countdown", () => {
+  it("shows minutes and two-digit seconds", () => {
+    expect(countdown(245)).toBe("4:05");
+    expect(countdown(60)).toBe("1:00");
+    expect(countdown(9)).toBe("0:09");
+  });
+
+  it("stops at zero", () => {
+    expect(countdown(0)).toBe("0:00");
+    expect(countdown(-12)).toBe("0:00");
+  });
+});
+
+describe("countdownTone", () => {
+  it("warns under three minutes and alarms under ninety seconds", () => {
+    expect(countdownTone(181)).toBe("neutral");
+    expect(countdownTone(180)).toBe("neutral");
+    expect(countdownTone(179)).toBe("warning");
+    expect(countdownTone(90)).toBe("warning");
+    expect(countdownTone(89)).toBe("danger");
+    expect(countdownTone(0)).toBe("danger");
+  });
+});
+
+describe("startsIn", () => {
+  it("rounds up to whole minutes, never below one", () => {
+    expect(startsIn(5_000)).toBe("in 1 min");
+    expect(startsIn(4 * 60_000 + 1)).toBe("in 5 min");
+    expect(startsIn(0)).toBe("in 1 min");
+  });
+
+  it("switches to hours past an hour", () => {
+    expect(startsIn(65 * 60_000)).toBe("in 1 h 5 min");
+    expect(startsIn(120 * 60_000)).toBe("in 2 h 0 min");
+  });
+});
+
+describe("formatScore", () => {
+  it("prints two places, or says there is none", () => {
+    expect(formatScore(3.456)).toBe("3.46");
+    expect(formatScore(4)).toBe("4.00");
+    expect(formatScore(null)).toBe("None yet");
+  });
+});
+
+describe("roomPlace", () => {
+  it("adds the building when there is one", () => {
+    expect(roomPlace("1116", "Klaus")).toBe("1116 · Klaus");
+    expect(roomPlace("Atrium", null)).toBe("Atrium");
+  });
+});
+
+describe("linkHost", () => {
+  it("labels a link by its host", () => {
+    expect(linkHost("https://www.github.com/team/app")).toBe("github.com");
+    expect(linkHost("https://devpost.com/software/x")).toBe("devpost.com");
+  });
+
+  it("falls back to the text for something that is not a URL", () => {
+    expect(linkHost("not a link")).toBe("not a link");
+  });
+});
+
+describe("nextPresentation", () => {
+  const at = (minute: number) => new Date(Date.UTC(2026, 9, 12, 14, minute));
+  const slot = (start: number) => ({
+    startsAt: at(start),
+    endsAt: at(start + 10),
+  });
+  const now = at(15).getTime();
+
+  it("picks the presentation running now over a later one", () => {
+    const running = { id: "a", presentation: slot(10), myEvaluation: null };
+    const later = { id: "b", presentation: slot(20), myEvaluation: null };
+    expect(nextPresentation([later, running], now)?.id).toBe("a");
+  });
+
+  it("skips finished, judged and unscheduled projects", () => {
+    const finished = { id: "a", presentation: slot(0), myEvaluation: null };
+    const judged = {
+      id: "b",
+      presentation: slot(10),
+      myEvaluation: { revision: 1 },
+    };
+    const unscheduled = { id: "c", presentation: null, myEvaluation: null };
+    const upcoming = { id: "d", presentation: slot(30), myEvaluation: null };
+    expect(
+      nextPresentation([finished, judged, unscheduled, upcoming], now)?.id,
+    ).toBe("d");
+  });
+
+  it("is null when nothing is left", () => {
+    const finished = { id: "a", presentation: slot(0), myEvaluation: null };
+    expect(nextPresentation([finished], now)).toBeNull();
+    expect(nextPresentation([], now)).toBeNull();
+  });
+
+  it("puts a presentation assigned to the judge that is running now first", () => {
+    const earlier = { id: "a", presentation: slot(8), myEvaluation: null };
+    const mine = {
+      id: "b",
+      presentation: slot(12),
+      myEvaluation: null,
+      assignedToYou: true,
+    };
+    expect(nextPresentation([earlier, mine], now)?.id).toBe("b");
+    expect(nextPresentation([mine, earlier], now)?.id).toBe("b");
+  });
+
+  it("leaves an assigned one that has not started to its place in time", () => {
+    const running = { id: "a", presentation: slot(10), myEvaluation: null };
+    const mine = {
+      id: "b",
+      presentation: slot(20),
+      myEvaluation: null,
+      assignedToYou: true,
+    };
+    expect(nextPresentation([running, mine], now)?.id).toBe("a");
+  });
+
+  it("skips an assigned one the judge has judged", () => {
+    const judged = {
+      id: "a",
+      presentation: slot(10),
+      myEvaluation: { revision: 1 },
+      assignedToYou: true,
+    };
+    const open = { id: "b", presentation: slot(12), myEvaluation: null };
+    expect(nextPresentation([judged, open], now)?.id).toBe("b");
+  });
+});
+
+describe("nextAssignment", () => {
+  const item = (id: string, graded = false, takenOver = false) => ({
+    id,
+    graded,
+    takenOver,
+  });
+
+  it("is the first presentation nobody has graded or taken over", () => {
+    expect(
+      nextAssignment([item("a", true), item("b", false, true), item("c")])?.id,
+    ).toBe("c");
+    expect(nextAssignment([item("a"), item("b")])?.id).toBe("a");
+  });
+
+  it("is null when nothing is left", () => {
+    expect(nextAssignment([item("a", true)])).toBeNull();
+    expect(nextAssignment([])).toBeNull();
+  });
+});
+
+describe("stationGroups", () => {
+  const station = (
+    id: string,
+    buildingName: string | null,
+    yourTrack = false,
+  ) => ({
+    id,
+    buildingName,
+    yourTrack,
+  });
+  const ids = (
+    groups: { heading: string | null; stations: { id: string }[] }[],
+  ) => groups.map((g) => [g.heading, g.stations.map((s) => s.id)]);
+
+  it("puts the judge's track first, then groups by building", () => {
+    const groups = stationGroups([
+      station("a", "Klaus"),
+      station("b", "Van Leer"),
+      station("c", "Klaus", true),
+      station("d", "Klaus"),
+    ]);
+    expect(ids(groups)).toEqual([
+      ["Your track", ["c"]],
+      ["Klaus", ["a", "d"]],
+      ["Van Leer", ["b"]],
+    ]);
+  });
+
+  it("puts stations without a building last", () => {
+    const groups = stationGroups([station("a", null), station("b", "Klaus")]);
+    expect(ids(groups)).toEqual([
+      ["Klaus", ["b"]],
+      ["Elsewhere", ["a"]],
+    ]);
+  });
+
+  it("has no headings when there is nothing to tell apart", () => {
+    expect(
+      ids(stationGroups([station("a", null), station("b", null)])),
+    ).toEqual([[null, ["a", "b"]]]);
+    expect(
+      ids(
+        stationGroups([station("a", "Klaus", true), station("b", null, true)]),
+      ),
+    ).toEqual([[null, ["a", "b"]]]);
+    expect(stationGroups([])).toEqual([]);
+  });
+});
+
+describe("addSkip", () => {
+  it("adds the project last", () => {
+    expect(addSkip([], "a")).toEqual(["a"]);
+    expect(addSkip(["a", "b"], "c")).toEqual(["a", "b", "c"]);
+  });
+
+  it("holds a project once, moved to the end", () => {
+    expect(addSkip(["a", "b", "c"], "a")).toEqual(["b", "c", "a"]);
+  });
+
+  it("drops the oldest past what the API takes", () => {
+    const full = Array.from({ length: MAX_SKIPS }, (_, i) => `e${i}`);
+
+    const next = addSkip(full, "new");
+
+    expect(next).toHaveLength(MAX_SKIPS);
+    expect(next[0]).toBe("e1");
+    expect(next.at(-1)).toBe("new");
+  });
+
+  it("leaves the list it was given alone", () => {
+    const skipped = ["a"];
+    addSkip(skipped, "b");
+    expect(skipped).toEqual(["a"]);
+  });
+});

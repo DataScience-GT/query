@@ -5,6 +5,7 @@ import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import { adminHackathonPath } from "@/lib/hackathon-slug";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { body, btnPrimary, btnSecondary, pageDek } from "@/components/portal/ui";
@@ -70,9 +71,12 @@ export default function AdminHackathonsPage() {
         {showCreate && (
           <CreateHackathonForm
             onClose={() => setShowCreate(false)}
-            onCreated={() => {
+            onCreated={(row) => {
               setShowCreate(false);
               utils.hackathon.listAll.invalidate();
+              // Straight into the new edition's dashboard, where its
+              // schedule, applications and judging are set up.
+              router.push(adminHackathonPath(row.name, row.id));
             }}
           />
         )}

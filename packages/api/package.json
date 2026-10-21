@@ -18,7 +18,8 @@
     "./eastern-time": "./src/services/eastern-time.ts",
     "./metrics": "./src/services/metrics.ts",
     "./portal-context": "./src/types/portal-context.ts",
-    "./resume-list": "./src/services/resume-list.ts"
+    "./resume-list": "./src/services/resume-list.ts",
+    "./judging-access": "./src/services/judging/principal.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
@@ -36,16 +37,16 @@
     "drizzle-orm": "0.45.3",
     "image-size": "2.0.4",
     "prom-client": "15.1.3",
-    "sanitize-html": "2.17.7",
-    "stripe": "^22.6.2",
+    "sanitize-html": "2.18.1",
+    "stripe": "^23.0.0",
     "superjson": "2.2.6",
     "zod": "4.6.5"
   },
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
-    "@types/sanitize-html": "^2.16.0",
+    "@types/sanitize-html": "^2.16.2",
     "typescript": "7.0.2",
     "vite": "^7.3.5",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.3"
   }
 }

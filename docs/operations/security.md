@@ -20,7 +20,6 @@ Roles are rows, not JWT claims.
 | `isScanner` | Any active `admin` including `volunteer` |
 | `isAdmin` | Active admin whose role is **not** `volunteer` |
 | `isSuperAdmin` | `super_admin` |
-| `isJudge` | Active `judge` for the resolved edition |
 | `isProjectLeader` | Active `project_leader` or staff |
 
 Volunteers can staff check-in desks. They cannot delete editions, grant memberships, or pass `isAdmin`.
