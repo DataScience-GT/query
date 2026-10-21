@@ -12,6 +12,7 @@ import {
   itemTitle,
   label,
   meta,
+  body,
   pageDek,
   sectionTitle,
 } from "@/components/portal/ui";
@@ -67,6 +68,13 @@ function readTokens(element: HTMLElement): ChartTokens {
     card: read("--bg-card"),
     font: getComputedStyle(element).fontFamily,
   };
+}
+
+function phaseLabel(phase: string) {
+  if (phase === "open") return "Registration open";
+  if (phase === "closed") return "Registration closed";
+  if (phase === "in_progress") return "In progress";
+  return phase;
 }
 
 /** `2026-fall` is how it is stored; nobody should have to read it that way. */
@@ -144,6 +152,11 @@ export default function AnalyticsPage() {
     // on a much slower clock.
     { enabled: !!session, refetchInterval: 15000 },
   );
+
+  const live = trpc.admin.hackathonLive.useQuery(undefined, {
+    enabled: !!session,
+    refetchInterval: 15000,
+  });
 
   // Growth moves on a monthly clock, so it is fetched once rather than polled.
   const growth = trpc.admin.growth.useQuery(undefined, { enabled: !!session });
@@ -475,15 +488,15 @@ export default function AnalyticsPage() {
       {/* Events and hackathons */}
       <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
         <h2 className={sectionTitle}>Events and hackathons</h2>
-        <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
+        <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
           {isLoading ? (
-            [1, 2, 3, 4].map((i) => <StatSkeleton key={i} />)
+            [1, 2, 3, 4, 5].map((i) => <StatSkeleton key={i} />)
           ) : (
             <>
               <Stat
                 title="Participants"
                 value={stats?.totalParticipants || 0}
-                subtitle="Registered across all events"
+                subtitle="Registered for a hackathon"
               />
               <Stat
                 title="Events hosted"
@@ -496,13 +509,85 @@ export default function AnalyticsPage() {
                 subtitle="Active and upcoming"
               />
               <Stat
-                title="Check-ins today"
-                value={stats?.checkinsToday || 0}
-                subtitle="Scanned by QR code"
+                title="Badge scans today"
+                value={stats?.badgeScansToday || 0}
+                subtitle="Hackathon QR scans"
+              />
+              <Stat
+                title="Door check-ins today"
+                value={stats?.doorCheckinsToday || 0}
+                subtitle="Club event QR scans"
               />
             </>
           )}
         </dl>
+      </section>
+
+      <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
+        <h2 className={sectionTitle}>Live hackathon</h2>
+        <p className={`mt-2 max-w-2xl ${body}`}>
+          Editions that are open, registration-closed, or in progress. These
+          are the same counts the metrics endpoint publishes.
+        </p>
+        {live.isPending ? (
+          <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <StatSkeleton key={i} />
+            ))}
+          </dl>
+        ) : !live.data?.length ? (
+          <p className={`mt-6 ${meta}`}>
+            No edition is open, registration-closed, or in progress.
+          </p>
+        ) : (
+          live.data.map((edition) => {
+            const judgingIdle =
+              edition.judgingActive &&
+              edition.judgingProjects > 0 &&
+              edition.votes === 0;
+            return (
+              <div key={edition.edition} className="mt-8">
+                <h3 className={itemTitle}>{edition.edition}</h3>
+                <p className={`mt-1 ${meta}`}>{phaseLabel(edition.phase)}</p>
+                {judgingIdle && (
+                  <p className="mt-3 max-w-2xl text-[15px] text-[var(--text-primary)]">
+                    Judging is on and no scores have landed.
+                  </p>
+                )}
+                <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+                  <Stat
+                    title="Checked in"
+                    value={edition.participants.checked_in}
+                  />
+                  <Stat
+                    title="Approved"
+                    value={edition.participants.approved}
+                    subtitle="Not checked in yet"
+                  />
+                  <Stat
+                    title="Pending"
+                    value={edition.participants.pending}
+                  />
+                  <Stat title="Projects submitted" value={edition.projects} />
+                  <Stat
+                    title="Badge scans today"
+                    value={edition.checkinsToday}
+                    subtitle="Since midnight Eastern"
+                  />
+                  <Stat
+                    title="Judging tables"
+                    value={edition.judgingProjects}
+                  />
+                  <Stat title="Judge scores" value={edition.votes} />
+                </dl>
+                <p className={`mt-4 ${meta}`}>
+                  Waitlisted {edition.participants.waitlisted} · Rejected{" "}
+                  {edition.participants.rejected}
+                </p>
+              </div>
+            );
+          })
+        )}
       </section>
     </div>
   );

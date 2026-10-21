@@ -59,12 +59,19 @@ const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 // meant that the moment registration opened, the one page telling the world
 // about the hackathon said "Nothing announced yet". Soonest first, so
 // announcing the year after next does not displace the one being promoted.
+// `completed` is last: once the event is over the page still has to resolve,
+// and point registered hackers at their results, but a finished edition only
+// stands in when nothing is ahead of it (see findAnnounced).
 const PUBLIC_FUNNEL_STATUSES = [
   "announced",
   "open",
   "closed",
   "in_progress",
+  "completed",
 ] as const;
+const AHEAD_STATUSES = PUBLIC_FUNNEL_STATUSES.filter(
+  (status) => status !== "completed",
+);
 
 /** What the landing page reads; also the shape held in the cache. */
 type UpcomingEdition = {
@@ -82,12 +89,22 @@ type UpcomingEdition = {
 };
 
 async function findAnnounced(db: DrizzleDB) {
-  return db.query.hackathons.findFirst({
+  const ahead = await db.query.hackathons.findFirst({
     where: and(
-      inArray(hackathons.status, [...PUBLIC_FUNNEL_STATUSES]),
+      inArray(hackathons.status, AHEAD_STATUSES),
       eq(hackathons.isPublic, true),
     ),
     orderBy: asc(hackathons.startDate),
+  });
+  if (ahead) return ahead;
+
+  // Between editions: the one that just finished, not the oldest on record.
+  return db.query.hackathons.findFirst({
+    where: and(
+      eq(hackathons.status, "completed"),
+      eq(hackathons.isPublic, true),
+    ),
+    orderBy: desc(hackathons.startDate),
   });
 }
 

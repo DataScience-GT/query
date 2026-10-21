@@ -13,11 +13,38 @@ import {
 } from "@query/db";
 import { eq, and, count, gte, inArray } from "drizzle-orm";
 import { CacheKeys, invalidatePortalContext } from "../middleware/cache";
-import { isAdmin, isSuperAdmin } from "../middleware/procedures";
+import { isAdmin } from "../middleware/procedures";
+import { recordAdminAction } from "../middleware/audit";
 import { compareTerms, currentTerm } from "@query/db/services/membership";
-import { isExpiredAdmin, isStaffRole } from "../types/portal-context";
+import {
+  isBugTesterRole,
+  isExpiredAdmin,
+  isStaffRole,
+} from "../types/portal-context";
 import type { DrizzleDB } from "@query/db";
 import { startOfEasternDay } from "../services/eastern-time";
+import { readLiveHackathons } from "../services/metrics";
+
+// Roles are a super admin's to give, with one exception: anyone on the admin
+// team may staff the check-in desk by granting and revoking the volunteer tier,
+// which scans badges and nothing else. Anything that would touch another role,
+// or hand out permissions, stays behind the super admin.
+const assertMayManage = (
+  admin: { role: string },
+  change: { roles: (string | undefined)[]; permissions?: unknown },
+) => {
+  if (admin.role === "super_admin") return;
+  if (
+    change.permissions === undefined &&
+    change.roles.every((role) => role === undefined || role === "volunteer")
+  ) {
+    return;
+  }
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: "Super admin access required",
+  });
+};
 
 export const adminRouter = createTRPCRouter({
   isAdmin: protectedProcedure.query(async ({ ctx }) => {
@@ -78,6 +105,8 @@ export const adminRouter = createTRPCRouter({
       totalEvents: number;
       totalHackathons: number;
       checkinsToday: number;
+      badgeScansToday: number;
+      doorCheckinsToday: number;
     }>(
       cacheKey,
       async () => {
@@ -114,17 +143,33 @@ export const adminRouter = createTRPCRouter({
             .where(gte(eventCheckIns.checkedInAt, startOfToday)),
         ]);
 
+        const badgeScansToday = badgeScansResult[0]?.count ?? 0;
+        const doorCheckinsToday = doorCheckinsResult[0]?.count ?? 0;
+
         const result = {
           totalParticipants: participantsResult[0]?.count ?? 0,
           totalEvents: eventsResult[0]?.count ?? 0,
           totalHackathons: hackathonsResult[0]?.count ?? 0,
-          checkinsToday:
-            (badgeScansResult[0]?.count ?? 0) +
-            (doorCheckinsResult[0]?.count ?? 0),
+          // Kept as the sum so a caller that only knew the blended number
+          // still moves. The page reads the two halves, because a hackathon
+          // weekend and a club meeting are not the same turnout.
+          badgeScansToday,
+          doorCheckinsToday,
+          checkinsToday: badgeScansToday + doorCheckinsToday,
         };
 
         return result;
       },
+      15,
+    );
+  }),
+
+  // The same counts the Prometheus gauges use, for the analytics page. A
+  // scrape is optional; this is what staff open during the weekend.
+  hackathonLive: isAdmin.query(async ({ ctx }) => {
+    return await ctx.cache.getOrSet(
+      "admin:hackathon-live",
+      () => readLiveHackathons(ctx.db as DrizzleDB),
       15,
     );
   }),
@@ -281,9 +326,18 @@ export const adminRouter = createTRPCRouter({
   // sign-in address. Exact rather than a prefix search: a partial match list is
   // how the wrong Alex ends up with scanner access, and it also means this
   // cannot enumerate the user table — it confirms an address already known.
-  findUserByEmail: isSuperAdmin
+  findUserByEmail: isAdmin
     .input(z.object({ email: z.string().trim().email().max(255) }))
     .query(async ({ ctx, input }) => {
+      // isAdmin lets a bug tester through for reads; this one confirms that an
+      // address has an account, which they have no business doing.
+      if (isBugTesterRole(ctx.admin.role)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Admin access required",
+        });
+      }
+
       const user = await (ctx.db as DrizzleDB).query.users.findFirst({
         // Stored lowercased by every writer.
         where: eq(users.email, input.email.toLowerCase()),
@@ -300,7 +354,7 @@ export const adminRouter = createTRPCRouter({
       return { ...user, existingRole: existing ?? null };
     }),
 
-  create: isSuperAdmin
+  create: isAdmin
     .input(
       z.object({
         userId: z.string().min(1).max(255),
@@ -322,6 +376,11 @@ export const adminRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      assertMayManage(ctx.admin, {
+        roles: [input.role],
+        permissions: input.permissions,
+      });
+
       // Parallel check: user exists AND not already admin
       const [user, existingAdmin] = await Promise.all([
         (ctx.db as DrizzleDB).query.users.findFirst({
@@ -367,10 +426,18 @@ export const adminRouter = createTRPCRouter({
       ctx.cache.delete(`admins:list`);
       invalidatePortalContext(input.userId);
 
+      await recordAdminAction(ctx.db as DrizzleDB, {
+        userId: ctx.userId,
+        action: "admin.create",
+        resourceId: input.userId,
+        severity: "warn",
+        metadata: { role: input.role, grantedBy: ctx.admin.role },
+      });
+
       return newAdmin;
     }),
 
-  update: isSuperAdmin
+  update: isAdmin
     .input(
       z.object({
         adminId: z.string().uuid(),
@@ -387,6 +454,12 @@ export const adminRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // A role this caller may not set is refused before any lookup.
+      assertMayManage(ctx.admin, {
+        roles: [input.role],
+        permissions: input.permissions,
+      });
+
       const targetAdmin = await (ctx.db as DrizzleDB).query.admins.findFirst({
         where: eq(admins.id, input.adminId),
       });
@@ -394,6 +467,10 @@ export const adminRouter = createTRPCRouter({
       if (!targetAdmin) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Admin not found" });
       }
+      // Both ends of the change count: the role being set above, and the role
+      // being held here. Without this a plain admin could "grant volunteer" to
+      // a super admin and demote them.
+      assertMayManage(ctx.admin, { roles: [targetAdmin.role] });
       if (targetAdmin.userId === ctx.userId && input.isActive === false) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -453,10 +530,23 @@ export const adminRouter = createTRPCRouter({
       ctx.cache.delete(`admins:list`);
       invalidatePortalContext(targetAdmin.userId);
 
+      await recordAdminAction(ctx.db as DrizzleDB, {
+        userId: ctx.userId,
+        action: "admin.update",
+        resourceId: targetAdmin.userId,
+        severity: "warn",
+        metadata: {
+          from: targetAdmin.role,
+          to: updatedAdmin.role,
+          isActive: updatedAdmin.isActive,
+          changedBy: ctx.admin.role,
+        },
+      });
+
       return updatedAdmin;
     }),
 
-  remove: isSuperAdmin
+  remove: isAdmin
     .input(z.object({ adminId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const targetAdmin = await (ctx.db as DrizzleDB).query.admins.findFirst({
@@ -466,6 +556,7 @@ export const adminRouter = createTRPCRouter({
       if (!targetAdmin) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Admin not found" });
       }
+      assertMayManage(ctx.admin, { roles: [targetAdmin.role] });
       if (targetAdmin.userId === ctx.userId) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -480,6 +571,14 @@ export const adminRouter = createTRPCRouter({
       ctx.cache.deletePattern(`${CacheKeys.admin(targetAdmin.userId)}*`);
       ctx.cache.delete(`admins:list`);
       invalidatePortalContext(targetAdmin.userId);
+
+      await recordAdminAction(ctx.db as DrizzleDB, {
+        userId: ctx.userId,
+        action: "admin.remove",
+        resourceId: targetAdmin.userId,
+        severity: "warn",
+        metadata: { role: targetAdmin.role, removedBy: ctx.admin.role },
+      });
 
       return { success: true };
     }),
