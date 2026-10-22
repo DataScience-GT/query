@@ -55,6 +55,8 @@ const room = (
 });
 
 const at = (minute: number) => new Date(Date.UTC(2027, 1, 8, 15, minute));
+// Grading closes 15s past a deadline (timing.ts).
+const closes = (minute: number) => new Date(at(minute).getTime() + 15_000);
 
 const slot = (
   id: string,
@@ -66,6 +68,7 @@ const slot = (
   challengeId,
   roomId,
   startsAt: at(startMinute),
+  deadlineAt: at(startMinute + 8),
   endsAt: at(startMinute + 10),
 });
 
@@ -194,14 +197,14 @@ describe("buildItinerary", () => {
     // Remote judging never reaches hackers.
     expect(itinerary.appointments.map((a) => a.id)).not.toContain("s3");
     expect(itinerary.missed).toBe(false);
-    expect(itinerary.nextEndsAt).toEqual(at(10));
+    expect(itinerary.nextEndsAt).toEqual(closes(8));
   });
 
-  it("flags a missed slot and points the refetch at the next end", () => {
-    const itinerary = buildItinerary({ ...base, now: at(12) });
+  it("flags a missed slot and points the refetch at the next close", () => {
+    const itinerary = buildItinerary({ ...base, now: at(9) });
     expect(itinerary.appointments[0]!.status).toBe("missed");
     expect(itinerary.missed).toBe(true);
-    expect(itinerary.nextEndsAt).toEqual(at(40));
+    expect(itinerary.nextEndsAt).toEqual(closes(38));
     expect(buildItinerary({ ...base, now: at(45) }).nextEndsAt).toBeNull();
   });
 

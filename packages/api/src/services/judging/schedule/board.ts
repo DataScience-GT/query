@@ -30,7 +30,7 @@ type Booked = {
   challengeId: string;
   roomId: string;
   startsAt: Date;
-  endsAt: Date;
+  deadlineAt: Date;
 };
 
 /**
@@ -92,7 +92,7 @@ export function withStatus<A extends Booked>(
     const status = appointmentStatus(
       {
         startsAt: appointment.startsAt,
-        endsAt: appointment.endsAt,
+        deadlineAt: appointment.deadlineAt,
         evaluations: mine,
       },
       now,

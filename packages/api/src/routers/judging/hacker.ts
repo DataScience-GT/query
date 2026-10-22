@@ -628,6 +628,7 @@ export const judgingHackerRouter = createTRPCRouter({
             challengeId: judgingAppointments.challengeId,
             roomId: judgingAppointments.roomId,
             startsAt: judgingAppointments.startsAt,
+            deadlineAt: judgingAppointments.deadlineAt,
             endsAt: judgingAppointments.endsAt,
           })
           .from(judgingAppointments)

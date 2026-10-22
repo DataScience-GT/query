@@ -10,6 +10,7 @@ const appointment = {
   challengeId: "mlh",
   roomId: "r1",
   startsAt: at("15:00"),
+  deadlineAt: at("15:08"),
   endsAt: at("15:10"),
 };
 
