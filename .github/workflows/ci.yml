@@ -82,6 +82,8 @@ jobs:
           projectId: dsgt-website
           channelId: pr-${{ github.event.pull_request.number }}
           entryPoint: "."
+          # 15.34.1 checks the Service Usage API, which is disabled on dsgt-website.
+          firebaseToolsVersion: "15.34.0"
 
   deploy-hacklytics:
     name: Deploy Hacklytics
@@ -107,3 +109,5 @@ jobs:
           projectId: dsgt-website
           channelId: live
           entryPoint: "."
+          # 15.34.1 checks the Service Usage API, which is disabled on dsgt-website.
+          firebaseToolsVersion: "15.34.0"
