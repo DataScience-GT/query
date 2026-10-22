@@ -27,6 +27,8 @@ export type PublicResult = {
   scopeLabel: string;
   placement: number;
   projectName: string;
+  /** The judging entry, for room-judging placings; null on legacy rows. */
+  entryId: string | null;
   teamName: string | null;
   githubUrl: string | null;
   demoUrl: string | null;
@@ -244,6 +246,7 @@ export const hackathonContentRouter = createTRPCRouter({
           placement: row.placement,
           projectName:
             row.sourceProject?.name ?? row.project?.name ?? "Unknown project",
+          entryId: null,
           teamName:
             row.sourceProject?.team?.name ?? row.project?.teamMembers ?? null,
           githubUrl: row.sourceProject?.githubUrl ?? null,
@@ -266,12 +269,15 @@ export const hackathonContentRouter = createTRPCRouter({
             scopeLabel: row.scopeLabel,
             placement: row.placement,
             projectName: row.entry?.title ?? "Unknown project",
+            entryId: row.entry?.id ?? null,
             teamName: row.entry?.sourceProject?.team?.name ?? null,
             githubUrl: row.entry?.sourceProject?.githubUrl ?? null,
-            demoUrl:
-              row.entry?.sourceProject?.demoUrl ??
-              row.entry?.demoLinks[0] ??
-              null,
+            // A portal entry's demo links also hold its repository and
+            // slides, so only its own demo URL is a demo. A Devpost entry has
+            // nothing else to go on but its "Try it out" links.
+            demoUrl: row.entry?.sourceProject
+              ? row.entry.sourceProject.demoUrl
+              : (row.entry?.demoLinks[0] ?? null),
             submissionUrl: row.entry?.submissionUrl ?? null,
             score: toScore(row.score),
           })),

@@ -1342,6 +1342,7 @@ describe("hackathon.getResults", () => {
 
     expect(Object.keys(results[0]!).sort()).toEqual([
       "demoUrl",
+      "entryId",
       "githubUrl",
       "id",
       "placement",
@@ -1360,6 +1361,52 @@ describe("hackathon.getResults", () => {
     // The cached payload is built from placements alone: no select, so no
     // flag table, ran for it.
     expect(mockSelect).not.toHaveBeenCalled();
+  });
+
+  it("lists a portal project's repository as code, never as its demo", async () => {
+    const repo = "https://github.com/team/project";
+    wire([
+      placementRow("a", {
+        // Promotion stores the repository among the demo links.
+        demoLinks: [repo],
+        sourceProject: { id: "p-a", githubUrl: repo, demoUrl: null, team: null },
+      }),
+      placementRow("b", {
+        demoLinks: ["https://b.example.com", repo],
+        sourceProject: {
+          id: "p-b",
+          githubUrl: repo,
+          demoUrl: "https://b.example.com",
+          team: null,
+        },
+      }),
+      placementRow("c", { demoLinks: ["https://c.example.com"] }),
+    ]);
+
+    const results = await anonCaller().hackathon.getResults({
+      hackathonId: HACK,
+    });
+
+    const byName = new Map(results.map((row) => [row.projectName, row]));
+    expect(byName.get("Project a")).toMatchObject({
+      githubUrl: repo,
+      demoUrl: null,
+    });
+    expect(byName.get("Project b")?.demoUrl).toBe("https://b.example.com");
+    // A Devpost entry has only its "Try it out" links.
+    expect(byName.get("Project c")?.demoUrl).toBe("https://c.example.com");
+  });
+
+  it("names each placing's entry, so a solo project can be found", async () => {
+    wire([placementRow("a")]);
+
+    const results = await anonCaller().hackathon.getResults({
+      hackathonId: HACK,
+    });
+
+    expect(
+      results.find((row) => row.projectName === "Project a")?.entryId,
+    ).toBe("entry-a");
   });
 
   it("serves a pulled team's absence from the cache too", async () => {
