@@ -23,7 +23,6 @@ describe("appointmentStatus", () => {
         { judgeId: "a", ratingsComplete: true },
         { judgeId: "b", ratingsComplete: true },
       ],
-      presentJudgeIds: ["a", "b"],
     };
     expect(appointmentStatus(slot, during)).toBe("complete");
     expect(appointmentStatus(slot, after)).toBe("complete");
@@ -39,16 +38,6 @@ describe("appointmentStatus", () => {
       ],
     };
     expect(appointmentStatus(slot, after)).toBe("incomplete");
-  });
-
-  it("is incomplete while a judge in the room has not submitted", () => {
-    const slot = {
-      startsAt,
-      endsAt,
-      evaluations: [{ judgeId: "a", ratingsComplete: true }],
-      presentJudgeIds: ["a", "b"],
-    };
-    expect(appointmentStatus(slot, during)).toBe("incomplete");
   });
 
   it("lets evaluations outrank the clock", () => {

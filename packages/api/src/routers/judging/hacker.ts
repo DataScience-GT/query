@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, gt, ilike, inArray, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, eq, gt, ilike, inArray, isNull, sql } from "drizzle-orm";
 import {
   judgingAppointments,
   judgingBuildings,
@@ -12,7 +12,6 @@ import {
   judgingEvaluationResponses,
   judgingEvaluations,
   judgingJudges,
-  judgingPresence,
   judgingRooms,
   judgingRubricItems,
   users,
@@ -654,31 +653,6 @@ export const judgingHackerRouter = createTRPCRouter({
           ),
       ]);
 
-      // Only the rooms this project presents in, and only rows that began
-      // before its last slot ended.
-      const roomIds = [...new Set(appointments.map((a) => a.roomId))];
-      const lastEnd = appointments.reduce(
-        (latest, a) => (a.endsAt > latest ? a.endsAt : latest),
-        new Date(0),
-      );
-      const presence = roomIds.length
-        ? await db
-            .select({
-              judgeId: judgingPresence.judgeId,
-              roomId: judgingPresence.roomId,
-              joinedAt: judgingPresence.joinedAt,
-              lastSeenAt: judgingPresence.lastSeenAt,
-              leftAt: judgingPresence.leftAt,
-            })
-            .from(judgingPresence)
-            .where(
-              and(
-                inArray(judgingPresence.roomId, roomIds),
-                lt(judgingPresence.joinedAt, lastEnd),
-              ),
-            )
-        : [];
-
       const itinerary = buildItinerary({
         challenges,
         entryChallengeIds,
@@ -688,7 +662,6 @@ export const judgingHackerRouter = createTRPCRouter({
         })),
         appointments,
         evaluations,
-        presence,
         now,
       });
 

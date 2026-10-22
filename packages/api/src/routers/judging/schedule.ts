@@ -575,7 +575,7 @@ async function loadBoard(
     names: namesOf(inventory),
     evaluations,
     rootIdOf,
-    appointments: withStatus(booked, evaluations, presence, rootIdOf, now),
+    appointments: withStatus(booked, evaluations, rootIdOf, now),
     staffed: staffedRoomIds(presence, now),
   };
 }

@@ -43,14 +43,6 @@ export type ItineraryEvaluation = {
   ratingsComplete: boolean;
 };
 
-export type ItineraryPresence = {
-  judgeId: string;
-  roomId: string;
-  joinedAt: Date;
-  lastSeenAt: Date;
-  leftAt: Date | null;
-};
-
 /** A top-level challenge the project is judged in, with its sub-prizes. */
 export type VisibleChallenge = {
   id: string;
@@ -121,28 +113,6 @@ export function evaluationsForAppointment<T extends ItineraryEvaluation>(
   );
 }
 
-// Judges heartbeat every minute. An open presence row whose heartbeat stopped
-// (a closed laptop) counts as gone two minutes after the last one, or it would
-// hold every later slot in that room open as "incomplete".
-const HEARTBEAT_GRACE_MS = 2 * 60 * 1000;
-
-/** Judges whose time in the slot's room overlapped the slot. */
-export function judgesPresentDuring(
-  slot: { roomId: string; startsAt: Date; endsAt: Date },
-  presence: readonly ItineraryPresence[],
-): string[] {
-  const present = new Set<string>();
-  for (const row of presence) {
-    if (row.roomId !== slot.roomId) continue;
-    const left =
-      row.leftAt ?? new Date(row.lastSeenAt.getTime() + HEARTBEAT_GRACE_MS);
-    if (row.joinedAt < slot.endsAt && left > slot.startsAt) {
-      present.add(row.judgeId);
-    }
-  }
-  return [...present];
-}
-
 export type ItineraryAppointmentView = {
   id: string;
   challengeId: string;
@@ -183,7 +153,6 @@ export function buildItinerary(input: {
   rooms: readonly ItineraryRoom[];
   appointments: readonly ItineraryAppointment[];
   evaluations: readonly ItineraryEvaluation[];
-  presence: readonly ItineraryPresence[];
   now: Date;
 }): Itinerary {
   const { challenges, rooms, evaluations, now } = input;
@@ -219,7 +188,6 @@ export function buildItinerary(input: {
             evaluations,
             challenges,
           ),
-          presentJudgeIds: judgesPresentDuring(appointment, input.presence),
         },
         now,
       ),

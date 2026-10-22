@@ -71,7 +71,6 @@ export function staffedRoomIds(
 export function withStatus<A extends Booked>(
   appointments: readonly A[],
   evaluations: readonly BoardEvaluation[],
-  presence: readonly BoardPresence[],
   rootIdOf: (challengeId: string) => string | null,
   now: Date,
 ): (A & {
@@ -85,33 +84,16 @@ export function withStatus<A extends Booked>(
     if (list) list.push(evaluation);
     else byEntry.set(evaluation.entryId, [evaluation]);
   }
-  const byRoom = new Map<string, BoardPresence[]>();
-  for (const row of presence) {
-    const list = byRoom.get(row.roomId);
-    if (list) list.push(row);
-    else byRoom.set(row.roomId, [row]);
-  }
 
   return appointments.map((appointment) => {
     const mine = (byEntry.get(appointment.entryId) ?? []).filter((e) =>
       belongsTo(appointment, e, rootIdOf),
     );
-    // Seen in the room at some point during the slot. An open row's last
-    // heartbeat stands in for when the judge left.
-    const presentJudgeIds = (byRoom.get(appointment.roomId) ?? [])
-      .filter(
-        (p) =>
-          p.joinedAt < appointment.endsAt &&
-          (p.leftAt ?? p.lastSeenAt) >= appointment.startsAt,
-      )
-      .map((p) => p.judgeId);
-
     const status = appointmentStatus(
       {
         startsAt: appointment.startsAt,
         endsAt: appointment.endsAt,
         evaluations: mine,
-        presentJudgeIds,
       },
       now,
     );
