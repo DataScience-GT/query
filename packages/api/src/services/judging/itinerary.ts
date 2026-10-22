@@ -7,7 +7,7 @@
 // appear here.
 
 import type { JudgingRoomKind } from "@query/db";
-import { appointmentStatus } from "./appointment-status";
+import { appointmentStatus, gradingClosesAt } from "./appointment-status";
 import type { AppointmentStatus } from "./appointment-status";
 import { rootOf } from "./scope";
 import type { ChallengeMode, ChallengeNode } from "./scope";
@@ -32,6 +32,7 @@ export type ItineraryAppointment = {
   challengeId: string;
   roomId: string;
   startsAt: Date;
+  deadlineAt: Date;
   endsAt: Date;
 };
 
@@ -137,12 +138,12 @@ export type UnscheduledChallengeView = {
 export type Itinerary = {
   appointments: ItineraryAppointmentView[];
   unscheduled: UnscheduledChallengeView[];
-  /** Some appointment ended with nobody judging the project. */
+  /** Grading closed on some appointment with nobody judging the project. */
   missed: boolean;
   /**
-   * When the next appointment that has not ended yet ends. Statuses change
-   * then, so the client refetches at that moment rather than waiting for its
-   * next poll.
+   * When grading next closes on an appointment. An unjudged one turns
+   * missed then, so the client refetches at that moment rather than waiting
+   * for its next poll.
    */
   nextEndsAt: Date | null;
 };
@@ -182,7 +183,7 @@ export function buildItinerary(input: {
       status: appointmentStatus(
         {
           startsAt: appointment.startsAt,
-          endsAt: appointment.endsAt,
+          deadlineAt: appointment.deadlineAt,
           evaluations: evaluationsForAppointment(
             appointment,
             evaluations,
@@ -217,8 +218,10 @@ export function buildItinerary(input: {
       ),
     }));
 
-  const upcomingEnds = appointments
-    .map((appointment) => appointment.endsAt.getTime())
+  const shown = new Set(appointments.map((appointment) => appointment.id));
+  const upcomingEnds = input.appointments
+    .filter((appointment) => shown.has(appointment.id))
+    .map((appointment) => gradingClosesAt(appointment).getTime())
     .filter((end) => end > now.getTime());
 
   return {
