@@ -1106,8 +1106,8 @@ describe("re-balancing judges on their own", () => {
     leftAt: null,
   });
   const left = (judgeId: string) => ({
-    ...here(judgeId, 5),
-    leftAt: minutes(4),
+    ...here(judgeId, 7),
+    leftAt: minutes(6),
   });
   // Its own caller, so the file's earlier requests do not trip the flood guard.
   const organiser = () => callerAs("rebalance_admin");
@@ -1179,8 +1179,14 @@ describe("re-balancing judges on their own", () => {
     expect(audits()).toEqual([]);
   });
 
-  it("treats a judge who stopped sending heartbeats as gone, and a judge not yet due as here", async () => {
-    store.set(judgingPresence, [here(M1, 4), here(M2), here(M3)]);
+  it("treats a judge quiet for 11 minutes as gone, one who just walked off as here, and one not yet due as here", async () => {
+    store.set(judgingPresence, [here(M1, 9), here(M2), here(M3)]);
+    await get();
+    expect(updates.filter((u) => u.table === judgingAppointments)).toEqual([]);
+
+    updates.length = 0;
+    rebalanceThrottle.clear();
+    store.set(judgingPresence, [here(M1, 11), here(M2), here(M3)]);
     await get();
     expect(gives(P2)).toBe(M3);
 
@@ -1233,7 +1239,7 @@ describe("re-balancing judges on their own", () => {
   });
 
   // Last: it moves the clock on, and the rate limiter reads the clock.
-  it("runs at most once every 30 seconds, sooner when asked to", async () => {
+  it("runs at most once every 30 seconds", async () => {
     await get();
     expect(gives(P2)).toBe(M3);
 
@@ -1245,11 +1251,8 @@ describe("re-balancing judges on their own", () => {
     await get();
     expect(updates).toEqual([]);
 
-    await rebalanceIfDue(fakeDb, HACK, new Date(), 5_000);
-    expect(updates.some((u) => u.table === judgingAppointments)).toBe(true);
-
     updates.length = 0;
-    vi.setSystemTime(new Date(NOW.getTime() + 61_000));
+    vi.setSystemTime(new Date(NOW.getTime() + 31_000));
     await get();
     expect(updates.some((u) => u.table === judgingAppointments)).toBe(true);
   });

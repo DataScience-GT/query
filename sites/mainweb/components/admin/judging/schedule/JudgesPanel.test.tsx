@@ -183,7 +183,7 @@ describe("JudgesPanel", () => {
     let html = panel();
     expect(html).toContain("Re-balance automatically");
     expect(html).toContain(
-      "When a judge leaves or stops responding for 3 minutes, their upcoming presentations go to judges who are here.",
+      "When a judge leaves for 5 minutes, goes quiet for 10, or misses a presentation, their upcoming presentations go to judges who are here.",
     );
     expect(html).toContain('checked=""');
     expect(html).not.toContain("Last re-balanced");
