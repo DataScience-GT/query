@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
-    "@types/node": "^22.20.4",
+    "@types/node": "^24.19.2",
     "@typescript-eslint/eslint-plugin": "^8.71.0",
     "@typescript-eslint/parser": "^8.70.1",
     "@typescript-eslint/utils": "^8.70.1",

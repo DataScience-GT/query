@@ -9,7 +9,7 @@ Config: [`apphosting.yaml`](../../apphosting.yaml) at the repo root.
 | | |
 | --- | --- |
 | App | `sites/mainweb` (workspace `web`) |
-| Runtime | Node 22 |
+| Runtime | Node 24 |
 | Output | Next standalone (`sites/mainweb/.next/standalone/sites/mainweb/server.js`) |
 | Concurrency | 80 |
 | CPU / memory | 2 / 1024 MiB |
