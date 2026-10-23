@@ -6,6 +6,7 @@ import {
   describeShortfall,
   judgeShortfalls,
   mayGrade,
+  roomsJudgesCanStaff,
   scoreJudgeAssignment,
   validateJudgeAssignment,
 } from "./judges";
@@ -528,5 +529,69 @@ describe("assignJudges against every possibility", () => {
         fewestLeftOut(plan, spots, judges),
       );
     }
+  });
+});
+
+describe("roomsJudgesCanStaff", () => {
+  const ids = (rooms: readonly { id: string }[]) => rooms.map((r) => r.id);
+  const members = (n: number) =>
+    Array.from({ length: n }, (_, i) => member(`m${i + 1}`));
+
+  it("keeps every room when the members can staff them all", () => {
+    // Five members each sit four slots in five: four at a time.
+    expect(ids(roomsJudgesCanStaff(inputs, members(5)))).toEqual([
+      "g1",
+      "g2",
+      "g3",
+      "s1",
+    ]);
+  });
+
+  it("leaves out the last general tables the members cannot staff", () => {
+    // Four members: three at a time, so one of the four rooms goes.
+    expect(ids(roomsJudgesCanStaff(inputs, members(4)))).toEqual([
+      "g1",
+      "g2",
+      "s1",
+    ]);
+  });
+
+  it("never leaves out a sponsor room, or a room a guest staffs", () => {
+    expect(
+      ids(
+        roomsJudgesCanStaff(inputs, [
+          ...members(3),
+          guest("x", "g3", ["general"]),
+        ]),
+      ),
+    ).toEqual(["g1", "g3", "s1"]);
+    expect(ids(roomsJudgesCanStaff(inputs, members(1)))).toEqual(["g1", "s1"]);
+  });
+
+  it("keeps enough tables for every general presentation", () => {
+    // Four general presentations in two slots need two tables.
+    expect(
+      ids(roomsJudgesCanStaff({ ...inputs, slots: 2 }, members(1))),
+    ).toEqual(["g1", "g2", "s1"]);
+  });
+
+  it("keeps the rooms keepFirst puts first", () => {
+    const reverse = (a: { id: string }, b: { id: string }) =>
+      a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
+    expect(ids(roomsJudgesCanStaff(inputs, members(4), reverse))).toEqual([
+      "g2",
+      "g3",
+      "s1",
+    ]);
+  });
+
+  it("keeps every room before any member judge is added", () => {
+    expect(roomsJudgesCanStaff(inputs, [guest("x", "s1")])).toBe(inputs.rooms);
+  });
+
+  it("counts a judge's own run limit", () => {
+    // Four members who rest every other slot staff two rooms at once.
+    const resting = members(4).map((j) => ({ ...j, maxConsecutive: 1 }));
+    expect(ids(roomsJudgesCanStaff(inputs, resting))).toEqual(["g1", "s1"]);
   });
 });

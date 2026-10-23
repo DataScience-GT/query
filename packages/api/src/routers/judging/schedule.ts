@@ -50,6 +50,7 @@ import {
   describeShortfall,
   judgeShortfalls,
   mayGrade,
+  roomsJudgesCanStaff,
 } from "../../services/judging/schedule/judges";
 import type {
   JudgeAssignment,
@@ -312,13 +313,42 @@ function planOf(inventory: Inventory, timing: ScheduleTiming) {
   };
 }
 
-/** Solves the edition as it stands for one timing, with aamoghCPSolver. */
-function solveInventory(inventory: Inventory, timing: ScheduleTiming) {
-  const { inputs, fingerprint } = planOf(inventory, timing);
-  const result = aamoghCPSolver(inputs);
+/**
+ * Solves the edition as it stands for one timing, with aamoghCPSolver. Given
+ * `judges`, it schedules only the tables they can staff at once, so
+ * presentations spread over the day instead of waiting for a judge, and
+ * falls back to every table when that cannot fit them all.
+ */
+function solveInventory(
+  inventory: Inventory,
+  timing: ScheduleTiming,
+  judges?: readonly JudgeInput[],
+) {
+  const { inputs: every, fingerprint } = planOf(inventory, timing);
+  const solve = () => {
+    if (judges) {
+      const names = namesOf(inventory);
+      const rooms = roomsJudgesCanStaff(every, judges, (a, b) =>
+        names
+          .room(a.id)
+          .roomName.localeCompare(names.room(b.id).roomName, "en", {
+            numeric: true,
+          }),
+      );
+      if (rooms.length < every.rooms.length) {
+        const fewer = { ...every, rooms };
+        const spread = aamoghCPSolver(fewer);
+        if (spread.ok) return { inputs: fewer, result: spread };
+      }
+    }
+    return { inputs: every, result: aamoghCPSolver(every) };
+  };
+  const { inputs, result } = solve();
   return {
     inputs,
     result,
+    // Tables left out because the judges cannot staff them all at once.
+    roomsLeftOut: every.rooms.length - inputs.rooms.length,
     fingerprint,
     // Which of the first four goals no schedule can beat (from the solver's
     // counting bounds), so the preview can say so.
@@ -340,6 +370,7 @@ function describePlan(
   inputs: PlanInputs,
   names: ReturnType<typeof namesOf>,
   timing: ScheduleTiming,
+  roomsLeftOut = 0,
 ) {
   const minutes = slotMinutes(timing);
   const [sponsorEnd, sponsorIdle, allEnd, changes, lessBreaks] = result.score;
@@ -350,6 +381,7 @@ function describePlan(
     projects: new Set(inputs.tasks.map((t) => t.entryId)).size,
     rooms: inputs.rooms.length,
     tables: names.tables(inputs.rooms),
+    roomsLeftOut,
     ok: true as const,
     relaxed: result.relaxed,
     diagnostics: [] as string[],
@@ -890,9 +922,11 @@ export const judgingScheduleRouter = createTRPCRouter({
 
       const inventory = await readInventory(db, input.hackathonId);
       const names = namesOf(inventory);
-      const { inputs, result, key, proven } = solveInventory(
+      const roster = await readRoster(db, input.hackathonId, inventory);
+      const { inputs, result, key, proven, roomsLeftOut } = solveInventory(
         inventory,
         input.timing,
+        roster.judges,
       );
 
       if (!result.ok) {
@@ -915,7 +949,7 @@ export const judgingScheduleRouter = createTRPCRouter({
       }
 
       return {
-        ...describePlan(result, inputs, names, input.timing),
+        ...describePlan(result, inputs, names, input.timing, roomsLeftOut),
         candidateKey: key!,
         proven,
       };
@@ -942,10 +976,14 @@ export const judgingScheduleRouter = createTRPCRouter({
       assertWindowAhead(input.timing);
 
       // Solved before the transaction so no lock is held while it computes.
+      // Judges first come with the schedule, as far as there are any yet;
+      // assignJudges picks up the rest once more have joined.
       const inventory = await readInventory(db, input.hackathonId);
+      const roster = await readRoster(db, input.hackathonId, inventory);
       const { inputs, result, key, fingerprint } = solveInventory(
         inventory,
         input.timing,
+        roster.judges,
       );
       if (!result.ok) {
         throw new TRPCError({
@@ -957,7 +995,7 @@ export const judgingScheduleRouter = createTRPCRouter({
         throw new TRPCError({
           code: "CONFLICT",
           message:
-            "Projects, rooms, tables or timing changed since this preview, so it is not the schedule that would be saved. Preview again and check it before saving.",
+            "Projects, rooms, tables, judges or timing changed since this preview, so it is not the schedule that would be saved. Preview again and check it before saving.",
         });
       }
       if (result.relaxed && !input.acknowledgeReducedBreaks) {
@@ -967,9 +1005,6 @@ export const judgingScheduleRouter = createTRPCRouter({
         });
       }
 
-      // Judges first come with the schedule, as far as there are any yet;
-      // assignJudges picks up the rest once more have joined.
-      const roster = await readRoster(db, input.hackathonId, inventory);
       const written = await writeSchedule(db, ctx.userId, input, {
         placements: result.placements,
         relaxed: result.relaxed,

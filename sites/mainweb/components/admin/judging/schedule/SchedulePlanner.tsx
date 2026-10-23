@@ -396,7 +396,10 @@ export function PreviewFigures({
     {
       term: stations.charAt(0).toUpperCase() + stations.slice(1),
       value: String(result.rooms),
-      note: `${plural(result.slots, "slot")} of ${result.slotMinutes} min each`,
+      note:
+        result.roomsLeftOut > 0
+          ? `${result.roomsLeftOut} more left out: too few judges to staff them at once`
+          : `${plural(result.slots, "slot")} of ${result.slotMinutes} min each`,
     },
   ];
 
