@@ -37,6 +37,7 @@ import type { JudgingTx as Tx } from "../../services/judging/config";
 import { flaggedEntryIds } from "../../services/check-in-flags";
 import { createTRPCRouter, publicProcedure } from "../../trpc";
 import { isUniqueViolation } from "../../middleware/db-errors";
+import { REBALANCE_AFTER_LEAVE_MS, rebalanceIfDue } from "./schedule";
 import {
   asJudge,
   nameGuest,
@@ -908,6 +909,15 @@ export const judgingDeskRouter = createTRPCRouter({
         ),
       )
       .returning({ id: judgingPresence.id });
+    // Their upcoming presentations go to judges who are here.
+    if (closed.length > 0) {
+      await rebalanceIfDue(
+        ctx.db,
+        ctx.judge.hackathonId,
+        new Date(),
+        REBALANCE_AFTER_LEAVE_MS,
+      );
+    }
     return { left: closed.length > 0 };
   }),
 
@@ -1263,6 +1273,7 @@ export const judgingDeskRouter = createTRPCRouter({
     const db = ctx.db;
     const { judge } = ctx;
     await reconcileDueDrafts(db, input.hackathonId);
+    await rebalanceIfDue(db, input.hackathonId);
 
     const now = new Date();
     const [schedule] = await db

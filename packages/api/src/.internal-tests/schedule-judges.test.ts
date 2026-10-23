@@ -28,6 +28,7 @@ import {
   judgingSchedules,
 } from "@query/db";
 import { appRouter } from "../root";
+import { rebalanceIfDue, rebalanceThrottle } from "../routers/judging/schedule";
 import { cache } from "../middleware/cache";
 import { assignJudges } from "../services/judging/schedule/judges";
 import type * as Store from "../services/judging/evaluation-store";
@@ -1090,5 +1091,166 @@ describe("saving a schedule", () => {
     expect(audits()[0]).toMatchObject({
       metadata: expect.objectContaining({ solver: "cp-sat", judges: "cp-sat" }),
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("re-balancing judges on their own", () => {
+  const M3 = id(54);
+  const minutes = (n: number) => new Date(Date.now() - n * 60_000);
+  const here = (judgeId: string, lastSeenMinutesAgo = 0.5) => ({
+    judgeId,
+    roomId: G1,
+    joinedAt: minutes(60),
+    lastSeenAt: minutes(lastSeenMinutesAgo),
+    leftAt: null,
+  });
+  const left = (judgeId: string) => ({
+    ...here(judgeId, 5),
+    leftAt: minutes(4),
+  });
+  // Its own caller, so the file's earlier requests do not trip the flood guard.
+  const organiser = () => callerAs("rebalance_admin");
+  const get = () => organiser().judging.schedule.get({ hackathonId: HACK });
+  const gives = (p: string) => judgeAfter().get(p);
+
+  beforeEach(() => {
+    rebalanceThrottle.clear();
+    store.set(judgingConfigs, [
+      { hackathonId: HACK, state: "open", autoRebalance: true },
+    ]);
+    store.set(judgingJudges, [
+      judge(M1, "member", "Ada"),
+      judge(M2, "member", "Bea"),
+      judge(M3, "member", "Cy"),
+      judge(GS, "guest", "Grace"),
+    ]);
+    // Ada, who left, holds P2; Bea is on P3 and Grace on P4; Cy is free.
+    give(P2, M1);
+    give(P3, M2);
+    give(P4, GS);
+    store.set(judgingPresence, [left(M1), here(M2), here(M3)]);
+  });
+
+  it("moves a judge's upcoming presentations to one who is here, and nobody else's", async () => {
+    const board = await get();
+
+    expect(gives(P2)).toBe(M3);
+    expect(gives(P3)).toBeUndefined();
+    expect(gives(P4)).toBeUndefined();
+    expect(gives(P1)).toBeUndefined();
+    expect(board.judging).toMatchObject({
+      autoRebalance: true,
+      lastRebalancedAt: NOW,
+      lastRebalanceChanged: 1,
+    });
+    expect(audits()).toEqual([
+      expect.objectContaining({
+        action: "judging.schedule.rebalance",
+        userId: null,
+        resourceId: HACK,
+        metadata: expect.objectContaining({ changed: 1 }),
+      }),
+    ]);
+  });
+
+  it("gives a presentation with no judge to one who is here", async () => {
+    give(P3, null as never);
+    store.set(judgingPresence, [here(M1), here(M2), here(M3)]);
+
+    await get();
+
+    expect(gives(P3)).toBeDefined();
+    expect(gives(P2)).toBeUndefined();
+  });
+
+  it("leaves alone a presentation that has started or has a draft", async () => {
+    // Ada's P2 has a draft; her P1 started at 14:00 and is over.
+    give(P1, M1);
+    store.set(judgingEvaluationDrafts, [
+      { entryId: E2, challengeId: GENERAL, appointmentId: null },
+    ]);
+
+    await get();
+
+    expect(gives(P2)).toBeUndefined();
+    expect(gives(P1)).toBeUndefined();
+    expect(updates.filter((u) => u.table === judgingAppointments)).toEqual([]);
+    expect(audits()).toEqual([]);
+  });
+
+  it("treats a judge who stopped sending heartbeats as gone, and a judge not yet due as here", async () => {
+    store.set(judgingPresence, [here(M1, 4), here(M2), here(M3)]);
+    await get();
+    expect(gives(P2)).toBe(M3);
+
+    // Never seen, but P2 is half an hour away: Ada keeps it.
+    updates.length = 0;
+    rebalanceThrottle.clear();
+    give(P2, M1);
+    store.set(judgingPresence, [here(M2), here(M3)]);
+    await get();
+    expect(updates.filter((u) => u.table === judgingAppointments)).toEqual([]);
+  });
+
+  it("does nothing when the organiser turned it off, and says so", async () => {
+    await organiser().judging.schedule.setAutoRebalance({
+      hackathonId: HACK,
+      enabled: false,
+    });
+    expect(audits()).toEqual([
+      expect.objectContaining({
+        action: "judging.schedule.setAutoRebalance",
+        metadata: { enabled: false },
+      }),
+    ]);
+
+    const board = await get();
+
+    expect(updates.filter((u) => u.table === judgingAppointments)).toEqual([]);
+    expect(board.judging).toMatchObject({ autoRebalance: false });
+  });
+
+  it("refuses anyone but an admin to switch it", async () => {
+    adminRow = undefined;
+    await expect(
+      callerAs("someone").judging.schedule.setAutoRebalance({
+        hackathonId: HACK,
+        enabled: false,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("never fails the read it rides on", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    onRead = (table) => {
+      if (table === judgingPresence) throw new Error("db down");
+      return undefined;
+    };
+    await expect(rebalanceIfDue(fakeDb, HACK, new Date())).resolves.toBeUndefined();
+    expect(logged).toHaveBeenCalled();
+    logged.mockRestore();
+  });
+
+  // Last: it moves the clock on, and the rate limiter reads the clock.
+  it("runs at most once every 30 seconds, sooner when asked to", async () => {
+    await get();
+    expect(gives(P2)).toBe(M3);
+
+    // Cy leaves too and P2 is Cy's now.
+    give(P2, M3);
+    store.set(judgingPresence, [left(M1), here(M2), left(M3)]);
+    updates.length = 0;
+    vi.setSystemTime(new Date(NOW.getTime() + 10_000));
+    await get();
+    expect(updates).toEqual([]);
+
+    await rebalanceIfDue(fakeDb, HACK, new Date(), 5_000);
+    expect(updates.some((u) => u.table === judgingAppointments)).toBe(true);
+
+    updates.length = 0;
+    vi.setSystemTime(new Date(NOW.getTime() + 61_000));
+    await get();
+    expect(updates.some((u) => u.table === judgingAppointments)).toBe(true);
   });
 });
