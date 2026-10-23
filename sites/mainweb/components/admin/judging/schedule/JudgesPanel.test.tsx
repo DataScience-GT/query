@@ -42,6 +42,7 @@ vi.mock("@/lib/trpc", () => {
             }),
           },
           setAssignedJudge: { useMutation: idle },
+          setAutoRebalance: { useMutation: idle },
           judgeChoices: {
             useQuery: () => ({
               isLoading: mocks.choices === null,
@@ -89,6 +90,9 @@ const judging = (overrides: Record<string, unknown> = {}) => ({
     },
   ],
   warnings: [],
+  autoRebalance: true,
+  lastRebalancedAt: null,
+  lastRebalanceChanged: 0,
   ...overrides,
 });
 
@@ -173,6 +177,28 @@ describe("JudgesPanel", () => {
     mocks.readOnly = false;
     mocks.pending = true;
     expect(button(panel(), "Assigning…")).toContain(DISABLED);
+  });
+
+  it("shows the automatic re-balance switch, on or off, and when it last moved something", () => {
+    let html = panel();
+    expect(html).toContain("Re-balance automatically");
+    expect(html).toContain(
+      "When a judge leaves or stops responding for 3 minutes, their upcoming presentations go to judges who are here.",
+    );
+    expect(html).toContain('checked=""');
+    expect(html).not.toContain("Last re-balanced");
+
+    html = panel({
+      autoRebalance: false,
+      lastRebalancedAt: new Date(2026, 10, 1, 17, 32),
+      lastRebalanceChanged: 3,
+    });
+    expect(html).not.toContain('checked=""');
+    expect(html).toContain("Last re-balanced");
+    expect(html).toContain("3 presentations moved.");
+
+    mocks.readOnly = true;
+    expect(panel()).toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
   });
 
   it("reports what an assignment changed and who worked it out", () => {

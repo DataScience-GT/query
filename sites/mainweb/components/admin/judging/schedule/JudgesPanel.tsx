@@ -15,7 +15,7 @@ import {
   textLink,
 } from "@/components/portal/ui";
 import { ErrorLine, plural } from "@/components/admin/judging/shared";
-import { slotTime } from "./format";
+import { clock, slotTime } from "./format";
 import type { ScheduleBoard } from "./format";
 
 type Judging = NonNullable<ScheduleBoard["judging"]>;
@@ -50,6 +50,10 @@ export function JudgesPanel({
     },
   });
 
+  const setAuto = trpc.judging.schedule.setAutoRebalance.useMutation({
+    onSuccess: () => utils.judging.schedule.get.invalidate({ hackathonId }),
+  });
+
   const { warnings, loads } = judging;
   const shownLoads = showAll ? loads : loads.slice(0, SHOWN_AT_FIRST);
 
@@ -75,6 +79,34 @@ export function JudgesPanel({
                 ? `${plural(judging.assigned, "presentation")} with a judge. Every upcoming one has its judge.`
                 : `${plural(judging.assigned, "presentation")} with a judge, ${judging.unassigned} still waiting for one.`}
           </p>
+          <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 text-[15px] text-[var(--text-primary)]">
+            <input
+              type="checkbox"
+              checked={judging.autoRebalance}
+              disabled={readOnly || setAuto.isPending}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
+              onChange={(e) =>
+                setAuto.mutate({ hackathonId, enabled: e.target.checked })
+              }
+              className="h-4 w-4 accent-[var(--accent)]"
+            />
+            Re-balance automatically
+          </label>
+          <p className={meta}>
+            When a judge leaves or stops responding for 3 minutes, their
+            upcoming presentations go to judges who are here.
+          </p>
+          {judging.lastRebalancedAt && judging.lastRebalanceChanged > 0 && (
+            <p className={meta}>
+              Last re-balanced {clock(judging.lastRebalancedAt)}:{" "}
+              {plural(judging.lastRebalanceChanged, "presentation")} moved.
+            </p>
+          )}
+          {setAuto.error && (
+            <ErrorLine>
+              {trpcErrorMessage(setAuto.error, "Could not save that setting.")}
+            </ErrorLine>
+          )}
         </div>
         <div className="shrink-0 space-y-2 sm:max-w-xs">
           <button
