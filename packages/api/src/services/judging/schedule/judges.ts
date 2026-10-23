@@ -1,5 +1,5 @@
 import { taskKey } from "./inputs";
-import type { Placement, PlanInputs } from "./inputs";
+import type { Placement, PlanInputs, PlanRoom } from "./inputs";
 
 // The second scheduling stage. Once every presentation has a time and a room,
 // each one gets exactly one judge, so every project has a time, a place and a
@@ -480,6 +480,63 @@ export function scoreJudgeAssignment(
 ): JudgeMetrics {
   const context = contextOf(inputs, placements, judges);
   return stateOf(context, assignment).metrics();
+}
+
+/**
+ * The rooms to schedule in when there are fewer table judges than rooms to
+ * staff. A member judge grades at most `max` slots in every `max + 1`, so only
+ * so many of them can sit at once all day; a room with a guest staffs itself.
+ * Filling every table at once would leave presentations with no judge, so
+ * general rooms past what the members can staff are left out, the last
+ * first, keeping enough for every general presentation. With no member
+ * judges yet, every room stays. `keepFirst` orders the rooms to keep, such
+ * as by name so Table 1 stays and the last tables go; by id when not given.
+ */
+export function roomsJudgesCanStaff(
+  inputs: PlanInputs,
+  judges: readonly JudgeInput[],
+  keepFirst: (a: PlanRoom, b: PlanRoom) => number = (a, b) =>
+    a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+): PlanRoom[] {
+  const members = judges.filter((judge) => judge.kind === "member");
+  if (members.length === 0) return inputs.rooms;
+  const seats = Math.floor(
+    members.reduce((sum, judge) => {
+      const max = judge.maxConsecutive ?? MAX_CONSECUTIVE;
+      return sum + max / (max + 1);
+    }, 0),
+  );
+  const guestRooms = new Set(judges.flatMap((judge) => judge.roomId ?? []));
+  const unstaffed = inputs.rooms.filter((room) => !guestRooms.has(room.id));
+  let excess = unstaffed.length - seats;
+  if (excess <= 0) return inputs.rooms;
+
+  const general = new Set(
+    inputs.tasks
+      .filter((task) => !task.sponsor)
+      .map((task) => task.challengeId),
+  );
+  const presentations = new Map<string, number>();
+  for (const task of inputs.tasks) {
+    presentations.set(
+      task.challengeId,
+      (presentations.get(task.challengeId) ?? 0) + 1,
+    );
+  }
+  const dropped = new Set<string>();
+  for (const challengeId of [...general].sort()) {
+    const rooms = unstaffed
+      .filter((room) => room.challengeId === challengeId)
+      .sort(keepFirst);
+    const needed = Math.ceil(
+      (presentations.get(challengeId) ?? 0) / inputs.slots,
+    );
+    for (let i = rooms.length - 1; i >= needed && excess > 0; i -= 1) {
+      dropped.add(rooms[i]!.id);
+      excess -= 1;
+    }
+  }
+  return inputs.rooms.filter((room) => !dropped.has(room.id));
 }
 
 /** A slot where some presentations of one challenge have no judge. */
