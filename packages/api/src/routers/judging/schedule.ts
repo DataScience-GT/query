@@ -807,6 +807,7 @@ function rebalanceOf(judging: Judging, board: Board, now: Date) {
       assignedJudgeId: a.assignedJudgeId,
       startsAt: a.startsAt,
       open: open.get(a.id) ?? false,
+      status: a.status,
     })),
     now,
   });
@@ -875,23 +876,20 @@ async function rebalance(db: DrizzleDB, hackathonId: string, now: Date) {
 /** When each edition was last re-balanced, to keep reads from doing it every time. */
 export const rebalanceThrottle = new Map<string, number>();
 const REBALANCE_EVERY_MS = 30_000;
-/** A judge leaving is worth acting on soon, but not on every tap. */
-export const REBALANCE_AFTER_LEAVE_MS = 5_000;
 
 /**
- * Re-balances the edition's judges unless that was done less than `every`
- * ago in this process. There is no worker, so the board, the judges'
- * itineraries and a judge leaving a room call it. Never throws: a read must
+ * Re-balances the edition's judges unless that was done less than 30 seconds
+ * ago in this process. There is no worker, so the board and the judges'
+ * itineraries call it. Never throws: a read must
  * not fail because of it.
  */
 export async function rebalanceIfDue(
   db: DrizzleDB,
   hackathonId: string,
   now: Date = new Date(),
-  every: number = REBALANCE_EVERY_MS,
 ) {
   const last = rebalanceThrottle.get(hackathonId);
-  if (last !== undefined && now.getTime() - last < every) return;
+  if (last !== undefined && now.getTime() - last < REBALANCE_EVERY_MS) return;
   rebalanceThrottle.set(hackathonId, now.getTime());
   try {
     await rebalance(db, hackathonId, now);

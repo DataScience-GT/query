@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
-  ABSENT_AFTER_MS,
+  LEFT_GRACE_MS,
+  QUIET_AFTER_MS,
   absentJudgeIds,
   rebalancePlan,
 } from "./rebalance";
 import type { SavedAppointment } from "./judge-plan";
 
 const NOW = new Date("2027-02-06T15:00:00Z");
+const MIN = 60_000;
 const ago = (ms: number) => new Date(NOW.getTime() - ms);
-const ahead = (minutes: number) => new Date(NOW.getTime() + minutes * 60_000);
+const ahead = (minutes: number) => new Date(NOW.getTime() + minutes * MIN);
 
 const judges = [
   { id: "m1", kind: "member" as const },
@@ -17,55 +19,94 @@ const judges = [
 ];
 const seen = (judgeId: string, lastSeenMs: number, leftAt: Date | null = null) => ({
   judgeId,
-  joinedAt: ago(60 * 60_000),
+  joinedAt: ago(120 * MIN),
   lastSeenAt: ago(lastSeenMs),
   leftAt,
 });
-const due = (assignedJudgeId: string | null, startsAt: Date, open = true) => ({
+const due = (
+  assignedJudgeId: string | null,
+  startsAt: Date,
+  over: { open?: boolean; status?: string } = {},
+) => ({
   assignedJudgeId,
   startsAt,
-  open,
+  open: true,
+  status: "future",
+  ...over,
 });
+// Judging is under way unless a test says otherwise: something began an hour ago.
+const started = due(null, ahead(-60), { open: false, status: "complete" });
 const absent = (
   presence: ReturnType<typeof seen>[],
-  appointments: ReturnType<typeof due>[] = [],
+  appointments: ReturnType<typeof due>[] = [started],
 ) => [...absentJudgeIds({ judges, presence, appointments, now: NOW })].sort();
 
 describe("absentJudgeIds", () => {
-  it("counts a judge who left and has no open row", () => {
+  it("keeps a judge who left a room and joined another on the way", () => {
     expect(
-      absent([seen("m1", 60_000, ago(30_000)), seen("m2", 30_000)]),
+      absent([
+        seen("m1", 3 * MIN, ago(2 * MIN)),
+        seen("m1", 10_000),
+        seen("m2", 0),
+      ]),
+    ).toEqual([]);
+    // Still walking: left two minutes ago, nothing joined yet.
+    expect(absent([seen("m1", 3 * MIN, ago(2 * MIN))])).toEqual([]);
+  });
+
+  it("counts a judge who left more than five minutes ago and joined nothing", () => {
+    expect(absent([seen("m1", 8 * MIN, ago(LEFT_GRACE_MS + 1))])).toEqual(["m1"]);
+    expect(absent([seen("m1", 8 * MIN, ago(6 * MIN)), seen("m2", 0)])).toEqual([
+      "m1",
+    ]);
+  });
+
+  it("counts a judge quiet for more than ten minutes, not one quiet for nine", () => {
+    expect(absent([seen("m1", 9 * MIN)])).toEqual([]);
+    expect(absent([seen("m1", QUIET_AFTER_MS), seen("m2", 11 * MIN)])).toEqual([
+      "m2",
+    ]);
+  });
+
+  it("counts a judge who missed a presentation and was not seen since it began", () => {
+    const missed = due("m1", ago(20 * MIN), { open: false, status: "missed" });
+    // No presence at all.
+    expect(absent([], [started, missed])).toEqual(["m1"]);
+    // Seen only before it began.
+    expect(
+      absent(
+        [{ ...seen("m1", 0), joinedAt: ago(90 * MIN), lastSeenAt: ago(40 * MIN) }],
+        [started, missed],
+      ),
     ).toEqual(["m1"]);
   });
 
-  it("does not count a judge who left one room and joined another", () => {
+  it("keeps a judge who missed a presentation but was seen after it began", () => {
+    const missed = due("m1", ago(20 * MIN), { open: false, status: "missed" });
+    expect(absent([seen("m1", 5 * MIN)], [started, missed])).toEqual([]);
+  });
+
+  it("keeps a judge nobody has seen before judging starts", () => {
     expect(
-      absent([seen("m1", 600_000, ago(300_000)), seen("m1", 10_000), seen("m2", 0)]),
+      absent([], [due("m1", ahead(5)), due("m2", ahead(8))]),
     ).toEqual([]);
   });
 
-  it("counts a judge whose heartbeat is older than three minutes", () => {
+  it("counts a judge never seen once judging is under way and theirs is near", () => {
     expect(
-      absent([seen("m1", ABSENT_AFTER_MS + 1), seen("m2", ABSENT_AFTER_MS)]),
+      absent([], [started, due("m1", ahead(8)), due("m2", ahead(11))]),
     ).toEqual(["m1"]);
   });
 
-  it("counts a judge who never joined once a presentation of theirs is near", () => {
-    expect(absent([], [due("m1", ahead(10)), due("m2", ahead(11))])).toEqual([
-      "m1",
-    ]);
-    expect(absent([], [due("m1", ahead(-5))])).toEqual(["m1"]);
-  });
-
-  it("keeps a judge who never joined while nothing of theirs is due", () => {
-    expect(absent([], [due("m1", ahead(60)), due(null, ahead(1))])).toEqual([]);
-    // Over or under way: not open, so it says nothing about being late.
-    expect(absent([], [due("m1", ahead(-30), false)])).toEqual([]);
+  it("keeps a judge never seen while nothing of theirs is near", () => {
+    expect(absent([], [started, due("m1", ahead(60)), due(null, ahead(1))])).toEqual(
+      [],
+    );
   });
 
   it("leaves guests alone, however quiet", () => {
     expect(
-      absent([seen("gs", 60 * 60_000, ago(1_000))], [due("gs", ahead(1))]),
+      absent([seen("gs", 600 * MIN, ago(60 * MIN))], [started, due("gs", ahead(1))]),
     ).toEqual([]);
   });
 });

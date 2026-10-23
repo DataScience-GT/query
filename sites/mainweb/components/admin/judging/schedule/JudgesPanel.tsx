@@ -93,8 +93,9 @@ export function JudgesPanel({
             Re-balance automatically
           </label>
           <p className={meta}>
-            When a judge leaves or stops responding for 3 minutes, their
-            upcoming presentations go to judges who are here.
+            When a judge leaves for 5 minutes, goes quiet for 10, or misses a
+            presentation, their upcoming presentations go to judges who are
+            here.
           </p>
           {judging.lastRebalancedAt && judging.lastRebalanceChanged > 0 && (
             <p className={meta}>
