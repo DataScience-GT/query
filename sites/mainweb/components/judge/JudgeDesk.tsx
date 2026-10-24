@@ -28,6 +28,7 @@ import { DEFAULT_FILTERS, NO_SKIPS, ProjectQueue } from "./ProjectQueue";
 import type { QueueFilters, SkipState } from "./ProjectQueue";
 import { RoomSwitcher } from "./RoomSwitcher";
 import { Shortlist } from "./Shortlist";
+import { useHeartbeat } from "./use-heartbeat";
 import { ICON_STROKE, deskMeta, deskPage, deskStatus } from "./desk";
 import type { DeskContext } from "./desk";
 
@@ -191,18 +192,6 @@ function BackToJudging() {
       Judging
     </Link>
   );
-}
-
-/** Tells organisers the judge is still in their room. */
-function useHeartbeat(hackathonId: string) {
-  const utils = trpc.useUtils();
-  useQuery({
-    queryKey: ["judging", "desk", "heartbeat", hackathonId],
-    queryFn: () => utils.client.judging.desk.heartbeat.mutate({ hackathonId }),
-    refetchInterval: 60_000,
-    staleTime: 0,
-    retry: false,
-  });
 }
 
 const STATE_LINE = {
