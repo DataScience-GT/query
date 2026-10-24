@@ -31,6 +31,47 @@
 
 `@query/ui` is a small shared component library consumed by mainweb. It is not on the request path.
 
+## Monorepo map
+
+How the workspaces depend on each other. Solid lines are runtime dependencies, dotted lines are dev-time configs. `hacklytics2027` has no workspace dependencies.
+
+```mermaid
+flowchart TD
+  web["web (sites/mainweb)"]
+  hack["hacklytics2027 (sites/hacklytics2027)"]
+  api["@query/api"]
+  auth["@query/auth"]
+  db["@query/db"]
+  ui["@query/ui"]
+  subgraph tooling["tooling"]
+    eslint["@query/eslint-config"]
+    prettier["@query/prettier-config"]
+    tailwind["@query/tailwind-config"]
+    tsconfig["@query/tsconfig"]
+  end
+
+  web --> api
+  web --> auth
+  web --> db
+  web --> ui
+  api --> auth
+  api --> db
+  auth --> db
+  web -.-> eslint
+  web -.-> tailwind
+  web -.-> tsconfig
+  ui -.-> eslint
+  ui -.-> tailwind
+  ui -.-> tsconfig
+  api -.-> tsconfig
+  auth -.-> tsconfig
+  db -.-> tsconfig
+  eslint -.-> prettier
+  eslint -.-> tsconfig
+  prettier -.-> tsconfig
+  hack ~~~ web
+```
+
 ## Two products, one database
 
 The schema is split on purpose. Mixing them previously made membership vanish when a new hackathon edition was drafted.
@@ -73,6 +114,41 @@ Hackathon participation is **open to non-members**. Membership is not a registra
 4. `createContext` loads the NextAuth session (when `db` exists), attaches `userId`, client IP, and the in-process cache.
 5. Procedures run through DB-required, sanitizer, content-type, rate-limit / DDoS, and (for mutations) cache invalidation middleware.
 6. Role gates (`isAdmin`, `isScanner`, `isProjectLeader`, `isSuperAdmin`) live in `packages/api/src/middleware/procedures.ts`. There is no `adminProcedure` alias that skips a role check.
+
+The same path as a sequence. Public procedures run the DDoS and public rate limit checks; protected ones check the session and the authenticated rate limit instead. Cache eviction only happens for successful mutations.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant N as Next.js (sites/mainweb)
+  participant T as tRPC route /api/trpc
+  participant X as createContext
+  participant M as Procedure middleware
+  participant R as Router procedure
+  participant D as Drizzle (@query/db)
+  participant P as Postgres
+
+  B->>N: Request page (proxy.ts sets Cache-Control)
+  N-->>B: HTML and client bundle
+  B->>T: tRPC call via @trpc/react-query (superjson)
+  T->>X: Build context
+  X->>D: Load NextAuth session (database sessions)
+  X-->>T: db, session, userId, clientIp, cache
+  T->>M: recordDuration, requiresDb
+  M->>M: protected: isAuthed and authenticated rate limit
+  M->>M: sanitizeInputs and enforceContentType (upload procedures skip sanitizeInputs)
+  M->>M: public: DDoS check and public rate limit
+  M->>M: Role gate (isScanner, isAdmin, isSuperAdmin, isProjectLeader)
+  M->>R: Run procedure
+  R->>D: Query or mutation
+  D->>P: SQL
+  P-->>D: Rows
+  D-->>R: Typed result
+  R-->>M: Result
+  M->>M: Successful mutation evicts cache entries
+  M-->>B: Response
+```
 
 ## Auth
 
