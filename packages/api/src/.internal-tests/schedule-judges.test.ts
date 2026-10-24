@@ -1397,3 +1397,99 @@ describe("re-balancing judges on their own", () => {
     expect(updates.some((u) => u.table === judgingAppointments)).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("a full event: 63 tables, 4 sponsors, 60 table judges", () => {
+  const SPONSORS = [id(1001), id(1002), id(1003), id(1004)];
+  // 18 slots of 10 minutes.
+  const timing = {
+    windowStart: at("16:00"),
+    windowEnd: at("19:00"),
+    setupMinutes: 2,
+    judgingMinutes: 6,
+    teardownMinutes: 2,
+    sameBuildingBreakMinutes: 10,
+    crossBuildingBreakMinutes: 20,
+  };
+
+  beforeEach(() => {
+    store.set(judgingSchedules, []);
+    store.set(judgingAppointments, []);
+    store.set(judgingChallenges, [
+      {
+        id: GENERAL,
+        label: "General",
+        parentId: null,
+        mode: "scheduled",
+        isGeneral: true,
+        isGroup: false,
+      },
+      ...SPONSORS.map((sponsor, i) => ({
+        id: sponsor,
+        label: `Sponsor ${i + 1}`,
+        parentId: null,
+        mode: "scheduled",
+        isGeneral: false,
+        isGroup: false,
+      })),
+    ]);
+    const table = (rid: string, name: string, challengeId: string) => ({
+      id: rid,
+      name,
+      kind: "table",
+      challengeId,
+      buildingId: "ENG",
+      buildingName: "ENG",
+      archivedAt: null,
+    });
+    store.set(judgingRooms, [
+      ...Array.from({ length: 63 }, (_, i) =>
+        table(id(2000 + i), `Table ${i + 1}`, GENERAL),
+      ),
+      ...SPONSORS.flatMap((sponsor, i) => [
+        table(id(3000 + i * 2), `Sponsor ${i + 1} A`, sponsor),
+        table(id(3001 + i * 2), `Sponsor ${i + 1} B`, sponsor),
+      ]),
+    ]);
+    // 300 projects; the first 120 also present for a sponsor: 420 in all.
+    store.set(
+      judgingEntryChallenges,
+      Array.from({ length: 300 }, (_, e) => [
+        { entryId: id(5000 + e), challengeId: GENERAL, title: `Project ${e}` },
+        ...(e < 120
+          ? [
+              {
+                entryId: id(5000 + e),
+                challengeId: SPONSORS[e % 4]!,
+                title: `Project ${e}`,
+              },
+            ]
+          : []),
+      ]).flat(),
+    );
+    store.set(
+      judgingJudges,
+      Array.from({ length: 60 }, (_, i) =>
+        judge(id(6000 + i), "member", `Judge ${i}`),
+      ),
+    );
+    store.set(judgingGuestSessions, []);
+  });
+
+  it("leaves out enough tables that every presentation has a judge, and saves the same schedule", async () => {
+    const preview = await callerAs("full_event").judging.schedule.preview({
+      hackathonId: HACK,
+      timing,
+    });
+    if (!preview.ok) throw new Error("the event fits the window");
+    expect(preview.advice.map((a) => a.kind)).not.toContain("judges");
+    expect(preview.roomsLeftOut).toBeGreaterThan(0);
+
+    const saved = await callerAs("full_event").judging.schedule.save({
+      hackathonId: HACK,
+      timing,
+      candidateKey: preview.candidateKey,
+    });
+    expect(saved).toMatchObject({ appointments: 420, judged: 420 });
+  }, 120_000);
+});

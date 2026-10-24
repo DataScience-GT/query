@@ -547,6 +547,19 @@ describe("roomsJudgesCanStaff", () => {
     ]);
   });
 
+  it("leaves out extra tables on request, never below what the presentations need", () => {
+    expect(ids(roomsJudgesCanStaff(inputs, members(5), undefined, 1))).toEqual([
+      "g1",
+      "g2",
+      "s1",
+    ]);
+    // 4 general presentations over 12 slots need one table; sponsors stay.
+    expect(ids(roomsJudgesCanStaff(inputs, members(5), undefined, 9))).toEqual([
+      "g1",
+      "s1",
+    ]);
+  });
+
   it("leaves out the last general tables the members cannot staff", () => {
     // Four members: three at a time, so one of the four rooms goes.
     expect(ids(roomsJudgesCanStaff(inputs, members(4)))).toEqual([

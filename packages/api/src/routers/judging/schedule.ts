@@ -134,6 +134,9 @@ const DEFAULT_MINUTES = {
 
 const QUARTER_HOUR = 15 * 60_000;
 
+/** Most tables solveInventory leaves out beyond what the judges can staff. */
+const MAX_EXTRA_DROPPED = 3;
+
 const plural = (n: number, one: string, many = `${one}s`) =>
   `${n} ${n === 1 ? one : many}`;
 
@@ -346,18 +349,46 @@ function solveInventory(
   const solve = () => {
     if (judges) {
       const names = namesOf(inventory);
-      const rooms = roomsJudgesCanStaff(every, judges, (a, b) =>
-        names
-          .room(a.id)
-          .roomName.localeCompare(names.room(b.id).roomName, "en", {
-            numeric: true,
-          }),
-      );
-      if (rooms.length < every.rooms.length) {
-        const fewer = { ...every, rooms };
-        const spread = aamoghCPSolver(fewer);
-        if (spread.ok) return { inputs: fewer, result: spread };
+      const members = judges.some((j) => j.kind === "member");
+      let best: {
+        inputs: PlanInputs;
+        result: ReturnType<typeof aamoghCPSolver>;
+        unjudged: number;
+      } | null = null;
+      let last = every.rooms.length;
+      // Filling every seat exactly can still leave a few presentations
+      // without a judge, so leave out up to MAX_EXTRA_DROPPED more tables
+      // for full coverage, or the fewest unjudged.
+      for (let extra = 0; extra <= (members ? MAX_EXTRA_DROPPED : 0); extra += 1) {
+        const rooms = roomsJudgesCanStaff(
+          every,
+          judges,
+          (a, b) =>
+            names
+              .room(a.id)
+              .roomName.localeCompare(names.room(b.id).roomName, "en", {
+                numeric: true,
+              }),
+          extra,
+        );
+        if (extra > 0 && rooms.length === last) break;
+        last = rooms.length;
+        const tried = rooms.length < every.rooms.length ? { ...every, rooms } : every;
+        const result = aamoghCPSolver(tried);
+        if (!result.ok) {
+          if (tried === every) return { inputs: every, result };
+          break;
+        }
+        const unjudged = members
+          ? tried.tasks.length -
+            assignJudges(tried, result.placements, judges).assignment.length
+          : 0;
+        if (!best || unjudged < best.unjudged) {
+          best = { inputs: tried, result, unjudged };
+        }
+        if (unjudged === 0) break;
       }
+      if (best) return best;
     }
     return { inputs: every, result: aamoghCPSolver(every) };
   };
@@ -1165,18 +1196,10 @@ export const judgingScheduleRouter = createTRPCRouter({
       const plan = selectPlan(inventory);
       const lowest = slotsNeeded({ ...plan, ...gridOf(windowOf(1)) });
       let slots = Math.min(MAX_SLOTS, Math.ceil(lowest * 1.2));
-      // A window fits when a schedule exists and, with table judges to give
-      // them to, every presentation gets one.
-      const hasMembers = roster.judges.some((j) => j.kind === "member");
-      const fits = (s: ReturnType<typeof solveInventory>) =>
-        s.result.ok &&
-        (!hasMembers ||
-          assignJudges(s.inputs, s.result.placements, roster.judges).assignment
-            .length === s.inputs.tasks.length);
       let solved = solveInventory(inventory, windowOf(slots), roster.judges);
       for (
         let tries = 1;
-        tries < 5 && !fits(solved) && slots < MAX_SLOTS;
+        tries < 5 && !solved.result.ok && slots < MAX_SLOTS;
         tries += 1
       ) {
         slots = Math.min(MAX_SLOTS, Math.ceil(slots * 1.25));
