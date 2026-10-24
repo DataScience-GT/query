@@ -80,6 +80,7 @@ import { moveChoices } from "../../services/judging/schedule/moves";
 import {
   absentJudgeIds,
   rebalancePlan,
+  receiverIds,
 } from "../../services/judging/schedule/rebalance";
 import {
   staffedRoomIds,
@@ -841,6 +842,37 @@ const staleJudging = (a: Judging, b: Judging) =>
   JSON.stringify([a.saved, a.roster.judges]) !==
   JSON.stringify([b.saved, b.roster.judges]);
 
+/** Who is absent, and who may be given freed work, as of this read of the board. */
+function hereOf(judging: Judging, board: Board, now: Date) {
+  const open = new Map(judging.saved.map((s) => [s.id, s.open]));
+  const absent = absentJudgeIds({
+    judges: judging.roster.judges,
+    presence: board.presence,
+    appointments: board.appointments.map((a) => ({
+      assignedJudgeId: a.assignedJudgeId,
+      startsAt: a.startsAt,
+      open: open.get(a.id) ?? false,
+      status: a.status,
+    })),
+    now,
+  });
+  const receivers = receiverIds({
+    judges: judging.roster.judges,
+    presence: board.presence,
+    absent,
+    now,
+  });
+  return { absent, receivers };
+}
+
+/** Whether presence moved anyone in or out of the absent or receiving sets. */
+const stalePresence = (
+  a: ReturnType<typeof hereOf>,
+  b: ReturnType<typeof hereOf>,
+) =>
+  JSON.stringify([[...a.absent].sort(), [...a.receivers].sort()]) !==
+  JSON.stringify([[...b.absent].sort(), [...b.receivers].sort()]);
+
 /** Writes the new judges: one update per judge, however many appointments they gain. */
 async function applyJudgeChanges(
   tx: JudgingDb,
@@ -867,22 +899,19 @@ async function applyJudgeChanges(
  * aside: only what they held, and what has no judge, is given again, to the
  * judges who are here. Null when there is nothing to give.
  */
-function rebalanceOf(judging: Judging, board: Board, now: Date) {
-  const open = new Map(judging.saved.map((s) => [s.id, s.open]));
-  const absent = absentJudgeIds({
-    judges: judging.roster.judges,
-    presence: board.presence,
-    appointments: board.appointments.map((a) => ({
-      assignedJudgeId: a.assignedJudgeId,
-      startsAt: a.startsAt,
-      open: open.get(a.id) ?? false,
-      status: a.status,
-    })),
-    now,
-  });
+function rebalanceOf(
+  judging: Judging,
+  board: Board,
+  now: Date,
+  here: ReturnType<typeof hereOf>,
+) {
+  // Who is not absent keeps what they hold; only receivers may take more, so
+  // the rest stay in the roster able to grade nothing.
   const roster = {
     ...judging.roster,
-    judges: judging.roster.judges.filter((j) => !absent.has(j.id)),
+    judges: judging.roster.judges
+      .filter((j) => !here.absent.has(j.id))
+      .map((j) => (here.receivers.has(j.id) ? j : { ...j, challengeIds: [] })),
   };
   const { free, keep } = rebalancePlan(
     judging.saved,
@@ -914,7 +943,8 @@ async function rebalance(db: DrizzleDB, hackathonId: string, now: Date) {
   const first = await loadBoard(db, hackathonId, now);
   if (!first.schedule) return;
   const before = await loadJudging(db, first, first.schedule);
-  const made = rebalanceOf(before, first, now);
+  const hereBefore = hereOf(before, first, now);
+  const made = rebalanceOf(before, first, now, hereBefore);
   if (!made) return;
 
   const changed = await db.transaction(async (tx) => {
@@ -922,6 +952,7 @@ async function rebalance(db: DrizzleDB, hackathonId: string, now: Date) {
     if (!board.schedule) return 0;
     const judging = await loadJudging(tx, board, board.schedule);
     if (staleJudging(judging, before)) return 0;
+    if (stalePresence(hereOf(judging, board, now), hereBefore)) return 0;
 
     const changes = judgeChanges(judging.saved, made.assignments);
     if (changes.length === 0) return 0;

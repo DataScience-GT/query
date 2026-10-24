@@ -92,6 +92,40 @@ export function absentJudgeIds(source: {
 }
 
 /**
+ * The judges who may be given freed work: guests, who are pinned to their
+ * room, and members who are actually here, with a room open or seen within
+ * QUIET_AFTER_MS. A member who never arrived is not absent (see
+ * absentJudgeIds) but takes nothing new; what they hold stays theirs.
+ */
+export function receiverIds(source: {
+  judges: readonly Pick<JudgeInput, "id" | "kind">[];
+  presence: readonly Pick<
+    BoardPresence,
+    "judgeId" | "joinedAt" | "lastSeenAt" | "leftAt"
+  >[];
+  absent: ReadonlySet<string>;
+  now: Date;
+}): Set<string> {
+  const since = source.now.getTime() - QUIET_AFTER_MS;
+  const receivers = new Set<string>();
+  for (const judge of source.judges) {
+    if (source.absent.has(judge.id)) continue;
+    const rows = source.presence.filter((row) => row.judgeId === judge.id);
+    if (
+      judge.kind === "guest" ||
+      rows.some(
+        (row) =>
+          !row.leftAt ||
+          Math.max(row.joinedAt.getTime(), row.lastSeenAt.getTime()) >= since,
+      )
+    ) {
+      receivers.add(judge.id);
+    }
+  }
+  return receivers;
+}
+
+/**
  * What to give again: the open appointments with no judge, or whose judge is
  * not in `here`. Every other open appointment stays with its judge, so
  * `keep` is those, to hand the assigner next to the judges of the ones that
