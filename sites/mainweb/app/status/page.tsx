@@ -13,6 +13,7 @@ import {
 import { BUCKET_MS, uptimePercent  } from "@/lib/status";
 import type {Level} from "@/lib/status";
 import { CircleCheck, CircleX, TriangleAlert } from "lucide-react";
+import AutoRefresh from "./AutoRefresh";
 import { loadStatus } from "./load";
 
 /**
@@ -55,6 +56,7 @@ export default async function StatusPage() {
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-white">
+      <AutoRefresh />
       <Navbar screen_width={1024} page="status" />
       <main className="pt-20">
         <Section className="py-32">
@@ -71,8 +73,8 @@ export default async function StatusPage() {
             </div>
             <p className="mt-3 text-gray-300">{reason}</p>
             <p className="mt-1 text-sm text-gray-500">
-              App serving. Checked {checkedAt(data.live.checkedAt)}, refreshed
-              about every minute.
+              App serving. Checked {checkedAt(data.live.checkedAt)}, this page
+              reloads itself every minute while open.
             </p>
 
             <section className="mt-14" aria-labelledby="uptime-heading">

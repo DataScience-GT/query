@@ -23,12 +23,26 @@ export type StatusData = {
   days: Day[];
 };
 
+/** A connection that stops answering must read as Down, not hang the page. */
+export const DB_TIMEOUT_MS = 3000;
+
+function withTimeout<T>(work: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error("database timeout")),
+      DB_TIMEOUT_MS,
+    );
+  });
+  return Promise.race([work, deadline]).finally(() => clearTimeout(timer));
+}
+
 async function pingDatabase(): Promise<Live> {
   const checkedAt = Date.now();
   if (!db) return { dbOk: false, dbMs: 0, checkedAt };
   const started = performance.now();
   try {
-    await db.execute(sql`select 1`);
+    await withTimeout(db.execute(sql`select 1`));
     return {
       dbOk: true,
       dbMs: Math.round(performance.now() - started),
@@ -83,23 +97,25 @@ async function loadHistory(now: number) {
   const since24h = new Date(lastBucket - 287 * BUCKET_MS);
   const since90d = new Date(now - (now % DAY_MS) - 89 * DAY_MS);
 
-  const [recent, daily] = await Promise.all([
-    db.execute<BucketRow>(sql`${perBucket(since24h)} order by bucket_start`),
-    db.execute<DayRow>(sql`
-      select
-        to_char(date_trunc('day', bucket_start at time zone 'UTC'), 'YYYY-MM-DD') as day,
-        sum(requests)::int as requests,
-        sum(errors)::int as errors,
-        max(p95_ms)::int as worst_p95_ms,
-        count(*)::int as buckets,
-        (count(*) filter (where not db_ok))::int as buckets_db_down,
-        (count(*) filter (
-          where db_ok and (requests = 0 or errors::float / requests < ${ERROR_RATE_LIMIT})
-        ))::int as buckets_up
-      from (${perBucket(since90d)}) b
-      group by 1
-      order by 1`),
-  ]);
+  const [recent, daily] = await withTimeout(
+    Promise.all([
+      db.execute<BucketRow>(sql`${perBucket(since24h)} order by bucket_start`),
+      db.execute<DayRow>(sql`
+        select
+          to_char(date_trunc('day', bucket_start at time zone 'UTC'), 'YYYY-MM-DD') as day,
+          sum(requests)::int as requests,
+          sum(errors)::int as errors,
+          max(p95_ms)::int as worst_p95_ms,
+          count(*)::int as buckets,
+          (count(*) filter (where not db_ok))::int as buckets_db_down,
+          (count(*) filter (
+            where db_ok and (requests = 0 or errors::float / requests < ${ERROR_RATE_LIMIT})
+          ))::int as buckets_up
+        from (${perBucket(since90d)}) b
+        group by 1
+        order by 1`),
+    ]),
+  );
 
   const hours: Bucket[] = recent.rows.map((row) => ({
     t: new Date(row.bucket_start).getTime(),
