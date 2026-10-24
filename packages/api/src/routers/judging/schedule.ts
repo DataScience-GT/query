@@ -884,6 +884,28 @@ const stalePresence = (
   JSON.stringify([[...a.absent].sort(), [...a.receivers].sort()]) !==
   JSON.stringify([[...b.absent].sort(), [...b.receivers].sort()]);
 
+/**
+ * The judging with the judges who are absent set aside, for handing out work
+ * on a day when it matters. Before anyone has checked in nobody is absent, so
+ * it is unchanged.
+ */
+function withoutAbsent(
+  judging: Judging,
+  board: Board,
+  here: ReturnType<typeof hereOf>,
+) {
+  if (here.absent.size === 0) return judging;
+  const roster = {
+    ...judging.roster,
+    judges: judging.roster.judges.filter((j) => !here.absent.has(j.id)),
+  };
+  return {
+    ...judging,
+    roster,
+    plan: planOfSaved(board, judging.timing, judging.saved, roster),
+  };
+}
+
 /** Writes the new judges: one update per judge, however many appointments they gain. */
 async function applyJudgeChanges(
   tx: JudgingDb,
@@ -2042,17 +2064,21 @@ export const judgingScheduleRouter = createTRPCRouter({
             "No judge can be assigned yet. Judges appear here once they have joined a room or table.",
         });
       }
-      const made = await makeAssignments(before, {
-        seconds: input.seconds,
-        signal,
-      });
+      const hereBefore = hereOf(before, first, firstNow);
+      const made = await makeAssignments(
+        withoutAbsent(before, first, hereBefore),
+        { seconds: input.seconds, signal },
+      );
 
       const result = await db.transaction(async (tx) => {
         const now = new Date();
         const board = await loadBoard(tx, input.hackathonId, now, true);
         if (!board.schedule) throw noSchedule();
         const judging = await loadJudging(tx, board, board.schedule, now);
-        if (staleJudging(judging, before)) {
+        if (
+          staleJudging(judging, before) ||
+          stalePresence(hereOf(judging, board, now), hereBefore)
+        ) {
           throw new TRPCError({
             code: "CONFLICT",
             message:
@@ -2067,11 +2093,16 @@ export const judgingScheduleRouter = createTRPCRouter({
         const saved = judging.saved.map((s) =>
           chosen.has(s.id) ? { ...s, assignedJudgeId: chosen.get(s.id)! } : s,
         );
+        const present = withoutAbsent(
+          judging,
+          board,
+          hereOf(judging, board, now),
+        );
         const summary = describeBoardJudging(
           {
-            ...judging,
+            ...present,
             saved,
-            plan: planOfSaved(board, judging.timing, saved, judging.roster),
+            plan: planOfSaved(board, judging.timing, saved, present.roster),
           },
           board,
           now,

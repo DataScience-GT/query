@@ -630,6 +630,23 @@ describe("judging.schedule.assignJudges", () => {
     ]);
   });
 
+  it("hands nothing to a judge who has left, once judging is under way", async () => {
+    const seen = (judgeId: string, gone: boolean) => ({
+      judgeId,
+      roomId: G1,
+      joinedAt: new Date(NOW.getTime() - 60 * 60_000),
+      lastSeenAt: new Date(NOW.getTime() - (gone ? 7 : 0.5) * 60_000),
+      leftAt: gone ? new Date(NOW.getTime() - 6 * 60_000) : null,
+    });
+    store.set(judgingPresence, [seen(M1, true), seen(M2, false)]);
+
+    await run();
+
+    const after = judgeAfter();
+    expect([...after.values()]).not.toContain(M1);
+    expect([after.get(P2), after.get(P3)]).toContain(M2);
+  });
+
   it("keeps the judge of an appointment a judge has begun, and plans around it", async () => {
     give(P2, M1);
     // Ada has a draft on P2: it stays hers, so P3 goes to Bea.
