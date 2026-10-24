@@ -11,7 +11,7 @@ const YEARS = [
     year: "2024-2025",
     note: "Current era of innovation and community building.",
   },
-  { year: "Future", note: "Building toward Hacklytics 2026 and beyond." },
+  { year: "Future", note: "Building toward Hacklytics 2027 and beyond." },
 ];
 
 export default function HistoryPage() {

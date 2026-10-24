@@ -177,7 +177,7 @@ export default async function BootcampPage() {
               )}
             </section>
 
-            {BOOTCAMP_CURRICULUM.length > 0 && (
+            {sessions.length === 0 && BOOTCAMP_CURRICULUM.length > 0 && (
               <section className="mt-24" aria-labelledby="syllabus">
                 <h2 id="syllabus" className="text-3xl font-bold tracking-tight">
                   Syllabus
