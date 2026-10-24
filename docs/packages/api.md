@@ -20,12 +20,59 @@ Exports: `.`, `./context`, `./trpc`, `./pricing`, plus a few middleware paths (s
 | `judging` | `routers/judging/*` | Room judging: `admin`, `schedule`, `desk`, `hacker`, `results` |
 | `points` | `routers/points/*` | Hackathon points: `admin`, `store`, `me` |
 | `stripe` | `routers/stripe.ts` | Checkout, PaymentIntent, link, reconcile |
-| `audit` | `routers/audit.ts` | Audit log list (admin) |
 | `team` | `routers/team.ts` | Teams and project submission |
 | `initiative` | `routers/initiative.ts` | Club initiatives, applications, proposals, leaders |
 | `bootcamp` | `routers/bootcamp.ts` | Member progress + admin attendance |
+| `resume` | `routers/resume.ts` | Own resume (`me`), staff list (`adminList`) |
+| `subteam` | `routers/subteam.ts` | Subteams, applications, admin roster |
 
 Hackathon and judge are `mergeRouters` of several files so procedure names stay flat (`hackathon.register`, not `hackathon.registration.register`).
+
+The 14 routers in `src/root.ts` as a diagram, grouped by area. `hackathon` and `judge` are merged routers. See [Resume book](../resume-book.md) for `resume`.
+
+```mermaid
+flowchart LR
+  root["appRouter"]
+
+  subgraph club["Club"]
+    user["user"]
+    member["member"]
+    events["events"]
+    bootcamp["bootcamp"]
+    initiative["initiative"]
+    subteam["subteam"]
+    resume["resume"]
+  end
+
+  subgraph money["Payments"]
+    stripe["stripe"]
+  end
+
+  subgraph hackathon["Hackathon"]
+    hackathonR["hackathon (merged): crud, registration, admin, events, content, interest, announce, bans"]
+    team["team"]
+    points["points: admin, store, me"]
+    judge["judge (merged): portal, admin"]
+  end
+
+  subgraph judging["judging"]
+    jadmin["admin"]
+    jschedule["schedule"]
+    jdesk["desk"]
+    jhacker["hacker"]
+    jresults["results"]
+  end
+
+  adminR["admin"]
+
+  root --> club
+  root --> money
+  root --> adminR
+  root --> hackathonR
+  root --> points
+  root --> judge
+  root --> judging
+```
 
 ## Procedure kinds
 
@@ -38,7 +85,7 @@ Defined in `src/trpc.ts` and `src/middleware/procedures.ts`.
 | `uploadProcedure` | Signed-in | 2MB payload cap; skips recursive markup scrub (base64 images) |
 | `isScanner` | Active `admin` row | Volunteers included. Badge / door scanning only |
 | `isAdmin` | Active staff `admin` | Rejects `volunteer` |
-| `isSuperAdmin` | `role === "super_admin"` | Staff create/remove, judge activate/remove, set project leader |
+| `isSuperAdmin` | `role === "super_admin"` | Hackathon delete, judge remove, set project leader. Staff role changes are `isAdmin` + `assertMayManage` in `admin.ts` |
 | `isProjectLeader` | Active `project_leader` **or** staff | Staff can cover a quiet leader; leaders cannot use this to pass `isAdmin` |
 
 There is deliberately **no** `adminProcedure` that equals `protectedProcedure`. That name shipped open admin endpoints in the past.
@@ -61,7 +108,7 @@ There is deliberately **no** `adminProcedure` that equals `protectedProcedure`. 
 
 | Procedure | Gate |
 | --- | --- |
-| `register` | protected |
+| `register` | `notHackathonBanned` |
 | `myRegistrations` | protected |
 | `participants` | public (staff-widened) |
 
