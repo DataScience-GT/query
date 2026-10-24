@@ -5,9 +5,10 @@ import {
   bucketStartOf,
   createStatusRecorder,
   isServerErrorCode,
-  percentile,
-  type StatusRow,
+  percentile
+  
 } from "./status-samples";
+import type {StatusRow} from "./status-samples";
 
 const T0 = Date.UTC(2026, 0, 10, 12, 0, 0);
 
