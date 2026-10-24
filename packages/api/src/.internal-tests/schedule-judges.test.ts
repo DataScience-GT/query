@@ -1092,3 +1092,143 @@ describe("saving a schedule", () => {
     });
   });
 });
+
+// Another organiser, so these calls draw on their own rate-limit tokens
+// rather than what the tests above have used up.
+const organiser = () => callerAs("organiser_user");
+
+// ---------------------------------------------------------------------------
+describe("judging.schedule.preview: advice", () => {
+  const timing = {
+    windowStart: at("16:00"),
+    windowEnd: at("19:00"),
+    setupMinutes: 2,
+    judgingMinutes: 6,
+    teardownMinutes: 2,
+    sameBuildingBreakMinutes: 10,
+    crossBuildingBreakMinutes: 20,
+  };
+
+  beforeEach(() => {
+    store.set(judgingSchedules, []);
+    store.set(judgingAppointments, []);
+  });
+
+  it("comes back with a plan that fits", async () => {
+    const preview = await organiser().judging.schedule.preview({
+      hackathonId: HACK,
+      timing,
+    });
+    expect(preview.ok).toBe(true);
+    expect(Array.isArray(preview.advice)).toBe(true);
+  });
+
+  it("says how long a window must be when the presentations do not fit", async () => {
+    // One 10-minute slot: Project 1 presents twice and needs a break between.
+    const preview = await organiser().judging.schedule.preview({
+      hackathonId: HACK,
+      timing: { ...timing, windowEnd: at("16:10") },
+    });
+    expect(preview.ok).toBe(false);
+    expect(preview.advice[0]).toEqual({
+      kind: "window",
+      message:
+        "The window holds 1 presentation slot per room, and this needs at least 3. Make the window at least 30 minutes long.",
+    });
+  });
+
+  it("offers to archive tables the table judges cannot staff", async () => {
+    // One table judge seats one of the two general tables at a time.
+    store.set(judgingJudges, [judge(M1, "member", "Ada")]);
+    store.set(
+      judgingRooms,
+      store.get(judgingRooms)!.concat([
+        {
+          id: id(54),
+          name: "Table G3",
+          kind: "table",
+          challengeId: GENERAL,
+          buildingId: "ENG",
+          buildingName: "ENG",
+          archivedAt: null,
+        },
+      ]),
+    );
+    const preview = await organiser().judging.schedule.preview({
+      hackathonId: HACK,
+      timing,
+    });
+    const unused = preview.advice.find((a) => a.kind === "unusedTables");
+    expect(unused?.action).toEqual({
+      type: "archiveTables",
+      roomIds: expect.arrayContaining([id(54)]),
+    });
+    expect(unused?.message).toContain("won't be used with 1 table judge");
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("judging.schedule.suggestTiming", () => {
+  beforeEach(() => {
+    store.set(judgingSchedules, []);
+    store.set(judgingAppointments, []);
+  });
+
+  it("starts at the next quarter hour at least 15 minutes away, with the usual minutes", async () => {
+    // The clock moves on, so a user of its own: rate limits refill by it.
+    vi.setSystemTime(new Date("2027-02-06T15:01:00Z"));
+    const suggestion = await callerAs("late_user").judging.schedule.suggestTiming({
+      hackathonId: HACK,
+    });
+    expect(suggestion!.timing).toMatchObject({
+      windowStart: at("15:30"),
+      setupMinutes: 2,
+      judgingMinutes: 6,
+      teardownMinutes: 2,
+      sameBuildingBreakMinutes: 10,
+      crossBuildingBreakMinutes: 20,
+    });
+  });
+
+  it("sizes the window to a plan that fits, and counts what it was based on", async () => {
+    const suggestion = await organiser().judging.schedule.suggestTiming({
+      hackathonId: HACK,
+    });
+    const { timing, basis, spareMinutes } = suggestion!;
+    expect(basis).toEqual({
+      projects: 3,
+      presentations: 4,
+      // Two table judges seat one of the two general tables at a time.
+      rooms: 3,
+      memberJudges: 2,
+    });
+    expect(spareMinutes).toBeGreaterThanOrEqual(0);
+
+    // The window it suggests previews as a schedule.
+    const preview = await organiser().judging.schedule.preview({
+      hackathonId: HACK,
+      timing,
+    });
+    expect(preview.ok).toBe(true);
+    // The longest a project's own presentations take is 3 slots; a fifth more.
+    expect(
+      (timing.windowEnd.getTime() - timing.windowStart.getTime()) / 60_000,
+    ).toBeGreaterThanOrEqual(30);
+  });
+
+  it("is null once a schedule is saved", async () => {
+    store.set(judgingSchedules, [
+      { id: SCHEDULE, hackathonId: HACK, windowStart: at("16:00") },
+    ]);
+    expect(
+      await organiser().judging.schedule.suggestTiming({ hackathonId: HACK }),
+    ).toBeNull();
+  });
+
+  it("is null when no project is entered", async () => {
+    store.set(judgingEntryChallenges, []);
+    expect(
+      await organiser().judging.schedule.suggestTiming({ hackathonId: HACK }),
+    ).toBeNull();
+  });
+});
