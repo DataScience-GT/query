@@ -59,7 +59,7 @@ export default async function StatusPage() {
       <main className="pt-20">
         <Section className="py-32">
           <div className="max-w-4xl mx-auto px-6">
-            <h1 className="text-5xl font-black uppercase tracking-tight mb-8">
+            <h1 className="text-5xl font-bold tracking-tighter sm:text-6xl mb-8">
               Status
             </h1>
 
