@@ -61,10 +61,8 @@ const advice = [
     kind: "sponsorRoom" as const,
     message: "Sponsor Alpha decides when judging ends.",
     action: {
-      type: "addRoom" as const,
-      challengeId: "c",
-      buildingId: "b",
-      name: "Alpha 2",
+      type: "addRooms" as const,
+      rooms: [{ challengeId: "c", buildingId: "b", name: "Alpha 2" }],
     },
   },
 ];

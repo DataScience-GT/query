@@ -1026,10 +1026,18 @@ export const judgingScheduleRouter = createTRPCRouter({
       const plan = selectPlan(inventory);
       const lowest = slotsNeeded({ ...plan, ...gridOf(windowOf(1)) });
       let slots = Math.min(MAX_SLOTS, Math.ceil(lowest * 1.2));
+      // A window fits when a schedule exists and, with table judges to give
+      // them to, every presentation gets one.
+      const hasMembers = roster.judges.some((j) => j.kind === "member");
+      const fits = (s: ReturnType<typeof solveInventory>) =>
+        s.result.ok &&
+        (!hasMembers ||
+          assignJudges(s.inputs, s.result.placements, roster.judges).assignment
+            .length === s.inputs.tasks.length);
       let solved = solveInventory(inventory, windowOf(slots), roster.judges);
       for (
         let tries = 1;
-        tries < 5 && !solved.result.ok && slots < MAX_SLOTS;
+        tries < 5 && !fits(solved) && slots < MAX_SLOTS;
         tries += 1
       ) {
         slots = Math.min(MAX_SLOTS, Math.ceil(slots * 1.25));

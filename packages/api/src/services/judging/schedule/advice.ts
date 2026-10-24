@@ -11,7 +11,10 @@ import type { PlanResult } from "./solve";
 export type AdviceAction =
   | { type: "archiveTables"; roomIds: string[] }
   | { type: "addTables"; challengeId: string; buildingId: string; count: number }
-  | { type: "addRoom"; challengeId: string; buildingId: string; name: string };
+  | {
+      type: "addRooms";
+      rooms: { challengeId: string; buildingId: string; name: string }[];
+    };
 
 export type Advice = {
   kind: "judges" | "sponsorRoom" | "unusedTables" | "moreTables" | "window";
@@ -219,33 +222,62 @@ export function adviceFor(source: {
     }
   }
 
-  // A sponsor challenge is the last to finish, and one more room would help.
+  // Sponsor challenges tie for last to finish, and one more room each would
+  // help. The day only ends sooner by as much as the slowest of the rest.
+  const tied = [...presentations.keys()]
+    .filter((id) => !generalIds.has(id) && finish.get(id) === sponsorEnd)
+    .sort();
   if (result.ok && sponsorLast && sponsorEnd >= generalEnd) {
-    const p = presentations.get(sponsorLast) ?? 0;
-    const r = roomsOf.get(sponsorLast) ?? 0;
-    const saved = r > 0 ? Math.ceil(p / r) - Math.ceil(p / (r + 1)) : 0;
-    const mine = source.rooms.filter((room) => room.challengeId === sponsorLast);
-    if (saved >= 1 && mine.length > 0) {
-      const building = mine[0]!.buildingId;
-      const taken = new Set(
-        source.rooms
-          .filter((room) => room.buildingId === building)
-          .map((room) => room.name.toLowerCase()),
-      );
-      const needsJudge = members > 0 && unstaffed.length + 1 > seats;
+    const bound = (id: string) => {
+      const p = presentations.get(id) ?? 0;
+      const r = roomsOf.get(id) ?? 0;
+      return r > 0 ? Math.ceil(p / (r + 1)) : Infinity;
+    };
+    const newEnd = Math.max(
+      generalEnd,
+      ...[...presentations.keys()]
+        .filter((id) => !generalIds.has(id) && !tied.includes(id))
+        .map((id) => finish.get(id) ?? 0),
+      ...tied.map(bound),
+    );
+    const saved = sponsorEnd - newEnd;
+    const spots = tied.map((id) =>
+      source.rooms.find((room) => room.challengeId === id),
+    );
+    if (saved >= 1 && spots.every((spot) => spot)) {
+      const taken = new Map<string, Set<string>>();
+      const rooms = tied.map((id, i) => {
+        const building = spots[i]!.buildingId;
+        if (!taken.has(building)) {
+          taken.set(
+            building,
+            new Set(
+              source.rooms
+                .filter((room) => room.buildingId === building)
+                .map((room) => room.name.toLowerCase()),
+            ),
+          );
+        }
+        const name = nextRoomName(
+          source.rooms.filter((r) => r.challengeId === id).map((r) => r.name),
+          source.labelOf(id),
+          taken.get(building)!,
+        );
+        taken.get(building)!.add(name.toLowerCase());
+        return { challengeId: id, buildingId: building, name };
+      });
+      const labels = tied.map(source.labelOf);
+      const who =
+        labels.length === 1
+          ? `${labels[0]} decides`
+          : labels.length > 4
+            ? `${labels.length} sponsors decide`
+            : `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)} decide`;
+      const needsJudge = members > 0 && unstaffed.length + tied.length > seats;
       found.push({
         kind: "sponsorRoom",
-        message: `${source.labelOf(sponsorLast)} decides when judging ends. One more room for it would finish about ${saved * source.slotMinutes} min sooner.${needsJudge ? " It would also need another judge." : ""}`,
-        action: {
-          type: "addRoom",
-          challengeId: sponsorLast,
-          buildingId: building,
-          name: nextRoomName(
-            mine.map((room) => room.name),
-            source.labelOf(sponsorLast),
-            taken,
-          ),
-        },
+        message: `${who} when judging ends. One more room ${tied.length === 1 ? "for it" : "each"} would finish about ${saved * source.slotMinutes} min sooner.${needsJudge ? ` It would also need ${tied.length === 1 ? "another judge" : "more judges"}.` : ""}`,
+        action: { type: "addRooms", rooms },
       });
     }
   }

@@ -41,7 +41,7 @@ const members = (n: number): JudgeInput[] =>
   Array.from({ length: n }, (_, i) => ({
     id: `m${i}`,
     kind: "member" as const,
-    challengeIds: ["gen", "spon"],
+    challengeIds: ["gen", "spon", "s0", "s1", "s2", "s3"],
     roomId: null,
   }));
 
@@ -156,17 +156,88 @@ describe("adviceFor", () => {
         message:
           "Sponsor Alpha decides when judging ends. One more room for it would finish about 20 min sooner.",
         action: {
-          type: "addRoom",
-          challengeId: "spon",
-          buildingId: "ENG",
-          name: "Alpha 2",
+          type: "addRooms",
+          rooms: [
+            { challengeId: "spon", buildingId: "ENG", name: "Alpha 2" },
+          ],
         },
       },
     ]);
     // Taken in the same building: the next number.
     rooms[3] = room("x", "gen", "alpha 2");
     const [advice] = advise(inputs, result, rooms, members(10));
-    expect(advice!.action).toMatchObject({ name: "Alpha 3" });
+    expect(advice!.action).toMatchObject({
+      rooms: [{ name: "Alpha 3" }],
+    });
+  });
+
+  /** Sponsors s0.., each with `presentations[i]` projects over 2 rooms, back to back. */
+  const sponsors = (presentations: number[]) => {
+    const ids = presentations.map((_, i) => `s${i}`);
+    for (const id of ids) labels[id] = `Sponsor ${id.toUpperCase()}`;
+    const rooms = ids.flatMap((id, i) => [
+      room(`${id}a`, id, `${id} 1`, false, i % 2 ? "HEC" : "ENG"),
+      room(`${id}b`, id, `${id} 2`, false, i % 2 ? "HEC" : "ENG"),
+    ]);
+    const tasks = ids.flatMap((id, i) =>
+      Array.from({ length: presentations[i]! }, (_, n) => task(`${id}e${n}`, id)),
+    );
+    const placements = ids.flatMap((id, i) =>
+      Array.from({ length: presentations[i]! }, (_, n) =>
+        at(`${id}e${n}`, id, `${id}${n % 2 ? "b" : "a"}`, Math.floor(n / 2)),
+      ),
+    );
+    const inputs: PlanInputs = {
+      rooms,
+      tasks,
+      slots: 40,
+      sameGap: 1,
+      crossGap: 2,
+    };
+    return { inputs, rooms, result: solved(placements) };
+  };
+
+  it("counts every sponsor tied for last, so one room each is advised together", () => {
+    // 4 sponsors of 30 over 2 rooms all finish at slot 15; with 3 rooms, 10.
+    const { inputs, rooms, result } = sponsors([30, 30, 30, 30]);
+    const [advice] = advise(inputs, result, rooms, members(20));
+    expect(advice!.kind).toBe("sponsorRoom");
+    expect(advice!.message).toBe(
+      "Sponsor S0, Sponsor S1, Sponsor S2 and Sponsor S3 decide when judging ends. One more room each would finish about 50 min sooner.",
+    );
+    expect(advice!.action).toEqual({
+      type: "addRooms",
+      rooms: [0, 1, 2, 3].map((i) => ({
+        challengeId: `s${i}`,
+        buildingId: i % 2 ? "HEC" : "ENG",
+        name: `s${i} 3`,
+      })),
+    });
+  });
+
+  it("caps the saving at the slowest sponsor that is not tied", () => {
+    // Two tie at 15; the third finishes at 13. Tied ones could reach 10, but
+    // the day only ends at 13: 2 slots sooner.
+    const { inputs, rooms, result } = sponsors([30, 30, 26]);
+    const [advice] = advise(inputs, result, rooms, members(20));
+    expect(advice!.message).toBe(
+      "Sponsor S0 and Sponsor S1 decide when judging ends. One more room each would finish about 20 min sooner.",
+    );
+    expect((advice!.action as { rooms: unknown[] }).rooms).toHaveLength(2);
+  });
+
+  it("gives no sponsor advice when a room each saves nothing", () => {
+    // One sponsor of 2 projects is already one slot: no room helps.
+    const { inputs, rooms, result } = sponsors([2]);
+    expect(advise(inputs, result, rooms, members(20))).toEqual([]);
+  });
+
+  it("says more judges when several new rooms outrun the table judges", () => {
+    const { inputs, rooms, result } = sponsors([30, 30]);
+    const advice = advise(inputs, result, rooms, members(5)).find(
+      (a) => a.kind === "sponsorRoom",
+    );
+    expect(advice!.message).toContain("It would also need more judges.");
   });
 
   it("names a room after the challenge when its rooms carry no number, and warns when no judge could staff it", () => {
@@ -182,7 +253,7 @@ describe("adviceFor", () => {
     const [advice] = advise(inputs, result, rooms, members(1));
     expect(advice).toMatchObject({
       kind: "sponsorRoom",
-      action: { name: "Sponsor Alpha 2" },
+      action: { rooms: [{ name: "Sponsor Alpha 2" }] },
     });
     expect(advice!.message).toContain("It would also need another judge.");
   });

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
@@ -57,11 +58,9 @@ function AdviceItem({
   const addTables = trpc.judging.admin.createTables.useMutation({
     onSuccess: onChanged,
   });
-  const addRoom = trpc.judging.admin.createRoom.useMutation({
-    onSuccess: onChanged,
-  });
-  const pending =
-    archive.isPending || addTables.isPending || addRoom.isPending;
+  const addRoom = trpc.judging.admin.createRoom.useMutation();
+  const [adding, setAdding] = useState(false);
+  const pending = archive.isPending || addTables.isPending || adding;
   const error = archive.error ?? addTables.error ?? addRoom.error;
   const { action } = advice;
 
@@ -77,15 +76,29 @@ function AdviceItem({
         count: action.count,
       });
     } else {
-      addRoom.mutate({
-        hackathonId,
-        name: action.name,
-        kind: "room",
-        challengeId: action.challengeId,
-        buildingId: action.buildingId,
-      });
+      void addRooms(action.rooms);
     }
   };
+
+  // One at a time, stopping at the first that fails; what was added still
+  // changes the preview.
+  async function addRooms(
+    rooms: { challengeId: string; buildingId: string; name: string }[],
+  ) {
+    setAdding(true);
+    addRoom.reset();
+    let added = 0;
+    try {
+      for (const room of rooms) {
+        await addRoom.mutateAsync({ hackathonId, kind: "room", ...room });
+        added += 1;
+      }
+    } catch {
+      // Shown from addRoom.error.
+    }
+    setAdding(false);
+    if (added > 0) onChanged();
+  }
 
   const buttonLabel = !action
     ? null
@@ -93,7 +106,9 @@ function AdviceItem({
       ? `Archive ${plural(action.roomIds.length, "table")}`
       : action.type === "addTables"
         ? `Add ${plural(action.count, "table")}`
-        : "Add room";
+        : action.rooms.length === 1
+          ? "Add room"
+          : `Add ${action.rooms.length} rooms`;
 
   return (
     <li className="space-y-2 border-b border-[var(--border-subtle)] py-3">
@@ -111,8 +126,11 @@ function AdviceItem({
           </button>
         )}
       </div>
-      {action?.type === "addRoom" && (
-        <p className={meta}>It will be called {action.name}.</p>
+      {action?.type === "addRooms" && (
+        <p className={meta}>
+          {action.rooms.length === 1 ? "It will be called " : "They will be called "}
+          {action.rooms.map((r) => r.name).join(", ")}.
+        </p>
       )}
       {error && (
         <ErrorLine>
