@@ -491,12 +491,15 @@ export function scoreJudgeAssignment(
  * first, keeping enough for every general presentation. With no member
  * judges yet, every room stays. `keepFirst` orders the rooms to keep, such
  * as by name so Table 1 stays and the last tables go; by id when not given.
+ * `extraDrop` leaves that many more rooms out, for when staffing every seat
+ * still leaves presentations with no judge.
  */
 export function roomsJudgesCanStaff(
   inputs: PlanInputs,
   judges: readonly JudgeInput[],
   keepFirst: (a: PlanRoom, b: PlanRoom) => number = (a, b) =>
     a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+  extraDrop = 0,
 ): PlanRoom[] {
   const members = judges.filter((judge) => judge.kind === "member");
   if (members.length === 0) return inputs.rooms;
@@ -508,7 +511,7 @@ export function roomsJudgesCanStaff(
   );
   const guestRooms = new Set(judges.flatMap((judge) => judge.roomId ?? []));
   const unstaffed = inputs.rooms.filter((room) => !guestRooms.has(room.id));
-  let excess = unstaffed.length - seats;
+  let excess = unstaffed.length - seats + extraDrop;
   if (excess <= 0) return inputs.rooms;
 
   const general = new Set(

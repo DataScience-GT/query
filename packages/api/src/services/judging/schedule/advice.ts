@@ -166,6 +166,14 @@ export function adviceFor(source: {
       missing > 0 &&
       judgeShortfalls(inputs, result.placements, judges, assignment).length > 0
     ) {
+      const judged = new Set(assignment.map((a) => `${a.entryId}:${a.challengeId}`));
+      const memberJudges = judges.filter((j) => j.kind === "member");
+      // A challenge no table judge may grade can never be covered by more of them.
+      const ungradable = inputs.tasks.some(
+        (t) =>
+          !judged.has(`${t.entryId}:${t.challengeId}`) &&
+          !memberJudges.some((j) => j.challengeIds.includes(t.challengeId)),
+      );
       const busiest = Math.max(
         ...[
           ...count(
@@ -176,14 +184,15 @@ export function adviceFor(source: {
           0,
         ],
       );
-      const more =
-        Math.ceil((busiest * (MAX_CONSECUTIVE + 1)) / MAX_CONSECUTIVE) - members;
+      const more = Math.max(
+        1,
+        Math.ceil((busiest * (MAX_CONSECUTIVE + 1)) / MAX_CONSECUTIVE) - members,
+      );
       found.push({
         kind: "judges",
-        message:
-          more > 0
-            ? `${plural(missing, "presentation")} would have no judge. About ${plural(more, "more table judge")} would cover them.`
-            : `${plural(missing, "presentation")} would have no judge. Check that your judges may grade these challenges.`,
+        message: ungradable
+          ? `${plural(missing, "presentation")} would have no judge. Check that your judges may grade these challenges.`
+          : `${plural(missing, "presentation")} would have no judge. About ${plural(more, "more table judge")} would cover them.`,
       });
     }
   }
@@ -224,6 +233,8 @@ export function adviceFor(source: {
 
   // Sponsor challenges tie for last to finish, and one more room each would
   // help. The day only ends sooner by as much as the slowest of the rest.
+  // General finishes where it does because the solver fits it around the
+  // sponsors, so its own floor is what counts, not where it finished.
   const tied = [...presentations.keys()]
     .filter((id) => !generalIds.has(id) && finish.get(id) === sponsorEnd)
     .sort();
@@ -233,8 +244,14 @@ export function adviceFor(source: {
       const r = roomsOf.get(id) ?? 0;
       return r > 0 ? Math.ceil(p / (r + 1)) : Infinity;
     };
+    const generalFloor = Math.max(
+      0,
+      ...[...generalIds].map((id) =>
+        Math.ceil((presentations.get(id) ?? 0) / Math.max(1, roomsOf.get(id) ?? 0)),
+      ),
+    );
     const newEnd = Math.max(
-      generalEnd,
+      generalFloor,
       ...[...presentations.keys()]
         .filter((id) => !generalIds.has(id) && !tied.includes(id))
         .map((id) => finish.get(id) ?? 0),
