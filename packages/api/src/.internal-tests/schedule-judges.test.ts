@@ -647,6 +647,29 @@ describe("judging.schedule.assignJudges", () => {
     expect([after.get(P2), after.get(P3)]).toContain(M2);
   });
 
+  it("hands nothing to a member who never checked in, once judging is under way", async () => {
+    // Ten minutes before P2 and P3: Ada never joined and holds nothing; Bea is here.
+    vi.setSystemTime(new Date(NOW.getTime() + 20 * 60_000));
+    store.set(judgingPresence, [
+      {
+        judgeId: M2,
+        roomId: G1,
+        joinedAt: new Date(Date.now() - 60 * 60_000),
+        lastSeenAt: new Date(Date.now() - 30_000),
+        leftAt: null,
+      },
+    ]);
+
+    // Its own caller, so the flood guard on the shared admin is not spent.
+    await callerAs("day_admin").judging.schedule.assignJudges({
+      hackathonId: HACK,
+    });
+
+    const after = judgeAfter();
+    expect([...after.values()]).not.toContain(M1);
+    expect([after.get(P2), after.get(P3)]).toContain(M2);
+  });
+
   it("keeps the judge of an appointment a judge has begun, and plans around it", async () => {
     give(P2, M1);
     // Ada has a draft on P2: it stays hers, so P3 goes to Bea.

@@ -79,6 +79,7 @@ import { holdsEveryRating } from "../../services/judging/scoring-sql";
 import { moveChoices } from "../../services/judging/schedule/moves";
 import {
   absentJudgeIds,
+  LATE_WITHIN_MS,
   rebalancePlan,
   receiverIds,
 } from "../../services/judging/schedule/rebalance";
@@ -873,8 +874,31 @@ function hereOf(judging: Judging, board: Board, now: Date) {
     absent,
     now,
   });
-  return { absent, receivers };
+  // Under way once the earliest open appointment is within LATE_WITHIN_MS of
+  // starting, the point at which a member never seen counts as absent.
+  const starts = board.appointments
+    .filter((a) => open.get(a.id))
+    .map((a) => a.startsAt.getTime());
+  const underWay =
+    starts.length > 0 && now.getTime() >= Math.min(...starts) - LATE_WITHIN_MS;
+  return { absent, receivers, underWay };
 }
+
+/**
+ * The roster without the absent judges. Of the rest, only receivers keep their
+ * challenges; the others stay able to grade nothing, so they keep what they
+ * hold and gain no more.
+ */
+const givableRosterOf = (
+  judging: Judging,
+  absent: ReadonlySet<string>,
+  receivers: ReadonlySet<string>,
+) => ({
+  ...judging.roster,
+  judges: judging.roster.judges
+    .filter((j) => !absent.has(j.id))
+    .map((j) => (receivers.has(j.id) ? j : { ...j, challengeIds: [] })),
+});
 
 /** Whether presence moved anyone in or out of the absent or receiving sets. */
 const stalePresence = (
@@ -886,19 +910,24 @@ const stalePresence = (
 
 /**
  * The judging with the judges who are absent set aside, for handing out work
- * on a day when it matters. Before anyone has checked in nobody is absent, so
- * it is unchanged.
+ * on a day when it matters. Before judging is under way nobody has checked in,
+ * so every judge may be given work; once it is, only receivers may.
  */
 function withoutAbsent(
   judging: Judging,
   board: Board,
   here: ReturnType<typeof hereOf>,
 ) {
-  if (here.absent.size === 0) return judging;
-  const roster = {
-    ...judging.roster,
-    judges: judging.roster.judges.filter((j) => !here.absent.has(j.id)),
-  };
+  const receivers = here.underWay
+    ? here.receivers
+    : new Set(judging.roster.judges.map((j) => j.id));
+  if (
+    here.absent.size === 0 &&
+    judging.roster.judges.every((j) => receivers.has(j.id))
+  ) {
+    return judging;
+  }
+  const roster = givableRosterOf(judging, here.absent, receivers);
   return {
     ...judging,
     roster,
@@ -938,14 +967,7 @@ function rebalanceOf(
   now: Date,
   here: ReturnType<typeof hereOf>,
 ) {
-  // Who is not absent keeps what they hold; only receivers may take more, so
-  // the rest stay in the roster able to grade nothing.
-  const roster = {
-    ...judging.roster,
-    judges: judging.roster.judges
-      .filter((j) => !here.absent.has(j.id))
-      .map((j) => (here.receivers.has(j.id) ? j : { ...j, challengeIds: [] })),
-  };
+  const roster = givableRosterOf(judging, here.absent, here.receivers);
   const { free, keep } = rebalancePlan(
     judging.saved,
     new Set(roster.judges.map((j) => j.id)),
