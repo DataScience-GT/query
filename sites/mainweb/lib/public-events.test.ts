@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  bootcampSummary,
   eventDateParts,
   eventWhenWhere,
   sessionTitle,
@@ -91,5 +92,46 @@ describe("splitByDay", () => {
     const { upcoming, past } = splitByDay([{ eventDate: from }], from);
     expect(upcoming).toHaveLength(1);
     expect(past).toHaveLength(0);
+  });
+});
+
+describe("bootcampSummary", () => {
+  const fallback = { startDate: "Oct 6", time: "6:30 PM", room: "CODA C1115" };
+  // 22:30 UTC is 6:30 PM EDT in October.
+  const moved = { eventDate: new Date("2026-10-29T22:30:00Z"), location: "Klaus 1456" };
+  const old = { eventDate: new Date("2026-10-13T22:30:00Z"), location: "Klaus 1456" };
+
+  it("shows the fallbacks as the first session before any is posted", () => {
+    const facts = bootcampSummary({ upcoming: [], past: [] }, fallback);
+    expect(facts).toEqual([
+      { label: "First session", value: "Oct 6" },
+      { label: "Time", value: "6:30 PM" },
+      { label: "Room", value: "CODA C1115" },
+    ]);
+  });
+
+  it("takes date, time and room from the next session itself", () => {
+    const facts = bootcampSummary({ upcoming: [moved], past: [old] }, fallback);
+    expect(facts).toEqual([
+      { label: "Next session", value: "Oct 29" },
+      { label: "Time", value: "6:30 PM EDT" },
+      { label: "Room", value: "Klaus 1456" },
+    ]);
+  });
+
+  it("falls back to the default room when the session has none", () => {
+    const facts = bootcampSummary(
+      { upcoming: [{ ...moved, location: null }], past: [] },
+      fallback,
+    );
+    expect(facts[2]).toEqual({ label: "Room", value: "CODA C1115" });
+  });
+
+  it("says the sessions have ended instead of showing a stale date", () => {
+    const facts = bootcampSummary({ upcoming: [], past: [old] }, fallback);
+    expect(facts).toEqual([
+      { label: "Last session", value: "Oct 13" },
+      { label: "Status", value: "This term's sessions have ended" },
+    ]);
   });
 });

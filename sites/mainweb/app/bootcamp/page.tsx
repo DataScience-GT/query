@@ -14,6 +14,7 @@ import {
   BOOTCAMP_START_DATE,
 } from "@/lib/bootcamp-schedule";
 import {
+  bootcampSummary,
   eventDateParts,
   eventWhenWhere,
   sessionTitle,
@@ -90,19 +91,14 @@ export default async function BootcampPage() {
   const term = currentTerm();
   const sessions = await loadSessions(term);
   const { upcoming, past } = splitByDay(sessions, startOfEasternDay(new Date()));
-  const next = upcoming[0];
-  const nextParts = next ? eventDateParts(next.eventDate) : null;
-
-  const facts = [
+  const facts = bootcampSummary(
+    { upcoming, past },
     {
-      label: next ? "Next session" : "First session",
-      value: nextParts
-        ? `${nextParts.month} ${nextParts.day}`
-        : (BOOTCAMP_START_DATE ?? "To be announced"),
+      startDate: BOOTCAMP_START_DATE,
+      time: BOOTCAMP_MEETING_TIME,
+      room: BOOTCAMP_ROOM,
     },
-    { label: "Time", value: BOOTCAMP_MEETING_TIME ?? "To be announced" },
-    { label: "Room", value: BOOTCAMP_ROOM ?? "To be announced" },
-  ];
+  );
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-white">

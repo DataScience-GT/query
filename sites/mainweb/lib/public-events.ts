@@ -58,3 +58,46 @@ export function splitByDay<T extends { eventDate: Date }>(rows: T[], from: Date)
       .sort((a, b) => time(b) - time(a)),
   };
 }
+
+type SummarySession = { eventDate: Date; location: string | null };
+const TBA = "To be announced";
+
+/**
+ * The facts row at the top of /bootcamp. Time and room come from the session
+ * the date comes from, since officers can move any one session. The constants
+ * only stand in before a schedule is posted. Once every posted session is
+ * behind us the row says so rather than showing a date that has passed.
+ */
+export function bootcampSummary(
+  { upcoming, past }: { upcoming: SummarySession[]; past: SummarySession[] },
+  fallback: {
+    startDate?: string | null;
+    time?: string | null;
+    room?: string | null;
+  },
+) {
+  const next = upcoming[0];
+  if (next) {
+    const { month, day, time } = eventDateParts(next.eventDate);
+    return [
+      { label: "Next session", value: `${month} ${day}` },
+      { label: "Time", value: time },
+      { label: "Room", value: next.location ?? fallback.room ?? TBA },
+    ];
+  }
+
+  const last = past[0];
+  if (last) {
+    const { month, day } = eventDateParts(last.eventDate);
+    return [
+      { label: "Last session", value: `${month} ${day}` },
+      { label: "Status", value: "This term's sessions have ended" },
+    ];
+  }
+
+  return [
+    { label: "First session", value: fallback.startDate ?? TBA },
+    { label: "Time", value: fallback.time ?? TBA },
+    { label: "Room", value: fallback.room ?? TBA },
+  ];
+}
