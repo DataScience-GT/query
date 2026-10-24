@@ -37,6 +37,8 @@ import type {
   PlanDiagnostic,
   PlanResult,
 } from "../../services/judging/schedule/solve";
+import { adviceFor, slotsNeeded } from "../../services/judging/schedule/advice";
+import type { AdviceRoom } from "../../services/judging/schedule/advice";
 import { aamoghCPSolver } from "../../services/judging/schedule/aamogh-cp-solver";
 import {
   CPSAT_COMMAND,
@@ -82,6 +84,7 @@ import {
 import { judgeProgressById } from "../../services/judging/schedule/judge-progress";
 import type { JudgeProgress } from "../../services/judging/schedule/judge-progress";
 import {
+  MAX_SLOTS,
   appointmentTimes,
   firstSlotFrom,
   gridOf,
@@ -115,6 +118,17 @@ const timingInput = z
       ctx.addIssue({ code: "custom", message, path: ["windowEnd"] });
     }
   });
+
+// The minutes the timing form starts with; the same defaults as above.
+const DEFAULT_MINUTES = {
+  setupMinutes: 2,
+  judgingMinutes: 6,
+  teardownMinutes: 2,
+  sameBuildingBreakMinutes: 10,
+  crossBuildingBreakMinutes: 20,
+};
+
+const QUARTER_HOUR = 15 * 60_000;
 
 const plural = (n: number, one: string, many = `${one}s`) =>
   `${n} ${n === 1 ? one : many}`;
@@ -362,6 +376,30 @@ function solveInventory(
       ? candidateKey(fingerprint, result.relaxed, result.placements)
       : null,
   };
+}
+
+/** What the organiser could change to improve this solve, in words. */
+function adviceOf(
+  inventory: Inventory,
+  roster: Roster,
+  solved: ReturnType<typeof solveInventory>,
+  timing: ScheduleTiming,
+) {
+  const names = namesOf(inventory);
+  const rooms = new Map(inventory.rooms.map((r) => [r.id, r]));
+  const planned: AdviceRoom[] = selectPlan(inventory).rooms.map((room) => ({
+    ...room,
+    name: rooms.get(room.id)?.name ?? "",
+    table: rooms.get(room.id)?.kind === "table",
+  }));
+  return adviceFor({
+    inputs: solved.inputs,
+    result: solved.result,
+    rooms: planned,
+    judges: roster.judges,
+    labelOf: names.label,
+    slotMinutes: slotMinutes(timing),
+  });
 }
 
 /** A solved schedule as the preview shows it. */
@@ -923,11 +961,9 @@ export const judgingScheduleRouter = createTRPCRouter({
       const inventory = await readInventory(db, input.hackathonId);
       const names = namesOf(inventory);
       const roster = await readRoster(db, input.hackathonId, inventory);
-      const { inputs, result, key, proven, roomsLeftOut } = solveInventory(
-        inventory,
-        input.timing,
-        roster.judges,
-      );
+      const solved = solveInventory(inventory, input.timing, roster.judges);
+      const { inputs, result, key, proven, roomsLeftOut } = solved;
+      const advice = adviceOf(inventory, roster, solved, input.timing);
 
       if (!result.ok) {
         return {
@@ -941,6 +977,7 @@ export const judgingScheduleRouter = createTRPCRouter({
           relaxed: false,
           candidateKey: null,
           diagnostics: explain(result.diagnostics, names),
+          advice,
           summary: null,
           proven: null,
           appointments: [],
@@ -952,6 +989,73 @@ export const judgingScheduleRouter = createTRPCRouter({
         ...describePlan(result, inputs, names, input.timing, roomsLeftOut),
         candidateKey: key!,
         proven,
+        advice,
+      };
+    }),
+
+  /**
+   * A window to start the planner with: from the next quarter hour at least
+   * 15 minutes away, as long as the fewest slots the entries need plus a fifth,
+   * then longer until a schedule fits. Null when there is nothing to schedule
+   * or a schedule is saved already.
+   */
+  suggestTiming: isAdmin
+    .input(z.object({ hackathonId: uuid }))
+    .query(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      await assertHackathonExists(db, input.hackathonId);
+      if (await findSchedule(db, input.hackathonId)) return null;
+
+      const inventory = await readInventory(db, input.hackathonId);
+      if (selectPlan(inventory).tasks.length === 0) return null;
+      const roster = await readRoster(db, input.hackathonId, inventory);
+
+      const windowStart = new Date(
+        Math.ceil((Date.now() + QUARTER_HOUR) / QUARTER_HOUR) * QUARTER_HOUR,
+      );
+      const windowOf = (slots: number): ScheduleTiming => {
+        const base = { ...DEFAULT_MINUTES, windowStart, windowEnd: windowStart };
+        return {
+          ...base,
+          windowEnd: new Date(
+            windowStart.getTime() + slots * slotMinutes(base) * 60_000,
+          ),
+        };
+      };
+
+      const plan = selectPlan(inventory);
+      const lowest = slotsNeeded({ ...plan, ...gridOf(windowOf(1)) });
+      let slots = Math.min(MAX_SLOTS, Math.ceil(lowest * 1.2));
+      // A window fits when a schedule exists and, with table judges to give
+      // them to, every presentation gets one.
+      const hasMembers = roster.judges.some((j) => j.kind === "member");
+      const fits = (s: ReturnType<typeof solveInventory>) =>
+        s.result.ok &&
+        (!hasMembers ||
+          assignJudges(s.inputs, s.result.placements, roster.judges).assignment
+            .length === s.inputs.tasks.length);
+      let solved = solveInventory(inventory, windowOf(slots), roster.judges);
+      for (
+        let tries = 1;
+        tries < 5 && !fits(solved) && slots < MAX_SLOTS;
+        tries += 1
+      ) {
+        slots = Math.min(MAX_SLOTS, Math.ceil(slots * 1.25));
+        solved = solveInventory(inventory, windowOf(slots), roster.judges);
+      }
+
+      const timing = windowOf(slots);
+      return {
+        timing,
+        basis: {
+          projects: new Set(solved.inputs.tasks.map((t) => t.entryId)).size,
+          presentations: solved.inputs.tasks.length,
+          rooms: solved.inputs.rooms.length,
+          memberJudges: roster.judges.filter((j) => j.kind === "member").length,
+        },
+        spareMinutes: solved.result.ok
+          ? (slots - solved.result.score[2]) * slotMinutes(timing)
+          : 0,
       };
     }),
 
