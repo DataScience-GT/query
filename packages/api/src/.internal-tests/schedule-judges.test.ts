@@ -28,6 +28,7 @@ import {
   judgingSchedules,
 } from "@query/db";
 import { appRouter } from "../root";
+import { rebalanceIfDue, rebalanceThrottle } from "../routers/judging/schedule";
 import { cache } from "../middleware/cache";
 import { assignJudges } from "../services/judging/schedule/judges";
 import type * as Store from "../services/judging/evaluation-store";
@@ -1091,4 +1092,439 @@ describe("saving a schedule", () => {
       metadata: expect.objectContaining({ solver: "cp-sat", judges: "cp-sat" }),
     });
   });
+});
+
+// Another organiser, so these calls draw on their own rate-limit tokens
+// rather than what the tests above have used up.
+const organiser = () => callerAs("organiser_user");
+
+// ---------------------------------------------------------------------------
+describe("judging.schedule.preview: advice", () => {
+  const timing = {
+    windowStart: at("16:00"),
+    windowEnd: at("19:00"),
+    setupMinutes: 2,
+    judgingMinutes: 6,
+    teardownMinutes: 2,
+    sameBuildingBreakMinutes: 10,
+    crossBuildingBreakMinutes: 20,
+  };
+
+  beforeEach(() => {
+    store.set(judgingSchedules, []);
+    store.set(judgingAppointments, []);
+  });
+
+  it("comes back with a plan that fits", async () => {
+    const preview = await organiser().judging.schedule.preview({
+      hackathonId: HACK,
+      timing,
+    });
+    expect(preview.ok).toBe(true);
+    expect(Array.isArray(preview.advice)).toBe(true);
+  });
+
+  it("says how long a window must be when the presentations do not fit", async () => {
+    // One 10-minute slot: Project 1 presents twice and needs a break between.
+    const preview = await organiser().judging.schedule.preview({
+      hackathonId: HACK,
+      timing: { ...timing, windowEnd: at("16:10") },
+    });
+    expect(preview.ok).toBe(false);
+    expect(preview.advice[0]).toEqual({
+      kind: "window",
+      message:
+        "The window holds 1 presentation slot per room, and this needs at least 3. Make the window at least 30 minutes long.",
+    });
+  });
+
+  it("offers to archive tables the table judges cannot staff", async () => {
+    // One table judge seats one of the two general tables at a time.
+    store.set(judgingJudges, [judge(M1, "member", "Ada")]);
+    store.set(
+      judgingRooms,
+      store.get(judgingRooms)!.concat([
+        {
+          id: id(54),
+          name: "Table G3",
+          kind: "table",
+          challengeId: GENERAL,
+          buildingId: "ENG",
+          buildingName: "ENG",
+          archivedAt: null,
+        },
+      ]),
+    );
+    const preview = await organiser().judging.schedule.preview({
+      hackathonId: HACK,
+      timing,
+    });
+    const unused = preview.advice.find((a) => a.kind === "unusedTables");
+    expect(unused?.action).toEqual({
+      type: "archiveTables",
+      roomIds: expect.arrayContaining([id(54)]),
+    });
+    expect(unused?.message).toContain("won't be used with 1 table judge");
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("judging.schedule.suggestTiming", () => {
+  beforeEach(() => {
+    store.set(judgingSchedules, []);
+    store.set(judgingAppointments, []);
+  });
+
+  it("starts at the next quarter hour at least 15 minutes away, with the usual minutes", async () => {
+    // The clock moves on, so a user of its own: rate limits refill by it.
+    vi.setSystemTime(new Date("2027-02-06T15:01:00Z"));
+    const suggestion = await callerAs("late_user").judging.schedule.suggestTiming({
+      hackathonId: HACK,
+    });
+    expect(suggestion!.timing).toMatchObject({
+      windowStart: at("15:30"),
+      setupMinutes: 2,
+      judgingMinutes: 6,
+      teardownMinutes: 2,
+      sameBuildingBreakMinutes: 10,
+      crossBuildingBreakMinutes: 20,
+    });
+  });
+
+  it("sizes the window to a plan that fits, and counts what it was based on", async () => {
+    const suggestion = await organiser().judging.schedule.suggestTiming({
+      hackathonId: HACK,
+    });
+    const { timing, basis, spareMinutes } = suggestion!;
+    expect(basis).toEqual({
+      projects: 3,
+      presentations: 4,
+      // Two table judges seat one of the two general tables at a time.
+      rooms: 3,
+      memberJudges: 2,
+    });
+    expect(spareMinutes).toBeGreaterThanOrEqual(0);
+
+    // The window it suggests previews as a schedule.
+    const preview = await organiser().judging.schedule.preview({
+      hackathonId: HACK,
+      timing,
+    });
+    expect(preview.ok).toBe(true);
+    // The longest a project's own presentations take is 3 slots; a fifth more.
+    expect(
+      (timing.windowEnd.getTime() - timing.windowStart.getTime()) / 60_000,
+    ).toBeGreaterThanOrEqual(30);
+  });
+
+  it("is null once a schedule is saved", async () => {
+    store.set(judgingSchedules, [
+      { id: SCHEDULE, hackathonId: HACK, windowStart: at("16:00") },
+    ]);
+    expect(
+      await organiser().judging.schedule.suggestTiming({ hackathonId: HACK }),
+    ).toBeNull();
+  });
+
+  it("is null when no project is entered", async () => {
+    store.set(judgingEntryChallenges, []);
+    expect(
+      await organiser().judging.schedule.suggestTiming({ hackathonId: HACK }),
+    ).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("re-balancing judges on their own", () => {
+  const M3 = id(54);
+  const minutes = (n: number) => new Date(Date.now() - n * 60_000);
+  const here = (judgeId: string, lastSeenMinutesAgo = 0.5) => ({
+    judgeId,
+    roomId: G1,
+    joinedAt: minutes(60),
+    lastSeenAt: minutes(lastSeenMinutesAgo),
+    leftAt: null,
+  });
+  const left = (judgeId: string) => ({
+    ...here(judgeId, 7),
+    leftAt: minutes(6),
+  });
+  // Its own caller, so the file's earlier requests do not trip the flood guard.
+  const organiser = () => callerAs("rebalance_admin");
+  const get = () => organiser().judging.schedule.get({ hackathonId: HACK });
+  const gives = (p: string) => judgeAfter().get(p);
+
+  beforeEach(() => {
+    rebalanceThrottle.clear();
+    store.set(judgingConfigs, [
+      { hackathonId: HACK, state: "open", autoRebalance: true },
+    ]);
+    store.set(judgingJudges, [
+      judge(M1, "member", "Ada"),
+      judge(M2, "member", "Bea"),
+      judge(M3, "member", "Cy"),
+      judge(GS, "guest", "Grace"),
+    ]);
+    // Ada, who left, holds P2; Bea is on P3 and Grace on P4; Cy is free.
+    give(P2, M1);
+    give(P3, M2);
+    give(P4, GS);
+    store.set(judgingPresence, [left(M1), here(M2), here(M3)]);
+  });
+
+  it("moves a judge's upcoming presentations to one who is here, and nobody else's", async () => {
+    const board = await get();
+
+    expect(gives(P2)).toBe(M3);
+    expect(gives(P3)).toBeUndefined();
+    expect(gives(P4)).toBeUndefined();
+    expect(gives(P1)).toBeUndefined();
+    expect(board.judging).toMatchObject({
+      autoRebalance: true,
+      lastRebalancedAt: NOW,
+      lastRebalanceChanged: 1,
+    });
+    expect(audits()).toEqual([
+      expect.objectContaining({
+        action: "judging.schedule.rebalance",
+        userId: null,
+        resourceId: HACK,
+        metadata: expect.objectContaining({ changed: 1 }),
+      }),
+    ]);
+  });
+
+  it("gives a presentation with no judge to one who is here", async () => {
+    give(P3, null as never);
+    store.set(judgingPresence, [here(M1), here(M2), here(M3)]);
+
+    await get();
+
+    expect(gives(P3)).toBeDefined();
+    expect(gives(P2)).toBeUndefined();
+  });
+
+  it("leaves alone a presentation that has started or has a draft", async () => {
+    // Ada's P2 has a draft; her P1 started at 14:00 and is over.
+    give(P1, M1);
+    store.set(judgingEvaluationDrafts, [
+      { entryId: E2, challengeId: GENERAL, appointmentId: null },
+    ]);
+
+    await get();
+
+    expect(gives(P2)).toBeUndefined();
+    expect(gives(P1)).toBeUndefined();
+    expect(updates.filter((u) => u.table === judgingAppointments)).toEqual([]);
+    expect(audits()).toEqual([]);
+  });
+
+  it("treats a judge quiet for 11 minutes as gone, one who just walked off as here, and one not yet due as here", async () => {
+    store.set(judgingPresence, [here(M1, 9), here(M2), here(M3)]);
+    await get();
+    expect(updates.filter((u) => u.table === judgingAppointments)).toEqual([]);
+
+    updates.length = 0;
+    rebalanceThrottle.clear();
+    store.set(judgingPresence, [here(M1, 11), here(M2), here(M3)]);
+    await get();
+    expect(gives(P2)).toBe(M3);
+
+    // Never seen, but P2 is half an hour away: Ada keeps it.
+    updates.length = 0;
+    rebalanceThrottle.clear();
+    give(P2, M1);
+    store.set(judgingPresence, [here(M2), here(M3)]);
+    await get();
+    expect(updates.filter((u) => u.table === judgingAppointments)).toEqual([]);
+  });
+
+  it("gives freed work only to members who are here, not one who never arrived", async () => {
+    // Cy never checked in and holds nothing near; Bea is here and now free.
+    give(P3, null as never);
+    store.set(judgingPresence, [left(M1), here(M2)]);
+
+    await get();
+
+    expect([gives(P2), gives(P3)]).toContain(M2);
+    expect([gives(P2), gives(P3)]).not.toContain(M3);
+  });
+
+  it("leaves what a member who never arrived holds, and gives them nothing more", async () => {
+    // Cy never checked in but holds P3, which is not due for half an hour.
+    give(P3, M3);
+    store.set(judgingPresence, [left(M1), here(M2)]);
+
+    await get();
+
+    expect(gives(P3)).toBeUndefined();
+    expect(gives(P2)).toBe(M2);
+  });
+
+  it("gives up quietly when presence changed under the lock", async () => {
+    // Ada was gone on the first read and has heartbeated by the second.
+    onRead = (table, count) =>
+      table === judgingPresence && count > 1
+        ? [here(M1), here(M2), here(M3)]
+        : undefined;
+
+    await get();
+
+    expect(updates.filter((u) => u.table === judgingAppointments)).toEqual([]);
+    expect(audits()).toEqual([]);
+  });
+
+  it("does nothing when the organiser turned it off, and says so", async () => {
+    await organiser().judging.schedule.setAutoRebalance({
+      hackathonId: HACK,
+      enabled: false,
+    });
+    expect(audits()).toEqual([
+      expect.objectContaining({
+        action: "judging.schedule.setAutoRebalance",
+        metadata: { enabled: false },
+      }),
+    ]);
+
+    const board = await get();
+
+    expect(updates.filter((u) => u.table === judgingAppointments)).toEqual([]);
+    expect(board.judging).toMatchObject({ autoRebalance: false });
+  });
+
+  it("refuses anyone but an admin to switch it", async () => {
+    adminRow = undefined;
+    await expect(
+      callerAs("someone").judging.schedule.setAutoRebalance({
+        hackathonId: HACK,
+        enabled: false,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("never fails the read it rides on", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    onRead = (table) => {
+      if (table === judgingPresence) throw new Error("db down");
+      return undefined;
+    };
+    await expect(rebalanceIfDue(fakeDb, HACK, new Date())).resolves.toBeUndefined();
+    expect(logged).toHaveBeenCalled();
+    logged.mockRestore();
+  });
+
+  // Last: it moves the clock on, and the rate limiter reads the clock.
+  it("runs at most once every 30 seconds", async () => {
+    await get();
+    expect(gives(P2)).toBe(M3);
+
+    // Cy leaves too and P2 is Cy's now.
+    give(P2, M3);
+    store.set(judgingPresence, [left(M1), here(M2), left(M3)]);
+    updates.length = 0;
+    vi.setSystemTime(new Date(NOW.getTime() + 10_000));
+    await get();
+    expect(updates).toEqual([]);
+
+    updates.length = 0;
+    vi.setSystemTime(new Date(NOW.getTime() + 31_000));
+    await get();
+    expect(updates.some((u) => u.table === judgingAppointments)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("a full event: 63 tables, 4 sponsors, 60 table judges", () => {
+  const SPONSORS = [id(1001), id(1002), id(1003), id(1004)];
+  // 18 slots of 10 minutes.
+  const timing = {
+    windowStart: at("16:00"),
+    windowEnd: at("19:00"),
+    setupMinutes: 2,
+    judgingMinutes: 6,
+    teardownMinutes: 2,
+    sameBuildingBreakMinutes: 10,
+    crossBuildingBreakMinutes: 20,
+  };
+
+  beforeEach(() => {
+    store.set(judgingSchedules, []);
+    store.set(judgingAppointments, []);
+    store.set(judgingChallenges, [
+      {
+        id: GENERAL,
+        label: "General",
+        parentId: null,
+        mode: "scheduled",
+        isGeneral: true,
+        isGroup: false,
+      },
+      ...SPONSORS.map((sponsor, i) => ({
+        id: sponsor,
+        label: `Sponsor ${i + 1}`,
+        parentId: null,
+        mode: "scheduled",
+        isGeneral: false,
+        isGroup: false,
+      })),
+    ]);
+    const table = (rid: string, name: string, challengeId: string) => ({
+      id: rid,
+      name,
+      kind: "table",
+      challengeId,
+      buildingId: "ENG",
+      buildingName: "ENG",
+      archivedAt: null,
+    });
+    store.set(judgingRooms, [
+      ...Array.from({ length: 63 }, (_, i) =>
+        table(id(2000 + i), `Table ${i + 1}`, GENERAL),
+      ),
+      ...SPONSORS.flatMap((sponsor, i) => [
+        table(id(3000 + i * 2), `Sponsor ${i + 1} A`, sponsor),
+        table(id(3001 + i * 2), `Sponsor ${i + 1} B`, sponsor),
+      ]),
+    ]);
+    // 300 projects; the first 120 also present for a sponsor: 420 in all.
+    store.set(
+      judgingEntryChallenges,
+      Array.from({ length: 300 }, (_, e) => [
+        { entryId: id(5000 + e), challengeId: GENERAL, title: `Project ${e}` },
+        ...(e < 120
+          ? [
+              {
+                entryId: id(5000 + e),
+                challengeId: SPONSORS[e % 4]!,
+                title: `Project ${e}`,
+              },
+            ]
+          : []),
+      ]).flat(),
+    );
+    store.set(
+      judgingJudges,
+      Array.from({ length: 60 }, (_, i) =>
+        judge(id(6000 + i), "member", `Judge ${i}`),
+      ),
+    );
+    store.set(judgingGuestSessions, []);
+  });
+
+  it("leaves out enough tables that every presentation has a judge, and saves the same schedule", async () => {
+    const preview = await callerAs("full_event").judging.schedule.preview({
+      hackathonId: HACK,
+      timing,
+    });
+    if (!preview.ok) throw new Error("the event fits the window");
+    expect(preview.advice.map((a) => a.kind)).not.toContain("judges");
+    expect(preview.roomsLeftOut).toBeGreaterThan(0);
+
+    const saved = await callerAs("full_event").judging.schedule.save({
+      hackathonId: HACK,
+      timing,
+      candidateKey: preview.candidateKey,
+    });
+    expect(saved).toMatchObject({ appointments: 420, judged: 420 });
+  }, 120_000);
 });

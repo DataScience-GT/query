@@ -10,6 +10,7 @@ const appointment = {
   challengeId: "mlh",
   roomId: "r1",
   startsAt: at("15:00"),
+  deadlineAt: at("15:08"),
   endsAt: at("15:10"),
 };
 
@@ -52,11 +53,11 @@ describe("staffedRoomIds", () => {
 
 describe("withStatus", () => {
   it("follows the clock with no evaluations, and allows moving future and missed ones", () => {
-    const [before] = withStatus([appointment], [], [], rootIdOf, at("14:59"));
+    const [before] = withStatus([appointment], [], rootIdOf, at("14:59"));
     expect(before).toMatchObject({ status: "future", canMove: true, evaluationCount: 0 });
-    const [during] = withStatus([appointment], [], [], rootIdOf, at("15:05"));
+    const [during] = withStatus([appointment], [], rootIdOf, at("15:05"));
     expect(during).toMatchObject({ status: "pending", canMove: false });
-    const [after] = withStatus([appointment], [], [], rootIdOf, at("15:30"));
+    const [after] = withStatus([appointment], [], rootIdOf, at("15:30"));
     expect(after).toMatchObject({ status: "missed", canMove: true });
   });
 
@@ -68,36 +69,27 @@ describe("withStatus", () => {
       evaluation({ judgeId: "j4", challengeId: "general" }),
       evaluation({ judgeId: "j5", entryId: "b" }),
     ];
-    const [row] = withStatus([appointment], evaluations, [], rootIdOf, at("15:30"));
+    const [row] = withStatus([appointment], evaluations, rootIdOf, at("15:30"));
     expect(row).toMatchObject({ evaluationCount: 2, status: "complete", canMove: false });
   });
 
-  it("is incomplete while a judge who was in the room has not submitted", () => {
+  it("is complete once the project is graded, whoever else sat in the room", () => {
+    // Graded once per challenge: a second judge in the room cannot add an
+    // evaluation, so their presence must not hold the slot open.
     const [row] = withStatus(
       [appointment],
       [evaluation({ judgeId: "j1" })],
-      [
-        presence({ judgeId: "j1" }),
-        presence({ judgeId: "j2" }),
-        // Left before the slot: not expected to judge it.
-        presence({ judgeId: "j3", leftAt: at("14:30"), lastSeenAt: at("14:30") }),
-        // Another room.
-        presence({ judgeId: "j4", roomId: "r2" }),
-        // Arrived after it ended.
-        presence({ judgeId: "j5", joinedAt: at("15:10") }),
-      ],
       rootIdOf,
       at("15:30"),
     );
-    expect(row!.status).toBe("incomplete");
+    expect(row!.status).toBe("complete");
 
-    const [done] = withStatus(
+    const [short] = withStatus(
       [appointment],
-      [evaluation({ judgeId: "j1" }), evaluation({ judgeId: "j2" })],
-      [presence({ judgeId: "j1" }), presence({ judgeId: "j2" })],
+      [evaluation({ judgeId: "j1", ratingsComplete: false })],
       rootIdOf,
       at("15:30"),
     );
-    expect(done!.status).toBe("complete");
+    expect(short!.status).toBe("incomplete");
   });
 });

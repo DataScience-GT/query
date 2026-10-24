@@ -37,6 +37,7 @@ import type { JudgingTx as Tx } from "../../services/judging/config";
 import { flaggedEntryIds } from "../../services/check-in-flags";
 import { createTRPCRouter, publicProcedure } from "../../trpc";
 import { isUniqueViolation } from "../../middleware/db-errors";
+import { rebalanceIfDue } from "./schedule";
 import {
   asJudge,
   nameGuest,
@@ -1263,6 +1264,7 @@ export const judgingDeskRouter = createTRPCRouter({
     const db = ctx.db;
     const { judge } = ctx;
     await reconcileDueDrafts(db, input.hackathonId);
+    await rebalanceIfDue(db, input.hackathonId);
 
     const now = new Date();
     const [schedule] = await db
