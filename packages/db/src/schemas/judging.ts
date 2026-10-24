@@ -57,6 +57,9 @@ export const judgingConfigs = pgTable("judging_config", {
   // Schedule fell over: hackers get project search, roster and feedback hide.
   emergencyMode: boolean("emergency_mode").notNull().default(false),
   claimsStartedAt: timestamp("claims_started_at"),
+  // While judging runs, presentations of a judge who left or went quiet move
+  // to judges who are here.
+  autoRebalance: boolean("auto_rebalance").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -431,6 +434,10 @@ export const judgingSchedules = pgTable(
     reducedBreaksAcknowledgedAt: timestamp("reduced_breaks_acknowledged_at"),
     // The first submitted evaluation. After it the schedule cannot be dropped.
     firstResultAt: timestamp("first_result_at"),
+    // The last time judges were re-balanced on their own, and how many
+    // presentations that moved.
+    lastRebalancedAt: timestamp("last_rebalanced_at"),
+    lastRebalanceChanged: integer("last_rebalance_changed").notNull().default(0),
     createdById: text("created_by_id").references(() => users.id, {
       onDelete: "set null",
     }),

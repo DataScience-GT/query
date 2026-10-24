@@ -4,7 +4,7 @@ This guide gets a local copy of **query** running: Postgres, schema, env, and bo
 
 ## Prerequisites
 
-- **Node.js** `>=20.16.0 <24` (`.nvmrc` pins `20`; CI also uses 20 and 22)
+- **Node.js** `>=24.11.0 <25` (`.nvmrc` pins `24`; CI uses it too)
 - **pnpm** `12.3.4` (see `packageManager` in the root `package.json`)
 - **Docker** (for local Postgres)
 - Optional: **gcloud** and **Firebase CLI** if you need production secrets or deploys
