@@ -3,7 +3,6 @@ import {
   buildItinerary,
   evaluationsForAppointment,
   groupFeedback,
-  judgesPresentDuring,
   visibleChallenges,
 } from "./itinerary";
 import type {
@@ -56,6 +55,8 @@ const room = (
 });
 
 const at = (minute: number) => new Date(Date.UTC(2027, 1, 8, 15, minute));
+// Grading closes 15s past a deadline (timing.ts).
+const closes = (minute: number) => new Date(at(minute).getTime() + 15_000);
 
 const slot = (
   id: string,
@@ -67,6 +68,7 @@ const slot = (
   challengeId,
   roomId,
   startsAt: at(startMinute),
+  deadlineAt: at(startMinute + 8),
   endsAt: at(startMinute + 10),
 });
 
@@ -149,60 +151,6 @@ describe("evaluationsForAppointment", () => {
   });
 });
 
-describe("judgesPresentDuring", () => {
-  const window = { roomId: "r1", startsAt: at(0), endsAt: at(10) };
-
-  it("counts overlapping time in the same room only", () => {
-    expect(
-      judgesPresentDuring(window, [
-        {
-          judgeId: "a",
-          roomId: "r1",
-          joinedAt: at(-30),
-          lastSeenAt: at(20),
-          leftAt: null,
-        },
-        {
-          judgeId: "b",
-          roomId: "r2",
-          joinedAt: at(-30),
-          lastSeenAt: at(20),
-          leftAt: null,
-        },
-        {
-          judgeId: "c",
-          roomId: "r1",
-          joinedAt: at(-30),
-          lastSeenAt: at(-1),
-          leftAt: at(-1),
-        },
-        {
-          judgeId: "d",
-          roomId: "r1",
-          joinedAt: at(10),
-          lastSeenAt: at(20),
-          leftAt: null,
-        },
-      ]),
-    ).toEqual(["a"]);
-  });
-
-  it("lets a stopped heartbeat lapse after two minutes", () => {
-    const stale = {
-      judgeId: "a",
-      roomId: "r1",
-      joinedAt: at(-60),
-      leftAt: null,
-    };
-    expect(
-      judgesPresentDuring(window, [{ ...stale, lastSeenAt: at(-1) }]),
-    ).toEqual(["a"]);
-    expect(
-      judgesPresentDuring(window, [{ ...stale, lastSeenAt: at(-3) }]),
-    ).toEqual([]);
-  });
-});
-
 describe("buildItinerary", () => {
   const rooms = [
     room("r1", { name: "Room 1" }),
@@ -226,7 +174,6 @@ describe("buildItinerary", () => {
       slot("s3", "online", "r1", 60),
     ],
     evaluations: [],
-    presence: [],
   };
 
   it("lists appointments in time order with room, building and status", () => {
@@ -250,14 +197,14 @@ describe("buildItinerary", () => {
     // Remote judging never reaches hackers.
     expect(itinerary.appointments.map((a) => a.id)).not.toContain("s3");
     expect(itinerary.missed).toBe(false);
-    expect(itinerary.nextEndsAt).toEqual(at(10));
+    expect(itinerary.nextEndsAt).toEqual(closes(8));
   });
 
-  it("flags a missed slot and points the refetch at the next end", () => {
-    const itinerary = buildItinerary({ ...base, now: at(12) });
+  it("flags a missed slot and points the refetch at the next close", () => {
+    const itinerary = buildItinerary({ ...base, now: at(9) });
     expect(itinerary.appointments[0]!.status).toBe("missed");
     expect(itinerary.missed).toBe(true);
-    expect(itinerary.nextEndsAt).toEqual(at(40));
+    expect(itinerary.nextEndsAt).toEqual(closes(38));
     expect(buildItinerary({ ...base, now: at(45) }).nextEndsAt).toBeNull();
   });
 
@@ -272,51 +219,10 @@ describe("buildItinerary", () => {
           ratingsComplete: true,
         },
       ],
-      presence: [
-        {
-          judgeId: "j1",
-          roomId: "r1",
-          joinedAt: at(-5),
-          lastSeenAt: at(11),
-          leftAt: null,
-        },
-      ],
       now: at(12),
     });
     expect(itinerary.appointments[0]!.status).toBe("complete");
     expect(itinerary.missed).toBe(false);
-  });
-
-  it("keeps a slot incomplete while a judge in the room has not submitted", () => {
-    const itinerary = buildItinerary({
-      ...base,
-      evaluations: [
-        {
-          judgeId: "j1",
-          challengeId: "general",
-          appointmentId: "s1",
-          ratingsComplete: true,
-        },
-      ],
-      presence: [
-        {
-          judgeId: "j1",
-          roomId: "r1",
-          joinedAt: at(-5),
-          lastSeenAt: at(11),
-          leftAt: null,
-        },
-        {
-          judgeId: "j2",
-          roomId: "r1",
-          joinedAt: at(-5),
-          lastSeenAt: at(11),
-          leftAt: null,
-        },
-      ],
-      now: at(12),
-    });
-    expect(itinerary.appointments[0]!.status).toBe("incomplete");
   });
 
   it("keeps a slot incomplete while an evaluation lacks a rating", () => {

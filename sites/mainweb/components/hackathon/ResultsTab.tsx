@@ -53,7 +53,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
     },
   );
 
-  // Rows carry the team's name and no id. Team names are not unique, so the
+  // Legacy rows carry only the team's name. Team names are not unique, so the
   // tag waits for the event's team list to show no other team uses the
   // caller's; otherwise a namesake's placing would read as theirs.
   const myTeam =
@@ -68,6 +68,13 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
     !teams.some((t) => t.name === myTeam.name && t.id !== myTeam.id)
       ? myTeam.name
       : null;
+  // Room-judging rows carry their entry, so the caller's own place matches
+  // exactly, solo projects included.
+  const { data: myClaim } = trpc.judging.hacker.myClaim.useQuery(
+    { hackathonId },
+    { enabled: !!session && !!results?.length },
+  );
+  const myEntryId = myClaim?.claim?.entryId ?? null;
 
   if (isLoading) {
     return <p className={`py-16 ${body}`}>Loading results…</p>;
@@ -126,7 +133,9 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
           )}
           <ol className="border-t border-[var(--border-subtle)]">
             {group.rows.map((row) => {
-              const mine = myTeamName !== null && row.teamName === myTeamName;
+              const mine =
+                (myEntryId !== null && row.entryId === myEntryId) ||
+                (myTeamName !== null && row.teamName === myTeamName);
               return (
                 <li
                   key={row.id}
@@ -153,7 +162,9 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
                           <span className={meta}>{row.teamName}</span>
                         )}
                         {mine && (
-                          <span className={status("accent")}>Your team</span>
+                          <span className={status("accent")}>
+                            {row.teamName ? "Your team" : "Your project"}
+                          </span>
                         )}
                       </p>
                     )}

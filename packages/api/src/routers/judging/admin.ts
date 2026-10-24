@@ -232,6 +232,48 @@ async function lockRoom(tx: JudgingDb, roomId: string) {
   return room;
 }
 
+/**
+ * Archives a room the caller has locked: its link is retired, everyone in it
+ * stands up and its message is cleared. Refused while presentations are
+ * scheduled in it.
+ */
+async function archiveLockedRoom(
+  tx: JudgingDb,
+  room: Awaited<ReturnType<typeof lockRoom>>,
+  userId: string,
+) {
+  const scheduled = await roomAppointmentCount(tx, room.id);
+  if (scheduled > 0) {
+    throw refuse(
+      `${room.name} has ${scheduled} scheduled presentation${scheduled === 1 ? "" : "s"}. Move them or drop the schedule before archiving it.`,
+    );
+  }
+  const signedOut = (
+    await revokeRoomAccess(
+      tx,
+      { hackathonId: room.hackathonId, roomId: room.id },
+      userId,
+    )
+  ).sessions;
+  await emptyRoom(tx, room.id);
+  // Nobody is left to read the room's message.
+  await tx
+    .update(judgingAnnouncements)
+    .set({ clearedAt: new Date() })
+    .where(
+      and(
+        eq(judgingAnnouncements.roomId, room.id),
+        isNull(judgingAnnouncements.clearedAt),
+      ),
+    );
+  const [updated] = await tx
+    .update(judgingRooms)
+    .set({ archivedAt: new Date() })
+    .where(eq(judgingRooms.id, room.id))
+    .returning();
+  return { room: updated!, signedOut };
+}
+
 /** A challenge a room can serve: top-level and in this edition. */
 async function assertRoomChallenge(
   tx: JudgingDb,
@@ -1959,40 +2001,19 @@ export const judgingAdminRouter = createTRPCRouter({
             return { room, changed: false, signedOut: 0 };
           }
 
-          let signedOut = 0;
           if (input.archived) {
-            const scheduled = await roomAppointmentCount(tx, room.id);
-            if (scheduled > 0) {
-              throw refuse(
-                `${room.name} has ${scheduled} scheduled presentation${scheduled === 1 ? "" : "s"}. Move them or drop the schedule before archiving it.`,
-              );
-            }
-            signedOut = (
-              await revokeRoomAccess(
-                tx,
-                { hackathonId: room.hackathonId, roomId: room.id },
-                ctx.userId,
-              )
-            ).sessions;
-            await emptyRoom(tx, room.id);
-            // Nobody is left to read the room's message.
-            await tx
-              .update(judgingAnnouncements)
-              .set({ clearedAt: new Date() })
-              .where(
-                and(
-                  eq(judgingAnnouncements.roomId, room.id),
-                  isNull(judgingAnnouncements.clearedAt),
-                ),
-              );
+            return {
+              ...(await archiveLockedRoom(tx, room, ctx.userId)),
+              changed: true,
+            };
           }
 
           const [updated] = await tx
             .update(judgingRooms)
-            .set({ archivedAt: input.archived ? new Date() : null })
+            .set({ archivedAt: null })
             .where(eq(judgingRooms.id, room.id))
             .returning();
-          return { room: updated!, changed: true, signedOut };
+          return { room: updated!, changed: true, signedOut: 0 };
         });
 
         if (result.changed) {
@@ -2019,6 +2040,55 @@ export const judgingAdminRouter = createTRPCRouter({
         }
         throw error;
       }
+    }),
+
+  /**
+   * Archives many rooms at once, as setRoomArchived does each. All or
+   * nothing: one room with presentations scheduled, or from another
+   * edition, refuses the lot.
+   */
+  archiveRooms: isAdmin
+    .input(
+      hackathonInput.extend({ roomIds: z.array(uuid).min(1).max(500) }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const roomIds = [...new Set(input.roomIds)].sort();
+      const archived = await db.transaction(async (tx) => {
+        await lockEdition(tx, input.hackathonId);
+        const rooms = await tx
+          .select()
+          .from(judgingRooms)
+          .where(
+            and(
+              eq(judgingRooms.hackathonId, input.hackathonId),
+              inArray(judgingRooms.id, roomIds),
+            ),
+          )
+          .orderBy(asc(judgingRooms.id));
+        if (rooms.length !== roomIds.length) {
+          throw notFound(
+            "Some of those rooms are gone or belong to another hackathon. Refresh the Rooms tab.",
+          );
+        }
+        const done: { room: typeof rooms[number]; signedOut: number }[] = [];
+        for (const room of rooms) {
+          if (room.archivedAt) continue;
+          done.push(await archiveLockedRoom(tx, room, ctx.userId));
+        }
+        return done;
+      });
+
+      for (const { room, signedOut } of archived) {
+        await recordAdminAction(db, {
+          userId: ctx.userId,
+          action: "judging.archiveRoom",
+          resourceId: room.id,
+          severity: "warn",
+          metadata: { hackathonId: room.hackathonId, guestsSignedOut: signedOut },
+        });
+      }
+      return { archived: archived.length };
     }),
 
   /** Deletes a room that hosts no scheduled presentation. */
