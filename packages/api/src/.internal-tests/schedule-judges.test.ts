@@ -340,7 +340,12 @@ beforeEach(() => {
     judge(NOROOM, "guest", "Nobody"),
   ]);
   store.set(judgingGuestSessions, [
-    { judgeId: GS, roomId: A1, createdAt: NOW },
+    {
+      judgeId: GS,
+      roomId: A1,
+      createdAt: NOW,
+      expiresAt: new Date(NOW.getTime() + 8 * 3600_000),
+    },
   ]);
 });
 
@@ -1359,6 +1364,24 @@ describe("re-balancing judges on their own", () => {
 
     expect(gives(P3)).toBeUndefined();
     expect(gives(P2)).toBe(M2);
+  });
+
+  it("frees what a guest holds once their session has lapsed, and gives them nothing", async () => {
+    // Grace's 8 hours ran out a minute ago; a member takes the sponsor's presentation.
+    store.set(judgingGuestSessions, [
+      {
+        judgeId: GS,
+        roomId: A1,
+        createdAt: new Date(NOW.getTime() - 8 * 3600_000 - 60_000),
+        expiresAt: new Date(NOW.getTime() - 60_000),
+      },
+    ]);
+
+    await get();
+
+    expect(gives(P4)).toBeTruthy();
+    expect(gives(P4)).not.toBe(GS);
+    expect(gives(P2)).toBe(M3);
   });
 
   it("gives up quietly when presence changed under the lock", async () => {

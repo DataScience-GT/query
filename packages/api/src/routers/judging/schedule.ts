@@ -223,11 +223,16 @@ async function readInventory(db: JudgingDb, hackathonId: string) {
 
 type Inventory = Awaited<ReturnType<typeof readInventory>>;
 
-/** The judges an edition can give presentations to, with every judge's name. */
+/**
+ * The judges an edition can give presentations to, with every judge's name.
+ * A guest whose session has run out is not here: they are off the roster, so
+ * nothing is handed to them and what they hold is given again.
+ */
 async function readRoster(
   db: JudgingDb,
   hackathonId: string,
   inventory: Inventory,
+  now: Date,
 ): Promise<Roster> {
   const [judges, sessions] = await Promise.all([
     db
@@ -244,6 +249,7 @@ async function readRoster(
         judgeId: judgingGuestSessions.judgeId,
         roomId: judgingGuestSessions.roomId,
         createdAt: judgingGuestSessions.createdAt,
+        expiresAt: judgingGuestSessions.expiresAt,
       })
       .from(judgingGuestSessions)
       .where(
@@ -257,7 +263,7 @@ async function readRoster(
     hackathonId,
     judges,
     seats: sessions.flatMap((s) =>
-      s.judgeId
+      s.judgeId && s.expiresAt > now
         ? [{ judgeId: s.judgeId, roomId: s.roomId, createdAt: s.createdAt }]
         : [],
     ),
@@ -695,10 +701,15 @@ type SavedSchedule = NonNullable<Board["schedule"]>;
  * appointments the way the assigner takes them. An appointment is open to a
  * new judge while it has not started and nobody has begun an evaluation.
  */
-async function loadJudging(db: JudgingDb, board: Board, schedule: SavedSchedule) {
+async function loadJudging(
+  db: JudgingDb,
+  board: Board,
+  schedule: SavedSchedule,
+  now: Date,
+) {
   const hackathonId = schedule.hackathonId;
   const [roster, drafts] = await Promise.all([
-    readRoster(db, hackathonId, board.inventory),
+    readRoster(db, hackathonId, board.inventory, now),
     db
       .select({
         judgeId: judgingEvaluationDrafts.judgeId,
@@ -942,7 +953,7 @@ async function rebalance(db: DrizzleDB, hackathonId: string, now: Date) {
 
   const first = await loadBoard(db, hackathonId, now);
   if (!first.schedule) return;
-  const before = await loadJudging(db, first, first.schedule);
+  const before = await loadJudging(db, first, first.schedule, now);
   const hereBefore = hereOf(before, first, now);
   const made = rebalanceOf(before, first, now, hereBefore);
   if (!made) return;
@@ -950,7 +961,7 @@ async function rebalance(db: DrizzleDB, hackathonId: string, now: Date) {
   const changed = await db.transaction(async (tx) => {
     const board = await loadBoard(tx, hackathonId, now, true);
     if (!board.schedule) return 0;
-    const judging = await loadJudging(tx, board, board.schedule);
+    const judging = await loadJudging(tx, board, board.schedule, now);
     if (staleJudging(judging, before)) return 0;
     if (stalePresence(hereOf(judging, board, now), hereBefore)) return 0;
 
@@ -1161,7 +1172,7 @@ export const judgingScheduleRouter = createTRPCRouter({
 
       const inventory = await readInventory(db, input.hackathonId);
       const names = namesOf(inventory);
-      const roster = await readRoster(db, input.hackathonId, inventory);
+      const roster = await readRoster(db, input.hackathonId, inventory, new Date());
       const solved = solveInventory(inventory, input.timing, roster.judges);
       const { inputs, result, key, proven, roomsLeftOut } = solved;
       const advice = adviceOf(inventory, roster, solved, input.timing);
@@ -1209,7 +1220,7 @@ export const judgingScheduleRouter = createTRPCRouter({
 
       const inventory = await readInventory(db, input.hackathonId);
       if (selectPlan(inventory).tasks.length === 0) return null;
-      const roster = await readRoster(db, input.hackathonId, inventory);
+      const roster = await readRoster(db, input.hackathonId, inventory, new Date());
 
       const windowStart = new Date(
         Math.ceil((Date.now() + QUARTER_HOUR) / QUARTER_HOUR) * QUARTER_HOUR,
@@ -1276,7 +1287,7 @@ export const judgingScheduleRouter = createTRPCRouter({
       // Judges first come with the schedule, as far as there are any yet;
       // assignJudges picks up the rest once more have joined.
       const inventory = await readInventory(db, input.hackathonId);
-      const roster = await readRoster(db, input.hackathonId, inventory);
+      const roster = await readRoster(db, input.hackathonId, inventory, new Date());
       const { inputs, result, key, fingerprint } = solveInventory(
         inventory,
         input.timing,
@@ -1378,7 +1389,7 @@ export const judgingScheduleRouter = createTRPCRouter({
 
       const inventory = await readInventory(db, input.hackathonId);
       const { inputs, result, fingerprint } = solveInventory(inventory, input.timing);
-      const roster = await readRoster(db, input.hackathonId, inventory);
+      const roster = await readRoster(db, input.hackathonId, inventory, new Date());
       const problem = cpsatProblem(
         inputs,
         fingerprint,
@@ -1411,7 +1422,7 @@ export const judgingScheduleRouter = createTRPCRouter({
       if (await findSchedule(db, input.hackathonId)) throw scheduleExists();
 
       const inventory = await readInventory(db, input.hackathonId);
-      const roster = await readRoster(db, input.hackathonId, inventory);
+      const roster = await readRoster(db, input.hackathonId, inventory, new Date());
       const { inputs, read, key } = readUpload(
         inventory,
         input.timing,
@@ -1444,7 +1455,7 @@ export const judgingScheduleRouter = createTRPCRouter({
       assertWindowAhead(input.timing);
 
       const inventory = await readInventory(db, input.hackathonId);
-      const roster = await readRoster(db, input.hackathonId, inventory);
+      const roster = await readRoster(db, input.hackathonId, inventory, new Date());
       const { read, key, fingerprint } = readUpload(
         inventory,
         input.timing,
@@ -1529,7 +1540,7 @@ export const judgingScheduleRouter = createTRPCRouter({
 
       const inventory = await readInventory(db, input.hackathonId);
       const { inputs, result, fingerprint } = solveInventory(inventory, input.timing);
-      const roster = await readRoster(db, input.hackathonId, inventory);
+      const roster = await readRoster(db, input.hackathonId, inventory, new Date());
       const run = await runCpsat(
         cpsatProblem(
           inputs,
@@ -1589,7 +1600,9 @@ export const judgingScheduleRouter = createTRPCRouter({
         .from(judgingConfigs)
         .where(eq(judgingConfigs.hackathonId, input.hackathonId))
         .limit(1);
-      const judging = schedule ? await loadJudging(db, board, schedule) : null;
+      const judging = schedule
+        ? await loadJudging(db, board, schedule, now)
+        : null;
 
       const planned = new Set(board.plan.tasks.map((t) => taskKey(t.entryId, t.challengeId)));
       const booked = new Set(
@@ -1786,7 +1799,7 @@ export const judgingScheduleRouter = createTRPCRouter({
         // at the new time; otherwise the organiser assigns judges again.
         let clearsJudge = false;
         if (appointment.assignedJudgeId) {
-          const judging = await loadJudging(tx, board, board.schedule);
+          const judging = await loadJudging(tx, board, board.schedule, now);
           const judge = judging.roster.judges.find(
             (j) => j.id === appointment.assignedJudgeId,
           );
@@ -1867,7 +1880,7 @@ export const judgingScheduleRouter = createTRPCRouter({
           message: "That appointment no longer exists. Reload the board.",
         });
       }
-      const judging = await loadJudging(db, board, board.schedule);
+      const judging = await loadJudging(db, board, board.schedule, now);
       const saved = judging.saved.find((s) => s.id === appointment.id);
       if (!saved || saved.removed) throw noJudgeNeeded();
 
@@ -1935,7 +1948,7 @@ export const judgingScheduleRouter = createTRPCRouter({
             message: "That appointment no longer exists. Reload the board.",
           });
         }
-        const judging = await loadJudging(tx, board, board.schedule);
+        const judging = await loadJudging(tx, board, board.schedule, now);
         const saved = judging.saved.find((s) => s.id === appointment.id);
         if (!saved || saved.removed) throw noJudgeNeeded();
         if (!saved.open) {
@@ -2018,9 +2031,10 @@ export const judgingScheduleRouter = createTRPCRouter({
 
       // Worked out before the transaction, so no lock is held while CP-SAT
       // runs, and checked against the board again inside it.
-      const first = await loadBoard(db, input.hackathonId, new Date());
+      const firstNow = new Date();
+      const first = await loadBoard(db, input.hackathonId, firstNow);
       if (!first.schedule) throw noSchedule();
-      const before = await loadJudging(db, first, first.schedule);
+      const before = await loadJudging(db, first, first.schedule, firstNow);
       if (before.roster.judges.length === 0) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
@@ -2037,7 +2051,7 @@ export const judgingScheduleRouter = createTRPCRouter({
         const now = new Date();
         const board = await loadBoard(tx, input.hackathonId, now, true);
         if (!board.schedule) throw noSchedule();
-        const judging = await loadJudging(tx, board, board.schedule);
+        const judging = await loadJudging(tx, board, board.schedule, now);
         if (staleJudging(judging, before)) {
           throw new TRPCError({
             code: "CONFLICT",
