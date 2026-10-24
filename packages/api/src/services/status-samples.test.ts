@@ -192,22 +192,61 @@ describe("recorder", () => {
     advance(BUCKET_MS);
     recorder.record(1, false);
     await recorder.settled();
-    expect(prune).not.toHaveBeenCalled();
+    // First flush prunes, so a short-lived instance still cleans up.
+    expect(prune).toHaveBeenCalledTimes(1);
+    const first = (prune.mock.calls as unknown as [Date][])[0]![0];
+    expect(first.getTime()).toBe(T0 + 1000 + BUCKET_MS - RETENTION_MS);
+
+    advance(BUCKET_MS);
+    recorder.record(1, false);
+    await recorder.settled();
+    expect(prune).toHaveBeenCalledTimes(1);
 
     advance(24 * 60 * 60 * 1000);
     recorder.record(1, false);
     advance(BUCKET_MS);
     recorder.record(1, false);
     await recorder.settled();
-    expect(prune).toHaveBeenCalledTimes(1);
-    const cutoff = (prune.mock.calls as unknown as [Date][])[0]![0];
+    expect(prune).toHaveBeenCalledTimes(2);
+    const cutoff = (prune.mock.calls as unknown as [Date][])[1]![0];
     expect(cutoff.getTime()).toBe(
-      T0 + 1000 + BUCKET_MS + 24 * 60 * 60 * 1000 + BUCKET_MS - RETENTION_MS,
+      T0 + 1000 + 2 * BUCKET_MS + 24 * 60 * 60 * 1000 + BUCKET_MS - RETENTION_MS,
     );
+  });
 
-    advance(BUCKET_MS);
+  it("removes the bucket it wrote even if the queue was evicted meanwhile", async () => {
+    let clock = T0 + 1000;
+    const written: number[] = [];
+    let release: (() => void) | undefined;
+    let calls = 0;
+    const recorder = createStatusRecorder({
+      now: () => clock,
+      instanceId: "i-1",
+      ping: async () => ({ ok: true, ms: 1 }),
+      write: async (row) => {
+        calls += 1;
+        // First write stalls; later ones succeed at once.
+        if (calls === 1) await new Promise<void>((r) => (release = r));
+        written.push(row.bucketStart.getTime());
+      },
+      prune: async () => {},
+      onWriteError: () => {},
+      random: () => 0,
+    });
     recorder.record(1, false);
+    clock += BUCKET_MS;
+    recorder.record(1, false); // flushes T0; its write now stalls
+    await new Promise((r) => setTimeout(r, 0));
+    // 13 more buckets finish: the queue evicts the stalled T0 and T0+1.
+    for (let i = 0; i < 13; i += 1) {
+      clock += BUCKET_MS;
+      recorder.record(1, false);
+    }
+    release?.();
     await recorder.settled();
-    expect(prune).toHaveBeenCalledTimes(1);
+    // The stalled write must not remove T0+2, which was never written.
+    expect(written[0]).toBe(T0);
+    expect(written).toContain(T0 + 2 * BUCKET_MS);
+    expect(recorder.pending()).toBe(0);
   });
 });

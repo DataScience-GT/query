@@ -69,7 +69,7 @@ export type StatusRecorderDeps = {
   instanceId: string;
   /** `select 1`, timed. Must resolve, reporting a failure as ok: false. */
   ping: () => Promise<{ ok: boolean; ms: number }>;
-  /** Upsert that adds to an existing row. */
+  /** Upsert that replaces an existing row. Must be idempotent: a retry may repeat a write that already committed. */
   write: (row: StatusRow) => Promise<void>;
   prune: (cutoff: Date) => Promise<void>;
   onWriteError: () => void;
@@ -80,7 +80,9 @@ export function createStatusRecorder(deps: StatusRecorderDeps) {
   const random = deps.random ?? Math.random;
   let open: Open | null = null;
   let seen = 0;
-  let lastPrune = deps.now();
+  // Zero, so the first flush prunes: instances are short-lived and may never
+  // live a full day.
+  let lastPrune = 0;
   const queue: FinishedBucket[] = [];
   let inflight: Promise<void> = Promise.resolve();
 
@@ -102,7 +104,10 @@ export function createStatusRecorder(deps: StatusRecorderDeps) {
       try {
         const { ping, ...counts } = bucket;
         await deps.write({ ...counts, dbOk: ping.ok, dbMs: ping.ms });
-        queue.shift();
+        // By identity: a stalled write may outlive its place in the queue
+        // (evicted by flush), and shift() would drop the next bucket.
+        const at = queue.indexOf(bucket);
+        if (at !== -1) queue.splice(at, 1);
       } catch {
         deps.onWriteError();
         return;
@@ -168,14 +173,29 @@ export function createStatusRecorder(deps: StatusRecorderDeps) {
 
 const instanceId = randomUUID();
 
+/** A stalled database must not hold the serialised flush chain forever. */
+const PING_TIMEOUT_MS = 3000;
+
 async function pingDatabase() {
   if (!db) return { ok: false, ms: 0 };
   const started = performance.now();
+  const elapsed = () => Math.round(performance.now() - started);
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    await db.execute(sql`select 1`);
-    return { ok: true, ms: Math.round(performance.now() - started) };
+    await Promise.race([
+      db.execute(sql`select 1`),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error("ping timeout")),
+          PING_TIMEOUT_MS,
+        );
+      }),
+    ]);
+    return { ok: true, ms: elapsed() };
   } catch {
-    return { ok: false, ms: Math.round(performance.now() - started) };
+    return { ok: false, ms: elapsed() };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -191,12 +211,12 @@ const recorder = createStatusRecorder({
       .onConflictDoUpdate({
         target: [statusSample.bucketStart, statusSample.instanceId],
         set: {
-          requests: sql`${statusSample.requests} + excluded.requests`,
-          errors: sql`${statusSample.errors} + excluded.errors`,
-          p50Ms: sql`greatest(${statusSample.p50Ms}, excluded.p50_ms)`,
-          p95Ms: sql`greatest(${statusSample.p95Ms}, excluded.p95_ms)`,
-          dbOk: sql`${statusSample.dbOk} and excluded.db_ok`,
-          dbMs: sql`greatest(${statusSample.dbMs}, excluded.db_ms)`,
+          requests: sql`excluded.requests`,
+          errors: sql`excluded.errors`,
+          p50Ms: sql`excluded.p50_ms`,
+          p95Ms: sql`excluded.p95_ms`,
+          dbOk: sql`excluded.db_ok`,
+          dbMs: sql`excluded.db_ms`,
         },
       });
   },
