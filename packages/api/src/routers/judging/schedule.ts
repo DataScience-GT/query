@@ -1647,6 +1647,7 @@ export const judgingScheduleRouter = createTRPCRouter({
             judging.drafts,
             board.rootIdOf,
             now,
+            schedule ?? undefined,
           )
         : new Map<string, JudgeProgress>();
 
