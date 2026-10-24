@@ -11,7 +11,6 @@ import {
   judgingEntryMembers,
   judgingEvaluationResponses,
   judgingEvaluations,
-  judgingJudges,
   judgingRooms,
   judgingRubricItems,
   users,
@@ -670,8 +669,10 @@ export const judgingHackerRouter = createTRPCRouter({
     }),
 
   // Written feedback on the caller's project: public responses that exist, from
-  // member judges' evaluations that hold every rating (the ones placings
-  // count). No judge names and no scores. Hidden in emergency mode.
+  // evaluations that hold every rating (the ones placings count). A response
+  // is public when its judge's kind and the item's guest visibility say so
+  // (evaluation.ts responseVisibility), so a guest's shows only as the rubric
+  // allows. No judge names and no scores. Hidden in emergency mode.
   feedback: protectedProcedure
     .input(hackathonInput)
     .query(async ({ ctx, input }) => {
@@ -692,16 +693,11 @@ export const judgingHackerRouter = createTRPCRouter({
           submittedAt: judgingEvaluations.submittedAt,
         })
         .from(judgingEvaluations)
-        .innerJoin(
-          judgingJudges,
-          eq(judgingJudges.id, judgingEvaluations.judgeId),
-        )
         .where(
           and(
             eq(judgingEvaluations.hackathonId, input.hackathonId),
             eq(judgingEvaluations.entryId, held.entryId),
             holdsEveryRating(input.hackathonId),
-            eq(judgingJudges.kind, "member"),
           ),
         );
       if (evaluations.length === 0) return { available: true, items: [] };
