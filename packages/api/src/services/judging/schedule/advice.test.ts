@@ -226,6 +226,50 @@ describe("adviceFor", () => {
     expect((advice!.action as { rooms: unknown[] }).rooms).toHaveLength(2);
   });
 
+  it("judges the sponsors against General's own floor, not where the solver put it", () => {
+    // General needs 24 / 4 = 6 slots alone, but the solver left one of its
+    // presentations at slot 15, level with the sponsors.
+    const { inputs, rooms, result } = sponsors([30, 30]);
+    const general = ["g1", "g2", "g3", "g4"].map((id, i) =>
+      room(id, "gen", `Table ${i + 1}`, true),
+    );
+    const entries = Array.from({ length: 24 }, (_, i) => `e${i}`);
+    const withGeneral: PlanInputs = {
+      ...inputs,
+      rooms: [...inputs.rooms, ...general],
+      tasks: [...inputs.tasks, ...entries.map((e) => task(e, "gen"))],
+    };
+    const placed = entries.map((e, i) =>
+      at(e, "gen", `g${(i % 4) + 1}`, i === 0 ? 14 : Math.floor(i / 4)),
+    );
+    const advice = advise(
+      withGeneral,
+      solved([...(result.ok ? result.placements : []), ...placed]),
+      [...rooms, ...general],
+      members(30),
+    ).find((a) => a.kind === "sponsorRoom");
+    expect(advice!.message).toBe(
+      "Sponsor S0 and Sponsor S1 decide when judging ends. One more room each would finish about 50 min sooner.",
+    );
+  });
+
+  it("only asks about the judges' scope when a challenge has no judge who may grade it", () => {
+    const rooms = [room("s1", "spon", "Hall 1")];
+    const inputs: PlanInputs = {
+      rooms,
+      tasks: [task("a", "spon")],
+      slots: 20,
+      sameGap: 1,
+      crossGap: 2,
+    };
+    const result = solved([at("a", "spon", "s1", 0)]);
+    const only = members(1).map((j) => ({ ...j, challengeIds: ["gen"] }));
+    expect(advise(inputs, result, rooms, only)[0]!.message).toBe(
+      "1 presentation would have no judge. Check that your judges may grade these challenges.",
+    );
+    expect(advise(inputs, result, rooms, members(1))).toEqual([]);
+  });
+
   it("gives no sponsor advice when a room each saves nothing", () => {
     // One sponsor of 2 projects is already one slot: no room helps.
     const { inputs, rooms, result } = sponsors([2]);
