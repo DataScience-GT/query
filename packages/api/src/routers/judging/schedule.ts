@@ -78,6 +78,10 @@ import { reconcileDueDrafts } from "../../services/judging/evaluation-store";
 import { holdsEveryRating } from "../../services/judging/scoring-sql";
 import { moveChoices } from "../../services/judging/schedule/moves";
 import {
+  absentJudgeIds,
+  rebalancePlan,
+} from "../../services/judging/schedule/rebalance";
+import {
   staffedRoomIds,
   withStatus,
 } from "../../services/judging/schedule/board";
@@ -644,6 +648,7 @@ async function loadBoard(
     plan: selectPlan(inventory),
     names: namesOf(inventory),
     evaluations,
+    presence,
     rootIdOf,
     appointments: withStatus(booked, evaluations, rootIdOf, now),
     staffed: staffedRoomIds(presence, now),
@@ -798,6 +803,140 @@ function describeBoardJudging(judging: Judging, board: Board, now: Date) {
         };
       }),
   };
+}
+
+/** Whether the appointments or judges differ from when they were last read. */
+const staleJudging = (a: Judging, b: Judging) =>
+  JSON.stringify([a.saved, a.roster.judges]) !==
+  JSON.stringify([b.saved, b.roster.judges]);
+
+/** Writes the new judges: one update per judge, however many appointments they gain. */
+async function applyJudgeChanges(
+  tx: JudgingDb,
+  changes: readonly { id: string; assignedJudgeId: string | null }[],
+) {
+  const byJudge = new Map<string | null, string[]>();
+  for (const change of changes) {
+    const list = byJudge.get(change.assignedJudgeId);
+    if (list) list.push(change.id);
+    else byJudge.set(change.assignedJudgeId, [change.id]);
+  }
+  for (const [judgeId, ids] of byJudge) {
+    for (let i = 0; i < ids.length; i += 1000) {
+      await tx
+        .update(judgingAppointments)
+        .set({ assignedJudgeId: judgeId })
+        .where(inArray(judgingAppointments.id, ids.slice(i, i + 1000)));
+    }
+  }
+}
+
+/**
+ * Who should grade what once the judges who left or went quiet are set
+ * aside: only what they held, and what has no judge, is given again, to the
+ * judges who are here. Null when there is nothing to give.
+ */
+function rebalanceOf(judging: Judging, board: Board, now: Date) {
+  const open = new Map(judging.saved.map((s) => [s.id, s.open]));
+  const absent = absentJudgeIds({
+    judges: judging.roster.judges,
+    presence: board.presence,
+    appointments: board.appointments.map((a) => ({
+      assignedJudgeId: a.assignedJudgeId,
+      startsAt: a.startsAt,
+      open: open.get(a.id) ?? false,
+      status: a.status,
+    })),
+    now,
+  });
+  const roster = {
+    ...judging.roster,
+    judges: judging.roster.judges.filter((j) => !absent.has(j.id)),
+  };
+  const { free, keep } = rebalancePlan(
+    judging.saved,
+    new Set(roster.judges.map((j) => j.id)),
+  );
+  if (free.length === 0) return null;
+
+  const plan = planOfSaved(board, judging.timing, judging.saved, roster);
+  const made = assignJudges(plan.inputs, plan.placements, roster.judges, {
+    keep: [...plan.keep, ...keep],
+  });
+  return { assignments: made.assignment, kept: plan.keep.length + keep.length };
+}
+
+/**
+ * Re-balances the edition's judges on their own, when the organiser has not
+ * turned that off. Never CP-SAT: this runs on reads and has to be quick.
+ * Gives up quietly when appointments or judges change underneath it; the
+ * next read tries again.
+ */
+async function rebalance(db: DrizzleDB, hackathonId: string, now: Date) {
+  const [config] = await db
+    .select({ autoRebalance: judgingConfigs.autoRebalance })
+    .from(judgingConfigs)
+    .where(eq(judgingConfigs.hackathonId, hackathonId))
+    .limit(1);
+  if (!config?.autoRebalance) return;
+
+  const first = await loadBoard(db, hackathonId, now);
+  if (!first.schedule) return;
+  const before = await loadJudging(db, first, first.schedule);
+  const made = rebalanceOf(before, first, now);
+  if (!made) return;
+
+  const changed = await db.transaction(async (tx) => {
+    const board = await loadBoard(tx, hackathonId, now, true);
+    if (!board.schedule) return 0;
+    const judging = await loadJudging(tx, board, board.schedule);
+    if (staleJudging(judging, before)) return 0;
+
+    const changes = judgeChanges(judging.saved, made.assignments);
+    if (changes.length === 0) return 0;
+    await applyJudgeChanges(tx, changes);
+    await tx
+      .update(judgingSchedules)
+      .set({ lastRebalancedAt: now, lastRebalanceChanged: changes.length })
+      .where(eq(judgingSchedules.id, board.schedule.id));
+    return changes.length;
+  });
+  if (changed === 0) return;
+
+  await recordAdminAction(db, {
+    userId: null,
+    action: "judging.schedule.rebalance",
+    resourceId: hackathonId,
+    metadata: { changed, kept: made.kept },
+  });
+}
+
+/** When each edition was last re-balanced, to keep reads from doing it every time. */
+export const rebalanceThrottle = new Map<string, number>();
+const REBALANCE_EVERY_MS = 30_000;
+
+/**
+ * Re-balances the edition's judges unless that was done less than 30 seconds
+ * ago in this process. There is no worker, so the board and the judges'
+ * itineraries call it. Never throws: a read must
+ * not fail because of it.
+ */
+export async function rebalanceIfDue(
+  db: DrizzleDB,
+  hackathonId: string,
+  now: Date = new Date(),
+) {
+  const last = rebalanceThrottle.get(hackathonId);
+  if (last !== undefined && now.getTime() - last < REBALANCE_EVERY_MS) return;
+  rebalanceThrottle.set(hackathonId, now.getTime());
+  try {
+    await rebalance(db, hackathonId, now);
+  } catch (error) {
+    // Deliberate operational logging: the read goes on and the next one
+    // tries again, so this is the only record that it failed.
+    // eslint-disable-next-line no-console
+    console.error(`[Judging] Re-balance for ${hackathonId} failed:`, error);
+  }
 }
 
 /**
@@ -1387,8 +1526,15 @@ export const judgingScheduleRouter = createTRPCRouter({
       // Drafts past their deadline count as submitted; there is no worker
       // that submits them, so the board does before reading statuses.
       await reconcileDueDrafts(db, input.hackathonId, now);
+      // Same for judges who left: nothing else moves their presentations.
+      await rebalanceIfDue(db, input.hackathonId, now);
       const board = await loadBoard(db, input.hackathonId, now);
       const { schedule, names } = board;
+      const [config] = await db
+        .select({ autoRebalance: judgingConfigs.autoRebalance })
+        .from(judgingConfigs)
+        .where(eq(judgingConfigs.hackathonId, input.hackathonId))
+        .limit(1);
       const judging = schedule ? await loadJudging(db, board, schedule) : null;
 
       const planned = new Set(board.plan.tasks.map((t) => taskKey(t.entryId, t.challengeId)));
@@ -1465,7 +1611,15 @@ export const judgingScheduleRouter = createTRPCRouter({
           canAssignJudge: assignable.has(a.id),
           judgeProgress: progress.get(a.id) ?? null,
         })),
-        judging: judging ? describeBoardJudging(judging, board, now) : null,
+        judging:
+          judging && schedule
+            ? {
+                ...describeBoardJudging(judging, board, now),
+                autoRebalance: config?.autoRebalance ?? false,
+                lastRebalancedAt: schedule.lastRebalancedAt,
+                lastRebalanceChanged: schedule.lastRebalanceChanged,
+              }
+            : null,
         unscheduled: schedule
           ? board.plan.tasks
               .filter((t) => !booked.has(taskKey(t.entryId, t.challengeId)))
@@ -1830,9 +1984,7 @@ export const judgingScheduleRouter = createTRPCRouter({
         const board = await loadBoard(tx, input.hackathonId, now, true);
         if (!board.schedule) throw noSchedule();
         const judging = await loadJudging(tx, board, board.schedule);
-        const stale = (a: Judging) =>
-          JSON.stringify([a.saved, a.roster.judges]);
-        if (stale(judging) !== stale(before)) {
+        if (staleJudging(judging, before)) {
           throw new TRPCError({
             code: "CONFLICT",
             message:
@@ -1841,21 +1993,7 @@ export const judgingScheduleRouter = createTRPCRouter({
         }
 
         const changes = judgeChanges(judging.saved, made.assignments);
-        // One update per judge, however many appointments they gain.
-        const byJudge = new Map<string | null, string[]>();
-        for (const change of changes) {
-          const list = byJudge.get(change.assignedJudgeId);
-          if (list) list.push(change.id);
-          else byJudge.set(change.assignedJudgeId, [change.id]);
-        }
-        for (const [judgeId, ids] of byJudge) {
-          for (let i = 0; i < ids.length; i += 1000) {
-            await tx
-              .update(judgingAppointments)
-              .set({ assignedJudgeId: judgeId })
-              .where(inArray(judgingAppointments.id, ids.slice(i, i + 1000)));
-          }
-        }
+        await applyJudgeChanges(tx, changes);
 
         const chosen = new Map(changes.map((c) => [c.id, c.assignedJudgeId]));
         const saved = judging.saved.map((s) =>
@@ -1895,6 +2033,28 @@ export const judgingScheduleRouter = createTRPCRouter({
       });
 
       return result;
+    }),
+
+  /** Turns on or off moving presentations off judges who left or went quiet. */
+  setAutoRebalance: isAdmin
+    .input(z.object({ hackathonId: uuid, enabled: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      await assertHackathonExists(db, input.hackathonId);
+      await ensureJudgingConfig(db, input.hackathonId);
+      await db
+        .update(judgingConfigs)
+        .set({ autoRebalance: input.enabled })
+        .where(eq(judgingConfigs.hackathonId, input.hackathonId));
+
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "judging.schedule.setAutoRebalance",
+        resourceId: input.hackathonId,
+        metadata: { enabled: input.enabled },
+      });
+
+      return { enabled: input.enabled };
     }),
 
   /** Where a presentation with no appointment yet could go, best first. */
