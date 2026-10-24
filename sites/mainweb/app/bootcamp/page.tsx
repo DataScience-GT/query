@@ -1,102 +1,226 @@
-"use client";
-
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Section from "@/components/Section";
+import { db, events } from "@query/db";
+import { currentTerm } from "@query/db/services/membership";
+import { eq } from "drizzle-orm";
+import { startOfEasternDay } from "@query/api/eastern-time";
+import { BOOTCAMP_ADDON_CENTS, formatCents } from "@query/api/pricing";
+import Link from "next/link";
 import {
   BOOTCAMP_CURRICULUM,
+  BOOTCAMP_MEETING_TIME,
+  BOOTCAMP_ROOM,
   BOOTCAMP_START_DATE,
 } from "@/lib/bootcamp-schedule";
-import { useWindowWidth } from "@/lib/use-window-width";
+import {
+  eventDateParts,
+  eventWhenWhere,
+  sessionTitle,
+  splitByDay,
+  termLabel,
+} from "@/lib/public-events";
 
-const curriculum = BOOTCAMP_CURRICULUM;
+/**
+ * The current term's bootcamp: where and when it meets, the sessions the
+ * officers have scheduled, and how to join.
+ *
+ * Read on the server like /events, since this page's audience is people who
+ * are not signed in and the tRPC provider only exists inside the portal.
+ */
+export const revalidate = 300;
 
-export default function BootcampPage() {
-  const windowWidth = useWindowWidth(1024);
+// qrCode is deliberately absent: publishing it would let anyone check
+// themselves in without being in the room.
+const listedColumns = {
+  id: true,
+  title: true,
+  location: true,
+  eventDate: true,
+  bootcampWeek: true,
+} as const;
+
+async function loadSessions(term: string) {
+  if (!db) return [];
+
+  // Same as /events: an unreachable database renders the empty state instead
+  // of failing the build or the revalidation.
+  try {
+    return await db.query.events.findMany({
+      where: eq(events.bootcampTerm, term),
+      orderBy: (event, { asc }) => [asc(event.eventDate)],
+      limit: 30,
+      columns: listedColumns,
+    });
+  } catch (error) {
+    console.error("Failed to load bootcamp sessions", error);
+    return [];
+  }
+}
+
+type Session = Awaited<ReturnType<typeof loadSessions>>[number];
+
+function SessionRow({ session, past }: { session: Session; past?: boolean }) {
+  const { month, day } = eventDateParts(session.eventDate);
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30">
-      <Navbar
-        screen_width={windowWidth}
-        page="bootcamp"
-        className="fixed top-0 z-50 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md"
-      />
+    <li className="grid grid-cols-[3.5rem_1fr] gap-x-5 py-5 first:pt-0 last:pb-0 sm:grid-cols-[4.5rem_1fr] sm:gap-x-8">
+      <div className={past ? "text-gray-500" : "text-[#00A8A8]"}>
+        <p className="font-mono text-xs uppercase tracking-[0.2em]">{month}</p>
+        <p className="text-3xl font-bold leading-none tabular-nums">{day}</p>
+      </div>
+      <div>
+        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-gray-400">
+          {session.bootcampWeek ? `Week ${session.bootcampWeek}` : "Session"}
+        </p>
+        <h3
+          className={`mt-1 text-lg font-semibold ${past ? "text-gray-300" : "text-white"}`}
+        >
+          {sessionTitle(session.title)}
+        </h3>
+        <p className="mt-1 text-sm text-gray-400">
+          {eventWhenWhere(session.eventDate, session.location)}
+        </p>
+      </div>
+    </li>
+  );
+}
 
-      <main className="relative z-10 pt-40 pb-20 px-6 lg:px-12 max-w-7xl mx-auto text-center">
-        <div className="space-y-6 mb-16">
-          <h1 className="text-white text-5xl md:text-7xl font-bold tracking-tighter italic uppercase">
-            Python Data Science <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] to-[#006e6e] not-italic">
-              Bootcamp.
-            </span>
-          </h1>
-          <p className="text-lg text-gray-400 leading-relaxed max-w-2xl mx-auto italic">
-            Master Python for data science in 9 weeks. From the fundamentals to
-            machine learning, build the skills you need to succeed.
-          </p>
-          {BOOTCAMP_START_DATE && (
-            <p className="font-mono text-[11px] text-[#00A8A8] uppercase tracking-[0.3em]">
-              Starts {BOOTCAMP_START_DATE}
-            </p>
-          )}
-        </div>
+export default async function BootcampPage() {
+  const term = currentTerm();
+  const sessions = await loadSessions(term);
+  const { upcoming, past } = splitByDay(sessions, startOfEasternDay(new Date()));
+  const next = upcoming[0];
+  const nextParts = next ? eventDateParts(next.eventDate) : null;
 
-        {curriculum.length === 0 ? (
-          <div className="mx-auto max-w-2xl rounded-xl border border-[#00A8A8]/20 bg-[#00A8A8]/[0.04] p-10">
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#00A8A8]">
-              Updating soon
+  const facts = [
+    {
+      label: next ? "Next session" : "First session",
+      value: nextParts
+        ? `${nextParts.month} ${nextParts.day}`
+        : (BOOTCAMP_START_DATE ?? "To be announced"),
+    },
+    { label: "Time", value: BOOTCAMP_MEETING_TIME ?? "To be announced" },
+    { label: "Room", value: BOOTCAMP_ROOM ?? "To be announced" },
+  ];
+
+  return (
+    <div className="relative min-h-screen bg-[#050505] text-white">
+      <Navbar screen_width={1024} page="bootcamp" />
+      <main className="pt-20">
+        <Section className="py-24 sm:py-32">
+          <div className="max-w-4xl mx-auto px-6">
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-[#00A8A8]">
+              {termLabel(term)}
             </p>
-            <p className="mt-4 text-sm text-gray-400 leading-relaxed italic">
-              The week-by-week syllabus is being written now and will be posted
-              here before the first session.
+            <h1 className="mt-4 text-5xl font-bold tracking-tighter sm:text-6xl">
+              Python data science bootcamp
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-gray-300">
+              Nine weeks, in person, from data wrangling to deep learning. The
+              last three weeks go to a project of your own.
             </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
-            {curriculum.map((item, index) => (
-              <div
-                key={index}
-                className="group relative p-[1px] rounded-xl bg-gradient-to-b from-white/10 to-transparent hover:from-[#00A8A8]/50 transition-colors duration-500 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#00A8A8]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="relative h-full bg-[#0a0a0a] rounded-xl p-6 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-xs font-mono text-[#00A8A8] bg-[#00A8A8]/10 px-3 py-1 rounded-full border border-[#00A8A8]/20">
-                        Week {item.week}
-                      </span>
-                      <span className="text-white/10 text-4xl font-black italic">
-                        {item.week.toString().padStart(2, "0")}
-                      </span>
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#00A8A8] transition-colors duration-300">
-                      {item.title}
-                    </h3>
-                    {item.desc && (
-                      <p className="text-sm text-gray-500 leading-relaxed">
-                        {item.desc}
-                      </p>
-                    )}
-                  </div>
+
+            <dl className="mt-12 grid grid-cols-1 gap-x-10 gap-y-6 border-y border-white/10 py-8 sm:grid-cols-3">
+              {facts.map((fact) => (
+                <div key={fact.label}>
+                  <dt className="font-mono text-[11px] uppercase tracking-[0.2em] text-gray-400">
+                    {fact.label}
+                  </dt>
+                  <dd className="mt-2 text-xl font-semibold text-white">
+                    {fact.value}
+                  </dd>
                 </div>
-              </div>
-            ))}
+              ))}
+            </dl>
+
+            <section className="mt-24" aria-labelledby="sessions">
+              <h2 id="sessions" className="text-3xl font-bold tracking-tight">
+                Sessions
+              </h2>
+              {sessions.length === 0 ? (
+                <p className="mt-6 max-w-xl text-gray-300">
+                  Dates for {termLabel(term)} have not been posted yet. They
+                  appear here once the officers schedule them
+                  {BOOTCAMP_START_DATE
+                    ? `; the first session is planned for ${BOOTCAMP_START_DATE}`
+                    : ""}
+                  .
+                </p>
+              ) : (
+                <div className="mt-8 space-y-14">
+                  {upcoming.length > 0 && (
+                    <div>
+                      <h3 className="mb-6 font-mono text-xs uppercase tracking-[0.3em] text-gray-300">
+                        Upcoming
+                      </h3>
+                      <ul className="divide-y divide-white/5">
+                        {upcoming.map((session) => (
+                          <SessionRow key={session.id} session={session} />
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {past.length > 0 && (
+                    <div>
+                      <h3 className="mb-6 font-mono text-xs uppercase tracking-[0.3em] text-gray-400">
+                        Past
+                      </h3>
+                      <ul className="divide-y divide-white/5">
+                        {past.map((session) => (
+                          <SessionRow key={session.id} session={session} past />
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {BOOTCAMP_CURRICULUM.length > 0 && (
+              <section className="mt-24" aria-labelledby="syllabus">
+                <h2 id="syllabus" className="text-3xl font-bold tracking-tight">
+                  Syllabus
+                </h2>
+                <ol className="mt-8 grid gap-x-12 sm:grid-cols-2">
+                  {BOOTCAMP_CURRICULUM.map((item) => (
+                    <li
+                      key={item.week}
+                      className="flex items-baseline gap-4 border-b border-white/5 py-3"
+                    >
+                      <span className="w-6 shrink-0 font-mono text-sm tabular-nums text-[#00A8A8]">
+                        {item.week}
+                      </span>
+                      <span className="text-gray-200">{item.title}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
+
+            <section
+              className="mt-24 border-t border-white/10 pt-12"
+              aria-labelledby="join"
+            >
+              <h2 id="join" className="text-3xl font-bold tracking-tight">
+                Join the bootcamp
+              </h2>
+              <p className="mt-4 max-w-xl leading-relaxed text-gray-300">
+                The bootcamp is a {formatCents(BOOTCAMP_ADDON_CENTS)} add-on to
+                a DSGT membership and covers one semester. Sign in to the
+                portal to add it, or become a member first.
+              </p>
+              <Link
+                href="/club/bootcamp"
+                className="mt-8 inline-flex min-h-11 items-center rounded-sm bg-[#00A8A8] px-6 text-sm font-semibold text-black transition-colors hover:bg-white"
+              >
+                Join in the portal
+              </Link>
+            </section>
           </div>
-        )}
-
-        <div className="mt-20">
-          <button className="px-8 py-4 bg-[#00A8A8] hover:bg-[#008f8f] text-white font-semibold rounded-lg transition-colors duration-300 transform hover:scale-105 active:scale-95">
-            Apply for Next Cohort
-          </button>
-          <p className="mt-4 text-xs text-gray-600 font-mono uppercase tracking-widest">
-            Spots are extremely limited
-          </p>
-        </div>
+        </Section>
       </main>
-
-      <Footer
-        screen_width={windowWidth}
-        className="fixed bottom-0 z-10 mt-20"
-      />
+      <Footer />
     </div>
   );
 }
