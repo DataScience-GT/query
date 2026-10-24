@@ -18,6 +18,7 @@ import {
   meta,
   sectionRule,
   sectionTitle,
+  textLink,
 } from "@/components/portal/ui";
 import {
   ErrorLine,
@@ -26,6 +27,7 @@ import {
 } from "@/components/admin/judging/shared";
 import {
   clock,
+  fieldsFromTiming,
   sameTiming,
   stationWord,
   timingFromFields,
@@ -38,6 +40,7 @@ import type {
   TimingFields,
 } from "./format";
 import { CpsatPanel } from "./CpsatPanel";
+import { PlanAdvice } from "./PlanAdvice";
 import { RoomBoard } from "./RoomBoard";
 import type { BoardRoom } from "./RoomBoard";
 
@@ -83,6 +86,37 @@ export function SchedulePlanner({
       refetchOnReconnect: false,
     },
   );
+
+  // A window sized to what is entered, to start from. Asked once; the
+  // organiser's own edits are never overwritten by it.
+  const suggestion = trpc.judging.schedule.suggestTiming.useQuery(
+    { hackathonId },
+    { retry: false, staleTime: Infinity, refetchOnWindowFocus: false },
+  );
+  const suggested = suggestion.data
+    ? fieldsFromTiming(suggestion.data.timing)
+    : null;
+  // Fills an empty window once, when the suggestion first arrives.
+  const [prefilled, setPrefilled] = useState(false);
+  if (suggested && !prefilled) {
+    setPrefilled(true);
+    if (!fields.windowStart && !fields.windowEnd) {
+      setFields({
+        ...fields,
+        windowStart: suggested.windowStart,
+        windowEnd: suggested.windowEnd,
+      });
+    }
+  }
+
+  // New rooms or tables change what the solver can do: solve again.
+  async function onRoomsChanged() {
+    await Promise.all([
+      utils.judging.admin.invalidate(),
+      utils.judging.schedule.get.invalidate({ hackathonId }),
+    ]);
+    void preview.refetch();
+  }
 
   const save = trpc.judging.schedule.save.useMutation({
     onSuccess: async () => {
@@ -187,6 +221,30 @@ export function SchedulePlanner({
             </div>
           </div>
           <p className={fieldHint}>Times are in {timeZone}.</p>
+          {suggestion.data && suggested && (
+            <p className={fieldHint}>
+              Suggested from {plural(suggestion.data.basis.projects, "project")},{" "}
+              {suggestion.data.basis.rooms}{" "}
+              {stationWord(
+                scheduledRooms.length,
+                scheduledRooms.filter((r) => r.kind === "table").length,
+                suggestion.data.basis.rooms !== 1,
+              )}{" "}
+              and {plural(suggestion.data.basis.memberJudges, "judge")}
+              {suggestion.data.spareMinutes > 0
+                ? `, with about ${suggestion.data.spareMinutes} min spare.`
+                : "."}{" "}
+              {JSON.stringify(suggested) !== JSON.stringify(fields) && (
+                <button
+                  type="button"
+                  onClick={() => setFields(suggested)}
+                  className={textLink}
+                >
+                  Use suggestion
+                </button>
+              )}
+            </p>
+          )}
         </div>
 
         <fieldset>
@@ -265,10 +323,21 @@ export function SchedulePlanner({
                   </li>
                 ))}
               </ul>
+              <PlanAdvice
+                hackathonId={hackathonId}
+                advice={result.advice}
+                onChanged={onRoomsChanged}
+              />
             </div>
           ) : (
             <>
               <PreviewFigures result={result} timing={submitted} />
+
+              <PlanAdvice
+                hackathonId={hackathonId}
+                advice={result.advice}
+                onChanged={onRoomsChanged}
+              />
 
               {result.relaxed && (
                 <ReducedBreaks
@@ -396,7 +465,10 @@ export function PreviewFigures({
     {
       term: stations.charAt(0).toUpperCase() + stations.slice(1),
       value: String(result.rooms),
-      note: `${plural(result.slots, "slot")} of ${result.slotMinutes} min each`,
+      note:
+        result.roomsLeftOut > 0
+          ? `${result.roomsLeftOut} more left out: too few judges to staff them at once`
+          : `${plural(result.slots, "slot")} of ${result.slotMinutes} min each`,
     },
   ];
 

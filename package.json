@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "packageManager": "pnpm@10.33.2",
   "engines": {
-    "node": ">=22.13.0 <24"
+    "node": ">=24.11.0 <25"
   },
   "scripts": {
     "dev": "turbo run dev --parallel",
@@ -15,7 +15,7 @@
     "test": "vitest run packages/api packages/auth packages/db sites/mainweb/lib sites/mainweb/components"
   },
   "dependencies": {
-    "next": "16.4.0",
+    "next": "16.4.3",
     "typescript": "^7.0.2"
   },
   "devDependencies": {

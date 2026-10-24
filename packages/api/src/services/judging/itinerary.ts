@@ -7,7 +7,7 @@
 // appear here.
 
 import type { JudgingRoomKind } from "@query/db";
-import { appointmentStatus } from "./appointment-status";
+import { appointmentStatus, gradingClosesAt } from "./appointment-status";
 import type { AppointmentStatus } from "./appointment-status";
 import { rootOf } from "./scope";
 import type { ChallengeMode, ChallengeNode } from "./scope";
@@ -32,6 +32,7 @@ export type ItineraryAppointment = {
   challengeId: string;
   roomId: string;
   startsAt: Date;
+  deadlineAt: Date;
   endsAt: Date;
 };
 
@@ -41,14 +42,6 @@ export type ItineraryEvaluation = {
   appointmentId: string | null;
   /** Holds every rating (scoring.hasEveryRating), so placings count it. */
   ratingsComplete: boolean;
-};
-
-export type ItineraryPresence = {
-  judgeId: string;
-  roomId: string;
-  joinedAt: Date;
-  lastSeenAt: Date;
-  leftAt: Date | null;
 };
 
 /** A top-level challenge the project is judged in, with its sub-prizes. */
@@ -121,28 +114,6 @@ export function evaluationsForAppointment<T extends ItineraryEvaluation>(
   );
 }
 
-// Judges heartbeat every minute. An open presence row whose heartbeat stopped
-// (a closed laptop) counts as gone two minutes after the last one, or it would
-// hold every later slot in that room open as "incomplete".
-const HEARTBEAT_GRACE_MS = 2 * 60 * 1000;
-
-/** Judges whose time in the slot's room overlapped the slot. */
-export function judgesPresentDuring(
-  slot: { roomId: string; startsAt: Date; endsAt: Date },
-  presence: readonly ItineraryPresence[],
-): string[] {
-  const present = new Set<string>();
-  for (const row of presence) {
-    if (row.roomId !== slot.roomId) continue;
-    const left =
-      row.leftAt ?? new Date(row.lastSeenAt.getTime() + HEARTBEAT_GRACE_MS);
-    if (row.joinedAt < slot.endsAt && left > slot.startsAt) {
-      present.add(row.judgeId);
-    }
-  }
-  return [...present];
-}
-
 export type ItineraryAppointmentView = {
   id: string;
   challengeId: string;
@@ -167,12 +138,12 @@ export type UnscheduledChallengeView = {
 export type Itinerary = {
   appointments: ItineraryAppointmentView[];
   unscheduled: UnscheduledChallengeView[];
-  /** Some appointment ended with nobody judging the project. */
+  /** Grading closed on some appointment with nobody judging the project. */
   missed: boolean;
   /**
-   * When the next appointment that has not ended yet ends. Statuses change
-   * then, so the client refetches at that moment rather than waiting for its
-   * next poll.
+   * When grading next closes on an appointment. An unjudged one turns
+   * missed then, so the client refetches at that moment rather than waiting
+   * for its next poll.
    */
   nextEndsAt: Date | null;
 };
@@ -183,7 +154,6 @@ export function buildItinerary(input: {
   rooms: readonly ItineraryRoom[];
   appointments: readonly ItineraryAppointment[];
   evaluations: readonly ItineraryEvaluation[];
-  presence: readonly ItineraryPresence[];
   now: Date;
 }): Itinerary {
   const { challenges, rooms, evaluations, now } = input;
@@ -213,13 +183,12 @@ export function buildItinerary(input: {
       status: appointmentStatus(
         {
           startsAt: appointment.startsAt,
-          endsAt: appointment.endsAt,
+          deadlineAt: appointment.deadlineAt,
           evaluations: evaluationsForAppointment(
             appointment,
             evaluations,
             challenges,
           ),
-          presentJudgeIds: judgesPresentDuring(appointment, input.presence),
         },
         now,
       ),
@@ -249,8 +218,10 @@ export function buildItinerary(input: {
       ),
     }));
 
-  const upcomingEnds = appointments
-    .map((appointment) => appointment.endsAt.getTime())
+  const shown = new Set(appointments.map((appointment) => appointment.id));
+  const upcomingEnds = input.appointments
+    .filter((appointment) => shown.has(appointment.id))
+    .map((appointment) => gradingClosesAt(appointment).getTime())
     .filter((end) => end > now.getTime());
 
   return {
