@@ -10,7 +10,7 @@ scripts:
   runCommand: node sites/mainweb/.next/standalone/sites/mainweb/server.js
 
 runConfig:
-  runtime: nodejs22
+  runtime: nodejs24
   concurrency: 80
   cpu: 2
   memoryMiB: 1024

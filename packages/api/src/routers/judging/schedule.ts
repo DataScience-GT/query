@@ -37,6 +37,8 @@ import type {
   PlanDiagnostic,
   PlanResult,
 } from "../../services/judging/schedule/solve";
+import { adviceFor, slotsNeeded } from "../../services/judging/schedule/advice";
+import type { AdviceRoom } from "../../services/judging/schedule/advice";
 import { aamoghCPSolver } from "../../services/judging/schedule/aamogh-cp-solver";
 import {
   CPSAT_COMMAND,
@@ -50,6 +52,7 @@ import {
   describeShortfall,
   judgeShortfalls,
   mayGrade,
+  roomsJudgesCanStaff,
 } from "../../services/judging/schedule/judges";
 import type {
   JudgeAssignment,
@@ -75,12 +78,18 @@ import { reconcileDueDrafts } from "../../services/judging/evaluation-store";
 import { holdsEveryRating } from "../../services/judging/scoring-sql";
 import { moveChoices } from "../../services/judging/schedule/moves";
 import {
+  absentJudgeIds,
+  rebalancePlan,
+  receiverIds,
+} from "../../services/judging/schedule/rebalance";
+import {
   staffedRoomIds,
   withStatus,
 } from "../../services/judging/schedule/board";
 import { judgeProgressById } from "../../services/judging/schedule/judge-progress";
 import type { JudgeProgress } from "../../services/judging/schedule/judge-progress";
 import {
+  MAX_SLOTS,
   appointmentTimes,
   firstSlotFrom,
   gridOf,
@@ -114,6 +123,20 @@ const timingInput = z
       ctx.addIssue({ code: "custom", message, path: ["windowEnd"] });
     }
   });
+
+// The minutes the timing form starts with; the same defaults as above.
+const DEFAULT_MINUTES = {
+  setupMinutes: 2,
+  judgingMinutes: 6,
+  teardownMinutes: 2,
+  sameBuildingBreakMinutes: 10,
+  crossBuildingBreakMinutes: 20,
+};
+
+const QUARTER_HOUR = 15 * 60_000;
+
+/** Most tables solveInventory leaves out beyond what the judges can staff. */
+const MAX_EXTRA_DROPPED = 3;
 
 const plural = (n: number, one: string, many = `${one}s`) =>
   `${n} ${n === 1 ? one : many}`;
@@ -312,13 +335,70 @@ function planOf(inventory: Inventory, timing: ScheduleTiming) {
   };
 }
 
-/** Solves the edition as it stands for one timing, with aamoghCPSolver. */
-function solveInventory(inventory: Inventory, timing: ScheduleTiming) {
-  const { inputs, fingerprint } = planOf(inventory, timing);
-  const result = aamoghCPSolver(inputs);
+/**
+ * Solves the edition as it stands for one timing, with aamoghCPSolver. Given
+ * `judges`, it schedules only the tables they can staff at once, so
+ * presentations spread over the day instead of waiting for a judge, and
+ * falls back to every table when that cannot fit them all.
+ */
+function solveInventory(
+  inventory: Inventory,
+  timing: ScheduleTiming,
+  judges?: readonly JudgeInput[],
+) {
+  const { inputs: every, fingerprint } = planOf(inventory, timing);
+  const solve = () => {
+    if (judges) {
+      const names = namesOf(inventory);
+      const members = judges.some((j) => j.kind === "member");
+      let best: {
+        inputs: PlanInputs;
+        result: ReturnType<typeof aamoghCPSolver>;
+        unjudged: number;
+      } | null = null;
+      let last = every.rooms.length;
+      // Filling every seat exactly can still leave a few presentations
+      // without a judge, so leave out up to MAX_EXTRA_DROPPED more tables
+      // for full coverage, or the fewest unjudged.
+      for (let extra = 0; extra <= (members ? MAX_EXTRA_DROPPED : 0); extra += 1) {
+        const rooms = roomsJudgesCanStaff(
+          every,
+          judges,
+          (a, b) =>
+            names
+              .room(a.id)
+              .roomName.localeCompare(names.room(b.id).roomName, "en", {
+                numeric: true,
+              }),
+          extra,
+        );
+        if (extra > 0 && rooms.length === last) break;
+        last = rooms.length;
+        const tried = rooms.length < every.rooms.length ? { ...every, rooms } : every;
+        const result = aamoghCPSolver(tried);
+        if (!result.ok) {
+          if (tried === every) return { inputs: every, result };
+          break;
+        }
+        const unjudged = members
+          ? tried.tasks.length -
+            assignJudges(tried, result.placements, judges).assignment.length
+          : 0;
+        if (!best || unjudged < best.unjudged) {
+          best = { inputs: tried, result, unjudged };
+        }
+        if (unjudged === 0) break;
+      }
+      if (best) return best;
+    }
+    return { inputs: every, result: aamoghCPSolver(every) };
+  };
+  const { inputs, result } = solve();
   return {
     inputs,
     result,
+    // Tables left out because the judges cannot staff them all at once.
+    roomsLeftOut: every.rooms.length - inputs.rooms.length,
     fingerprint,
     // Which of the first four goals no schedule can beat (from the solver's
     // counting bounds), so the preview can say so.
@@ -334,12 +414,37 @@ function solveInventory(inventory: Inventory, timing: ScheduleTiming) {
   };
 }
 
+/** What the organiser could change to improve this solve, in words. */
+function adviceOf(
+  inventory: Inventory,
+  roster: Roster,
+  solved: ReturnType<typeof solveInventory>,
+  timing: ScheduleTiming,
+) {
+  const names = namesOf(inventory);
+  const rooms = new Map(inventory.rooms.map((r) => [r.id, r]));
+  const planned: AdviceRoom[] = selectPlan(inventory).rooms.map((room) => ({
+    ...room,
+    name: rooms.get(room.id)?.name ?? "",
+    table: rooms.get(room.id)?.kind === "table",
+  }));
+  return adviceFor({
+    inputs: solved.inputs,
+    result: solved.result,
+    rooms: planned,
+    judges: roster.judges,
+    labelOf: names.label,
+    slotMinutes: slotMinutes(timing),
+  });
+}
+
 /** A solved schedule as the preview shows it. */
 function describePlan(
   result: Extract<PlanResult, { ok: true }>,
   inputs: PlanInputs,
   names: ReturnType<typeof namesOf>,
   timing: ScheduleTiming,
+  roomsLeftOut = 0,
 ) {
   const minutes = slotMinutes(timing);
   const [sponsorEnd, sponsorIdle, allEnd, changes, lessBreaks] = result.score;
@@ -350,6 +455,7 @@ function describePlan(
     projects: new Set(inputs.tasks.map((t) => t.entryId)).size,
     rooms: inputs.rooms.length,
     tables: names.tables(inputs.rooms),
+    roomsLeftOut,
     ok: true as const,
     relaxed: result.relaxed,
     diagnostics: [] as string[],
@@ -574,8 +680,9 @@ async function loadBoard(
     plan: selectPlan(inventory),
     names: namesOf(inventory),
     evaluations,
+    presence,
     rootIdOf,
-    appointments: withStatus(booked, evaluations, presence, rootIdOf, now),
+    appointments: withStatus(booked, evaluations, rootIdOf, now),
     staffed: staffedRoomIds(presence, now),
   };
 }
@@ -728,6 +835,170 @@ function describeBoardJudging(judging: Judging, board: Board, now: Date) {
         };
       }),
   };
+}
+
+/** Whether the appointments or judges differ from when they were last read. */
+const staleJudging = (a: Judging, b: Judging) =>
+  JSON.stringify([a.saved, a.roster.judges]) !==
+  JSON.stringify([b.saved, b.roster.judges]);
+
+/** Who is absent, and who may be given freed work, as of this read of the board. */
+function hereOf(judging: Judging, board: Board, now: Date) {
+  const open = new Map(judging.saved.map((s) => [s.id, s.open]));
+  const absent = absentJudgeIds({
+    judges: judging.roster.judges,
+    presence: board.presence,
+    appointments: board.appointments.map((a) => ({
+      assignedJudgeId: a.assignedJudgeId,
+      startsAt: a.startsAt,
+      open: open.get(a.id) ?? false,
+      status: a.status,
+    })),
+    now,
+  });
+  const receivers = receiverIds({
+    judges: judging.roster.judges,
+    presence: board.presence,
+    absent,
+    now,
+  });
+  return { absent, receivers };
+}
+
+/** Whether presence moved anyone in or out of the absent or receiving sets. */
+const stalePresence = (
+  a: ReturnType<typeof hereOf>,
+  b: ReturnType<typeof hereOf>,
+) =>
+  JSON.stringify([[...a.absent].sort(), [...a.receivers].sort()]) !==
+  JSON.stringify([[...b.absent].sort(), [...b.receivers].sort()]);
+
+/** Writes the new judges: one update per judge, however many appointments they gain. */
+async function applyJudgeChanges(
+  tx: JudgingDb,
+  changes: readonly { id: string; assignedJudgeId: string | null }[],
+) {
+  const byJudge = new Map<string | null, string[]>();
+  for (const change of changes) {
+    const list = byJudge.get(change.assignedJudgeId);
+    if (list) list.push(change.id);
+    else byJudge.set(change.assignedJudgeId, [change.id]);
+  }
+  for (const [judgeId, ids] of byJudge) {
+    for (let i = 0; i < ids.length; i += 1000) {
+      await tx
+        .update(judgingAppointments)
+        .set({ assignedJudgeId: judgeId })
+        .where(inArray(judgingAppointments.id, ids.slice(i, i + 1000)));
+    }
+  }
+}
+
+/**
+ * Who should grade what once the judges who left or went quiet are set
+ * aside: only what they held, and what has no judge, is given again, to the
+ * judges who are here. Null when there is nothing to give.
+ */
+function rebalanceOf(
+  judging: Judging,
+  board: Board,
+  now: Date,
+  here: ReturnType<typeof hereOf>,
+) {
+  // Who is not absent keeps what they hold; only receivers may take more, so
+  // the rest stay in the roster able to grade nothing.
+  const roster = {
+    ...judging.roster,
+    judges: judging.roster.judges
+      .filter((j) => !here.absent.has(j.id))
+      .map((j) => (here.receivers.has(j.id) ? j : { ...j, challengeIds: [] })),
+  };
+  const { free, keep } = rebalancePlan(
+    judging.saved,
+    new Set(roster.judges.map((j) => j.id)),
+  );
+  if (free.length === 0) return null;
+
+  const plan = planOfSaved(board, judging.timing, judging.saved, roster);
+  const made = assignJudges(plan.inputs, plan.placements, roster.judges, {
+    keep: [...plan.keep, ...keep],
+  });
+  return { assignments: made.assignment, kept: plan.keep.length + keep.length };
+}
+
+/**
+ * Re-balances the edition's judges on their own, when the organiser has not
+ * turned that off. Never CP-SAT: this runs on reads and has to be quick.
+ * Gives up quietly when appointments or judges change underneath it; the
+ * next read tries again.
+ */
+async function rebalance(db: DrizzleDB, hackathonId: string, now: Date) {
+  const [config] = await db
+    .select({ autoRebalance: judgingConfigs.autoRebalance })
+    .from(judgingConfigs)
+    .where(eq(judgingConfigs.hackathonId, hackathonId))
+    .limit(1);
+  if (!config?.autoRebalance) return;
+
+  const first = await loadBoard(db, hackathonId, now);
+  if (!first.schedule) return;
+  const before = await loadJudging(db, first, first.schedule);
+  const hereBefore = hereOf(before, first, now);
+  const made = rebalanceOf(before, first, now, hereBefore);
+  if (!made) return;
+
+  const changed = await db.transaction(async (tx) => {
+    const board = await loadBoard(tx, hackathonId, now, true);
+    if (!board.schedule) return 0;
+    const judging = await loadJudging(tx, board, board.schedule);
+    if (staleJudging(judging, before)) return 0;
+    if (stalePresence(hereOf(judging, board, now), hereBefore)) return 0;
+
+    const changes = judgeChanges(judging.saved, made.assignments);
+    if (changes.length === 0) return 0;
+    await applyJudgeChanges(tx, changes);
+    await tx
+      .update(judgingSchedules)
+      .set({ lastRebalancedAt: now, lastRebalanceChanged: changes.length })
+      .where(eq(judgingSchedules.id, board.schedule.id));
+    return changes.length;
+  });
+  if (changed === 0) return;
+
+  await recordAdminAction(db, {
+    userId: null,
+    action: "judging.schedule.rebalance",
+    resourceId: hackathonId,
+    metadata: { changed, kept: made.kept },
+  });
+}
+
+/** When each edition was last re-balanced, to keep reads from doing it every time. */
+export const rebalanceThrottle = new Map<string, number>();
+const REBALANCE_EVERY_MS = 30_000;
+
+/**
+ * Re-balances the edition's judges unless that was done less than 30 seconds
+ * ago in this process. There is no worker, so the board and the judges'
+ * itineraries call it. Never throws: a read must
+ * not fail because of it.
+ */
+export async function rebalanceIfDue(
+  db: DrizzleDB,
+  hackathonId: string,
+  now: Date = new Date(),
+) {
+  const last = rebalanceThrottle.get(hackathonId);
+  if (last !== undefined && now.getTime() - last < REBALANCE_EVERY_MS) return;
+  rebalanceThrottle.set(hackathonId, now.getTime());
+  try {
+    await rebalance(db, hackathonId, now);
+  } catch (error) {
+    // Deliberate operational logging: the read goes on and the next one
+    // tries again, so this is the only record that it failed.
+    // eslint-disable-next-line no-console
+    console.error(`[Judging] Re-balance for ${hackathonId} failed:`, error);
+  }
 }
 
 /**
@@ -890,10 +1161,10 @@ export const judgingScheduleRouter = createTRPCRouter({
 
       const inventory = await readInventory(db, input.hackathonId);
       const names = namesOf(inventory);
-      const { inputs, result, key, proven } = solveInventory(
-        inventory,
-        input.timing,
-      );
+      const roster = await readRoster(db, input.hackathonId, inventory);
+      const solved = solveInventory(inventory, input.timing, roster.judges);
+      const { inputs, result, key, proven, roomsLeftOut } = solved;
+      const advice = adviceOf(inventory, roster, solved, input.timing);
 
       if (!result.ok) {
         return {
@@ -907,6 +1178,7 @@ export const judgingScheduleRouter = createTRPCRouter({
           relaxed: false,
           candidateKey: null,
           diagnostics: explain(result.diagnostics, names),
+          advice,
           summary: null,
           proven: null,
           appointments: [],
@@ -915,9 +1187,68 @@ export const judgingScheduleRouter = createTRPCRouter({
       }
 
       return {
-        ...describePlan(result, inputs, names, input.timing),
+        ...describePlan(result, inputs, names, input.timing, roomsLeftOut),
         candidateKey: key!,
         proven,
+        advice,
+      };
+    }),
+
+  /**
+   * A window to start the planner with: from the next quarter hour at least
+   * 15 minutes away, as long as the fewest slots the entries need plus a fifth,
+   * then longer until a schedule fits. Null when there is nothing to schedule
+   * or a schedule is saved already.
+   */
+  suggestTiming: isAdmin
+    .input(z.object({ hackathonId: uuid }))
+    .query(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      await assertHackathonExists(db, input.hackathonId);
+      if (await findSchedule(db, input.hackathonId)) return null;
+
+      const inventory = await readInventory(db, input.hackathonId);
+      if (selectPlan(inventory).tasks.length === 0) return null;
+      const roster = await readRoster(db, input.hackathonId, inventory);
+
+      const windowStart = new Date(
+        Math.ceil((Date.now() + QUARTER_HOUR) / QUARTER_HOUR) * QUARTER_HOUR,
+      );
+      const windowOf = (slots: number): ScheduleTiming => {
+        const base = { ...DEFAULT_MINUTES, windowStart, windowEnd: windowStart };
+        return {
+          ...base,
+          windowEnd: new Date(
+            windowStart.getTime() + slots * slotMinutes(base) * 60_000,
+          ),
+        };
+      };
+
+      const plan = selectPlan(inventory);
+      const lowest = slotsNeeded({ ...plan, ...gridOf(windowOf(1)) });
+      let slots = Math.min(MAX_SLOTS, Math.ceil(lowest * 1.2));
+      let solved = solveInventory(inventory, windowOf(slots), roster.judges);
+      for (
+        let tries = 1;
+        tries < 5 && !solved.result.ok && slots < MAX_SLOTS;
+        tries += 1
+      ) {
+        slots = Math.min(MAX_SLOTS, Math.ceil(slots * 1.25));
+        solved = solveInventory(inventory, windowOf(slots), roster.judges);
+      }
+
+      const timing = windowOf(slots);
+      return {
+        timing,
+        basis: {
+          projects: new Set(solved.inputs.tasks.map((t) => t.entryId)).size,
+          presentations: solved.inputs.tasks.length,
+          rooms: solved.inputs.rooms.length,
+          memberJudges: roster.judges.filter((j) => j.kind === "member").length,
+        },
+        spareMinutes: solved.result.ok
+          ? (slots - solved.result.score[2]) * slotMinutes(timing)
+          : 0,
       };
     }),
 
@@ -942,10 +1273,14 @@ export const judgingScheduleRouter = createTRPCRouter({
       assertWindowAhead(input.timing);
 
       // Solved before the transaction so no lock is held while it computes.
+      // Judges first come with the schedule, as far as there are any yet;
+      // assignJudges picks up the rest once more have joined.
       const inventory = await readInventory(db, input.hackathonId);
+      const roster = await readRoster(db, input.hackathonId, inventory);
       const { inputs, result, key, fingerprint } = solveInventory(
         inventory,
         input.timing,
+        roster.judges,
       );
       if (!result.ok) {
         throw new TRPCError({
@@ -957,7 +1292,7 @@ export const judgingScheduleRouter = createTRPCRouter({
         throw new TRPCError({
           code: "CONFLICT",
           message:
-            "Projects, rooms, tables or timing changed since this preview, so it is not the schedule that would be saved. Preview again and check it before saving.",
+            "Projects, rooms, tables, judges or timing changed since this preview, so it is not the schedule that would be saved. Preview again and check it before saving.",
         });
       }
       if (result.relaxed && !input.acknowledgeReducedBreaks) {
@@ -967,9 +1302,6 @@ export const judgingScheduleRouter = createTRPCRouter({
         });
       }
 
-      // Judges first come with the schedule, as far as there are any yet;
-      // assignJudges picks up the rest once more have joined.
-      const roster = await readRoster(db, input.hackathonId, inventory);
       const written = await writeSchedule(db, ctx.userId, input, {
         placements: result.placements,
         relaxed: result.relaxed,
@@ -1248,8 +1580,15 @@ export const judgingScheduleRouter = createTRPCRouter({
       // Drafts past their deadline count as submitted; there is no worker
       // that submits them, so the board does before reading statuses.
       await reconcileDueDrafts(db, input.hackathonId, now);
+      // Same for judges who left: nothing else moves their presentations.
+      await rebalanceIfDue(db, input.hackathonId, now);
       const board = await loadBoard(db, input.hackathonId, now);
       const { schedule, names } = board;
+      const [config] = await db
+        .select({ autoRebalance: judgingConfigs.autoRebalance })
+        .from(judgingConfigs)
+        .where(eq(judgingConfigs.hackathonId, input.hackathonId))
+        .limit(1);
       const judging = schedule ? await loadJudging(db, board, schedule) : null;
 
       const planned = new Set(board.plan.tasks.map((t) => taskKey(t.entryId, t.challengeId)));
@@ -1326,7 +1665,15 @@ export const judgingScheduleRouter = createTRPCRouter({
           canAssignJudge: assignable.has(a.id),
           judgeProgress: progress.get(a.id) ?? null,
         })),
-        judging: judging ? describeBoardJudging(judging, board, now) : null,
+        judging:
+          judging && schedule
+            ? {
+                ...describeBoardJudging(judging, board, now),
+                autoRebalance: config?.autoRebalance ?? false,
+                lastRebalancedAt: schedule.lastRebalancedAt,
+                lastRebalanceChanged: schedule.lastRebalanceChanged,
+              }
+            : null,
         unscheduled: schedule
           ? board.plan.tasks
               .filter((t) => !booked.has(taskKey(t.entryId, t.challengeId)))
@@ -1691,9 +2038,7 @@ export const judgingScheduleRouter = createTRPCRouter({
         const board = await loadBoard(tx, input.hackathonId, now, true);
         if (!board.schedule) throw noSchedule();
         const judging = await loadJudging(tx, board, board.schedule);
-        const stale = (a: Judging) =>
-          JSON.stringify([a.saved, a.roster.judges]);
-        if (stale(judging) !== stale(before)) {
+        if (staleJudging(judging, before)) {
           throw new TRPCError({
             code: "CONFLICT",
             message:
@@ -1702,21 +2047,7 @@ export const judgingScheduleRouter = createTRPCRouter({
         }
 
         const changes = judgeChanges(judging.saved, made.assignments);
-        // One update per judge, however many appointments they gain.
-        const byJudge = new Map<string | null, string[]>();
-        for (const change of changes) {
-          const list = byJudge.get(change.assignedJudgeId);
-          if (list) list.push(change.id);
-          else byJudge.set(change.assignedJudgeId, [change.id]);
-        }
-        for (const [judgeId, ids] of byJudge) {
-          for (let i = 0; i < ids.length; i += 1000) {
-            await tx
-              .update(judgingAppointments)
-              .set({ assignedJudgeId: judgeId })
-              .where(inArray(judgingAppointments.id, ids.slice(i, i + 1000)));
-          }
-        }
+        await applyJudgeChanges(tx, changes);
 
         const chosen = new Map(changes.map((c) => [c.id, c.assignedJudgeId]));
         const saved = judging.saved.map((s) =>
@@ -1756,6 +2087,28 @@ export const judgingScheduleRouter = createTRPCRouter({
       });
 
       return result;
+    }),
+
+  /** Turns on or off moving presentations off judges who left or went quiet. */
+  setAutoRebalance: isAdmin
+    .input(z.object({ hackathonId: uuid, enabled: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      await assertHackathonExists(db, input.hackathonId);
+      await ensureJudgingConfig(db, input.hackathonId);
+      await db
+        .update(judgingConfigs)
+        .set({ autoRebalance: input.enabled })
+        .where(eq(judgingConfigs.hackathonId, input.hackathonId));
+
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "judging.schedule.setAutoRebalance",
+        resourceId: input.hackathonId,
+        metadata: { enabled: input.enabled },
+      });
+
+      return { enabled: input.enabled };
     }),
 
   /** Where a presentation with no appointment yet could go, best first. */

@@ -26,7 +26,6 @@ import {
   judgingEntryMembers,
   judgingEvaluationResponses,
   judgingEvaluations,
-  judgingPresence,
   judgingRooms,
 } from "@query/db";
 import { appRouter } from "../root";
@@ -320,10 +319,10 @@ describe("hackathon participant reads", () => {
           challengeId: GENERAL,
           roomId: ROOM,
           startsAt: at("10:00"),
+          deadlineAt: at("10:08"),
           endsAt: at("10:10"),
         },
       ]);
-      rows.set(judgingPresence, []);
     });
 
     const evaluation = (ratingsComplete: boolean) => ({
