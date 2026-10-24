@@ -4,6 +4,7 @@ import {
   QUIET_AFTER_MS,
   absentJudgeIds,
   rebalancePlan,
+  receiverIds,
 } from "./rebalance";
 import type { SavedAppointment } from "./judge-plan";
 
@@ -108,6 +109,39 @@ describe("absentJudgeIds", () => {
     expect(
       absent([seen("gs", 600 * MIN, ago(60 * MIN))], [started, due("gs", ahead(1))]),
     ).toEqual([]);
+  });
+});
+
+describe("receiverIds", () => {
+  const receivers = (
+    presence: ReturnType<typeof seen>[],
+    absentIds: string[] = [],
+  ) =>
+    [
+      ...receiverIds({ judges, presence, absent: new Set(absentIds), now: NOW }),
+    ].sort();
+
+  it("lets a member with a room open or seen lately take work, and guests always", () => {
+    expect(receivers([seen("m1", 0), seen("m2", 9 * MIN)])).toEqual([
+      "gs",
+      "m1",
+      "m2",
+    ]);
+  });
+
+  it("does not let a member who never arrived take work", () => {
+    expect(receivers([seen("m1", 0)])).toEqual(["gs", "m1"]);
+  });
+
+  it("does not let an absent member take work", () => {
+    expect(receivers([seen("m1", 0), seen("m2", 0)], ["m2"])).toEqual([
+      "gs",
+      "m1",
+    ]);
+  });
+
+  it("lets a member who walked off and is not yet absent take work", () => {
+    expect(receivers([seen("m1", 2 * MIN, ago(MIN))])).toEqual(["gs", "m1"]);
   });
 });
 

@@ -1339,6 +1339,41 @@ describe("re-balancing judges on their own", () => {
     expect(updates.filter((u) => u.table === judgingAppointments)).toEqual([]);
   });
 
+  it("gives freed work only to members who are here, not one who never arrived", async () => {
+    // Cy never checked in and holds nothing near; Bea is here and now free.
+    give(P3, null as never);
+    store.set(judgingPresence, [left(M1), here(M2)]);
+
+    await get();
+
+    expect([gives(P2), gives(P3)]).toContain(M2);
+    expect([gives(P2), gives(P3)]).not.toContain(M3);
+  });
+
+  it("leaves what a member who never arrived holds, and gives them nothing more", async () => {
+    // Cy never checked in but holds P3, which is not due for half an hour.
+    give(P3, M3);
+    store.set(judgingPresence, [left(M1), here(M2)]);
+
+    await get();
+
+    expect(gives(P3)).toBeUndefined();
+    expect(gives(P2)).toBe(M2);
+  });
+
+  it("gives up quietly when presence changed under the lock", async () => {
+    // Ada was gone on the first read and has heartbeated by the second.
+    onRead = (table, count) =>
+      table === judgingPresence && count > 1
+        ? [here(M1), here(M2), here(M3)]
+        : undefined;
+
+    await get();
+
+    expect(updates.filter((u) => u.table === judgingAppointments)).toEqual([]);
+    expect(audits()).toEqual([]);
+  });
+
   it("does nothing when the organiser turned it off, and says so", async () => {
     await organiser().judging.schedule.setAutoRebalance({
       hackathonId: HACK,
