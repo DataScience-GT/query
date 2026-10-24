@@ -1000,7 +1000,11 @@ export const judgingDeskRouter = createTRPCRouter({
       );
       const mode = modeOf(challenges, challenge);
       const [schedule] = await db
-        .select({ id: judgingSchedules.id })
+        .select({
+          id: judgingSchedules.id,
+          setupMinutes: judgingSchedules.setupMinutes,
+          judgingMinutes: judgingSchedules.judgingMinutes,
+        })
         .from(judgingSchedules)
         .where(eq(judgingSchedules.hackathonId, input.hackathonId))
         .limit(1);
@@ -1142,7 +1146,11 @@ export const judgingDeskRouter = createTRPCRouter({
       const reserved = new Map<string, Date>();
       if (timed) {
         for (const presentation of presentations) {
-          const until = reservedUntilOf(presentation, judge.judgeId, now);
+          const until = reservedUntilOf(
+            { ...presentation, slot: schedule },
+            judge.judgeId,
+            now,
+          );
           if (until) reserved.set(presentation.entryId, until);
         }
       }
