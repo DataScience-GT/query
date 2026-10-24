@@ -327,7 +327,11 @@ export const judgingResultsRouter = createTRPCRouter({
         .from(judgingEntryChallenges)
         .where(eq(judgingEntryChallenges.hackathonId, input.hackathonId));
       const challenges = await tx
-        .select({ id: judgingChallenges.id, label: judgingChallenges.label })
+        .select({
+          id: judgingChallenges.id,
+          label: judgingChallenges.label,
+          parentId: judgingChallenges.parentId,
+        })
         .from(judgingChallenges)
         .where(eq(judgingChallenges.hackathonId, input.hackathonId))
         .orderBy(
