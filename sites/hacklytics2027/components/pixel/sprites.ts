@@ -184,4 +184,45 @@ export const PALETTES: Record<"bloom" | "dormant", Palette> = {
   },
 };
 
+/* Day: the night pastels wash out on the pale ground (#f1f4f6), so the light
+   set uses the deeper pink and sage of app/globals.css. On that ground the
+   outline pink is 5.7:1, the petal pink 3.7:1, the leaves 3.9:1 and the stem
+   5.1:1. The cores stay light: the petals around them carry the shape.
+   Dormant stays quiet, all greys under 2.5:1. Sprites bake their colours, so
+   BloomSprite draws both sets and the stylesheet shows one (.px-light). */
+
+const sharedLight = {
+  g: "#3b7440",
+  G: "#4a8750",
+  s: "#a6adb8",
+  S: "#bcc3cc",
+  d: "#d5dbe1",
+  r: "#c3cad2",
+};
+
+export const PALETTES_LIGHT: Record<"bloom" | "dormant", Palette> = {
+  bloom: {
+    ...sharedLight,
+    p: "#b02a5b",
+    P: "#d0507e",
+    c: "#f4bfd0",
+    Y: "#ffffff",
+    W: "#ffffff",
+    m: "#b02a5b",
+    M: "#d0507e",
+    w: "#f4bfd0",
+  },
+  dormant: {
+    ...sharedLight,
+    p: "#aab1bb",
+    P: "#c3c9d1",
+    c: "#d4d9df",
+    Y: "#e3e7ec",
+    W: "#e3e7ec",
+    m: "#aab1bb",
+    M: "#c3c9d1",
+    w: "#d4d9df",
+  },
+};
+
 export type PaletteName = keyof typeof PALETTES;

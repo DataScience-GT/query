@@ -1,5 +1,5 @@
 import React from "react";
-import { PALETTES } from "./sprites";
+import { PALETTES, PALETTES_LIGHT } from "./sprites";
 import { spriteToDataUri } from "./spriteUri";
 import type { PaletteName, Palette, SpriteMap } from "./sprites";
 
@@ -47,6 +47,32 @@ const pick = (palette: Palette, stem: boolean): Palette =>
 const STEM = pick(PALETTES.dormant, true);
 const BUD = pick(PALETTES.dormant, false); // the closed bud: grey
 const HEAD = pick(PALETTES.bloom, false); // open: pink
+const STEM_L = pick(PALETTES_LIGHT.dormant, true);
+const BUD_L = pick(PALETTES_LIGHT.dormant, false);
+const HEAD_L = pick(PALETTES_LIGHT.bloom, false);
+
+/** A layer drawn in both themes: the night and day colours are baked into
+ *  separate images, and .px-light in app/globals.css shows one of them. */
+function Layer({
+  map,
+  dark,
+  light,
+  scale,
+  className,
+}: {
+  map: SpriteMap;
+  dark: PaletteName | Palette;
+  light: PaletteName | Palette;
+  scale: number;
+  className: string;
+}) {
+  return (
+    <>
+      <PixelImage map={map} palette={dark} scale={scale} className={`px-dark ${className}`} />
+      <PixelImage map={map} palette={light} scale={scale} className={`px-light ${className}`} />
+    </>
+  );
+}
 
 /** Per-row growth speed of a stem, and how long the grey bud holds. */
 const ROW_MS = 40;
@@ -64,7 +90,7 @@ const ms = (n: number) => `${Math.round(n)}ms`;
 
 /**
  * One plant in a bed. A dormant one is a single grey image. One that blooms
- * is four stacked copies (stem, grey bud, neon halo, pink head) that the
+ * is four stacked copies (stem, grey bud, neon halo, pink head), each drawn in the night and the day colours that the
  * stylesheet plays in order once the bed's data-bloom is "on": the stem grows
  * row by row, the bud appears, then pops open pink with a neon flash, and the
  * halo breathes. The timings are computed here and handed over as custom
@@ -97,7 +123,7 @@ export function BloomSprite({
   if (!blooms) {
     return (
       <span className={`relative shrink-0 ${className}`} style={flipStyle}>
-        <PixelImage map={map} palette="dormant" scale={scale} className="block" />
+        <Layer map={map} dark={PALETTES.dormant} light={PALETTES_LIGHT.dormant} scale={scale} className="block" />
       </span>
     );
   }
@@ -126,10 +152,10 @@ export function BloomSprite({
       className={`relative shrink-0 ${className}`}
       style={{ ...vars, ...flipStyle }}
     >
-      <PixelImage map={map} palette={STEM} scale={scale} className="flower-stem relative block" />
-      <PixelImage map={map} palette={BUD} scale={scale} className="flower-bud absolute left-0 top-0 block" />
-      <PixelImage map={map} palette={HEAD} scale={scale} className="flower-neon absolute left-0 top-0 block" />
-      <PixelImage map={map} palette={HEAD} scale={scale} className="flower-head absolute left-0 top-0 block" />
+      <Layer map={map} dark={STEM} light={STEM_L} scale={scale} className="flower-stem relative block" />
+      <Layer map={map} dark={BUD} light={BUD_L} scale={scale} className="flower-bud absolute left-0 top-0 block" />
+      <Layer map={map} dark={HEAD} light={HEAD_L} scale={scale} className="flower-neon absolute left-0 top-0 block" />
+      <Layer map={map} dark={HEAD} light={HEAD_L} scale={scale} className="flower-head absolute left-0 top-0 block" />
     </span>
   );
 }

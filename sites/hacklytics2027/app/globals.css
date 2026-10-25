@@ -308,6 +308,17 @@ body {
   50%      { visibility: visible; opacity: 0.75; }
 }
 
+/* Sprites bake their colours, so each layer is drawn twice (night, day) and
+   the theme picks one. Same selectors as the tokens above; display:none on the
+   other keeps the layout and the animations on the visible copy. */
+.px-light { display: none; }
+:root[data-theme="light"] .px-dark { display: none; }
+:root[data-theme="light"] .px-light { display: block; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .px-dark { display: none; }
+  :root:not([data-theme="dark"]) .px-light { display: block; }
+}
+
 /* A planted flower past the bed's cap sinks back into the soil, row by row. */
 .flower-wilt { animation: flower-wilt 320ms steps(8, end) forwards; }
 @keyframes flower-wilt {
