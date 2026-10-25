@@ -10,6 +10,8 @@ on:
       # Auto-opening a second PR into dev (authored by github-actions, titled
       # with the cursor/ prefix) duplicates review and is not wanted.
       - "cursor/**"
+      # Machine-written data branch of uptime.yml; a PR for it would be noise.
+      - status-data
 
 jobs:
   create-pull-request:
