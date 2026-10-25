@@ -9,12 +9,12 @@
     "./services/membership": "./src/services/membership.ts"
   },
   "scripts": {
-    "migrate:push": "node ../../scripts/guard-local.mjs && drizzle-kit push",
+    "migrate:push": "node ../../tooling/scripts/src/guard-local.ts && drizzle-kit push",
     "db:check": "tsx scripts/check-drift.mts",
     "migrate:generate": "drizzle-kit generate",
     "studio": "drizzle-kit studio",
-    "db:seed": "node ../../scripts/guard-local.mjs && tsx scripts/seed-local.ts",
-    "db:seed:club-projects": "node ../../scripts/guard-local.mjs && tsx scripts/seed-club-projects.ts",
+    "db:seed": "node ../../tooling/scripts/src/guard-local.ts && tsx scripts/seed-local.ts",
+    "db:seed:club-projects": "node ../../tooling/scripts/src/guard-local.ts && tsx scripts/seed-club-projects.ts",
     "export:clickhouse": "tsx scripts/export-clickhouse.mts",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit"
