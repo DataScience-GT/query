@@ -1,5 +1,6 @@
-// Read side of the external uptime probe (scripts/uptime-probe.mjs writes
-// uptime.json; .github/workflows/uptime.yml runs it). Free of React and the
+// Read side of the external uptime probe (tooling/scripts/src/uptime-probe.ts
+// writes uptime.json; .github/workflows/uptime.yml runs it). The types below
+// mirror that file's; keep them in sync. Free of React and the
 // network so the rules are tested in one place.
 //
 // The probe hits /api/ping from outside every 5 minutes. Down needs two failed

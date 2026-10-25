@@ -12,10 +12,10 @@
     "lint": "turbo run lint",
     "format": "prettier --write .",
     "typecheck": "turbo run typecheck",
-    "test": "node scripts/guard-local.mjs && vitest run scripts packages/api packages/auth packages/db sites/mainweb/lib sites/mainweb/components",
-    "local:up": "node scripts/local.mjs up",
-    "local:down": "node scripts/local.mjs down",
-    "local:reset": "node scripts/local.mjs reset"
+    "test": "node tooling/scripts/src/guard-local.ts && vitest run tooling/scripts packages/api packages/auth packages/db sites/mainweb/lib sites/mainweb/components",
+    "local:up": "node tooling/scripts/src/local.ts up",
+    "local:down": "node tooling/scripts/src/local.ts down",
+    "local:reset": "node tooling/scripts/src/local.ts reset"
   },
   "dependencies": {
     "next": "16.4.3",
