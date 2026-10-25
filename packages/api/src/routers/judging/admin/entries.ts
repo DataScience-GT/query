@@ -17,7 +17,6 @@ import {
 } from "drizzle-orm";
 import {
   hackathonCheckInFlags,
-  hackathonProjects,
   judgingAppointments,
   judgingChallenges,
   judgingEntries,
@@ -46,6 +45,7 @@ import {
   evictResults,
   entriesWithOpenFlags,
   lockEntry,
+  restoreLockedEntry,
 } from "./shared";
 
 export const entryProcedures = {
@@ -430,30 +430,7 @@ export const entryProcedures = {
       const entry = await db.transaction(async (tx) => {
         const entry = await lockEntry(tx, input.entryId);
         if (!entry.deletedAt) return null;
-
-        if (entry.source === "portal" && entry.sourceProjectId) {
-          const [project] = await tx
-            .select({
-              status: hackathonProjects.status,
-              withdrawnByAdminAt: hackathonProjects.withdrawnByAdminAt,
-            })
-            .from(hackathonProjects)
-            .where(eq(hackathonProjects.id, entry.sourceProjectId))
-            .limit(1);
-          if (
-            project &&
-            (project.withdrawnByAdminAt || project.status === "draft")
-          ) {
-            throw refuse(
-              "This team's portal submission was withdrawn, so it cannot be judged. Ask the team to submit it again.",
-            );
-          }
-        }
-
-        await tx
-          .update(judgingEntries)
-          .set({ deletedAt: null, deletedById: null, updatedAt: new Date() })
-          .where(eq(judgingEntries.id, entry.id));
+        await restoreLockedEntry(tx, entry);
         return entry;
       });
       if (!entry) return { restored: false };

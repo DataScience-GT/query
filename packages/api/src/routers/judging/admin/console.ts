@@ -41,6 +41,7 @@ import {
 } from "../../../services/judging/checklist";
 import { holdsEveryRating } from "../../../services/judging/scoring-sql";
 import { openCheckInFlagCount } from "../../../services/check-in-flags";
+import { repoCheckIfDue } from "../../../services/judging/repo-check";
 import { hackathonInput, SEATED_WINDOW_MS } from "./shared";
 
 export const consoleProcedures = {
@@ -50,6 +51,9 @@ export const consoleProcedures = {
     const id = input.hackathonId;
     const hackathon = await assertHackathonExists(db, id);
     const config = await ensureJudgingConfig(db, id);
+    // The console polls this; it is where the late-push check is started from.
+    // Not awaited: GitHub never holds up the poll.
+    void repoCheckIfDue(db, id);
     const seatedSince = new Date(Date.now() - SEATED_WINDOW_MS);
 
     const [
