@@ -86,6 +86,12 @@ export const paymentsRecovered = new Counter({
   registers: [registry],
 });
 
+export const statusSampleWriteFailures = new Counter({
+  name: "dsgt_status_sample_write_failures_total",
+  help: "Status page samples that could not be written to Postgres.",
+  registers: [registry],
+});
+
 export const trpcDuration = new Histogram({
   name: "dsgt_trpc_duration_seconds",
   help: "Portal API call duration, by procedure and outcome.",

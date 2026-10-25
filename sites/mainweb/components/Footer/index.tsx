@@ -19,7 +19,7 @@ const Footer = ({
       className={`relative w-full py-20 bg-[#050505] border-t border-white/5 text-gray-400 font-sans ${className}`}
     >
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-8">
           {/* BRANDING COLUMN */}
           <div className="space-y-6">
             <div className="flex items-center gap-3 group">
@@ -120,22 +120,6 @@ const Footer = ({
               </a>
             </nav>
           </div>
-
-          {/* TECH TEAM CREDIT */}
-          <div className="flex flex-col space-y-4">
-            <h2 className="text-white font-mono text-[10px] uppercase tracking-[0.3em] font-bold">
-              System
-            </h2>
-            <div className="p-4 rounded border border-[#00A8A8]/10 bg-[#00A8A8]/[0.02]">
-              <p className="text-[11px] font-mono text-gray-500 leading-relaxed italic">
-                {">"} Built with precision by the{" "}
-                <span className="text-[#00A8A8] font-bold">DSGT Tech Team</span>
-                .
-                <br />
-                {">"} Protocol: ATL_GT_V4
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* BOTTOM COPYRIGHT */}
@@ -143,14 +127,6 @@ const Footer = ({
           <p className="text-[10px] font-mono text-gray-600 uppercase tracking-widest">
             © {new Date().getFullYear()} Data Science at Georgia Tech
           </p>
-          <div className="flex gap-6">
-            <span className="text-[10px] font-mono text-gray-700 uppercase tracking-tighter">
-              Lat: 33.7756° N
-            </span>
-            <span className="text-[10px] font-mono text-gray-700 uppercase tracking-tighter">
-              Lon: 84.3963° W
-            </span>
-          </div>
         </div>
       </div>
     </footer>

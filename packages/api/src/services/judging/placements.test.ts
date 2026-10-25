@@ -112,6 +112,41 @@ describe("computePlacements", () => {
     );
   });
 
+  it("ranks a child challenge from its root's evaluations, among the projects entered in it", () => {
+    const placements = computePlacements({
+      entryIds: ["a", "b", "c"],
+      memberships: [
+        { entryId: "a", challengeId: "mlh" },
+        { entryId: "b", challengeId: "mlh" },
+        { entryId: "c", challengeId: "mlh" },
+        { entryId: "a", challengeId: "mlh-hosting" },
+        { entryId: "c", challengeId: "mlh-hosting" },
+      ],
+      challenges: [
+        { id: "mlh", label: "MLH Challenges" },
+        { id: "mlh-hosting", label: "Best Hosting", parentId: "mlh" },
+      ],
+      evaluations: [
+        evaluation("a", "mlh", [3, 3]),
+        evaluation("b", "mlh", [5, 5]),
+        evaluation("c", "mlh", [4, 4]),
+      ],
+    });
+    const child = placements
+      .filter((p) => p.scope === "mlh-hosting")
+      .map(({ entryId, placement, score }) => ({ entryId, placement, score }));
+    // b is not entered in it, so c and a place 1st and 2nd.
+    expect(child).toEqual([
+      { entryId: "c", placement: 1, score: 4 },
+      { entryId: "a", placement: 2, score: 3 },
+    ]);
+    expect(
+      placements.find((p) => p.scope === "mlh-hosting")?.scopeLabel,
+    ).toBe("Best Hosting");
+    // The group still ranks everyone entered in it.
+    expect(placements.filter((p) => p.scope === "mlh")).toHaveLength(3);
+  });
+
   it("counts evaluations with every rating only and leaves unscored projects out", () => {
     const placements = computePlacements({
       entryIds: ["a", "b"],
