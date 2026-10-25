@@ -24,6 +24,23 @@ pnpm install
 
 Workspaces are defined in `pnpm-workspace.yaml`: `sites/*`, `packages/*`, and `tooling/*`.
 
+## Local test environment (one command)
+
+```bash
+pnpm local:up
+pnpm dev
+```
+
+`local:up` copies `.env.example` to `.env` and `sites/mainweb/.env.local` (never overwriting), starts `docker-compose.local.yml` (Postgres on **5434** and [Mailpit](https://mailpit.axllent.org)), pushes the schema and seeds fake data. Nothing in it reaches an outside service. `pnpm local:down` stops the containers and keeps the data; `pnpm local:reset` also deletes it.
+
+**Signing in.** Google and GitHub need real OAuth apps, so use the email code instead. Enter `admin@example.test` (super admin) on `/login`, open Mailpit at [http://localhost:8025](http://localhost:8025) and type the 6-digit code from the message. Any address works; it is delivered to Mailpit and nowhere else. Other seeded accounts, all at `example.test`: `member-new`, `member-cont`, `member-lapsed`, `visitor-1`, `visitor-2`, `hacker-1` to `hacker-8` and `judge`.
+
+**What the seed holds.** An admin, three members (one with the current bootcamp, one lapsed) and non-members; club events and four bootcamp sessions for the current term with workshops and check-ins; an in-progress hackathon edition with eight registrations in every status, two teams and submitted projects; an open judging setup (challenges, rooms, rubric, judges, entries); 144 `status_sample` rows for `/status`; and the club project roster. `pnpm --filter @query/db db:seed` is safe to re-run.
+
+**Payments.** `STRIPE_MOCK_MODE=true` (the default in `.env.example`) records a paid membership with no network call. To try real Checkout, switch it off and set **test-mode** keys (`sk_test_`, `pk_test_`); see [Stripe test cards](https://docs.stripe.com/testing), e.g. `4242 4242 4242 4242`.
+
+**Guardrails.** `scripts/guard-local.mjs` runs before `migrate:push`, `db:seed`, `db:seed:club-projects`, `pnpm test`, `pnpm local:up` and the mainweb `dev` script. It refuses a `DATABASE_URL` that is not `localhost`, `127.0.0.1`, `::1`, `db` or `postgres`, and an SMTP host that is not local, unless `ALLOW_NON_LOCAL_SERVICES=1` is set. It refuses Stripe live keys (`sk_live_`, `rk_live_`, `pk_live_`) whenever `NODE_ENV` is not `production`, with no override. An unset `DATABASE_URL` passes, which is how CI runs. Deploys call `drizzle-kit push` directly and are unaffected. The resume and bootcamp buckets are unset locally, so uploads return 503 rather than touching Cloud Storage.
+
 ## Local database
 
 Production uses Neon (serverless Postgres). Locally, `docker-compose.yml` starts Postgres 15 with the same database name (`neondb`) so only `DATABASE_URL` changes.
