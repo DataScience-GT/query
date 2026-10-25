@@ -47,16 +47,28 @@ export default function DocsPageClient() {
     );
   }
 
-  const go = (id: DocSection) => {
-    window.location.assign(`#${id}`);
+  const landOnSection = () => {
     window.scrollTo({ top: 0 });
     // Move focus so keyboard and screen reader users land on the new section.
     articleRef.current?.focus({ preventScroll: true });
   };
 
-  const onNavClick = (e: MouseEvent, id: DocSection) => {
-    e.preventDefault();
-    go(id);
+  // The select's value is looked up in SECTIONS, so only a known id is ever
+  // written to the URL.
+  const go = (value: string) => {
+    const section = SECTIONS.find((s) => s.id === value);
+    if (!section) return;
+    window.location.hash = section.id;
+    landOnSection();
+  };
+
+  // The link's own href changes the hash. Modified clicks are left alone so
+  // they can open the section in a new tab.
+  const onNavClick = (e: MouseEvent) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+      return;
+    }
+    landOnSection();
   };
 
   const current = SECTIONS.find((s) => s.id === active) ?? SECTIONS[0];
@@ -75,7 +87,7 @@ export default function DocsPageClient() {
           <select
             id="docs-section"
             value={active}
-            onChange={(e) => go(e.target.value as DocSection)}
+            onChange={(e) => go(e.target.value)}
             className="min-h-11 w-full appearance-none rounded-sm border border-white/10 bg-[#0a0a0a] pr-10 pl-4 font-mono text-xs tracking-[0.2em] text-white uppercase"
           >
             {SECTIONS.map((s) => (
@@ -105,7 +117,7 @@ export default function DocsPageClient() {
                   <li key={s.id}>
                     <a
                       href={`#${s.id}`}
-                      onClick={(e) => onNavClick(e, s.id)}
+                      onClick={onNavClick}
                       aria-current={on ? "page" : undefined}
                       className={`-ml-px flex min-h-11 items-center border-l-2 pl-4 text-sm transition-colors ${
                         on
