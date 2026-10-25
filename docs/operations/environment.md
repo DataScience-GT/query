@@ -90,4 +90,6 @@ Without `DATABASE_URL`, `db` is null, sessions fall back to JWT, and tRPC proced
 
 ## Local files
 
+`.env.example` lists every variable with local defaults (Postgres and Mailpit from `docker-compose.local.yml`, Stripe mock mode, no buckets). `pnpm local:up` copies it to `.env` and `sites/mainweb/.env.local`. `ALLOW_NON_LOCAL_SERVICES` and `LOCAL_DB_PORT` / `LOCAL_SMTP_PORT` / `LOCAL_MAILPIT_PORT` are read only by the local tooling; see [Getting started](../getting-started.md).
+
 `drizzle.config.ts` loads **root** `.env` via dotenv. Next.js also loads `sites/mainweb/.env.local`. Keep `DATABASE_URL` consistent in both if you use both files.
