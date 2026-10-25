@@ -33,6 +33,8 @@ import {
 
 const note = z.string().trim().max(500).optional();
 
+const RUN_NOW_WAIT_MS = 25_000;
+
 /** What a decision about one entry's repo check needs, under the edition lock. */
 async function lockCheck(
   tx: Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0],
@@ -75,6 +77,8 @@ export const repoCheckProcedures = {
         decidedAt: judgingRepoChecks.decidedAt,
         note: judgingRepoChecks.note,
         removedEntry: judgingRepoChecks.removedEntry,
+        repos: judgingRepoChecks.repos,
+        lastOutcome: judgingRepoChecks.lastOutcome,
       })
       .from(judgingRepoChecks)
       .innerJoin(
@@ -120,6 +124,19 @@ export const repoCheckProcedures = {
       const db = ctx.db as DrizzleDB;
       await assertHackathonExists(db, input.hackathonId);
       await ensureJudgingConfig(db, input.hackathonId);
+      // Flags not yet decided were worked out with the old grace; they are
+      // checked afresh. Decided ones, and ones whose project is out, stay.
+      if (input.graceMinutes !== undefined) {
+        await db
+          .delete(judgingRepoChecks)
+          .where(
+            and(
+              eq(judgingRepoChecks.hackathonId, input.hackathonId),
+              eq(judgingRepoChecks.decision, "pending"),
+              eq(judgingRepoChecks.removedEntry, false),
+            ),
+          );
+      }
       await db
         .update(judgingConfigs)
         .set({
@@ -148,25 +165,37 @@ export const repoCheckProcedures = {
       return { ok: true };
     }),
 
-  /** Starts a run now and returns; the next read shows what it found. */
+  /**
+   * Runs now. Waits for it up to 25 seconds, as work left running after the
+   * response may be stalled; every project is saved as it is done, so what
+   * finished by then is kept and the run carries on for the rest.
+   */
   runRepoCheckNow: isAdmin.input(hackathonInput).mutation(async ({ ctx, input }) => {
     const db = ctx.db as DrizzleDB;
     await assertHackathonExists(db, input.hackathonId);
     await ensureJudgingConfig(db, input.hackathonId);
-    if (repoCheckRunning(input.hackathonId)) return { started: false };
+    if (repoCheckRunning(input.hackathonId)) {
+      return { started: false, finished: false };
+    }
     const now = new Date();
     await db
       .update(judgingConfigs)
       .set({ repoCheckLastRunAt: now })
       .where(eq(judgingConfigs.hackathonId, input.hackathonId));
     repoCheckThrottle.set(input.hackathonId, now.getTime());
-    void runRepoCheck(db, input.hackathonId, { now });
+    const run = runRepoCheck(db, input.hackathonId, { now }).then(() => true);
+    const finished = await Promise.race([
+      run,
+      new Promise<false>((resolve) =>
+        setTimeout(() => resolve(false), RUN_NOW_WAIT_MS).unref?.(),
+      ),
+    ]);
     await recordAdminAction(db, {
       userId: ctx.userId,
       action: "judging.repoCheck.run",
       resourceId: input.hackathonId,
     });
-    return { started: true };
+    return { started: true, finished };
   }),
 
   /**
@@ -217,6 +246,7 @@ export const repoCheckProcedures = {
             decidedAt: now,
             note: input.note || null,
             removedEntry: check.removedEntry || removed,
+            removedDeletedAt: removed ? now : check.removedDeletedAt,
           })
           .where(eq(judgingRepoChecks.entryId, entry.id));
         return { entry, removed };
@@ -254,7 +284,14 @@ export const repoCheckProcedures = {
         if (check.decision !== "disqualified" && !check.removedEntry) {
           throw refuse(`${entry.title} is not disqualified.`);
         }
-        if (check.removedEntry && entry.deletedAt) {
+        // Only the removal the disqualification made: an organiser who
+        // restored the project and removed it again for another reason has
+        // that removal stand.
+        if (
+          check.removedEntry &&
+          entry.deletedAt &&
+          entry.deletedAt.getTime() === check.removedDeletedAt?.getTime()
+        ) {
           await restoreLockedEntry(tx, entry);
         }
         await tx
@@ -265,6 +302,7 @@ export const repoCheckProcedures = {
             decidedAt: new Date(),
             note: input.note || null,
             removedEntry: false,
+            removedDeletedAt: null,
           })
           .where(
             and(
