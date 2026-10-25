@@ -4,6 +4,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
 import {
+  hackathonProjects,
   judgingAnnouncements,
   judgingBuildings,
   judgingChallenges,
@@ -113,6 +114,36 @@ export async function lockEntry(tx: JudgingDb, entryId: string) {
     .limit(1);
   if (!entry) throw notFound("That project is gone. Refresh the list.");
   return entry;
+}
+
+/**
+ * Puts a removed project back into judging. Refused for a portal submission its
+ * team's withdrawal or an organiser's pull took out of the gallery.
+ */
+export async function restoreLockedEntry(
+  tx: JudgingDb,
+  entry: Awaited<ReturnType<typeof lockEntry>>,
+) {
+  if (entry.source === "portal" && entry.sourceProjectId) {
+    const [project] = await tx
+      .select({
+        status: hackathonProjects.status,
+        withdrawnByAdminAt: hackathonProjects.withdrawnByAdminAt,
+      })
+      .from(hackathonProjects)
+      .where(eq(hackathonProjects.id, entry.sourceProjectId))
+      .limit(1);
+    if (project && (project.withdrawnByAdminAt || project.status === "draft")) {
+      throw refuse(
+        "This team's portal submission was withdrawn, so it cannot be judged. Ask the team to submit it again.",
+      );
+    }
+  }
+
+  await tx
+    .update(judgingEntries)
+    .set({ deletedAt: null, deletedById: null, updatedAt: new Date() })
+    .where(eq(judgingEntries.id, entry.id));
 }
 
 export async function lockChallenge(tx: JudgingDb, challengeId: string) {

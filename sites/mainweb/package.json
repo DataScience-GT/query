@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "node ../../scripts/guard-local.mjs --stripe --email && next dev --port 3001",
+    "dev": "node ../../tooling/scripts/src/guard-local.ts --stripe --email && next dev --port 3001",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",

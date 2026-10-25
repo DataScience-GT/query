@@ -20,6 +20,7 @@ export const SECTIONS = [
   { id: "schedule", label: "Schedule" },
   { id: "claims", label: "Claims" },
   { id: "results", label: "Results" },
+  { id: "repo-check", label: "Repo check" },
   { id: "announcements", label: "Announcements" },
   { id: "danger", label: "Danger zone" },
 ] as const;
