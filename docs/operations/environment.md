@@ -22,6 +22,7 @@ Without `DATABASE_URL`, `db` is null, sessions fall back to JWT, and tRPC proced
 | `GOOGLE_CLIENT_SECRET` | Google (`AUTH_GOOGLE_SECRET`) |
 | `GITHUB_CLIENT_ID` | GitHub (`AUTH_GITHUB_ID`) — optional; both GitHub vars required to register the provider |
 | `GITHUB_CLIENT_SECRET` | GitHub (`AUTH_GITHUB_SECRET`) |
+| `GITHUB_TOKEN` | Optional. Lets the judging [repo check](../judging/repo-check.md) read repos at 5000 requests an hour instead of 60. Needs no scopes for public repos. |
 
 ## Email
 

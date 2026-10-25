@@ -60,6 +60,14 @@ export const judgingConfigs = pgTable("judging_config", {
   // While judging runs, presentations of a judge who left or went quiet move
   // to judges who are here.
   autoRebalance: boolean("auto_rebalance").notNull().default(true),
+  // Late-push check (judging_repo_check): while on, each entry's GitHub repo is
+  // checked for pushes after the submission deadline plus this grace. The run
+  // time is claimed in the row so only one instance starts a run per interval.
+  repoCheckEnabled: boolean("repo_check_enabled").notNull().default(false),
+  repoCheckGraceMinutes: integer("repo_check_grace_minutes")
+    .notNull()
+    .default(0),
+  repoCheckLastRunAt: timestamp("repo_check_last_run_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -155,6 +163,83 @@ export const judgingEntryMembers = pgTable(
       .on(table.hackathonId, table.userId)
       .where(sql`${table.userId} is not null`),
   ],
+);
+
+// What GitHub says about an entry's repo: when it was last pushed to and, if
+// that was after the deadline, the commits and pushes that came with it. Only
+// ever flags; `decision` is the organiser's. `removedEntry` records that
+// disqualifying took the project out of judging, so reinstating knows to put
+// it back.
+export const judgingRepoChecks = pgTable(
+  "judging_repo_check",
+  {
+    entryId: uuid("entry_id")
+      .primaryKey()
+      .references(() => judgingEntries.id, { onDelete: "cascade" }),
+    hackathonId: uuid("hackathon_id")
+      .notNull()
+      .references(() => hackathons.id, { onDelete: "cascade" }),
+    repoOwner: text("repo_owner"),
+    repoName: text("repo_name"),
+    outcome: text("outcome", {
+      enum: ["ok", "late", "no_repo", "unreadable", "error"],
+    }).notNull(),
+    // GitHub's own clock for the last push to any branch.
+    pushedAt: timestamp("pushed_at"),
+    // At most 20 commits and 20 pushes; shown for context, never decided on.
+    evidence: jsonb("evidence").$type<{
+      commits: {
+        sha: string;
+        message: string;
+        author: string | null;
+        committedAt: string | null;
+        url: string;
+      }[];
+      pushes: { at: string; ref: string | null; pusher: string | null }[];
+    }>(),
+    checkedAt: timestamp("checked_at").notNull(),
+    decision: text("decision", {
+      enum: ["pending", "disqualified", "cleared"],
+    })
+      .notNull()
+      .default("pending"),
+    decidedById: text("decided_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    decidedAt: timestamp("decided_at"),
+    note: text("note"),
+    removedEntry: boolean("removed_entry").notNull().default(false),
+    // The `deletedAt` the disqualification set, so reinstating undoes only
+    // that removal and not a later manual one.
+    removedDeletedAt: timestamp("removed_deleted_at"),
+    // Every repo checked for the entry (at most 3); the columns above describe
+    // the one that decided the outcome.
+    repos: jsonb("repos").$type<
+      {
+        owner: string;
+        repo: string;
+        outcome: "ok" | "late" | "unreadable" | "error";
+        pushedAt: string | null;
+        evidence: {
+          commits: {
+            sha: string;
+            message: string;
+            author: string | null;
+            committedAt: string | null;
+            url: string;
+          }[];
+          pushes: { at: string; ref: string | null; pusher: string | null }[];
+        } | null;
+      }[]
+    >(),
+    // How the latest attempt went. A flag raised by an earlier attempt is kept
+    // when a later one cannot look (a repo made private), so this is shown
+    // beside it.
+    lastOutcome: text("last_outcome", {
+      enum: ["ok", "late", "no_repo", "unreadable", "error"],
+    }),
+  },
+  (table) => [index("judging_repo_check_hackathon_idx").on(table.hackathonId)],
 );
 
 // A one-time claim link for a member whose Devpost email is not the address

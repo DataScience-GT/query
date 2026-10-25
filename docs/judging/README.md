@@ -12,6 +12,7 @@ The code is one tRPC router, `judging`, with five sub-routers (`packages/api/src
 | [Judging day](./judging-day.md) | The judge desk, presence, appointment status, takeover, grading hold, leaving a room, announcements, hacker itinerary |
 | [Scoring and results](./scoring-and-results.md) | Evaluations, scoring, calibration, the judge's private shortlist, placements, publishing, reopening a grade |
 | [Scheduler](./scheduler.md) | How room presentations are placed on a timetable and judges assigned to them |
+| [Repo check](./repo-check.md) | Flagging projects pushed to on GitHub after the submission deadline, and the organiser decisions |
 | [Adaptive features](./adaptive.md) | Setup advice, suggested timing, archiving rooms, live re-balance of judges |
 | [Simulations](./simulations.md) | Load simulations and what they found |
 
@@ -74,7 +75,7 @@ The order is a checklist, not a hard gate. `judging.admin.checklist` reports sev
 
 | Table | Holds |
 | --- | --- |
-| `judging_config` | One row per edition: state, switches (`showAllScores`, `itineraryPublished`, `emergencyMode`, `autoRebalance`), lock timestamps |
+| `judging_config` | One row per edition: state, switches (`showAllScores`, `itineraryPublished`, `emergencyMode`, `autoRebalance`, `repoCheckEnabled` and its grace), lock timestamps |
 | `judging_entry`, `judging_entry_member`, `judging_claim_link` | Projects, their teammates, one-time claim links |
 | `judging_challenge`, `judging_entry_challenge` | The challenge tree and which projects are in which challenge |
 | `judging_building`, `judging_room`, `judging_room_link`, `judging_guest_session` | Halls, rooms and tables, QR links, guest cookie sessions |
@@ -83,6 +84,7 @@ The order is a checklist, not a hard gate. `judging.admin.checklist` reports sev
 | `judging_rubric_item`, `judging_evaluation`, `judging_evaluation_draft`, `judging_evaluation_rating`, `judging_evaluation_response`, `judging_evaluation_revision` | The rubric and judges' answers |
 | `judging_deliberation_section`, `judging_deliberation_entry` | A judge's private shortlist |
 | `judging_placement` | Computed and published placings |
+| `judging_repo_check` | Per project: GitHub last-push check against the submission deadline and the organiser decision, see [repo check](./repo-check.md) |
 | `judging_announcement` | The pinned message for all judges or one room |
 
 The older `judging_project`, `judge_vote`, `judge_queue` and `hackathon_result` tables are retired and kept for past editions. `hackathon.getResults` still merges their published rows with new placements.
