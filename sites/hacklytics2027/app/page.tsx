@@ -131,15 +131,6 @@ export default function HomePage() {
               fetchPriority="high"
               className="mx-auto block h-auto w-[min(88vw,24rem)] lg:w-full lg:max-w-[32.5rem]"
             />
-            {/* Decorative: "Hacklytics 2027" in 8-bit ASCII, as on the art. */}
-            <p
-              aria-hidden="true"
-              className="mx-auto mt-4 hidden max-w-[26rem] break-words sm:block text-center font-mono text-[11px] leading-[1.6] tracking-[0.04em] text-ocean"
-            >
-              01001000 01100001 01100011 01101011 01101100 01111001 01110100
-              01101001 01100011 01110011 00100000 00110010 00110000 00110010
-              00110111
-            </p>
           </div>
 
           <div className="lg:col-start-1 lg:row-start-2">
