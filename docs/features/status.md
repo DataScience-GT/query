@@ -6,11 +6,11 @@ Running the monitoring stack locally and scraping production is in the repo's `m
 
 ## The `/status` page
 
-`/status` shows whether the site is up, how fast it is, and 90 days of uptime history. It is read from Postgres and revalidated every 300 seconds (`export const revalidate = 300`), matching the five-minute bucket size. A regeneration runs the live `select 1` and one query for the last 24 hours. The 90 days of finished UTC days come from a second query wrapped in `unstable_cache` (6 hour revalidate, key includes the current UTC day, so it rolls over at midnight); a failed query is not cached. Today's bar is computed from the 24 hour rows by `dayFromBuckets` in `lib/status.ts`. The cached days can miss a bucket that is flushed after the cache entry was filled, up to about 6 hours.
+`/status` shows whether the site is up, how fast it is, and 90 days of uptime history. The traffic numbers are read from Postgres; an external probe adds an outside view (see [The external probe](#the-external-probe)). The page is revalidated every 300 seconds (`export const revalidate = 300`), matching the five-minute bucket size. A regeneration runs the live `select 1` and one query for the last 24 hours. The 90 days of finished UTC days come from a second query wrapped in `unstable_cache` (6 hour revalidate, key includes the current UTC day, so it rolls over at midnight); a failed query is not cached. Today's bar is computed from the 24 hour rows by `dayFromBuckets` in `lib/status.ts`. The cached days can miss a bucket that is flushed after the cache entry was filled, up to about 6 hours.
 
 ### Where the numbers come from
 
-There is no probe and no background worker. Every tRPC procedure is already timed by the `recordDuration` middleware in `packages/api/src/trpc.ts`; the same middleware feeds `packages/api/src/services/status-samples.ts`, which counts each call into an in-process five-minute bucket (requests, server errors, a bounded sample of durations for p50 and p95).
+There is no background worker in the app. Every tRPC procedure is already timed by the `recordDuration` middleware in `packages/api/src/trpc.ts`; the same middleware feeds `packages/api/src/services/status-samples.ts`, which counts each call into an in-process five-minute bucket (requests, server errors, a bounded sample of durations for p50 and p95).
 
 The first call that lands in a later bucket writes the finished bucket to `status_sample` and returns without waiting. The write is an upsert keyed on bucket and instance; a retry replaces the row, so a write that landed but lost its reply is not counted twice. It runs `select 1` and stores whether it answered and how long it took. A failed write is retried with the next flush (up to 12 buckets, then dropped) and counted in `dsgt_status_sample_write_failures_total`. The first flush after a process starts, and then once a day, the same code deletes rows older than 90 days.
 
@@ -20,6 +20,39 @@ Consequences, stated plainly:
 - The newest bucket appears about five minutes late, and an instance that scales down loses the bucket it had open.
 - Only tRPC traffic is counted. Pages served without an API call are not.
 - A database that is fully down cannot store its own outage. The live check on the page (a `select 1` at render time) and the retried bucket's saved ping cover that.
+
+### The external probe
+
+The sampled numbers have a blind spot: no traffic means no data, and the app cannot see itself being unreachable. A GitHub Actions workflow, `.github/workflows/uptime.yml`, covers that from outside. The repo is public, so the minutes are free.
+
+- Every 5 minutes (`cron: "*/5 * * * *"`, also `workflow_dispatch`) it runs `scripts/uptime-probe.mjs`: plain Node, no install step. The script requests `https://datasciencegt.org/api/ping` up to 3 times with a 10 second timeout each. A non-2xx answer or a timeout is a failed attempt. It records the status code and latency of the first success, or of the last failure (`code` 0 means no answer).
+- `/api/ping` (`app/api/ping/route.ts`) returns `{ ok: true }` with `cache-control: no-store` and touches nothing else. It deliberately never reaches the database: Neon bills compute while awake and suspends after about 5 idle minutes, so a probe that ran a query would keep it awake 24 hours a day. It is not a tRPC route, so it does not count as traffic in `status_sample`, and `proxy.ts` only sets headers on it.
+- The result goes to `uptime.json` on the `status-data` branch. Every run builds a new orphan commit and force-pushes it, so the branch is always exactly one commit and the repository does not grow. The workflow uses the `github-actions[bot]` identity and only needs `contents: write`.
+- The same run records the latest `main` commit (SHA, commit time) and the conclusion of its `App Hosting - Rollout` check run as `deploy`, using the workflow token. The site never calls the GitHub API; a failed lookup keeps the previous value.
+- `/status` fetches `raw.githubusercontent.com/.../status-data/uptime.json` on the server (`app/status/uptime.ts`, `revalidate: 300`, 3 second timeout). If the fetch or the parse fails, the outside sections are left out and the page renders from the database alone.
+
+`uptime.json`, version 1, bounded:
+
+| Field | Meaning |
+| --- | --- |
+| `updatedAt` | Epoch ms of the last run |
+| `recent` | Probes from the last 24 hours (about 288, capped at 400): `{ t, ok, ms, code }` |
+| `days` | Up to 90 UTC days of probes older than 24 hours: `{ day, probes, up, worstMs }` |
+| `deploy` | `{ sha, committedAt, rollout }` for the newest `main` commit |
+
+Rolling `recent` into `days` is the pure function `applyProbe` in the script, tested in `scripts/uptime-probe.test.mjs`. The read side (windows, stale and down rules) is `sites/mainweb/lib/uptime.ts`, tested in `lib/uptime.test.ts`.
+
+How the headline uses it:
+
+- **Down**: the last 2 probes both failed. This overrides the database view. One failed probe is not enough; it already retried 3 times, and a single miss can be the network between GitHub and the site.
+- **Stale**: the newest probe is older than 30 minutes. The page says the outside check is stale and claims nothing from it, even if the old probes failed. Stale beats Down.
+- Otherwise the probe changes nothing and the headline stays the database-derived one.
+
+GitHub cron is best effort. Scheduled runs often start 5 to 15 minutes late, can be skipped under load, and a repository with no activity for 60 days has its schedules disabled. That is why staleness is shown instead of assumed away, and why 30 minutes, not 5, is the stale threshold.
+
+The page shows a separate 90 day strip for the outside check (not merged with the traffic strip, because the two measure different things), with 24 hour, 30 day and 90 day uptime, the last probe time and latency, and a deploy line (short SHA linked to the commit, commit time, rollout result). Windows are probes that passed over probes made; days are UTC.
+
+After merge the maintainers must: allow the workflow to write (Settings, Actions, General, Workflow permissions: read and write, or leave the default and rely on the `permissions` block), and make sure no branch protection rule or ruleset blocks force pushes to `status-data`. Run the workflow once with `workflow_dispatch` to create the branch. Until it exists `/status` simply omits the outside sections.
 
 ### Table
 
@@ -158,7 +191,8 @@ See [Admin tools](./admin.md).
 | Registry, counters, gauges | `packages/api/src/services/metrics.ts` |
 | Timing middleware | `packages/api/src/trpc.ts` (`recordDuration`) |
 | Endpoint | `sites/mainweb/app/(portal)/api/metrics/route.ts` |
-| Status page | `sites/mainweb/app/status/` (`page.tsx`, `load.ts`, `AutoRefresh.tsx`), rules in `sites/mainweb/lib/status.ts` |
+| Status page | `sites/mainweb/app/status/` (`page.tsx`, `load.ts`, `uptime.ts`, `AutoRefresh.tsx`), rules in `sites/mainweb/lib/status.ts` and `lib/uptime.ts` |
+| External probe | `.github/workflows/uptime.yml`, `scripts/uptime-probe.mjs`, `sites/mainweb/app/api/ping/route.ts` |
 | Status samples | `packages/api/src/services/status-samples.ts`, table `packages/db/src/schemas/status.ts` |
 | Stack and rules | `monitoring/` (`prometheus.yml`, `rules/payments.yml`, `rules/hackathon.yml`, `grafana/dashboards/dsgt-portal.json`, `README.md`) |
-| Tests | `services/latency.test.ts`, `services/hackathon-metrics.test.ts`, `services/status-samples.test.ts`, `lib/status.test.ts`, `app/status/load.test.ts` |
+| Tests | `services/latency.test.ts`, `services/hackathon-metrics.test.ts`, `services/status-samples.test.ts`, `lib/status.test.ts`, `lib/uptime.test.ts`, `app/status/load.test.ts`, `app/status/uptime.test.ts`, `scripts/uptime-probe.test.mjs` |
