@@ -340,7 +340,12 @@ beforeEach(() => {
     judge(NOROOM, "guest", "Nobody"),
   ]);
   store.set(judgingGuestSessions, [
-    { judgeId: GS, roomId: A1, createdAt: NOW },
+    {
+      judgeId: GS,
+      roomId: A1,
+      createdAt: NOW,
+      expiresAt: new Date(NOW.getTime() + 8 * 3600_000),
+    },
   ]);
 });
 
@@ -623,6 +628,46 @@ describe("judging.schedule.assignJudges", () => {
         }),
       }),
     ]);
+  });
+
+  it("hands nothing to a judge who has left, once judging is under way", async () => {
+    const seen = (judgeId: string, gone: boolean) => ({
+      judgeId,
+      roomId: G1,
+      joinedAt: new Date(NOW.getTime() - 60 * 60_000),
+      lastSeenAt: new Date(NOW.getTime() - (gone ? 7 : 0.5) * 60_000),
+      leftAt: gone ? new Date(NOW.getTime() - 6 * 60_000) : null,
+    });
+    store.set(judgingPresence, [seen(M1, true), seen(M2, false)]);
+
+    await run();
+
+    const after = judgeAfter();
+    expect([...after.values()]).not.toContain(M1);
+    expect([after.get(P2), after.get(P3)]).toContain(M2);
+  });
+
+  it("hands nothing to a member who never checked in, once judging is under way", async () => {
+    // Ten minutes before P2 and P3: Ada never joined and holds nothing; Bea is here.
+    vi.setSystemTime(new Date(NOW.getTime() + 20 * 60_000));
+    store.set(judgingPresence, [
+      {
+        judgeId: M2,
+        roomId: G1,
+        joinedAt: new Date(Date.now() - 60 * 60_000),
+        lastSeenAt: new Date(Date.now() - 30_000),
+        leftAt: null,
+      },
+    ]);
+
+    // Its own caller, so the flood guard on the shared admin is not spent.
+    await callerAs("day_admin").judging.schedule.assignJudges({
+      hackathonId: HACK,
+    });
+
+    const after = judgeAfter();
+    expect([...after.values()]).not.toContain(M1);
+    expect([after.get(P2), after.get(P3)]).toContain(M2);
   });
 
   it("keeps the judge of an appointment a judge has begun, and plans around it", async () => {
@@ -1359,6 +1404,24 @@ describe("re-balancing judges on their own", () => {
 
     expect(gives(P3)).toBeUndefined();
     expect(gives(P2)).toBe(M2);
+  });
+
+  it("frees what a guest holds once their session has lapsed, and gives them nothing", async () => {
+    // Grace's 8 hours ran out a minute ago; a member takes the sponsor's presentation.
+    store.set(judgingGuestSessions, [
+      {
+        judgeId: GS,
+        roomId: A1,
+        createdAt: new Date(NOW.getTime() - 8 * 3600_000 - 60_000),
+        expiresAt: new Date(NOW.getTime() - 60_000),
+      },
+    ]);
+
+    await get();
+
+    expect(gives(P4)).toBeTruthy();
+    expect(gives(P4)).not.toBe(GS);
+    expect(gives(P2)).toBe(M3);
   });
 
   it("gives up quietly when presence changed under the lock", async () => {

@@ -11,6 +11,10 @@ import {
   validateRequestSize,
 } from "./middleware/security";
 import { trpcDuration } from "./services/metrics";
+import {
+  isServerErrorCode,
+  recordStatusSample,
+} from "./services/status-samples";
 
 export const errorFormatter = ({
   shape,
@@ -53,10 +57,17 @@ export const mergeRouters = t.mergeRouters;
 // Times every procedure. Outermost on purpose: a request the rate limiter
 // rejects is still a request, and cheap rejections spiking is the shape of an
 // incident. `path` is a fixed set, so no unbounded label values.
+// Also feeds the /status page: only 5xx-class codes count as errors there, so
+// a rate-limited or unauthorised caller is not downtime.
 const recordDuration = t.middleware(async ({ next, path, type }) => {
   const stop = trpcDuration.startTimer({ procedure: path, type });
+  const started = performance.now();
   const result = await next();
   stop({ ok: String(result.ok) });
+  recordStatusSample(
+    performance.now() - started,
+    !result.ok && isServerErrorCode(result.error.code),
+  );
   return result;
 });
 

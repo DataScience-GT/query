@@ -12,7 +12,7 @@ Mainweb mounts the handlers at `app/(portal)/api/auth/[...nextauth]/route.ts` (`
 | `authConfig` | `src/config.ts` |
 | `adapter` | `src/adapter.ts` |
 | `getSession`, `requireAuth`, `getCurrentUserId` | `src/utils.ts` |
-| `sendAcceptanceEmail` (and the mailer) | `src/email.ts` |
+| `sendAcceptanceEmail` and the other templates, plus the pooled `Mailer` (not used for sign-in codes) | `src/email.ts` |
 
 ## Session strategy
 
@@ -44,7 +44,13 @@ Nodemailer SMTP. Not a magic link: a 6-digit code from `crypto.randomInt`, store
 
 HTML template is inline in `config.ts` (DSGT branding). SMTP host/user/password come from env (see [Environment](../operations/environment.md)).
 
-Production currently uses consumer Gmail (~500 recipients/day, shared with acceptance and announcement mail). Acceptance waves are capped at 500 for that reason. Switching providers is env-only: host, user, password secret, and a verified `EMAIL_FROM`.
+Sign-in codes do not go through the pooled `Mailer`. `sendVerificationRequest` builds its own transport on every request with `createTransport(provider.server)` (same `EMAIL_SERVER_*` and `EMAIL_FROM`, no pool).
+
+- One code email per address per minute. A repeat inside the minute sends nothing and keeps the live code.
+- A `pg_advisory_xact_lock(hashtext(identifier))` transaction serialises parallel requests for the same address.
+- On a send failure the new token row is deleted, so a retry can send.
+
+Production currently uses consumer Gmail (~500 recipients/day, shared with acceptance and announcement mail). Acceptance waves are capped at 500 for that reason (server bound; the admin UI limits a wave to 200, `MASS_EMAIL_BATCH`). Switching providers is env-only: host, user, password secret, and a verified `EMAIL_FROM`.
 
 ## Adapter
 

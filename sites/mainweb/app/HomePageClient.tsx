@@ -39,7 +39,7 @@ const Pie = dynamic(() => import("react-chartjs-2").then((mod) => mod.Pie), {
   ssr: false,
   loading: () => (
     <div className="h-64 w-64 flex items-center justify-center text-gray-500 font-mono text-xs uppercase tracking-widest">
-      Initializing Analytics...
+      Loading chart
     </div>
   ),
 });
@@ -124,10 +124,10 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
       <Section id="about" className="py-32 relative z-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-16 items-center">
           <div className="space-y-8">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none uppercase">
-              About Us.
+            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
+              About us.
             </h2>
-            <p className="text-lg text-gray-300 leading-relaxed max-w-xl italic border-l-2 border-[#00A8A8]/20 pl-6">
+            <p className="text-lg text-gray-300 leading-relaxed max-w-xl border-l-2 border-[#00A8A8]/20 pl-6">
               As the{" "}
               <strong className="text-white">
                 largest student-run data science organization at Georgia Tech
@@ -140,6 +140,12 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
               className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
             >
               Meet the Team →
+            </Link>
+            <Link
+              href="/events"
+              className="ml-6 inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
+            >
+              Club events →
             </Link>
           </div>
           <div className="relative group">
@@ -164,8 +170,8 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
           <div className="text-center mb-20 space-y-4">
-            <h2 className="text-white text-4xl md:text-5xl font-bold tracking-tight italic leading-none uppercase">
-              Our Club.
+            <h2 className="text-white text-4xl md:text-5xl font-bold tracking-tight leading-none">
+              Our club.
             </h2>
             <p className="font-mono text-xs text-[#00A8A8] uppercase tracking-[0.4em]">
               550+ Verified Members
@@ -173,7 +179,7 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
           </div>
           <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto items-stretch">
             <div className="glass-card p-6 sm:p-10 rounded-3xl flex flex-col items-center transition-all group shadow-2xl">
-              <p className="text-[10px] font-mono text-gray-500 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">
+              <p className="text-xs font-mono text-gray-400 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">
                 Class Year Distribution
               </p>
               <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
@@ -182,14 +188,14 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
                     <Pie data={ClassData} options={chartOptions} />
                   ) : (
                     <div className="h-full flex items-center justify-center text-gray-500 font-mono text-xs uppercase tracking-widest">
-                      Initializing Analytics...
+                      Loading chart
                     </div>
                   )}
                 </div>
               </div>
             </div>
             <div className="glass-card p-6 sm:p-10 rounded-3xl flex flex-col items-center transition-all group shadow-2xl">
-              <p className="text-[10px] font-mono text-gray-500 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">
+              <p className="text-xs font-mono text-gray-400 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">
                 Academic Major Split
               </p>
               <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
@@ -198,7 +204,7 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
                     <Pie data={MajorData} options={chartOptions} />
                   ) : (
                     <div className="h-full flex items-center justify-center text-gray-500 font-mono text-xs uppercase tracking-widest">
-                      Initializing Analytics...
+                      Loading chart
                     </div>
                   )}
                 </div>
@@ -222,20 +228,21 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
             />
           </div>
           <div className="space-y-8 order-1 lg:order-2">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none uppercase">
+            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
               Bootcamp.
             </h2>
-            <p className="text-gray-300 leading-relaxed italic border-l-2 border-[#00A8A8]/20 pl-6">
+            <p className="text-gray-300 leading-relaxed border-l-2 border-[#00A8A8]/20 pl-6">
               Teaching core skills from{" "}
               <span className="text-white">data cleaning</span> to{" "}
               <span className="text-white">model building</span>. Learn Python
-              and pandas through hands-on project work.
+              and pandas through hands-on project work, one session a week
+              for nine weeks.
             </p>
             <Link
               href="/bootcamp"
-              className="inline-block bg-white text-black px-8 py-4 rounded-sm font-black text-[10px] uppercase tracking-widest hover:bg-[#00A8A8] hover:text-white transition-all shadow-lg shadow-white/5"
+              className="inline-block bg-white text-black px-8 py-4 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-[#00A8A8] hover:text-white transition-all shadow-lg shadow-white/5"
             >
-              Initialize Bootcamp
+              See the bootcamp
             </Link>
           </div>
         </div>
@@ -248,10 +255,10 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-20 items-center">
           <div className="space-y-8">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none uppercase">
+            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
               Hacklytics.
             </h2>
-            <p className="text-gray-300 leading-relaxed italic border-l-2 border-amber-500/20 pl-6">
+            <p className="text-gray-300 leading-relaxed border-l-2 border-amber-500/20 pl-6">
               Georgia Tech&apos;s premier{" "}
               <span className="text-white">36-hour datathon</span>. Join
               hundreds of students for a weekend of data science challenges and
@@ -260,7 +267,7 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
             <a
               href="https://hacklytics-2025.devpost.com/"
               target="_blank"
-              className="inline-block border border-amber-500/30 text-amber-500 px-8 py-4 rounded-sm font-black text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
+              className="inline-block border border-amber-500/30 text-amber-500 px-8 py-4 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
             >
               View Devpost
             </a>
@@ -282,16 +289,16 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
       <Section id="projects" className="py-32 relative z-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
           <div className="mb-16 space-y-2">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter italic leading-none uppercase">
+            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
               Projects.
             </h2>
-            <p className="font-mono text-[10px] text-[#00A8A8] uppercase tracking-[0.4em]">
-              Protocol: Member_Projects
+            <p className="font-mono text-xs text-[#00A8A8] uppercase tracking-[0.3em]">
+              Member projects
             </p>
           </div>
 
           {currentProjects.length === 0 ? (
-            <p className="text-sm text-gray-500 italic">
+            <p className="text-gray-300">
               The project roster is being updated —{" "}
               <Link
                 href="/projects"
@@ -332,32 +339,32 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
                     </h3>
                     <div className="flex justify-center mb-4">
                       <span
-                        className={`px-2 py-0.5 text-[9px] font-mono rounded border uppercase tracking-widest ${STATUS_CLASSES[project.status]}`}
+                        className={`px-2 py-0.5 text-[11px] font-mono rounded border uppercase tracking-widest ${STATUS_CLASSES[project.status]}`}
                       >
                         {STATUS_LABELS[project.status]}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-400 text-center mb-4 leading-relaxed italic">
+                    <p className="text-sm text-gray-400 text-center mb-4 leading-relaxed">
                       {project.summary}
                     </p>
-                    <p className="text-[9px] font-mono text-gray-600 uppercase tracking-widest text-center mb-6">
+                    <p className="text-xs font-mono text-gray-400 text-center mb-6">
                       {project.leadName
-                        ? `Lead // ${project.leadName}`
-                        : "Lead // Open"}
+                        ? `Lead: ${project.leadName}`
+                        : "Lead: open"}
                     </p>
                     {isExternalJoin(project) ? (
                       <a
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
+                        className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
                       >
                         {label} →
                       </a>
                     ) : (
                       <Link
                         href={href}
-                        className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
+                        className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
                       >
                         {label} →
                       </Link>
@@ -371,10 +378,10 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
                 className="bg-[#00A8A8] p-8 rounded-xl flex flex-col justify-between hover:bg-[#008f8f] transition-all shadow-xl shadow-[#00A8A8]/10 group"
               >
                 <div className="space-y-4">
-                  <h3 className="text-black text-2xl font-bold tracking-tight italic uppercase">
-                    All Projects.
+                  <h3 className="text-black text-2xl font-bold tracking-tight">
+                    All projects.
                   </h3>
-                  <p className="text-black/80 text-sm font-medium leading-relaxed italic">
+                  <p className="text-black/80 text-sm font-medium leading-relaxed">
                     Every project running this term, what each one needs, and
                     the archive of what members built before.
                   </p>
@@ -392,10 +399,10 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
       <Section id="getinvolved" className="py-32 bg-[#080808] relative z-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
           <div className="text-center mb-20 space-y-4">
-            <h2 className="text-white text-4xl md:text-5xl font-bold italic tracking-tight leading-none uppercase">
-              Get Involved.
+            <h2 className="text-white text-4xl md:text-5xl font-bold tracking-tight leading-none">
+              Get involved.
             </h2>
-            <p className="font-mono text-[10px] text-gray-500 uppercase tracking-[0.4em] font-bold underline decoration-[#00A8A8] underline-offset-8">
+            <p className="font-mono text-xs text-gray-400 uppercase tracking-[0.3em]">
               Georgia Tech Primary Data Science Organization{" "}
             </p>
           </div>
@@ -422,7 +429,7 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
                 l: "https://hacklytics-2025.devpost.com/",
                 a: "View Devpost →",
               },
-            ].map((event, i) => (
+            ].map((card, i) => (
               <div
                 key={i}
                 className="bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden group hover:border-[#00A8A8]/30 transition-all shadow-2xl"
@@ -430,34 +437,34 @@ const HomePageClient = ({ projects }: { projects: ClubProjectCard[] }) => {
                 <div className="h-56 overflow-hidden relative">
                   <div className="absolute inset-0 bg-[#00A8A8]/10 z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <Image
-                    src={event.i}
-                    alt={event.t}
+                    src={card.i}
+                    alt={card.t}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     placeholder="blur"
                   />
                 </div>
                 <div className="p-8 space-y-4">
-                  <h4 className="text-white text-lg font-bold uppercase italic tracking-tight">
-                    {event.t}
+                  <h4 className="text-white text-lg font-bold tracking-tight">
+                    {card.t}
                   </h4>
-                  <p className="text-xs text-gray-500 leading-relaxed italic">
-                    {event.d}
+                  <p className="text-sm text-gray-400 leading-relaxed">
+                    {card.d}
                   </p>
-                  {event.l.startsWith("http") ? (
+                  {card.l.startsWith("http") ? (
                     <a
-                      href={event.l}
+                      href={card.l}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center min-h-11 md:min-h-0 text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
+                      className="inline-flex items-center min-h-11 md:min-h-0 text-xs font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
                     >
-                      {event.a}
+                      {card.a}
                     </a>
                   ) : (
                     <Link
-                      href={event.l}
-                      className="inline-flex items-center min-h-11 md:min-h-0 text-[10px] font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
+                      href={card.l}
+                      className="inline-flex items-center min-h-11 md:min-h-0 text-xs font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
                     >
-                      {event.a}
+                      {card.a}
                     </Link>
                   )}
                 </div>
