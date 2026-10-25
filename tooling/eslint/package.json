@@ -35,7 +35,7 @@
     "@query/prettier-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "eslint": "10.11.0",
-    "prettier": "3.9.9",
+    "prettier": "3.9.10",
     "typescript": "6.0.2"
   },
   "prettier": "@query/prettier-config"
