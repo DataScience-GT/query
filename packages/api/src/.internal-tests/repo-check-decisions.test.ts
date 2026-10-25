@@ -87,6 +87,15 @@ const fakeDb: any = {
       });
     },
   }),
+  delete: (table: unknown) => ({
+    where: () => {
+      // A new grace drops the flags nobody has decided, unless the project is out.
+      if (table === judgingRepoChecks) {
+        checks = checks.filter((c) => c.decision !== "pending" || c.removedEntry);
+      }
+      return Promise.resolve(undefined);
+    },
+  }),
   update: (table: unknown) => ({
     set: (values: Row) => ({
       where: (where: unknown) => {
@@ -147,6 +156,7 @@ const check = (entryId: string, over: Row = {}): Row => ({
   decidedAt: null,
   note: null,
   removedEntry: false,
+  removedDeletedAt: null,
   ...over,
 });
 
@@ -176,6 +186,7 @@ beforeEach(() => {
     check(WITHDRAWN, {
       decision: "disqualified",
       removedEntry: true,
+      removedDeletedAt: new Date("2026-02-08T10:00:00Z"),
     }),
   ];
   projects = [{ id: id(50), status: "draft", withdrawnByAdminAt: null }];
@@ -199,6 +210,7 @@ describe("judging.admin.decideRepoCheck", () => {
       decidedById: "admin_user",
       note: "pushed 40 minutes after the deadline",
       removedEntry: true,
+      removedDeletedAt: byId(LATE).deletedAt,
     });
     expect(audits).toHaveLength(1);
     expect(audits[0]).toMatchObject({
@@ -314,6 +326,28 @@ describe("judging.admin.reinstateRepoCheck", () => {
     expect(audits[0]).toMatchObject({ action: "judging.repoCheck.reinstate" });
   });
 
+  it("does not undo a removal made after the disqualification", async () => {
+    await admin().judging.admin.decideRepoCheck({
+      hackathonId: HACK,
+      entryId: LATE,
+      decision: "disqualified",
+    });
+    // Restored by hand and removed again for another reason.
+    const removedAgain = new Date(byId(LATE).deletedAt.getTime() + 60_000);
+    byId(LATE).deletedAt = removedAgain;
+
+    await admin().judging.admin.reinstateRepoCheck({
+      hackathonId: HACK,
+      entryId: LATE,
+    });
+    expect(byId(LATE).deletedAt).toEqual(removedAgain);
+    expect(checkOf(LATE)).toMatchObject({
+      decision: "cleared",
+      removedEntry: false,
+      removedDeletedAt: null,
+    });
+  });
+
   it("keeps the restore refusal for a withdrawn portal submission", async () => {
     await expect(
       admin().judging.admin.reinstateRepoCheck({
@@ -349,6 +383,9 @@ describe("judging.admin.setRepoCheck", () => {
       repoCheckLastRunAt: null,
     });
     expect(repoCheckThrottle.has(HACK)).toBe(false);
+    // The pending flags are worked out again with the new grace.
+    expect(checks.map((c) => c.entryId)).not.toContain(LATE);
+    expect(checkOf(WITHDRAWN)).toBeDefined();
     expect(audits[0]).toMatchObject({ action: "judging.repoCheck.configure" });
   });
 
