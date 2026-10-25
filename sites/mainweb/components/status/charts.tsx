@@ -155,8 +155,18 @@ const dayColor = (day: Day) => {
 const pctText = (pct: number | null) =>
   pct === null ? "No data" : `${pct.toFixed(pct >= 99.995 ? 0 : 2)}%`;
 
-/** 90 bars, one per day, coloured by that day's uptime. */
-export function UptimeStrip({ days }: { days: Day[] }) {
+/**
+ * 90 bars, one per day, coloured by that day's uptime. With `probe`, the days
+ * come from the outside check, where requests are probes and errors are failed
+ * probes, and the tooltip says so.
+ */
+export function UptimeStrip({
+  days,
+  probe = false,
+}: {
+  days: Day[];
+  probe?: boolean;
+}) {
   const [ref, width] = useWidth();
   const [active, setActive] = useState<number | null>(null);
   const height = 44;
@@ -174,8 +184,23 @@ export function UptimeStrip({ days }: { days: Day[] }) {
           rows:
             pct === null ? (
               <div className="text-gray-300">
-                No data. Nobody used the site, or it was not sampled.
+                {probe
+                  ? "No data. The outside check had no results this day."
+                  : "No data. Nobody used the site, or it was not sampled."}
               </div>
+            ) : probe ? (
+              <>
+                <TipRow label="Uptime" value={pctText(pct)} />
+                <TipRow
+                  label="Checks"
+                  value={day.requests.toLocaleString("en-US")}
+                />
+                <TipRow
+                  label="Failed"
+                  value={day.errors.toLocaleString("en-US")}
+                />
+                <TipRow label="Slowest" value={`${day.worstP95Ms} ms`} />
+              </>
             ) : (
               <>
                 <TipRow label="Uptime" value={pctText(pct)} />
@@ -203,7 +228,7 @@ export function UptimeStrip({ days }: { days: Day[] }) {
       className="relative"
       tabIndex={0}
       role="group"
-      aria-label="Daily uptime for the last 90 days. Use the left and right arrow keys to read each day."
+      aria-label={`${probe ? "Daily outside-check uptime" : "Daily uptime"} for the last 90 days. Use the left and right arrow keys to read each day.`}
       onKeyDown={(event) => {
         if (event.key === "ArrowLeft") {
           event.preventDefault();
