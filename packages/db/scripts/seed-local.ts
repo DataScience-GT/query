@@ -6,7 +6,7 @@
  * Idempotent: people, events and status samples are keyed on stable ids and
  * skipped when present; the hackathon and its judging setup are written once,
  * with the edition. To start clean, run `pnpm local:reset` then `pnpm local:up`.
- * Never deletes. Refuses a non-local DATABASE_URL via scripts/guard-local.mjs.
+ * Never deletes. Refuses a non-local DATABASE_URL via tooling/scripts/src/guard-local.ts.
  *
  * Everyone signs in with an email code, which lands in Mailpit. Sign in as
  * admin@example.test for staff access. Nothing here is a real person.

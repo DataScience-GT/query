@@ -25,7 +25,7 @@ Consequences, stated plainly:
 
 The sampled numbers have a blind spot: no traffic means no data, and the app cannot see itself being unreachable. A GitHub Actions workflow, `.github/workflows/uptime.yml`, covers that from outside. The repo is public, so the minutes are free.
 
-- Every 5 minutes (`cron: "*/5 * * * *"`, also `workflow_dispatch`) it runs `scripts/uptime-probe.mjs`: plain Node, no install step. The script requests `https://datasciencegt.org/api/ping` up to 3 times with a 10 second timeout each. A non-2xx answer or a timeout is a failed attempt. It records the status code and latency of the first success, or of the last failure (`code` 0 means no answer).
+- Every 5 minutes (`cron: "*/5 * * * *"`, also `workflow_dispatch`) it runs `tooling/scripts/src/uptime-probe.ts`: plain Node, no install step. The script requests `https://datasciencegt.org/api/ping` up to 3 times with a 10 second timeout each. A non-2xx answer or a timeout is a failed attempt. It records the status code and latency of the first success, or of the last failure (`code` 0 means no answer).
 - `/api/ping` (`app/api/ping/route.ts`) returns `{ ok: true }` with `cache-control: no-store` and touches nothing else. It deliberately never reaches the database: Neon bills compute while awake and suspends after about 5 idle minutes, so a probe that ran a query would keep it awake 24 hours a day. It is not a tRPC route, so it does not count as traffic in `status_sample`, and `proxy.ts` only sets headers on it.
 - The result goes to `uptime.json` on the `status-data` branch. Every run builds a new orphan commit and force-pushes it, so the branch is always exactly one commit and the repository does not grow. The workflow uses the `github-actions[bot]` identity and only needs `contents: write`.
 - The same run records the latest `main` commit (SHA, commit time) and the conclusion of its `App Hosting - Rollout` check run as `deploy`, using the workflow token. The site never calls the GitHub API; a failed lookup keeps the previous value.
@@ -40,7 +40,7 @@ The sampled numbers have a blind spot: no traffic means no data, and the app can
 | `days` | Up to 90 UTC days of probes older than 24 hours: `{ day, probes, up, worstMs }` |
 | `deploy` | `{ sha, committedAt, rollout }` for the newest `main` commit |
 
-Rolling `recent` into `days` is the pure function `applyProbe` in the script, tested in `scripts/uptime-probe.test.mjs`. The read side (windows, stale and down rules) is `sites/mainweb/lib/uptime.ts`, tested in `lib/uptime.test.ts`.
+Rolling `recent` into `days` is the pure function `applyProbe` in the script, tested in `tooling/scripts/src/uptime-probe.test.ts`. The read side (windows, stale and down rules) is `sites/mainweb/lib/uptime.ts`, tested in `lib/uptime.test.ts`.
 
 How the headline uses it:
 
@@ -192,7 +192,7 @@ See [Admin tools](./admin.md).
 | Timing middleware | `packages/api/src/trpc.ts` (`recordDuration`) |
 | Endpoint | `sites/mainweb/app/(portal)/api/metrics/route.ts` |
 | Status page | `sites/mainweb/app/status/` (`page.tsx`, `load.ts`, `uptime.ts`, `AutoRefresh.tsx`), rules in `sites/mainweb/lib/status.ts` and `lib/uptime.ts` |
-| External probe | `.github/workflows/uptime.yml`, `scripts/uptime-probe.mjs`, `sites/mainweb/app/api/ping/route.ts` |
+| External probe | `.github/workflows/uptime.yml`, `tooling/scripts/src/uptime-probe.ts`, `sites/mainweb/app/api/ping/route.ts` |
 | Status samples | `packages/api/src/services/status-samples.ts`, table `packages/db/src/schemas/status.ts` |
 | Stack and rules | `monitoring/` (`prometheus.yml`, `rules/payments.yml`, `rules/hackathon.yml`, `grafana/dashboards/dsgt-portal.json`, `README.md`) |
-| Tests | `services/latency.test.ts`, `services/hackathon-metrics.test.ts`, `services/status-samples.test.ts`, `lib/status.test.ts`, `lib/uptime.test.ts`, `app/status/load.test.ts`, `app/status/uptime.test.ts`, `scripts/uptime-probe.test.mjs` |
+| Tests | `services/latency.test.ts`, `services/hackathon-metrics.test.ts`, `services/status-samples.test.ts`, `lib/status.test.ts`, `lib/uptime.test.ts`, `app/status/load.test.ts`, `app/status/uptime.test.ts`, `tooling/scripts/src/uptime-probe.test.ts` |

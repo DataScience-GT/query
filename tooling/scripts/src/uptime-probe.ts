@@ -1,12 +1,13 @@
 /**
  * External uptime probe, run by .github/workflows/uptime.yml every 5 minutes.
  *
- *   UPTIME_FILE=data/uptime.json node scripts/uptime-probe.mjs
+ *   UPTIME_FILE=data/uptime.json node tooling/scripts/src/uptime-probe.ts
  *
  * Probes the DB-free /api/ping, appends the result to uptime.json and keeps the
  * file bounded: the last 24 hours of probes in full, then one aggregate per UTC
  * day for 90 days. /status reads the file; it never calls GitHub itself.
- * Plain Node, no dependencies, so the workflow needs no install step.
+ * Plain Node (built-in type stripping), no dependencies, so the workflow
+ * needs no install step.
  *
  * Environment:
  *   UPTIME_URL               probe target (default: production /api/ping)
@@ -27,9 +28,43 @@ const KEEP_DAYS = 90;
 /** One probe every 5 minutes is 288; the cap only guards against a burst. */
 const MAX_RECENT = 400;
 
-const dayOf = (t) => new Date(t).toISOString().slice(0, 10);
+/**
+ * The shape of uptime.json. sites/mainweb/lib/uptime.ts declares the same
+ * types for the read side; the probe must not import from the web app, so the
+ * two are kept in sync by hand.
+ */
+export type Probe = { t: number; ok: boolean; ms: number; code: number };
+export type ProbeDay = {
+  day: string;
+  probes: number;
+  up: number;
+  worstMs: number;
+};
+export type Deploy = {
+  sha: string;
+  committedAt: string | null;
+  rollout: string;
+};
+export type UptimeData = {
+  version: 1;
+  updatedAt: number;
+  recent: Probe[];
+  days: ProbeDay[];
+  deploy: Deploy | null;
+};
 
-export function emptyData() {
+/** The outcome of one probe, before it is stamped with a time. */
+export type ProbeResult = Omit<Probe, "t">;
+
+export type ProbeOptions = {
+  attempts?: number;
+  timeoutMs?: number;
+  retryDelayMs?: number;
+};
+
+const dayOf = (t: number) => new Date(t).toISOString().slice(0, 10);
+
+export function emptyData(): UptimeData {
   return { version: 1, updatedAt: 0, recent: [], days: [], deploy: null };
 }
 
@@ -38,10 +73,14 @@ export function emptyData() {
  * first success, else the last failure. `code` is 0 when no response arrived.
  */
 export async function probe(
-  url,
-  { attempts = ATTEMPTS, timeoutMs = TIMEOUT_MS, retryDelayMs = 2000 } = {},
-) {
-  let last = { ok: false, ms: 0, code: 0 };
+  url: string,
+  {
+    attempts = ATTEMPTS,
+    timeoutMs = TIMEOUT_MS,
+    retryDelayMs = 2000,
+  }: ProbeOptions = {},
+): Promise<ProbeResult> {
+  let last: ProbeResult = { ok: false, ms: 0, code: 0 };
   for (let i = 0; i < attempts; i++) {
     if (i > 0) {
       await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
@@ -75,7 +114,12 @@ export async function probe(
  * Pure update. Appends the probe, moves probes older than 24 hours into their
  * UTC day, and drops days beyond 90. Returns a new object.
  */
-export function applyProbe(previous, result, now, deploy) {
+export function applyProbe(
+  previous: UptimeData | null,
+  result: ProbeResult,
+  now: number,
+  deploy?: Deploy | null,
+): UptimeData {
   const data = previous && previous.version === 1 ? previous : emptyData();
   const cutoff = now - DAY_MS;
   const all = [...data.recent, { t: now, ...result }].sort((a, b) => a.t - b.t);
@@ -104,9 +148,9 @@ export function applyProbe(previous, result, now, deploy) {
   };
 }
 
-async function readData(file) {
+async function readData(file: string): Promise<UptimeData | null> {
   try {
-    return JSON.parse(await readFile(file, "utf8"));
+    return JSON.parse(await readFile(file, "utf8")) as UptimeData | null;
   } catch {
     // First run, or a file that cannot be read: start over rather than fail
     // the probe. The history is a convenience, not a record.
@@ -121,7 +165,7 @@ async function main() {
     retryDelayMs: Number(process.env.UPTIME_RETRY_DELAY_MS ?? 2000),
   });
   const { DEPLOY_SHA, DEPLOY_COMMITTED_AT, DEPLOY_ROLLOUT } = process.env;
-  const deploy = DEPLOY_SHA
+  const deploy: Deploy | null = DEPLOY_SHA
     ? {
         sha: DEPLOY_SHA,
         committedAt: DEPLOY_COMMITTED_AT || null,
