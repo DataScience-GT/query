@@ -158,7 +158,13 @@ export class GithubClient {
   }
 }
 
-type Json = Record<string, any> | null;
+// GitHub's JSON is read defensively: a field that is not what it should be
+// reads as missing.
+const obj = (value: unknown): Record<string, unknown> =>
+  typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : {};
+const text = (value: unknown) => (typeof value === "string" ? value : null);
 
 /** Commits and pushes after the deadline. Context only; a failure leaves it short. */
 async function gatherEvidence(
@@ -173,15 +179,17 @@ async function gatherEvidence(
       `${base}/commits?since=${encodeURIComponent(deadline.toISOString())}&per_page=${EVIDENCE_LIMIT}`,
     );
     if (commits.status === 200 && Array.isArray(commits.body)) {
-      evidence.commits = (commits.body as Json[]).slice(0, EVIDENCE_LIMIT).map(
-        (c) => ({
-          sha: String(c?.sha ?? ""),
-          message: String(c?.commit?.message ?? "").split("\n")[0]!.slice(0, 200),
-          author: c?.commit?.author?.name ?? null,
-          committedAt: c?.commit?.committer?.date ?? null,
-          url: String(c?.html_url ?? ""),
-        }),
-      );
+      evidence.commits = commits.body.slice(0, EVIDENCE_LIMIT).map((item) => {
+        const c = obj(item);
+        const commit = obj(c.commit);
+        return {
+          sha: text(c.sha) ?? "",
+          message: (text(commit.message) ?? "").split("\n")[0]!.slice(0, 200),
+          author: text(obj(commit.author).name),
+          committedAt: text(obj(commit.committer).date),
+          url: text(c.html_url) ?? "",
+        };
+      });
     }
   } catch {
     // Evidence is optional: pushed_at has already decided.
@@ -189,18 +197,17 @@ async function gatherEvidence(
   try {
     const events = await client.get(`${base}/events?per_page=100`);
     if (events.status === 200 && Array.isArray(events.body)) {
-      evidence.pushes = (events.body as Json[])
-        .filter(
-          (e) =>
-            e?.type === "PushEvent" &&
-            typeof e.created_at === "string" &&
-            new Date(e.created_at) > deadline,
-        )
+      evidence.pushes = events.body
+        .map(obj)
+        .filter((e) => {
+          const at = text(e.created_at);
+          return e.type === "PushEvent" && at !== null && new Date(at) > deadline;
+        })
         .slice(0, EVIDENCE_LIMIT)
         .map((e) => ({
-          at: e!.created_at as string,
-          ref: e!.payload?.ref ?? null,
-          pusher: e!.actor?.login ?? null,
+          at: text(e.created_at)!,
+          ref: text(obj(e.payload).ref),
+          pusher: text(obj(e.actor).login),
         }));
     }
   } catch {
@@ -229,7 +236,7 @@ export async function checkRepo(
   if ([401, 403, 404, 410, 451].includes(reply.status)) {
     return { outcome: "unreadable", ref, pushedAt: null, evidence: null };
   }
-  const pushed = (reply.body as Json)?.pushed_at;
+  const pushed = obj(reply.body).pushed_at;
   if (reply.status !== 200 || (pushed != null && typeof pushed !== "string")) {
     return { outcome: "error", ref, pushedAt: null, evidence: null };
   }

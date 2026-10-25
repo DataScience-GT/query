@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getTableName } from "drizzle-orm";
 import { judgingConfigs, judgingEntries, judgingRepoChecks } from "@query/db";
+import type { DrizzleDB } from "@query/db";
 import {
   GithubClient,
   REPO_CHECK_EVERY_MS,
@@ -454,6 +455,14 @@ describe("nextCheck", () => {
   });
 });
 
+type Write = { table: string; values: Record<string, unknown> };
+type Chain = PromiseLike<unknown> & {
+  from: (table: unknown) => Chain;
+  leftJoin: () => Chain;
+  where: () => Chain;
+  limit: () => Chain;
+};
+
 /** A database whose selects answer by table and whose writes are recorded. */
 function fakeDb(opts: {
   config?: Record<string, unknown> | null;
@@ -461,12 +470,12 @@ function fakeDb(opts: {
   entries?: Record<string, unknown>[];
   checks?: Record<string, unknown>[];
 }) {
-  const writes: { table: string; values: any }[] = [];
+  const writes: Write[] = [];
   const claims: unknown[] = [];
   const select = () => {
     let table = "";
-    const chain: any = {
-      then: (ok: any, err: any) => {
+    const chain = {
+      then: (ok: (v: unknown) => unknown, err: (e: unknown) => unknown) => {
         const rows =
           table === getTableName(judgingConfigs)
             ? [opts.config === null ? undefined : (opts.config ?? { graceMinutes: 0 })]
@@ -475,8 +484,8 @@ function fakeDb(opts: {
               : (opts.checks ?? []);
         return Promise.resolve(rows.filter(Boolean)).then(ok, err);
       },
-    };
-    chain.from = (t: unknown) => {
+    } as unknown as Chain;
+    chain.from = (t) => {
       table = getTableName(t as never);
       return chain;
     };
@@ -485,7 +494,7 @@ function fakeDb(opts: {
     chain.limit = () => chain;
     return chain;
   };
-  const db: any = {
+  const db = {
     query: {
       hackathons: {
         findFirst: async () => ({
@@ -508,12 +517,15 @@ function fakeDb(opts: {
     insert: (table: unknown) => ({
       values: (values: unknown) => ({
         onConflictDoUpdate: async () => {
-          writes.push({ table: getTableName(table as never), values });
+          writes.push({
+            table: getTableName(table as never),
+            values: values as Write["values"],
+          });
         },
       }),
     }),
   };
-  return { db, writes, claims };
+  return { db: db as unknown as DrizzleDB, writes, claims };
 }
 
 const entryRow = (id: string, link: string | null) => ({
@@ -524,7 +536,7 @@ const entryRow = (id: string, link: string | null) => ({
 });
 
 describe("runRepoCheck", () => {
-  const written = (writes: { table: string; values: any }[]) =>
+  const written = (writes: Write[]) =>
     new Map(
       writes
         .filter((w) => w.table === getTableName(judgingRepoChecks))
@@ -729,7 +741,7 @@ describe("repoCheckIfDue", () => {
   it("never throws", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     const { db } = fakeDb({ claim: true });
-    db.update = () => {
+    (db as unknown as { update: () => never }).update = () => {
       throw new Error("db down");
     };
     await expect(repoCheckIfDue(db, HACK, t0, { fetchFn })).resolves.toBeUndefined();
