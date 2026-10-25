@@ -101,18 +101,22 @@ if (
 ) {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const flags = process.argv.slice(2).map((arg) => arg.replace(/^--/, ""));
-  // The web app's own env files too: Next.js reads them, and .env.local wins
-  // over .env there, so a live key set only in .env.local must be caught.
+  // Each env file is checked on its own, never merged: drizzle and the seeds
+  // read the root .env while Next.js reads the web app's files, so a local
+  // value in one must not hide a hosted one in another.
   const web = resolve(root, "sites/mainweb");
-  const problems = violations(
-    {
-      ...readEnvFile(resolve(root, ".env")),
-      ...readEnvFile(resolve(web, ".env")),
-      ...readEnvFile(resolve(web, ".env.local")),
-      ...process.env,
-    },
-    flags.length ? flags : undefined,
-  );
+  const sources = [
+    resolve(root, ".env"),
+    resolve(web, ".env"),
+    resolve(web, ".env.local"),
+  ].map((file) => ({ ...readEnvFile(file), ...process.env }));
+  const problems = [
+    ...new Set(
+      sources.flatMap((env) =>
+        violations(env, flags.length ? flags : undefined),
+      ),
+    ),
+  ];
 
   if (problems.length) {
     console.error(
