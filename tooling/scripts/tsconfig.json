@@ -1,0 +1,18 @@
+{
+  "extends": "@query/tsconfig/base.json",
+  "compilerOptions": {
+    // Run by Node's own type stripping, never compiled: erasable syntax only,
+    // and imports name the .ts file because Node does no resolution magic.
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "allowJs": false,
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
+}
