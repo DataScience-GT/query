@@ -81,6 +81,27 @@ export function fillDays(rows: Day[], now: number, count = 90): Day[] {
   });
 }
 
+/**
+ * One UTC day's entry, aggregated from that day's buckets the way the history
+ * query does it. Null when the day has no buckets. Lets today come from the
+ * 24 hour rows already read instead of a second scan.
+ */
+export function dayFromBuckets(buckets: Bucket[], day: string): Day | null {
+  const mine = buckets.filter(
+    (bucket) => new Date(bucket.t).toISOString().slice(0, 10) === day,
+  );
+  if (mine.length === 0) return null;
+  return {
+    day,
+    requests: mine.reduce((sum, b) => sum + b.requests, 0),
+    errors: mine.reduce((sum, b) => sum + b.errors, 0),
+    worstP95Ms: Math.max(...mine.map((b) => b.p95Ms)),
+    minutesWithData: mine.length * BUCKET_MIN,
+    minutesDbDown: mine.filter((b) => !b.dbOk).length * BUCKET_MIN,
+    minutesUp: mine.filter(isUp).length * BUCKET_MIN,
+  };
+}
+
 /** The last 24 hours as 288 slots, oldest first; null where nothing was sampled. */
 export function fillBuckets(
   rows: Bucket[],
