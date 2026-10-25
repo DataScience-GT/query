@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   BUCKET_MS,
   DAY_MS,
+  dayFromBuckets,
   deriveStatus,
   fillBuckets,
   fillDays,
@@ -123,5 +124,54 @@ describe("deriveStatus", () => {
     expect(deriveStatus({ ...live, dbMs: 2500 }, [], NOW).level).toBe(
       "degraded",
     );
+  });
+});
+
+describe("dayFromBuckets", () => {
+  const DAY = "2026-06-15";
+  const at = (minutes: number, over: Partial<Bucket> = {}) =>
+    bucket({ t: Date.UTC(2026, 5, 15, 0, minutes), ...over });
+
+  it("is null when the day has no buckets", () => {
+    expect(dayFromBuckets([], DAY)).toBeNull();
+    expect(dayFromBuckets([bucket({ t: NOW - DAY_MS })], DAY)).toBeNull();
+  });
+
+  it("ignores buckets from other UTC days", () => {
+    const rows = [
+      bucket({ t: Date.UTC(2026, 5, 14, 23, 55) }),
+      at(0),
+      bucket({ t: Date.UTC(2026, 5, 16, 0, 0) }),
+    ];
+    expect(dayFromBuckets(rows, DAY)?.minutesWithData).toBe(5);
+  });
+
+  it("sums traffic, takes the worst p95 and counts minutes", () => {
+    const rows = [
+      at(0, { requests: 100, errors: 1, p95Ms: 80 }),
+      at(5, { requests: 50, errors: 5, p95Ms: 400 }),
+      at(10, { requests: 0, errors: 0, p95Ms: 0 }),
+      at(15, { dbOk: false }),
+    ];
+    expect(dayFromBuckets(rows, DAY)).toEqual({
+      day: DAY,
+      requests: 250,
+      errors: 6,
+      worstP95Ms: 400,
+      minutesWithData: 20,
+      minutesDbDown: 5,
+      // 5 of 50 is 10%, over the limit; the db-down bucket is not up either
+      minutesUp: 10,
+    });
+  });
+
+  it("agrees with isUp at the error-rate boundary", () => {
+    const rows = [
+      at(0, { requests: 100, errors: 4 }),
+      at(5, { requests: 100, errors: 5 }),
+      at(10, { requests: 0, errors: 0 }),
+    ];
+    expect(dayFromBuckets(rows, DAY)?.minutesUp).toBe(rows.filter(isUp).length * 5);
+    expect(dayFromBuckets(rows, DAY)?.minutesUp).toBe(10);
   });
 });
