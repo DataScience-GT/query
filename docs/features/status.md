@@ -6,7 +6,7 @@ Running the monitoring stack locally and scraping production is in the repo's `m
 
 ## The `/status` page
 
-`/status` shows whether the site is up, how fast it is, and 90 days of uptime history. It is read from Postgres and revalidated every 60 seconds (`export const revalidate = 60`).
+`/status` shows whether the site is up, how fast it is, and 90 days of uptime history. It is read from Postgres and revalidated every 300 seconds (`export const revalidate = 300`), matching the five-minute bucket size. A regeneration runs the live `select 1` and one query for the last 24 hours. The 90 days of finished UTC days come from a second query wrapped in `unstable_cache` (6 hour revalidate, key includes the current UTC day, so it rolls over at midnight); a failed query is not cached. Today's bar is computed from the 24 hour rows by `dayFromBuckets` in `lib/status.ts`. The cached days can miss a bucket that is flushed after the cache entry was filled, up to about 6 hours.
 
 ### Where the numbers come from
 
@@ -53,7 +53,7 @@ Derived from the live check and the last 15 minutes of buckets:
 
 ### What the page shows
 
-The status headline with the reason, 90 day and 30 day uptime, a 90 day strip with one bar per UTC day (colour by uptime: 99% or better, 95 to 99%, under 95%, gray for no data, with a tooltip and a table view), a 24 hour p95 latency chart (slowest instance per bucket) and a 24 hour requests and errors chart. Times are Eastern. The loader is `sites/mainweb/app/status/load.ts`; each query has a 3 second deadline, and if the database is asleep or stalled the page renders Down with empty charts rather than failing. An open tab refreshes itself every 60 seconds while visible (`AutoRefresh.tsx`).
+The status headline with the reason, 90 day and 30 day uptime, a 90 day strip with one bar per UTC day (colour by uptime: 99% or better, 95 to 99%, under 95%, gray for no data, with a tooltip and a table view), a 24 hour p95 latency chart (slowest instance per bucket) and a 24 hour requests and errors chart. Times are Eastern. The loader is `sites/mainweb/app/status/load.ts`; each query has a 3 second deadline, and if the database is asleep or stalled the page renders Down with empty charts rather than failing. An open tab refreshes itself every 5 minutes while visible, and on return to the tab if the last refresh was 5 minutes ago or more (`AutoRefresh.tsx`).
 
 ## Metrics endpoint
 

@@ -24,7 +24,7 @@ import { loadStatus } from "./load";
  * renders a Down headline and empty charts instead of failing the page.
  * Aggregates only; nothing here is about a person.
  */
-export const revalidate = 60;
+export const revalidate = 300;
 
 const LEVELS: Record<
   Level,
@@ -74,7 +74,7 @@ export default async function StatusPage() {
             <p className="mt-3 text-gray-300">{reason}</p>
             <p className="mt-1 text-sm text-gray-500">
               App serving. Checked {checkedAt(data.live.checkedAt)}, this page
-              reloads itself every minute while open.
+              reloads itself every five minutes while open.
             </p>
 
             <section className="mt-14" aria-labelledby="uptime-heading">
