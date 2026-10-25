@@ -23,7 +23,7 @@ const silkscreen = Silkscreen({
 
 // --ground in globals.css, per theme. The browser bar follows the device
 // setting by default; ThemeToggle repeats these when a choice is made.
-const ground = { light: "#eef1ec", dark: "#131715" };
+const ground = { light: "#f1f4f6", dark: "#0e0f13" };
 
 export const viewport: Viewport = {
   themeColor: [
