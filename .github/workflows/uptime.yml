@@ -63,7 +63,7 @@ jobs:
       - name: Probe
         env:
           UPTIME_FILE: data/uptime.json
-        run: node scripts/uptime-probe.mjs
+        run: node tooling/scripts/src/uptime-probe.ts
 
       # Always one commit: a fresh orphan, force-pushed over the old one.
       - name: Publish
