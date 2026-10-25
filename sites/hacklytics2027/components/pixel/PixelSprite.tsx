@@ -51,25 +51,24 @@ const STEM_L = pick(PALETTES_LIGHT.dormant, true);
 const BUD_L = pick(PALETTES_LIGHT.dormant, false);
 const HEAD_L = pick(PALETTES_LIGHT.bloom, false);
 
-/** A layer drawn in both themes: the night and day colours are baked into
- *  separate images, and .px-light in app/globals.css shows one of them. */
-function Layer({
-  map,
-  dark,
-  light,
-  scale,
-  className,
-}: {
-  map: SpriteMap;
-  dark: PaletteName | Palette;
-  light: PaletteName | Palette;
-  scale: number;
-  className: string;
-}) {
+type Theme = "dark" | "light";
+
+const LAYERS: Record<Theme, { stem: Palette; bud: Palette; head: Palette; dormant: Palette }> = {
+  dark: { stem: STEM, bud: BUD, head: HEAD, dormant: PALETTES.dormant },
+  light: { stem: STEM_L, bud: BUD_L, head: HEAD_L, dormant: PALETTES_LIGHT.dormant },
+};
+
+/** The plant drawn twice, in the night and the day colours, which are baked
+ *  into the images. The day copy sits on top of the night one, and .px-light
+ *  in app/globals.css fades out whichever does not match the theme. Opacity,
+ *  not display: hiding with display would restart the bloom animations on
+ *  every theme change. The night copy stays in flow, so its absolute layers
+ *  still place against the plant's own box. */
+function BothThemes({ draw }: { draw: (theme: Theme) => React.ReactNode }) {
   return (
     <>
-      <PixelImage map={map} palette={dark} scale={scale} className={`px-dark ${className}`} />
-      <PixelImage map={map} palette={light} scale={scale} className={`px-light ${className}`} />
+      <span className="px-dark block">{draw("dark")}</span>
+      <span className="px-light absolute inset-0 block">{draw("light")}</span>
     </>
   );
 }
@@ -123,7 +122,11 @@ export function BloomSprite({
   if (!blooms) {
     return (
       <span className={`relative shrink-0 ${className}`} style={flipStyle}>
-        <Layer map={map} dark={PALETTES.dormant} light={PALETTES_LIGHT.dormant} scale={scale} className="block" />
+        <BothThemes
+          draw={(theme) => (
+            <PixelImage map={map} palette={LAYERS[theme].dormant} scale={scale} className="block" />
+          )}
+        />
       </span>
     );
   }
@@ -152,10 +155,16 @@ export function BloomSprite({
       className={`relative shrink-0 ${className}`}
       style={{ ...vars, ...flipStyle }}
     >
-      <Layer map={map} dark={STEM} light={STEM_L} scale={scale} className="flower-stem relative block" />
-      <Layer map={map} dark={BUD} light={BUD_L} scale={scale} className="flower-bud absolute left-0 top-0 block" />
-      <Layer map={map} dark={HEAD} light={HEAD_L} scale={scale} className="flower-neon absolute left-0 top-0 block" />
-      <Layer map={map} dark={HEAD} light={HEAD_L} scale={scale} className="flower-head absolute left-0 top-0 block" />
+      <BothThemes
+        draw={(theme) => (
+          <>
+            <PixelImage map={map} palette={LAYERS[theme].stem} scale={scale} className="flower-stem relative block" />
+            <PixelImage map={map} palette={LAYERS[theme].bud} scale={scale} className="flower-bud absolute left-0 top-0 block" />
+            <PixelImage map={map} palette={LAYERS[theme].head} scale={scale} className="flower-neon absolute left-0 top-0 block" />
+            <PixelImage map={map} palette={LAYERS[theme].head} scale={scale} className="flower-head absolute left-0 top-0 block" />
+          </>
+        )}
+      />
     </span>
   );
 }
