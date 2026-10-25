@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { violations } from "./guard-local.mjs";
+import { violations } from "./guard-local.ts";
 
 describe("guard-local", () => {
   it("passes with nothing configured, as in CI", () => {

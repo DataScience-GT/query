@@ -12,7 +12,7 @@ That is:
 vitest run packages/api packages/db sites/mainweb/lib
 ```
 
-`pnpm test` first runs `scripts/guard-local.mjs`, which refuses a non-local `DATABASE_URL` or a Stripe live key. The suites mock the database, so CI sets neither and passes.
+`pnpm test` first runs `tooling/scripts/src/guard-local.ts`, which refuses a non-local `DATABASE_URL` or a Stripe live key. The suites mock the database, so CI sets neither and passes.
 
 CI: the `verify` job in `.github/workflows/ci.yml` on pushes to `main`/`dev` and on pull requests.
 

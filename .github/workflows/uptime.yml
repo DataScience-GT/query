@@ -42,7 +42,7 @@ jobs:
             git worktree add --detach data FETCH_HEAD
           else
             git worktree add --detach data HEAD
-            git -C data rm -rf -q .
+            git -C data rm -rf -q --ignore-unmatch .
           fi
 
       # Best effort: a failed lookup keeps the deploy line from the last run.
@@ -63,7 +63,7 @@ jobs:
       - name: Probe
         env:
           UPTIME_FILE: data/uptime.json
-        run: node scripts/uptime-probe.mjs
+        run: node tooling/scripts/src/uptime-probe.ts
 
       # Always one commit: a fresh orphan, force-pushed over the old one.
       - name: Publish
@@ -72,7 +72,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --orphan next
-          git rm -rf -q --cached .
+          git rm -rf -q --cached --ignore-unmatch .
           git add uptime.json
           git commit -q -m "chore(status): uptime data"
           git push --force origin HEAD:refs/heads/status-data

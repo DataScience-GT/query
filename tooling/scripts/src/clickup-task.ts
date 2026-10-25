@@ -1,9 +1,8 @@
-#!/usr/bin/env node
 /**
  * Files a ClickUp task from the command line.
  *
  *   CLICKUP_TOKEN=pk_… CLICKUP_LIST_ID=901… \
- *     node scripts/clickup-task.mjs "Bootcamp schedule still unset" "Room, time and Deepnote URL are null in lib/bootcamp-schedule.ts"
+ *     node tooling/scripts/src/clickup-task.ts "Bootcamp schedule still unset" "Room, time and Deepnote URL are null in lib/bootcamp-schedule.ts"
  *
  * A script rather than an inbound webhook route on purpose. Routing a firing
  * Prometheus alert into ClickUp needs an endpoint that creates tasks on an
@@ -19,6 +18,29 @@
  *   CLICKUP_LIST_ID   the list tasks land in (the number in the list URL)
  */
 
+/** The slice of an Alertmanager webhook alert this script reads. */
+interface AlertmanagerAlert {
+  annotations?: { summary?: string; description?: string };
+  labels?: { alertname?: string; severity?: string };
+  generatorURL?: string;
+}
+interface AlertmanagerPayload extends AlertmanagerAlert {
+  alerts?: AlertmanagerAlert[];
+}
+
+/** The body of ClickUp's create-task request. */
+interface ClickUpTask {
+  name: string;
+  description: string;
+  priority: number;
+}
+
+/** The slice of ClickUp's create-task response this script reads. */
+interface ClickUpCreated {
+  id: string;
+  url?: string;
+}
+
 const token = process.env.CLICKUP_TOKEN;
 const listId = process.env.CLICKUP_LIST_ID;
 
@@ -33,10 +55,12 @@ const args = process.argv.slice(2);
 const useStdin = args[0] === "--stdin";
 
 /** Reads an Alertmanager webhook payload and turns each alert into a task. */
-async function tasksFromStdin() {
-  const chunks = [];
+async function tasksFromStdin(): Promise<ClickUpTask[]> {
+  const chunks: Buffer[] = [];
   for await (const chunk of process.stdin) chunks.push(chunk);
-  const payload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  const payload = JSON.parse(
+    Buffer.concat(chunks).toString("utf8"),
+  ) as AlertmanagerPayload;
 
   const alerts = Array.isArray(payload.alerts) ? payload.alerts : [payload];
   return alerts.map((alert) => ({
@@ -54,12 +78,12 @@ async function tasksFromStdin() {
   }));
 }
 
-const tasks = useStdin
+const tasks: ClickUpTask[] = useStdin
   ? await tasksFromStdin()
   : [{ name: args[0], description: args[1] ?? "", priority: 3 }];
 
 if (!tasks.length || !tasks[0].name) {
-  console.error('Nothing to file. Usage: node scripts/clickup-task.mjs "title" ["description"]');
+  console.error('Nothing to file. Usage: node tooling/scripts/src/clickup-task.ts "title" ["description"]');
   process.exit(1);
 }
 
@@ -83,7 +107,7 @@ for (const task of tasks) {
     continue;
   }
 
-  const created = await res.json();
+  const created = (await res.json()) as ClickUpCreated;
   console.log(`Created ${created.id}: ${created.url ?? task.name}`);
 }
 
