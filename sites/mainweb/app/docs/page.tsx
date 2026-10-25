@@ -2,10 +2,10 @@
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@query/auth";
 import DocsPageClient from "./DocsPageClient";
+import SignInRedirect from "./SignInRedirect";
 
 export const metadata: Metadata = {
   title: "Docs",
@@ -16,12 +16,12 @@ export const metadata: Metadata = {
 };
 
 export default async function DocsPage() {
-  // Checked on the server, so a signed-out visitor is redirected before any
-  // of the docs are sent. The client check in DocsPageClient stays for a
-  // session that ends while the page is open.
+  // Checked on the server, so a signed-out visitor gets none of the docs
+  // rendered, only the sign-in redirect. The client check in DocsPageClient
+  // stays for a session that ends while the page is open.
   const session = await auth();
   if (!session?.user) {
-    redirect(`/login?callbackUrl=${encodeURIComponent("/docs")}`);
+    return <SignInRedirect />;
   }
 
   // /docs sits outside the (portal) route group, so it never inherited that
