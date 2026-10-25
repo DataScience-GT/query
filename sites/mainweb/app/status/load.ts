@@ -1,8 +1,10 @@
+import { unstable_cache } from "next/cache";
 import { db, sql } from "@query/db";
 import {
   BUCKET_MS,
   DAY_MS,
   ERROR_RATE_LIMIT,
+  dayFromBuckets,
   deriveStatus,
   fillBuckets,
   fillDays
@@ -60,7 +62,7 @@ async function pingDatabase(): Promise<Live> {
 // Instances are summed per bucket first, because the uptime rule applies to
 // the bucket, not to a single instance. The slowest instance's p95 stands in
 // for the bucket's: an average of percentiles is not a percentile.
-const perBucket = (since: Date) => sql`
+const perBucket = (since: Date, until?: Date) => sql`
   select
     bucket_start,
     sum(requests)::int as requests,
@@ -69,7 +71,7 @@ const perBucket = (since: Date) => sql`
     bool_and(db_ok) as db_ok,
     max(db_ms)::int as db_ms
   from status_sample
-  where bucket_start >= ${since}
+  where bucket_start >= ${since}${until ? sql` and bucket_start < ${until}` : sql``}
   group by bucket_start`;
 
 type BucketRow = {
@@ -91,16 +93,15 @@ type DayRow = {
   buckets_up: number;
 };
 
-async function loadHistory(now: number) {
-  if (!db) throw new Error("no database");
-  const lastBucket = now - (now % BUCKET_MS);
-  const since24h = new Date(lastBucket - 287 * BUCKET_MS);
-  const since90d = new Date(now - (now % DAY_MS) - 89 * DAY_MS);
+/** Finished days do not change, so they are read once and kept for hours. */
+const DAILY_REVALIDATE_S = 6 * 60 * 60;
 
-  const [recent, daily] = await withTimeout(
-    Promise.all([
-      db.execute<BucketRow>(sql`${perBucket(since24h)} order by bucket_start`),
-      db.execute<DayRow>(sql`
+async function queryDays(todayStart: number): Promise<Day[]> {
+  if (!db) throw new Error("no database");
+  const since90d = new Date(todayStart - 89 * DAY_MS);
+  const until = new Date(todayStart);
+  const daily = await withTimeout(
+    db.execute<DayRow>(sql`
         select
           to_char(date_trunc('day', bucket_start at time zone 'UTC'), 'YYYY-MM-DD') as day,
           sum(requests)::int as requests,
@@ -111,11 +112,40 @@ async function loadHistory(now: number) {
           (count(*) filter (
             where db_ok and (requests = 0 or errors::float / requests < ${ERROR_RATE_LIMIT})
           ))::int as buckets_up
-        from (${perBucket(since90d)}) b
+        from (${perBucket(since90d, until)}) b
         group by 1
         order by 1`),
-    ]),
   );
+  return daily.rows.map((row) => ({
+    day: row.day,
+    requests: row.requests,
+    errors: row.errors,
+    worstP95Ms: row.worst_p95_ms,
+    minutesWithData: row.buckets * 5,
+    minutesDbDown: row.buckets_db_down * 5,
+    minutesUp: row.buckets_up * 5,
+  }));
+}
+
+// A thrown error is never cached, so a failed read is retried on the next
+// render. The key carries the UTC day, so the entry rolls over at midnight.
+const completedDays = (todayStart: number) =>
+  unstable_cache(queryDays, ["status-days", String(todayStart)], {
+    revalidate: DAILY_REVALIDATE_S,
+  })(todayStart);
+
+async function loadHistory(now: number) {
+  if (!db) throw new Error("no database");
+  const lastBucket = now - (now % BUCKET_MS);
+  const since24h = new Date(lastBucket - 287 * BUCKET_MS);
+  const todayStart = now - (now % DAY_MS);
+
+  const [recent, past] = await Promise.all([
+    withTimeout(
+      db.execute<BucketRow>(sql`${perBucket(since24h)} order by bucket_start`),
+    ),
+    completedDays(todayStart),
+  ]);
 
   const hours: Bucket[] = recent.rows.map((row) => ({
     t: new Date(row.bucket_start).getTime(),
@@ -125,15 +155,12 @@ async function loadHistory(now: number) {
     dbOk: row.db_ok,
     dbMs: row.db_ms,
   }));
-  const days: Day[] = daily.rows.map((row) => ({
-    day: row.day,
-    requests: row.requests,
-    errors: row.errors,
-    worstP95Ms: row.worst_p95_ms,
-    minutesWithData: row.buckets * 5,
-    minutesDbDown: row.buckets_db_down * 5,
-    minutesUp: row.buckets_up * 5,
-  }));
+  // Today is read from the 24 hour rows, not scanned again.
+  const today = dayFromBuckets(
+    hours,
+    new Date(todayStart).toISOString().slice(0, 10),
+  );
+  const days = today ? [...past, today] : past;
   return { hours, days };
 }
 
