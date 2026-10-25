@@ -15,7 +15,7 @@ export const LEFT_GRACE_MS = 5 * 60_000;
 export const QUIET_AFTER_MS = 10 * 60_000;
 
 /** A judge never seen is late once a presentation of theirs is this close. */
-const LATE_WITHIN_MS = 10 * 60_000;
+export const LATE_WITHIN_MS = 10 * 60_000;
 
 /**
  * The member judges who are not here: they left their room and did not join

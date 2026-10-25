@@ -29,15 +29,15 @@ export const BOOTCAMP_START_DATE: string | null = "September 22, 2026";
 export const BOOTCAMP_WORKSPACE_URL: string | null = null;
 
 export const BOOTCAMP_CURRICULUM: BootcampWeek[] = [
-  { week: 1, title: "Core Library & Data Wrangling" },
-  { week: 2, title: "Linear Regression" },
-  { week: 3, title: "Logistic Regression" },
-  { week: 4, title: "Decision Trees / Ensemble Methods" },
+  { week: 1, title: "Core libraries and data wrangling" },
+  { week: 2, title: "Linear regression" },
+  { week: 3, title: "Logistic regression" },
+  { week: 4, title: "Decision trees and ensemble methods" },
   { week: 5, title: "Clustering" },
-  { week: 6, title: "Deep Learning" },
-  { week: 7, title: "Creative Projects" },
-  { week: 8, title: "Creative Projects" },
-  { week: 9, title: "Creative Projects" },
+  { week: 6, title: "Deep learning" },
+  { week: 7, title: "Creative projects" },
+  { week: 8, title: "Creative projects" },
+  { week: 9, title: "Creative projects" },
 ];
 
 /** The curriculum entry a session's week number refers to, if there is one. */
