@@ -364,6 +364,17 @@ async function main() {
       { hackathonId, kind: "member", userId: "seed-admin", displayName: "Ada Admin" },
       { hackathonId, kind: "member", userId: "seed-judge", displayName: "Dr. Elena Park" },
     ]);
+    // Desk access needs an approved roster row too; the admin gets in as staff.
+    await db
+      .insert(S.judges)
+      .values({
+        hackathonId,
+        userId: "seed-judge",
+        name: "Dr. Elena Park",
+        email: "judge@example.test",
+        isActive: true,
+      })
+      .onConflictDoNothing();
 
     const entries = await db
       .insert(S.judgingEntries)
