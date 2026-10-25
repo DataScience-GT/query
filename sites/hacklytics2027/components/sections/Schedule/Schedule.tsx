@@ -32,7 +32,7 @@ export default function Schedule() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-12">
           {DAYS.map((d) => (
             <div key={d.key}>
-              <p className="flex items-baseline justify-between border-b border-ink-3/60 pb-3">
+              <p className="flex items-baseline justify-between border-b border-ocean pb-3">
                 <span className="font-display text-[16px] text-ink">{d.name}</span>
                 <span className="font-sans text-[13px] text-ink-3 tabular-nums">{d.date}</span>
               </p>
@@ -46,7 +46,7 @@ export default function Schedule() {
                     >
                       <span
                         className={`font-sans text-[15px] tabular-nums ${
-                          r.accent ? "text-ink font-semibold" : "text-ink-3"
+                          r.accent ? "text-sage font-semibold" : "text-ink-3"
                         }`}
                       >
                         {r.time}
