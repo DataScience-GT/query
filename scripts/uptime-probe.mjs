@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * External uptime probe, run by .github/workflows/uptime.yml every 5 minutes.
  *

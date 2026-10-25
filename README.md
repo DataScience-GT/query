@@ -151,6 +151,8 @@ pnpm dev
 - Club site + portal: [http://localhost:3001](http://localhost:3001)
 - Hacklytics 2027: [http://localhost:3000](http://localhost:3000)
 
+Or, for a throwaway environment with seeded fake data and a local mail inbox that cannot reach production: `pnpm local:up`, then `pnpm dev`. See [Local test environment](./docs/getting-started.md#local-test-environment-one-command).
+
 Full setup, env vars, and first-admin bootstrap: [docs/getting-started.md](./docs/getting-started.md).
 
 ```bash
