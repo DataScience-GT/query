@@ -31,7 +31,7 @@ class StripeClientProvider {
   }
 }
 
-export const stripeClients = new StripeClientProvider();
+const stripeClients = new StripeClientProvider();
 
 /** Both plans buy the same membership; only the expiry differs. */
 export const planInput = z.enum(["annual", "semester"]).default("annual");
@@ -88,7 +88,7 @@ export const describeKeyProblem = (key: string | undefined) => {
 
 export const getStripe = (): Promise<Stripe | null> => stripeClients.get();
 
-// Shared with the Stripe webhook so both paths evict the identical key set.
+// Shared by reconcile and linking so both evict the identical key set.
 export function clearMembershipCaches(_cache: unknown, userId: string) {
   clearMembershipCachesFor(userId);
 }
