@@ -213,7 +213,7 @@ describe("loadQueue", () => {
 
   describe("at a scheduled challenge under a saved schedule", () => {
     const world = (over: Record<string, Rows> = {}) => ({
-      [schedules]: [{ id: "schedule" }],
+      [schedules]: [{ id: "schedule", setupMinutes: 2, judgingMinutes: 6 }],
       [entries]: ids(["entry-0", "entry-1", "entry-2"]),
       ...over,
     });
@@ -489,7 +489,7 @@ describe("assertQueueOffers", () => {
   it("asks nothing of a scheduled challenge: the schedule decides", async () => {
     const { claim: go, reads } = claim(
       order[7],
-      { [schedules]: [{ id: "schedule" }] },
+      { [schedules]: [{ id: "schedule", setupMinutes: 2, judgingMinutes: 6 }] },
       { challenge: sponsor },
     );
 

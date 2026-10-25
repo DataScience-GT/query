@@ -18,7 +18,10 @@ import type { ChallengeMode } from "./scope";
 // is open.
 //
 // A presentation can have one judge assigned to it. From its start until
-// TAKEOVER_AFTER_MS later only that judge may start grading it. After that any
+// its takeover time only that judge may start grading it. That is
+// TAKEOVER_AFTER_MS after the start, or sooner in a short slot: setup plus half
+// the judging time, so the takeover always opens well before the deadline.
+// After that any
 // judge who may grade it there can, as long as the assigned judge has not
 // started (their draft holds the project, see grading-hold.ts). The assignment
 // is never rewritten to hand the project over.
@@ -29,8 +32,11 @@ export const DEADLINE_GRACE_MS = 15_000;
 // The assigned judge may be walking over from another room, so the first
 // minutes are theirs. After that a project is better graded by someone in the
 // room than not at all.
-/** How long after a presentation starts only its assigned judge may grade it. */
+/** The longest after a presentation starts that only its assigned judge may grade it. */
 export const TAKEOVER_AFTER_MS = 5 * 60_000;
+
+/** The schedule's minutes for a presentation, which set how soon a takeover opens. */
+export type SlotMinutes = { setupMinutes: number; judgingMinutes: number };
 
 export type TimingInput = {
   /** The judge asking. */
@@ -50,6 +56,8 @@ export type TimingInput = {
     deadlineAt: Date;
     /** The judge the presentation is assigned to; null or absent for none. */
     assignedJudgeId?: string | null;
+    /** The saved schedule's minutes; absent, the takeover waits TAKEOVER_AFTER_MS. */
+    slot?: SlotMinutes;
   } | null;
   /** The challenge served by the room the judge is sitting in, if any. */
   presenceChallengeId: string | null;
@@ -80,11 +88,18 @@ const ENDED =
   "Judging for this presentation ended at its deadline, so scores for it are final.";
 
 // Never names the judge.
-const RESERVED = `Another judge is assigned to this presentation. If they have not started ${TAKEOVER_AFTER_MS / 60_000} minutes in, you can take it.`;
+const reserved = (minutes: number) =>
+  `Another judge is assigned to this presentation. If they have not started ${minutes} minutes in, you can take it.`;
 
 /** When a presentation assigned to someone else opens to everyone else. */
-export function takeoverAt(startsAt: Date): Date {
-  return new Date(startsAt.getTime() + TAKEOVER_AFTER_MS);
+export function takeoverAt(startsAt: Date, slot?: SlotMinutes): Date {
+  const afterMs = slot
+    ? Math.min(
+        TAKEOVER_AFTER_MS,
+        (slot.setupMinutes + slot.judgingMinutes / 2) * 60_000,
+      )
+    : TAKEOVER_AFTER_MS;
+  return new Date(startsAt.getTime() + afterMs);
 }
 
 /**
@@ -94,13 +109,17 @@ export function takeoverAt(startsAt: Date): Date {
  * decided here: a draft of theirs holds the project (grading-hold.ts).
  */
 export function reservedUntil(
-  appointment: { startsAt: Date; assignedJudgeId?: string | null } | null,
+  appointment: {
+    startsAt: Date;
+    assignedJudgeId?: string | null;
+    slot?: SlotMinutes;
+  } | null,
   judgeId: string,
   now: Date,
 ): Date | null {
   const assigned = appointment?.assignedJudgeId ?? null;
   if (!appointment || !assigned || assigned === judgeId) return null;
-  const opens = takeoverAt(appointment.startsAt);
+  const opens = takeoverAt(appointment.startsAt, appointment.slot);
   return now < opens ? opens : null;
 }
 
@@ -145,12 +164,14 @@ export function evaluationTiming(
   }
 
   // Before the room: nothing the judge does now helps until the takeover time.
-  const reserved = reservedUntil(input.appointment, input.judgeId, now);
-  if (reserved) {
+  const opensAt = reservedUntil(input.appointment, input.judgeId, now);
+  if (opensAt) {
+    const minutes =
+      (opensAt.getTime() - input.appointment.startsAt.getTime()) / 60_000;
     return {
       canEdit: false,
-      reason: RESERVED,
-      opensAt: reserved,
+      reason: reserved(minutes),
+      opensAt,
       ended: false,
     };
   }
