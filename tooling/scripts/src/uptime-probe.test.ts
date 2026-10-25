@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { applyProbe, emptyData } from "./uptime-probe.mjs";
+import { applyProbe, emptyData } from "./uptime-probe.ts";
+import type { UptimeData } from "./uptime-probe.ts";
 
 const NOW = Date.UTC(2026, 5, 15, 12, 0, 0);
 const HOUR = 60 * 60 * 1000;
@@ -17,7 +18,8 @@ describe("applyProbe", () => {
   });
 
   it("starts over on an unknown version", () => {
-    const data = applyProbe({ version: 9, recent: [1], days: [1] }, up, NOW);
+    const stale = { version: 9, recent: [1], days: [1] };
+    const data = applyProbe(stale as unknown as UptimeData, up, NOW);
     expect(data.recent).toHaveLength(1);
     expect(data.days).toEqual([]);
   });
@@ -57,7 +59,7 @@ describe("applyProbe", () => {
   });
 
   it("stays bounded under a burst of probes", () => {
-    let data = null;
+    let data = emptyData();
     for (let i = 0; i < 500; i++) data = applyProbe(data, up, NOW + i * 1000);
     expect(data.recent.length).toBeLessThanOrEqual(400);
   });

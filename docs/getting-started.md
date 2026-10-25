@@ -39,7 +39,7 @@ pnpm dev
 
 **Payments.** `STRIPE_MOCK_MODE=true` (the default in `.env.example`) records a paid membership with no network call. To try real Checkout, switch it off and set **test-mode** keys (`sk_test_`, `pk_test_`); see [Stripe test cards](https://docs.stripe.com/testing), e.g. `4242 4242 4242 4242`.
 
-**Guardrails.** `scripts/guard-local.mjs` runs before `migrate:push`, `db:seed`, `db:seed:club-projects`, `pnpm test`, `pnpm local:up` and the mainweb `dev` script. It refuses a `DATABASE_URL` that is not `localhost`, `127.0.0.1`, `::1`, `db` or `postgres`, and an SMTP host that is not local, unless `ALLOW_NON_LOCAL_SERVICES=1` is set. It refuses Stripe live keys (`sk_live_`, `rk_live_`, `pk_live_`) whenever `NODE_ENV` is not `production`, with no override. An unset `DATABASE_URL` passes, which is how CI runs. Deploys call `drizzle-kit push` directly and are unaffected. The resume and bootcamp buckets are unset locally, so uploads return 503 rather than touching Cloud Storage.
+**Guardrails.** `tooling/scripts/src/guard-local.ts` runs before `migrate:push`, `db:seed`, `db:seed:club-projects`, `pnpm test`, `pnpm local:up` and the mainweb `dev` script. It refuses a `DATABASE_URL` that is not `localhost`, `127.0.0.1`, `::1`, `db` or `postgres`, and an SMTP host that is not local, unless `ALLOW_NON_LOCAL_SERVICES=1` is set. It refuses Stripe live keys (`sk_live_`, `rk_live_`, `pk_live_`) whenever `NODE_ENV` is not `production`, with no override. An unset `DATABASE_URL` passes, which is how CI runs. Deploys call `drizzle-kit push` directly and are unaffected. The resume and bootcamp buckets are unset locally, so uploads return 503 rather than touching Cloud Storage.
 
 ## Local database
 

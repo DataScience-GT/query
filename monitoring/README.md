@@ -95,7 +95,7 @@ The alerts that matter:
   have landed for 30 minutes.
 
 To route them into ClickUp, run Alertmanager with a webhook receiver and pipe
-its payload to `node scripts/clickup-task.mjs --stdin`. That step is not built
+its payload to `node tooling/scripts/src/clickup-task.ts --stdin`. That step is not built
 here.
 
 ## ClickHouse
@@ -119,11 +119,11 @@ SELECT * FROM dsgt.plan_mix_monthly;
 
 ## ClickUp
 
-`scripts/clickup-task.mjs` files a task from the command line:
+`tooling/scripts/src/clickup-task.ts` files a task from the command line:
 
 ```bash
 CLICKUP_TOKEN=pk_… CLICKUP_LIST_ID=901… \
-  node scripts/clickup-task.mjs "Bootcamp schedule still unset" "Room, time and Deepnote URL are null"
+  node tooling/scripts/src/clickup-task.ts "Bootcamp schedule still unset" "Room, time and Deepnote URL are null"
 ```
 
 Deliberately a script and not a route on the site: an inbound endpoint that

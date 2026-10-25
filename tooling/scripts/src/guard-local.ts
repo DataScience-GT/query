@@ -1,7 +1,7 @@
 /**
  * Refuses to run a command that could touch production from a dev machine.
  *
- *   node scripts/guard-local.mjs [--db] [--stripe] [--email]
+ *   node tooling/scripts/src/guard-local.ts [--db] [--stripe] [--email]
  *
  * No flag runs every check. It sits in front of `migrate:push`, the seed
  * scripts, `pnpm test` and `pnpm local:up`:
@@ -35,7 +35,12 @@ const LOCAL_HOSTS = new Set([
 const OVERRIDE = "ALLOW_NON_LOCAL_SERVICES";
 const LIVE_KEY = /^(sk|rk|pk)_live_/;
 
-const hostOf = (value) => {
+export type Check = "db" | "stripe" | "email";
+/** A reason a run must be refused. */
+export type Violation = string;
+type Env = Record<string, string | undefined>;
+
+const hostOf = (value: string) => {
   try {
     return new URL(value).hostname.replace(/^\[|\]$/g, "").toLowerCase();
   } catch {
@@ -44,8 +49,11 @@ const hostOf = (value) => {
 };
 
 /** Returns the reasons a run must be refused; empty means go ahead. */
-export function violations(env, checks = ["db", "stripe", "email"]) {
-  const problems = [];
+export function violations(
+  env: Env,
+  checks: Check[] = ["db", "stripe", "email"],
+): Violation[] {
+  const problems: Violation[] = [];
   const overridden = env[OVERRIDE] === "1";
 
   if (checks.includes("db") && env.DATABASE_URL && !overridden) {
@@ -82,9 +90,9 @@ export function violations(env, checks = ["db", "stripe", "email"]) {
 
 // Minimal KEY=VALUE reader for an env file; a variable already in the
 // environment wins, as with dotenv.
-function readEnvFile(file) {
+function readEnvFile(file: string): Env {
   if (!existsSync(file)) return {};
-  const out = {};
+  const out: Env = {};
   for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
     const match = line.match(
       /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/,
@@ -99,8 +107,10 @@ if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
-  const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-  const flags = process.argv.slice(2).map((arg) => arg.replace(/^--/, ""));
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+  const flags = process.argv
+    .slice(2)
+    .map((arg) => arg.replace(/^--/, "")) as Check[];
   // Each env file is checked on its own, never merged: drizzle and the seeds
   // read the root .env while Next.js reads the web app's files, so a local
   // value in one must not hide a hosted one in another.

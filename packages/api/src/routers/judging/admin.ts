@@ -7,6 +7,7 @@ import { roomLinkProcedures } from "./admin/room-links";
 import { rubricAndStateProcedures } from "./admin/rubric-and-state";
 import { announcementProcedures } from "./admin/announcements";
 import { resetProcedures } from "./admin/resets";
+import { repoCheckProcedures } from "./admin/repo-check";
 
 // Organiser setup and live control of room judging: getting projects in,
 // shaping challenges, rooms and the rubric, the switches flipped on judging
@@ -23,4 +24,5 @@ export const judgingAdminRouter = createTRPCRouter({
   ...rubricAndStateProcedures,
   ...announcementProcedures,
   ...resetProcedures,
+  ...repoCheckProcedures,
 });

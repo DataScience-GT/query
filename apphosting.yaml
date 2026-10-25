@@ -47,6 +47,14 @@ env:
     secret: AUTH_GITHUB_ID
   - variable: GITHUB_CLIENT_SECRET
     secret: AUTH_GITHUB_SECRET
+  # Optional: raises the judging repo check from 60 to 5000 GitHub requests an
+  # hour. Left commented out because a reference to a secret that does not exist
+  # breaks the rollout. Create it first (a token with no scopes is enough), then
+  # uncomment:
+  #   firebase apphosting:secrets:set GITHUB_REPO_CHECK_TOKEN
+  #   firebase apphosting:secrets:grantaccess GITHUB_REPO_CHECK_TOKEN
+  # - variable: GITHUB_TOKEN
+  #   secret: GITHUB_REPO_CHECK_TOKEN
   - variable: AUTH_URL
     value: https://datasciencegt.org
   - variable: NEXTAUTH_URL
