@@ -14,7 +14,7 @@ const tracks: { title: string; description: string; sprite: SpriteMap }[] = [
 
 export default function TracksSection() {
   // The signature: the four plants are dormant until the row is seen, then
-  // bloom pink one after another, left to right.
+  // ribbon pink one after another, left to right.
   const bedRef = useBloomInView<HTMLUListElement>();
 
   return (
@@ -34,7 +34,7 @@ export default function TracksSection() {
         >
           {tracks.map((t, i) => (
             <li key={t.title} className="grid grid-rows-subgrid row-span-3 pb-14">
-              <div className="flex h-32 items-end border-b border-rule">
+              <div className="flex h-32 items-end border-b border-sage">
                 <BloomSprite map={t.sprite} scale={6} blooms index={i} />
               </div>
               <h3 className="font-display text-[16px] leading-snug text-ink mt-5">
