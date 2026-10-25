@@ -8,7 +8,7 @@ export const THEME_KEY = "hl-theme";
 type Theme = "light" | "dark";
 
 // --ground in globals.css, per theme; app/layout.tsx has the same pair.
-const GROUND: Record<Theme, string> = { light: "#eef1ec", dark: "#131715" };
+const GROUND: Record<Theme, string> = { light: "#f1f4f6", dark: "#0e0f13" };
 
 // Points the browser bar at the page. It reads the theme-color metas, which
 // Next renders one per system scheme: a chosen theme sets both to its ground,

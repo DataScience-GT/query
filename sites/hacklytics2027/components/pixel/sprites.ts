@@ -146,40 +146,41 @@ export const SPORE: SpriteMap = [
 
 /* ─── Palettes ───────────────────────────────────────────────────────────
    Two states, not four colours. "dormant" is the night: grey petals on green
-   stems. "bloom" is the one accent, pink. Stems and leaves are the only green
-   on the page and they never change. */
+   stems. "bloom" is the one accent, the ribbon pink going to white at the
+   centre, like the blossoms in the globe art. Stems and leaves are the sage
+   of its land and they never change. */
 
 const shared = {
-  g: "#2f6b3a",
-  G: "#4c9a55",
-  s: "#5a625c",
-  S: "#3a403c",
-  d: "#1e2420",
-  r: "#2a302c",
+  g: "#5f8f67",
+  G: "#96bf98",
+  s: "#5a6070",
+  S: "#3a3e4a",
+  d: "#1a1c23",
+  r: "#262731",
 };
 
 export const PALETTES: Record<"bloom" | "dormant", Palette> = {
   bloom: {
     ...shared,
-    p: "#b8285a",
-    P: "#ff4f8b",
-    c: "#ffc2d6",
-    Y: "#ffe9f0",
+    p: "#e58aa4",
+    P: "#ffbfcf",
+    c: "#ffe3ea",
+    Y: "#ffffff",
     W: "#ffffff",
-    m: "#b8285a",
-    M: "#ff4f8b",
-    w: "#ffe9f0",
+    m: "#e58aa4",
+    M: "#ffbfcf",
+    w: "#ffffff",
   },
   dormant: {
     ...shared,
-    p: "#3a403c",
-    P: "#5a625c",
-    c: "#8a938c",
-    Y: "#c9cfc9",
-    W: "#c9cfc9",
-    m: "#3a403c",
-    M: "#5a625c",
-    w: "#8a938c",
+    p: "#3a3e4a",
+    P: "#5a6070",
+    c: "#8a90a0",
+    Y: "#c9cdd6",
+    W: "#c9cdd6",
+    m: "#3a3e4a",
+    M: "#5a6070",
+    w: "#8a90a0",
   },
 };
 

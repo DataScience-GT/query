@@ -1,6 +1,13 @@
-/* app/globals.css — Digital Bloom: a greenhouse at night.
-   One colour, the bloom pink, and it only ever means "act here" or "in bloom".
-   Everything else is ink on a dark ground with hairline rules. */
+/* app/globals.css — Digital Bloom, redrawn from the globe key art: a flat
+   globe on black with a pale-pink ribbon of cherry blossoms across it.
+   Four colours come off that art (sampled from the PNG): ocean #509cbd,
+   sage #96bf98, ribbon pink #ffbfcf and the dark navy outline #262731.
+   Pink is still the one accent and only means "act here" or "in bloom";
+   ocean and sage are the quiet secondary tones (kickers, schedule rules,
+   the key times); navy is the hairline rule. The ground is near-black with a
+   cool cast. The light theme keeps the same hues but deepens each one until
+   it reads as text on a pale ground; the art's own pastels do not.
+   Every text/UI pair below is checked at WCAG AA in both themes. */
 @import "tailwindcss";
 
 @theme inline {
@@ -13,6 +20,8 @@
   --color-line: var(--line-border);
   --color-bloom: var(--bloom);
   --color-bloom-deep: var(--bloom-deep);
+  --color-ocean: var(--ocean);
+  --color-sage: var(--sage);
   --color-on-bloom: var(--on-bloom);
 
   /* Font variables come from next/font in app/layout.tsx. */
@@ -21,71 +30,85 @@
   --font-pixel: var(--font-silkscreen), ui-monospace, monospace;
 }
 
+/* Night. On the ground #0e0f13: ink 17.5:1, body 9.8:1, meta 6.5:1 (6.0:1 on
+   raised), bloom pink 12.4:1, ocean 6.2:1, sage 9.3:1, UI line 3.3:1. The
+   pink button's label is 12.4:1 on the pink; its pressed state is white on
+   #b03a5f at 5.8:1. The rule (the art's navy) is a hairline, not a boundary
+   anything depends on. */
 :root {
-  --ground: #131715;
-  --raised: #1a1f1d;
-  --ink: #edefea;
-  --ink-2: #a9b0aa; /* body */
-  --ink-3: #868e88; /* meta: ≥4.5:1 on ground */
-  --rule: #2a312d;
+  --ground: #0e0f13;
+  --raised: #15171d;
+  --ink: #f3f5f8;
+  --ink-2: #b4bac6; /* body */
+  --ink-3: #8f96a5; /* meta: ≥4.5:1 on ground */
+  --rule: #262731;
 
-  --bloom: #ff4f8b;
-  --bloom-hover: #ff6a9d;
-  --bloom-deep: #b8285a;
-  --on-bloom: #16060c;
-  --line-border: #626a64; /* ≥3:1 on ground */
+  --bloom: #ffbfcf;
+  --bloom-hover: #ffd3dd;
+  --bloom-deep: #b03a5f;
+  --on-bloom: #1a0a10;
+  --ocean: #509cbd;
+  --sage: #96bf98;
+  --line-border: #5f6577; /* ≥3:1 on ground */
 
   /* Neon halo on blooming flowers. */
-  --glow-1: #ff4f8b;
-  --glow-2: #ff4f8b;
-  --glow-3: rgba(255, 79, 139, 0.45);
+  --glow-1: #ffbfcf;
+  --glow-2: #ffbfcf;
+  --glow-3: rgba(255, 191, 207, 0.4);
 
   --navbar-height: 72px;
   color-scheme: dark;
 }
 
-/* Day: the same greenhouse with the lights on. A cool sage ground (not
-   cream), near-black ink, and a deeper pink, since the night pink is too
-   light to read as text on a pale ground. Used when the visitor picks light,
-   or has no choice saved and their system is light. */
+/* Day: the same globe with the lights on. A cool paper ground (not cream),
+   near-black ink, and deeper versions of the three art colours, since the
+   art's pastels are too light to read as text on a pale ground. On the ground
+   #f1f4f6: ink 16.9:1, body 8.1:1, meta 5.5:1, bloom 5.7:1, ocean 5.8:1,
+   sage 5.1:1, UI line 3.3:1; all of them clear 4.5:1 on raised #fafbfc too.
+   The pink button is white on #b02a5b at 6.3:1. Used when the visitor picks
+   light, or has no choice saved and their system is light. */
 :root[data-theme="light"] {
-  --ground: #eef1ec;
-  --raised: #f7f8f5;
-  --ink: #121613;
-  --ink-2: #444c46;
-  --ink-3: #5f6761; /* meta: ≥4.5:1 on ground */
-  --rule: #d3d9d3;
+  --ground: #f1f4f6;
+  --raised: #fafbfc;
+  --ink: #101318;
+  --ink-2: #424a57;
+  --ink-3: #5b6371; /* meta: ≥4.5:1 on ground */
+  --rule: #d5dbe1;
 
-  --bloom: #c2185b;
-  --bloom-hover: #a8134d;
-  --bloom-deep: #8e0f41;
+  --bloom: #b02a5b;
+  --bloom-hover: #98234f;
+  --bloom-deep: #7a1a40;
   --on-bloom: #ffffff;
-  --line-border: #838b85; /* ≥3:1 on ground */
+  --ocean: #1f6585;
+  --sage: #3b7440;
+  --line-border: #7f8794; /* ≥3:1 on ground */
 
-  --glow-1: rgba(194, 24, 91, 0.55);
-  --glow-2: rgba(194, 24, 91, 0.35);
-  --glow-3: rgba(194, 24, 91, 0.18);
+  --glow-1: rgba(176, 42, 91, 0.55);
+  --glow-2: rgba(176, 42, 91, 0.35);
+  --glow-3: rgba(176, 42, 91, 0.18);
 
   color-scheme: light;
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --ground: #eef1ec;
-    --raised: #f7f8f5;
-    --ink: #121613;
-    --ink-2: #444c46;
-    --ink-3: #5f6761;
-    --rule: #d3d9d3;
+    --ground: #f1f4f6;
+    --raised: #fafbfc;
+    --ink: #101318;
+    --ink-2: #424a57;
+    --ink-3: #5b6371; /* meta: ≥4.5:1 on ground */
+    --rule: #d5dbe1;
 
-    --bloom: #c2185b;
-    --bloom-hover: #a8134d;
-    --bloom-deep: #8e0f41;
+    --bloom: #b02a5b;
+    --bloom-hover: #98234f;
+    --bloom-deep: #7a1a40;
     --on-bloom: #ffffff;
-    --line-border: #838b85;
+    --ocean: #1f6585;
+    --sage: #3b7440;
+    --line-border: #7f8794; /* ≥3:1 on ground */
 
-    --glow-1: rgba(194, 24, 91, 0.55);
-    --glow-2: rgba(194, 24, 91, 0.35);
-    --glow-3: rgba(194, 24, 91, 0.18);
+    --glow-1: rgba(176, 42, 91, 0.55);
+    --glow-2: rgba(176, 42, 91, 0.35);
+    --glow-3: rgba(176, 42, 91, 0.18);
 
     color-scheme: light;
   }
@@ -147,13 +170,14 @@ body {
     .section-title { font-size: 3rem; }
   }
 
-  /* Silkscreen kicker: small, as written, one per section at most. */
+  /* Silkscreen kicker: small, as written, one per section at most. Ocean
+     blue, the globe's sea. */
   .kicker {
     font-family: var(--font-pixel);
     font-size: 0.8125rem;
     line-height: 1.4;
     letter-spacing: 0.02em;
-    color: var(--ink-2);
+    color: var(--ocean);
   }
 
   /* Buttons: pills, verbs. Pink only for the action. */
