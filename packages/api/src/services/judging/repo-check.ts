@@ -22,6 +22,7 @@ import {
   computeSubmissionWindow,
   loadHackathonBaseTime,
 } from "../../routers/team/windows";
+import { lockEdition } from "./challenges";
 
 export type RepoRef = { owner: string; repo: string };
 export type RepoOutcome = "ok" | "late" | "no_repo" | "unreadable" | "error";
@@ -30,12 +31,23 @@ export type RepoEvidence = NonNullable<
 >;
 export type RepoCheckRow = typeof judgingRepoChecks.$inferSelect;
 
-export type RepoResult = {
+export type RepoPart = NonNullable<RepoCheckRow["repos"]>[number];
+
+/** One repo against the deadline. */
+export type RepoOne = {
   outcome: RepoOutcome;
   ref: RepoRef | null;
   pushedAt: Date | null;
   evidence: RepoEvidence | null;
 };
+
+/**
+ * An entry against the deadline: the repo that decided the outcome, and every
+ * repo that was looked at.
+ */
+export type RepoResult = RepoOne & { repos: RepoPart[] };
+
+const MAX_REPOS = 3;
 
 const GITHUB_API = "https://api.github.com";
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -93,24 +105,40 @@ export function parseRepoUrl(raw: string | null | undefined): RepoRef | null {
   return { owner, repo };
 }
 
-/** The portal project's repo link, else the first repo link among the demo links. */
-export function repoOfEntry(entry: {
+/**
+ * The distinct repos an entry links to, at most three: the portal project's
+ * link first, then the repo links among the demo links in order.
+ */
+export function reposOfEntry(entry: {
   githubUrl: string | null;
   demoLinks: readonly string[];
-}): RepoRef | null {
-  const own = parseRepoUrl(entry.githubUrl);
-  if (own) return own;
-  for (const link of entry.demoLinks) {
-    const found = parseRepoUrl(link);
-    if (found) return found;
+}): RepoRef[] {
+  const found: RepoRef[] = [];
+  const seen = new Set<string>();
+  for (const link of [entry.githubUrl, ...entry.demoLinks]) {
+    const ref = parseRepoUrl(link);
+    if (!ref) continue;
+    const key = `${ref.owner}/${ref.repo}`.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    found.push(ref);
+    if (found.length === MAX_REPOS) break;
   }
-  return null;
+  return found;
 }
 
 /** Later than the deadline plus grace. A push exactly on the line is on time. */
 export function isLate(pushedAt: Date, deadline: Date, graceMinutes: number) {
   return pushedAt.getTime() > deadline.getTime() + graceMinutes * MINUTE_MS;
 }
+
+// GitHub's JSON is read defensively: a field that is not what it should be
+// reads as missing.
+const obj = (value: unknown): Record<string, unknown> =>
+  typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : {};
+const text = (value: unknown) => (typeof value === "string" ? value : null);
 
 /** GitHub said to slow down, or the budget for this run is spent. */
 export class RateLimited extends Error {}
@@ -145,26 +173,22 @@ export class GithubClient {
     const remaining = response.headers.get("x-ratelimit-remaining");
     if (remaining === "0") this.exhausted = true;
 
+    const body: unknown = await response.json().catch(() => null);
+    // A secondary rate limit is a 403 whose message says so.
     const limited =
       response.status === 429 ||
       (response.status === 403 &&
-        (remaining === "0" || response.headers.has("retry-after")));
+        (remaining === "0" ||
+          response.headers.has("retry-after") ||
+          /rate limit/i.test(text(obj(body).message) ?? "")));
     if (limited) {
       this.exhausted = true;
       throw new RateLimited("rate limited");
     }
-    const body: unknown = await response.json().catch(() => null);
     return { status: response.status, body };
   }
 }
 
-// GitHub's JSON is read defensively: a field that is not what it should be
-// reads as missing.
-const obj = (value: unknown): Record<string, unknown> =>
-  typeof value === "object" && value !== null
-    ? (value as Record<string, unknown>)
-    : {};
-const text = (value: unknown) => (typeof value === "string" ? value : null);
 
 /** Commits and pushes after the deadline. Context only; a failure leaves it short. */
 async function gatherEvidence(
@@ -225,7 +249,7 @@ export async function checkRepo(
   ref: RepoRef,
   deadline: Date,
   graceMinutes: number,
-): Promise<RepoResult> {
+): Promise<RepoOne> {
   let reply: GithubReply;
   try {
     reply = await client.get(`/repos/${ref.owner}/${ref.repo}`);
@@ -254,10 +278,65 @@ export async function checkRepo(
 }
 
 /**
+ * Every repo an entry links to (at most three), one after the other. Late if
+ * any of them is, with that repo's evidence; otherwise the worst thing that
+ * happened (a rate limit or error, then an unreadable repo). Throws nothing:
+ * a rate limit part way through ends the entry with what it has.
+ */
+export async function checkEntry(
+  client: GithubClient,
+  refs: readonly RepoRef[],
+  deadline: Date,
+  graceMinutes: number,
+): Promise<RepoResult> {
+  if (refs.length === 0) {
+    return { outcome: "no_repo", ref: null, pushedAt: null, evidence: null, repos: [] };
+  }
+  const done: RepoOne[] = [];
+  let limited = false;
+  for (const ref of refs) {
+    try {
+      done.push(await checkRepo(client, ref, deadline, graceMinutes));
+    } catch (error) {
+      if (!(error instanceof RateLimited)) throw error;
+      limited = true;
+      break;
+    }
+  }
+  const repos: RepoPart[] = done.map((one) => ({
+    owner: one.ref!.owner,
+    repo: one.ref!.repo,
+    outcome: one.outcome as RepoPart["outcome"],
+    pushedAt: one.pushedAt?.toISOString() ?? null,
+    evidence: one.evidence,
+  }));
+
+  const late = done
+    .filter((one) => one.outcome === "late")
+    .sort((a, b) => b.pushedAt!.getTime() - a.pushedAt!.getTime());
+  const primary =
+    late[0] ??
+    (limited ? undefined : done.find((one) => one.outcome === "error")) ??
+    done.find((one) => one.outcome === "unreadable") ??
+    done
+      .filter((one) => one.outcome === "ok")
+      .sort(
+        (a, b) => (b.pushedAt?.getTime() ?? 0) - (a.pushedAt?.getTime() ?? 0),
+      )[0];
+  if (primary && (primary.outcome === "late" || !limited)) {
+    return { ...primary, repos };
+  }
+  return { outcome: "error", ref: refs[0]!, pushedAt: null, evidence: null, repos };
+}
+
+/**
  * The row to store after a check, or null to leave what is there. An entry an
  * organiser has decided stays decided unless the repo was pushed to after the
  * decision, which reopens it as pending with the new evidence; a check that
- * could not look (error, unreadable, no repo) never undoes a decision.
+ * could not look (error, unreadable, no repo) never undoes a decision. A flag
+ * not yet decided is kept, evidence and all, until a later check finds it
+ * late again: `pushed_at` only moves forward, and a repo made private after
+ * the push must not wipe it. The latest attempt is kept in `lastOutcome`.
  */
 export function nextCheck(
   existing: RepoCheckRow | undefined,
@@ -270,13 +349,21 @@ export function nextCheck(
     outcome: result.outcome,
     pushedAt: result.pushedAt,
     evidence: result.evidence,
+    repos: result.repos,
+    lastOutcome: result.outcome,
     checkedAt,
     decision: "pending" as const,
     decidedById: null,
     decidedAt: null,
     note: null,
     removedEntry: existing?.removedEntry ?? false,
+    removedDeletedAt: existing?.removedDeletedAt ?? null,
   };
+  if (existing?.decision === "pending" && existing.outcome === "late") {
+    if (result.outcome === "late") return fresh;
+    const { entryId: _entryId, hackathonId: _hackathonId, ...kept } = existing;
+    return { ...kept, lastOutcome: result.outcome, checkedAt };
+  }
   if (!existing || existing.decision === "pending") return fresh;
   const pushedSince =
     result.outcome === "late" &&
@@ -303,11 +390,17 @@ async function mapLimit<T>(
 
 type RunDeps = { fetchFn?: typeof fetch; token?: string; now?: Date };
 
-/** Editions with a run going in this process, so two never overlap. */
-const running = new Set<string>();
+/**
+ * Editions with a run going in this process, so two never overlap. A run older
+ * than this is taken for stuck and no longer blocks the next one.
+ */
+const running = new Map<string, { at: number }>();
+const RUN_STALE_MS = 10 * 60 * 1000;
 
-export const repoCheckRunning = (hackathonId: string) =>
-  running.has(hackathonId);
+export const repoCheckRunning = (hackathonId: string) => {
+  const run = running.get(hackathonId);
+  return run !== undefined && Date.now() - run.at < RUN_STALE_MS;
+};
 
 /**
  * Checks every project of the edition, five repos at a time. When GitHub's rate
@@ -319,8 +412,9 @@ export async function runRepoCheck(
   hackathonId: string,
   deps: RunDeps = {},
 ) {
-  if (running.has(hackathonId)) return;
-  running.add(hackathonId);
+  if (repoCheckRunning(hackathonId)) return;
+  const mine = { at: Date.now() };
+  running.set(hackathonId, mine);
   try {
     const now = deps.now ?? new Date();
     const [config] = await db
@@ -354,34 +448,43 @@ export async function runRepoCheck(
     const before = new Map(existing.map((row) => [row.entryId, row]));
     // A removed project is looked at only if it was disqualified here, to see
     // whether it was pushed to again.
-    const todo = entries.filter(
-      (entry) =>
-        !entry.deletedAt || before.get(entry.id)?.decision === "disqualified",
-    );
+    // Longest unchecked first, so with a small rate limit the tail still gets
+    // its turn over successive runs.
+    const checkedAt = (id: string) => before.get(id)?.checkedAt.getTime() ?? 0;
+    const todo = entries
+      .filter(
+        (entry) =>
+          !entry.deletedAt || before.get(entry.id)?.decision === "disqualified",
+      )
+      .sort((a, b) => checkedAt(a.id) - checkedAt(b.id));
 
     const client = new GithubClient(
       deps.fetchFn ?? fetch,
       deps.token ?? (process.env.GITHUB_TOKEN || undefined),
     );
     await mapLimit(todo, MAX_IN_FLIGHT, async (entry) => {
-      const ref = repoOfEntry(entry);
-      let result: RepoResult;
-      if (!ref) {
-        result = { outcome: "no_repo", ref: null, pushedAt: null, evidence: null };
-      } else {
-        try {
-          result = await checkRepo(client, ref, deadline, config.graceMinutes);
-        } catch (error) {
-          if (!(error instanceof RateLimited)) throw error;
-          result = { outcome: "error", ref, pushedAt: null, evidence: null };
-        }
-      }
-      const row = nextCheck(before.get(entry.id), result, now);
-      if (!row) return;
-      await db
-        .insert(judgingRepoChecks)
-        .values({ entryId: entry.id, hackathonId, ...row })
-        .onConflictDoUpdate({ target: judgingRepoChecks.entryId, set: row });
+      const result = await checkEntry(
+        client,
+        reposOfEntry(entry),
+        deadline,
+        config.graceMinutes,
+      );
+      // Under the edition lock the decision procedures take, and against the
+      // row as it is now: an organiser may have decided while GitHub answered.
+      await db.transaction(async (tx) => {
+        await lockEdition(tx, hackathonId);
+        const [current] = await tx
+          .select()
+          .from(judgingRepoChecks)
+          .where(eq(judgingRepoChecks.entryId, entry.id))
+          .limit(1);
+        const row = nextCheck(current, result, now);
+        if (!row) return;
+        await tx
+          .insert(judgingRepoChecks)
+          .values({ entryId: entry.id, hackathonId, ...row })
+          .onConflictDoUpdate({ target: judgingRepoChecks.entryId, set: row });
+      });
     });
   } catch (error) {
     // Deliberate operational logging: nothing awaits a background run, so this
@@ -389,7 +492,7 @@ export async function runRepoCheck(
     // eslint-disable-next-line no-console
     console.error(`[Judging] Repo check for ${hackathonId} failed:`, error);
   } finally {
-    running.delete(hackathonId);
+    if (running.get(hackathonId) === mine) running.delete(hackathonId);
   }
 }
 

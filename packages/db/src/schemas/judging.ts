@@ -209,6 +209,35 @@ export const judgingRepoChecks = pgTable(
     decidedAt: timestamp("decided_at"),
     note: text("note"),
     removedEntry: boolean("removed_entry").notNull().default(false),
+    // The `deletedAt` the disqualification set, so reinstating undoes only
+    // that removal and not a later manual one.
+    removedDeletedAt: timestamp("removed_deleted_at"),
+    // Every repo checked for the entry (at most 3); the columns above describe
+    // the one that decided the outcome.
+    repos: jsonb("repos").$type<
+      {
+        owner: string;
+        repo: string;
+        outcome: "ok" | "late" | "unreadable" | "error";
+        pushedAt: string | null;
+        evidence: {
+          commits: {
+            sha: string;
+            message: string;
+            author: string | null;
+            committedAt: string | null;
+            url: string;
+          }[];
+          pushes: { at: string; ref: string | null; pusher: string | null }[];
+        } | null;
+      }[]
+    >(),
+    // How the latest attempt went. A flag raised by an earlier attempt is kept
+    // when a later one cannot look (a repo made private), so this is shown
+    // beside it.
+    lastOutcome: text("last_outcome", {
+      enum: ["ok", "late", "no_repo", "unreadable", "error"],
+    }),
   },
   (table) => [index("judging_repo_check_hackathon_idx").on(table.hackathonId)],
 );

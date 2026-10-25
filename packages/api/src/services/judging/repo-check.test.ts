@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getTableName } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { judgingConfigs, judgingEntries, judgingRepoChecks } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import {
@@ -8,13 +9,17 @@ import {
   checkRepo,
   isLate,
   nextCheck,
+  checkEntry,
   parseRepoUrl,
   repoCheckIfDue,
   repoCheckThrottle,
-  repoOfEntry,
+  reposOfEntry,
   runRepoCheck,
 } from "./repo-check";
 import type { RepoCheckRow, RepoResult } from "./repo-check";
+
+// The edition lock is a row lock; there is nothing to hold in a fake.
+vi.mock("./challenges", () => ({ lockEdition: async () => undefined }));
 
 const HACK = "hackathon";
 const DEADLINE = new Date("2026-02-08T12:00:00Z");
@@ -88,44 +93,64 @@ describe("parseRepoUrl", () => {
   });
 });
 
-describe("repoOfEntry", () => {
-  it("prefers the portal project's link", () => {
+describe("reposOfEntry", () => {
+  it("puts the portal project's link first", () => {
     expect(
-      repoOfEntry({
+      reposOfEntry({
         githubUrl: "https://github.com/team/app",
         demoLinks: ["https://github.com/other/thing"],
       }),
-    ).toEqual(ref);
+    ).toEqual([ref, { owner: "other", repo: "thing" }]);
   });
 
-  it("falls back to the first repo among the demo links", () => {
+  it("takes the repo links among the demo links and skips the rest", () => {
     expect(
-      repoOfEntry({
+      reposOfEntry({
         githubUrl: null,
         demoLinks: [
           "https://devpost.com/software/app",
           "https://github.com/team",
           "https://github.com/team/app/tree/dev",
-          "https://github.com/other/thing",
         ],
       }),
-    ).toEqual(ref);
+    ).toEqual([ref]);
+  });
+
+  it("lists a repo once however it is linked", () => {
+    expect(
+      reposOfEntry({
+        githubUrl: "https://github.com/team/app",
+        demoLinks: [
+          "https://github.com/Team/App.git",
+          "https://github.com/team/app/issues",
+        ],
+      }),
+    ).toEqual([ref]);
   });
 
   it("uses the demo links when the project's own link is not a repo", () => {
     expect(
-      repoOfEntry({
+      reposOfEntry({
         githubUrl: "https://github.com/team",
         demoLinks: ["https://github.com/team/app"],
       }),
-    ).toEqual(ref);
+    ).toEqual([ref]);
   });
 
-  it("is null with no repo anywhere", () => {
-    expect(repoOfEntry({ githubUrl: null, demoLinks: [] })).toBeNull();
+  it("stops at three", () => {
     expect(
-      repoOfEntry({ githubUrl: "", demoLinks: ["https://example.com"] }),
-    ).toBeNull();
+      reposOfEntry({
+        githubUrl: null,
+        demoLinks: [1, 2, 3, 4, 5].map((n) => `https://github.com/t/r${n}`),
+      }).map((r) => r.repo),
+    ).toEqual(["r1", "r2", "r3"]);
+  });
+
+  it("is empty with no repo anywhere", () => {
+    expect(reposOfEntry({ githubUrl: null, demoLinks: [] })).toEqual([]);
+    expect(
+      reposOfEntry({ githubUrl: "", demoLinks: ["https://example.com"] }),
+    ).toEqual([]);
   });
 });
 
@@ -334,6 +359,20 @@ describe("checkRepo", () => {
       ).rejects.toThrow("rate limited");
     });
 
+    it("stops on a 403 whose message is a secondary rate limit", async () => {
+      await expect(
+        run([
+          [
+            "/repos/team/app",
+            {
+              status: 403,
+              body: { message: "You have exceeded a secondary rate limit." },
+            },
+          ],
+        ]).result,
+      ).rejects.toThrow("rate limited");
+    });
+
     it("does not mistake a private repo's 403 for a limit", async () => {
       await expect(
         run([
@@ -361,11 +400,87 @@ describe("checkRepo", () => {
   });
 });
 
+describe("checkEntry", () => {
+  const refs = [
+    { owner: "t", repo: "a" },
+    { owner: "t", repo: "b" },
+  ];
+  const client = (rules: Parameters<typeof fakeFetch>[0]) =>
+    new GithubClient(fakeFetch(rules).fn, undefined);
+
+  it("flags the entry when any of its repos is late, with that repo's evidence", async () => {
+    const done = await checkEntry(
+      client([
+        ["/repos/t/a", repoReply("2026-02-08T10:00:00Z")],
+        ["/repos/t/b", repoReply("2026-02-08T13:00:00Z")],
+      ]),
+      refs,
+      DEADLINE,
+      0,
+    );
+    expect(done).toMatchObject({ outcome: "late", ref: refs[1] });
+    expect(done.repos.map((r) => [r.repo, r.outcome])).toEqual([
+      ["a", "ok"],
+      ["b", "late"],
+    ]);
+    expect(done.repos[1]!.evidence).not.toBeNull();
+    expect(done.repos[0]!.evidence).toBeNull();
+  });
+
+  it("is ok only when every repo is", async () => {
+    const rules: Parameters<typeof fakeFetch>[0] = [
+      ["/repos/t/a", repoReply("2026-02-08T10:00:00Z")],
+      ["/repos/t/b", { status: 404 }],
+    ];
+    expect((await checkEntry(client(rules), refs, DEADLINE, 0)).outcome).toBe(
+      "unreadable",
+    );
+    rules[1] = ["/repos/t/b", repoReply("2026-02-08T11:00:00Z")];
+    expect((await checkEntry(client(rules), refs, DEADLINE, 0)).outcome).toBe("ok");
+  });
+
+  it("has no repo to check without a link", async () => {
+    expect(await checkEntry(client([]), [], DEADLINE, 0)).toMatchObject({
+      outcome: "no_repo",
+      repos: [],
+    });
+  });
+
+  it("is an error when the rate limit hits before any repo is late", async () => {
+    const done = await checkEntry(
+      client([
+        ["/repos/t/a", repoReply("2026-02-08T10:00:00Z")],
+        ["/repos/t/b", { status: 429 }],
+      ]),
+      refs,
+      DEADLINE,
+      0,
+    );
+    expect(done.outcome).toBe("error");
+  });
+
+  it("still reports a late repo found before the rate limit", async () => {
+    const done = await checkEntry(
+      client([
+        ["/commits", { status: 500 }],
+        ["/events", { status: 500 }],
+        ["/repos/t/a", repoReply("2026-02-08T13:00:00Z")],
+        ["/repos/t/b", { status: 429 }],
+      ]),
+      refs,
+      DEADLINE,
+      0,
+    );
+    expect(done.outcome).toBe("late");
+  });
+});
+
 const result = (over: Partial<RepoResult>): RepoResult => ({
   outcome: "late",
   ref,
   pushedAt: new Date("2026-02-08T13:00:00Z"),
   evidence: { commits: [], pushes: [] },
+  repos: [],
   ...over,
 });
 
@@ -383,6 +498,9 @@ const decided = (over: Partial<RepoCheckRow> = {}): RepoCheckRow => ({
   decidedAt: new Date("2026-02-08T15:00:00Z"),
   note: "agreed with the team",
   removedEntry: false,
+  removedDeletedAt: null,
+  repos: [],
+  lastOutcome: "late",
   ...over,
 });
 
@@ -398,8 +516,39 @@ describe("nextCheck", () => {
   });
 
   it("refreshes a pending check", () => {
-    const row = nextCheck(decided({ decision: "pending", decidedAt: null }), result({ outcome: "ok" }), checkedAt);
-    expect(row).toMatchObject({ outcome: "ok", decision: "pending" });
+    const row = nextCheck(
+      decided({ decision: "pending", decidedAt: null, outcome: "ok" }),
+      result({ outcome: "late" }),
+      checkedAt,
+    );
+    expect(row).toMatchObject({ outcome: "late", decision: "pending" });
+  });
+
+  it("keeps a pending late flag when a later check cannot look or finds nothing", () => {
+    const flag = decided({ decision: "pending", decidedAt: null });
+    for (const outcome of ["error", "unreadable", "no_repo", "ok"] as const) {
+      expect(
+        nextCheck(flag, result({ outcome, pushedAt: null, evidence: null }), checkedAt),
+      ).toMatchObject({
+        outcome: "late",
+        pushedAt: flag.pushedAt,
+        evidence: flag.evidence,
+        decision: "pending",
+        lastOutcome: outcome,
+        checkedAt,
+      });
+    }
+  });
+
+  it("replaces a pending late flag with a newer late one", () => {
+    const pushedAt = new Date("2026-02-08T18:00:00Z");
+    expect(
+      nextCheck(
+        decided({ decision: "pending", decidedAt: null }),
+        result({ pushedAt }),
+        checkedAt,
+      ),
+    ).toMatchObject({ outcome: "late", pushedAt, lastOutcome: "late" });
   });
 
   it("leaves a decided entry alone when nothing was pushed since", () => {
@@ -459,7 +608,7 @@ type Write = { table: string; values: Record<string, unknown> };
 type Chain = PromiseLike<unknown> & {
   from: (table: unknown) => Chain;
   leftJoin: () => Chain;
-  where: () => Chain;
+  where: (condition?: unknown) => Chain;
   limit: () => Chain;
 };
 
@@ -474,14 +623,18 @@ function fakeDb(opts: {
   const claims: unknown[] = [];
   const select = () => {
     let table = "";
+    let first: unknown = null;
     const chain = {
       then: (ok: (v: unknown) => unknown, err: (e: unknown) => unknown) => {
+        const checks = (opts.checks ?? []).filter(
+          (c) => first === HACK || c.entryId === first,
+        );
         const rows =
           table === getTableName(judgingConfigs)
             ? [opts.config === null ? undefined : (opts.config ?? { graceMinutes: 0 })]
             : table === getTableName(judgingEntries)
               ? (opts.entries ?? [])
-              : (opts.checks ?? []);
+              : checks;
         return Promise.resolve(rows.filter(Boolean)).then(ok, err);
       },
     } as unknown as Chain;
@@ -490,11 +643,15 @@ function fakeDb(opts: {
       return chain;
     };
     chain.leftJoin = () => chain;
-    chain.where = () => chain;
+    chain.where = (condition?: unknown) => {
+      first = condition ? new PgDialect().sqlToQuery(condition as never).params[0] : null;
+      return chain;
+    };
     chain.limit = () => chain;
     return chain;
   };
   const db = {
+    transaction: async (callback: (tx: unknown) => unknown) => callback(db),
     query: {
       hackathons: {
         findFirst: async () => ({
@@ -656,6 +813,70 @@ describe("runRepoCheck", () => {
       decision: "pending",
       outcome: "late",
     });
+  });
+
+  it("keeps a decision an organiser makes while the run is in flight", async () => {
+    const checks: Record<string, unknown>[] = [];
+    const { db, writes } = fakeDb({
+      entries: [
+        entryRow("e1", "https://github.com/t/a"),
+        entryRow("e2", "https://github.com/t/b"),
+      ],
+      checks,
+    });
+    // GitHub answers late for both; while it does, e1 is disqualified.
+    const fetchFn = vi.fn(async (input: unknown) => {
+      if (String(input).endsWith("/repos/t/a")) {
+        checks.push(
+          decided({
+            entryId: "e1",
+            decision: "disqualified",
+            removedEntry: true,
+            decidedAt: new Date("2026-02-09T00:00:00Z"),
+          }),
+        );
+      }
+      return new Response(JSON.stringify({ pushed_at: "2026-02-08T13:00:00Z" }));
+    }) as unknown as typeof fetch;
+    await runRepoCheck(db, HACK, {
+      fetchFn,
+      now: new Date("2026-02-09T00:00:01Z"),
+    });
+    const rows = written(writes);
+    expect(rows.has("e1")).toBe(false);
+    expect(rows.get("e2")).toMatchObject({ outcome: "late", decision: "pending" });
+  });
+
+  it("checks the longest unchecked first", async () => {
+    const { db } = fakeDb({
+      entries: [
+        entryRow("fresh", "https://github.com/t/fresh"),
+        entryRow("never", "https://github.com/t/never"),
+        entryRow("stale", "https://github.com/t/stale"),
+      ],
+      checks: [
+        decided({
+          entryId: "fresh",
+          decision: "pending",
+          decidedAt: null,
+          checkedAt: new Date("2026-02-08T19:00:00Z"),
+        }),
+        decided({
+          entryId: "stale",
+          decision: "pending",
+          decidedAt: null,
+          checkedAt: new Date("2026-02-08T13:00:00Z"),
+        }),
+      ],
+    });
+    const fetched = fakeFetch([["/repos", repoReply(null)]]);
+    // One at a time so the order of requests is the order of the work.
+    await runRepoCheck(db, HACK, { fetchFn: fetched.fn });
+    expect(fetched.calls.map((c) => c.url.split("/").pop())).toEqual([
+      "never",
+      "stale",
+      "fresh",
+    ]);
   });
 
   it("does not run twice at once", async () => {
