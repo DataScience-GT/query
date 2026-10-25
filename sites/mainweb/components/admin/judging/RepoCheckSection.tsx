@@ -25,9 +25,9 @@ import type { Tone } from "@/components/portal/ui";
 import {
   ErrorLine,
   OFFICER_POLL_MS,
+  NoticeLine,
   Toggle,
   plural,
-  shortTime,
   useRefreshJudging,
 } from "@/components/admin/judging/shared";
 
@@ -105,6 +105,15 @@ export function RepoCheckSection({ hackathonId }: { hackathonId: string }) {
         </p>
       ) : (
         <>
+          {!data.hasToken && (
+            <NoticeLine>
+              No GitHub token is configured (<code>GITHUB_TOKEN</code>), so
+              GitHub allows only 60 requests an hour. That is roughly
+              one request per repo; projects past it are left as &quot;could
+              not check&quot; and picked up on later runs. Ask whoever runs the
+              deployment to add a token before judging day.
+            </NoticeLine>
+          )}
           <section>
             <div className="border-y border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
               <Toggle
@@ -190,17 +199,10 @@ export function RepoCheckSection({ hackathonId }: { hackathonId: string }) {
               {data.running
                 ? "Checking repos now. Results appear here as they come in."
                 : data.lastRunAt
-                  ? `Last run ${shortTime(data.lastRunAt)}.`
+                  ? `Last run ${eventMoment(new Date(data.lastRunAt))} Eastern.`
                   : "Not run yet."}{" "}
               {plural(data.checked, "project")} checked.
             </p>
-            {!data.hasToken && (
-              <p className={fieldHint}>
-                No GitHub token is set, so GitHub allows 60 requests an hour.
-                Projects past that are retried on the next run. See{" "}
-                <code>GITHUB_TOKEN</code> in the environment docs.
-              </p>
-            )}
             <div className="mt-4">
               <button
                 type="button"
@@ -280,10 +282,7 @@ function FlagRow({
 
   const outcome = OUTCOME[flag.outcome];
   const decision = DECISION[flag.decision];
-  const repo =
-    flag.repoOwner && flag.repoName ? `${flag.repoOwner}/${flag.repoName}` : null;
-  const commits = flag.evidence?.commits ?? [];
-  const pushes = flag.evidence?.pushes ?? [];
+  const parts = flag.repos ?? [];
   const common = { hackathonId, entryId: flag.entryId, note: note.trim() || undefined };
 
   return (
@@ -294,23 +293,12 @@ function FlagRow({
       <p className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 ${meta}`}>
         <span className={status(outcome.tone)}>{outcome.label}</span>
         <span className={status(decision.tone)}>{decision.label}</span>
-        {repo && (
-          <a
-            href={`https://github.com/${repo}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={textLink}
-          >
-            {repo}
-          </a>
-        )}
-        <span>Checked {shortTime(flag.checkedAt)}</span>
+        <span>Checked {eventMoment(new Date(flag.checkedAt))}</span>
       </p>
-      {flag.outcome === "late" && flag.pushedAt && (
-        <p className={`mt-2 ${body}`}>
-          Last push {eventMoment(new Date(flag.pushedAt))}, deadline{" "}
-          {eventMoment(deadline)}
-          {graceMinutes > 0 ? ` plus ${graceMinutes} minutes` : ""} (Eastern).
+      {flag.lastOutcome && flag.lastOutcome !== flag.outcome && (
+        <p className={`mt-2 ${meta}`}>
+          Latest check: {OUTCOME[flag.lastOutcome].label.toLowerCase()}. The flag
+          above is from an earlier one and stays until you decide.
         </p>
       )}
       {flag.note && (
@@ -319,59 +307,16 @@ function FlagRow({
         </p>
       )}
 
-      {(commits.length > 0 || pushes.length > 0) && (
-        <details className="mt-3">
-          <summary className={`cursor-pointer ${textLink}`}>
-            Evidence: {plural(pushes.length, "push", "pushes")},{" "}
-            {plural(commits.length, "commit")}
-          </summary>
-          <div className="mt-3 space-y-4">
-            {pushes.length > 0 && (
-              <div>
-                <p className={label}>Pushes after the deadline</p>
-                <ul className="mt-1 space-y-1">
-                  {pushes.map((push) => (
-                    <li key={`${push.at}${push.ref}`} className={body}>
-                      {eventMoment(new Date(push.at))} · {push.ref ?? "a branch"}
-                      {push.pusher ? ` · ${push.pusher}` : ""}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {commits.length > 0 && (
-              <div>
-                <p className={label}>
-                  Commits since the deadline (dates are the hacker&apos;s own,
-                  for context only)
-                </p>
-                <ul className="mt-1 space-y-1">
-                  {commits.map((commit) => (
-                    <li key={commit.sha} className={body}>
-                      <a
-                        href={commit.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={textLink}
-                      >
-                        {commit.sha.slice(0, 7)}
-                      </a>{" "}
-                      {commit.message}
-                      {commit.author ? ` · ${commit.author}` : ""}
-                      {commit.committedAt
-                        ? ` · ${eventMoment(new Date(commit.committedAt))}`
-                        : ""}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <p className={meta}>
-              Pushes to any branch count. Only the latest 20 of each are kept.
-            </p>
-          </div>
-        </details>
-      )}
+      <ul className="mt-3 space-y-3">
+        {parts.map((part) => (
+          <RepoPart
+            key={`${part.owner}/${part.repo}`}
+            part={part}
+            deadline={deadline}
+            graceMinutes={graceMinutes}
+          />
+        ))}
+      </ul>
 
       <div className="mt-4 max-w-xl">
         <label htmlFor={`repo-note-${flag.entryId}`} className={fieldLabel}>
@@ -431,6 +376,99 @@ function FlagRow({
         <div className="mt-3">
           <ErrorLine>{trpcErrorMessage(error, "Could not save that.")}</ErrorLine>
         </div>
+      )}
+    </li>
+  );
+}
+
+type Part = NonNullable<Flag["repos"]>[number];
+
+/** One linked repo of a flagged project: its last push and the evidence. */
+function RepoPart({
+  part,
+  deadline,
+  graceMinutes,
+}: {
+  part: Part;
+  deadline: Date;
+  graceMinutes: number;
+}) {
+  const repo = `${part.owner}/${part.repo}`;
+  const outcome = OUTCOME[part.outcome];
+  const commits = part.evidence?.commits ?? [];
+  const pushes = part.evidence?.pushes ?? [];
+  return (
+    <li>
+      <p className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${meta}`}>
+        <a
+          href={`https://github.com/${repo}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={textLink}
+        >
+          {repo}
+        </a>
+        <span className={status(outcome.tone)}>{outcome.label}</span>
+      </p>
+      {part.outcome === "late" && part.pushedAt && (
+        <p className={`mt-1 ${body}`}>
+          Last push {eventMoment(new Date(part.pushedAt))}, deadline{" "}
+          {eventMoment(deadline)}
+          {graceMinutes > 0 ? ` plus ${graceMinutes} minutes` : ""} (Eastern).
+        </p>
+      )}
+      {(commits.length > 0 || pushes.length > 0) && (
+        <details className="mt-2">
+          <summary className={`cursor-pointer ${textLink}`}>
+            Evidence: {plural(pushes.length, "push", "pushes")},{" "}
+            {plural(commits.length, "commit")}
+          </summary>
+          <div className="mt-3 space-y-4">
+            {pushes.length > 0 && (
+              <div>
+                <p className={label}>Pushes after the deadline</p>
+                <ul className="mt-1 space-y-1">
+                  {pushes.map((push) => (
+                    <li key={`${push.at}${push.ref}`} className={body}>
+                      {eventMoment(new Date(push.at))} · {push.ref ?? "a branch"}
+                      {push.pusher ? ` · ${push.pusher}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {commits.length > 0 && (
+              <div>
+                <p className={label}>
+                  Commits since the deadline (dates are the hacker&apos;s own,
+                  for context only)
+                </p>
+                <ul className="mt-1 space-y-1">
+                  {commits.map((commit) => (
+                    <li key={commit.sha} className={body}>
+                      <a
+                        href={commit.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={textLink}
+                      >
+                        {commit.sha.slice(0, 7)}
+                      </a>{" "}
+                      {commit.message}
+                      {commit.author ? ` · ${commit.author}` : ""}
+                      {commit.committedAt
+                        ? ` · ${eventMoment(new Date(commit.committedAt))}`
+                        : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <p className={meta}>
+              Pushes to any branch count. Only the latest 20 of each are kept.
+            </p>
+          </div>
+        </details>
       )}
     </li>
   );

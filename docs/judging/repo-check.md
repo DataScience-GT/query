@@ -17,24 +17,24 @@ The deadline is the submission close time, the same one the team submission wind
 
 ## Which repo
 
-The portal project's GitHub link, else the first github.com repo link among the Devpost demo links. The link is read strictly: a trailing `.git`, `/tree/...` or any other path after the repo is ignored, and anything that is not `github.com/owner/repo` (a profile, another host) counts as no repo.
+Every distinct github.com repo the entry links to, at most three: the portal project's GitHub link, then the repo links among the Devpost demo links. The entry is flagged if any of them is late, and evidence is kept per repo. A link is read strictly: a trailing `.git`, `/tree/...` or any other path after the repo is ignored, and anything that is not `github.com/owner/repo` (a profile, another host) counts as no repo.
 
 | Outcome | Meaning |
 | --- | --- |
 | `ok` | Last push at or before the deadline plus grace |
 | `late` | Pushed after the deadline plus grace |
 | `no_repo` | No usable repo link |
-| `unreadable` | GitHub answered 401, 403, 404, 410 or 451: private, deleted or blocked |
+| `unreadable` | GitHub answered 401, 403, 404, 410 or 451: private, deleted or blocked (a 403 that mentions a rate limit is `error` instead) |
 | `error` | Rate limit, timeout or network failure. Retried on the next run. |
 
-Everything except `ok` appears in the flagged list.
+Everything except `ok` appears in the flagged list. A flag that is still pending is kept, evidence and all, when a later check cannot look (a repo made private) or finds nothing, since `pushed_at` only moves forward; the latest attempt is shown beside it. Changing the grace re-works pending flags from scratch.
 
 ## Organiser flow
 
 Open the Repo check section of the judging console.
 
 1. Optionally set the grace in minutes (default 0). Only pushes after the deadline plus the grace are flagged.
-2. Turn the check on. While judging is open and someone has the console open, it runs every 15 minutes. Check now runs it at once, any time, whatever the switch.
+2. Turn the check on. While judging is open and someone has the console open, it runs every 15 minutes. Check now runs it at once, any time, whatever the switch, and waits up to 25 seconds; whatever finished is saved and the run carries on for the rest.
 3. For each flagged project, read the repo link, the last push against the deadline (Eastern time) and the evidence, add an optional note, then:
    - **Disqualify** takes the project out of judging, the same way removing it does (see below).
    - **Clear** closes the flag and changes nothing else.
@@ -50,7 +50,7 @@ It sets `deletedAt` on the judging entry, which is what removing a project does.
 
 Unlike Remove project, it does not require the saved schedule to be dropped first: the board already treats a removed project's appointments as removed.
 
-Reinstating clears `deletedAt` through `restoreLockedEntry`, which is also what Restore uses, and so refuses a portal submission whose team withdrew it. It only restores a project the disqualification itself removed (`removed_entry` on the check row); one an organiser had already removed stays removed.
+Reinstating restores only if the project is still deleted with the `deletedAt` the disqualification set (`removed_deleted_at`), so a manual restore followed by another removal is not undone. It clears `deletedAt` through `restoreLockedEntry`, which is also what Restore uses, and so refuses a portal submission whose team withdrew it. It only restores a project the disqualification itself removed (`removed_entry` on the check row); one an organiser had already removed stays removed.
 
 ## How it runs
 
@@ -59,12 +59,15 @@ There is no background worker, matching the lazy re-balance. `judging.admin.over
 - An in-process throttle allows one attempt per edition every 15 minutes.
 - The attempt claims the run in the database: one update of `judging_config.repo_check_last_run_at`, only if the switch is on, judging is `open` and the last run is older than 15 minutes. Only the instance that wins the claim starts a run, so several instances do not all call GitHub.
 - The run happens in the background; the poll returns at once and a later poll shows the results.
+- Projects checked longest ago (or never) go first, so a low rate limit still reaches the tail over several runs.
+- Each result is saved under the same edition lock the decisions take, against the row as it is then, so a decision made during a run is never overwritten.
+- A run in this process older than 10 minutes no longer blocks the next one.
 - At most 5 GitHub requests are in flight, each with a 10 second timeout and a `User-Agent`.
 - Turning the switch on or changing the grace makes the next poll run it.
 
 ## GitHub token and rate limits
 
-Set `GITHUB_TOKEN` (optional, any token that can read public repos) for 5000 requests an hour. Without it GitHub allows 60 an hour, enough for a small edition. When GitHub answers with its rate limit, or the last response says no requests remain, the run stops: projects not yet checked are recorded as `error` (a decided project keeps its decision) and the next run, 15 minutes later, picks them up.
+Set `GITHUB_TOKEN` (optional, any token that can read public repos) for 5000 requests an hour. The console warns while it is missing, and `apphosting.yaml` has the entry commented out until the secret exists. Without it GitHub allows 60 an hour, enough for a small edition. When GitHub answers with its rate limit, or the last response says no requests remain, the run stops: projects not yet checked are recorded as `error` (a decided project keeps its decision) and the next run, 15 minutes later, picks them up.
 
 ## Limits
 

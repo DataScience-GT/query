@@ -20,18 +20,30 @@ const mocks = vi.hoisted(() => ({
     repoName: "app",
     outcome: "late",
     pushedAt: "2026-02-08T13:00:00.000Z",
-    evidence: {
-      commits: [
-        {
-          sha: "abcdef123456",
-          message: "last minute fix",
-          author: "Ada",
-          committedAt: "1999-01-01T00:00:00Z",
-          url: "https://github.com/team/app/commit/abcdef1",
+    lastOutcome: "unreadable",
+    repos: [
+      {
+        owner: "team",
+        repo: "app",
+        outcome: "late",
+        pushedAt: "2026-02-08T13:00:00.000Z",
+        evidence: {
+          commits: [
+            {
+              sha: "abcdef123456",
+              message: "last minute fix",
+              author: "Ada",
+              committedAt: "1999-01-01T00:00:00Z",
+              url: "https://github.com/team/app/commit/abcdef1",
+            },
+          ],
+          pushes: [
+            { at: "2026-02-08T13:00:00Z", ref: "refs/heads/dev", pusher: "ada" },
+          ],
         },
-      ],
-      pushes: [{ at: "2026-02-08T13:00:00Z", ref: "refs/heads/dev", pusher: "ada" }],
-    },
+      },
+      { owner: "team", repo: "docs", outcome: "ok", pushedAt: null, evidence: null },
+    ],
     checkedAt: "2026-02-08T14:00:00.000Z",
     decision: "pending",
     decidedAt: null,
@@ -109,6 +121,11 @@ describe("RepoCheckSection", () => {
     expect(html).toContain("last minute fix");
     expect(html).toContain("Pushes to any branch count");
     expect(html).toContain("for context only");
+    expect(html).toContain("https://github.com/team/docs");
+    expect(html).toContain("Latest check: repo not readable");
+    // The last run, 14:00 UTC, is 9:00 AM Eastern.
+    expect(html).toContain("Last run Sun, Feb 8, 9:00 AM Eastern");
+    expect(html).toContain("GitHub allows only 60 requests an hour");
     expect(html).toContain("Disqualify");
     expect(html).toContain("Clear");
     expect(html).not.toContain("Reinstate");
