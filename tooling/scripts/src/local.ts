@@ -12,10 +12,10 @@ import { copyFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const compose = ["docker", "compose", "-f", "docker-compose.local.yml"];
 
-function run(command) {
+function run(command: string[]) {
   // One command string: passing args alongside shell: true is deprecated, and
   // the shell is what finds pnpm.cmd on Windows.
   const { status } = spawnSync(command.join(" "), {
@@ -41,7 +41,7 @@ const command = process.argv[2];
 if (command === "up") {
   ensureEnvFiles();
   // Before anything starts: a .env that points at a hosted database stops here.
-  run(["node", "scripts/guard-local.mjs"]);
+  run(["node", "tooling/scripts/src/guard-local.ts"]);
   run([...compose, "up", "-d", "--wait"]);
   run(["pnpm", "--filter", "@query/db", "migrate:push"]);
   run(["pnpm", "--filter", "@query/db", "db:seed"]);
@@ -54,6 +54,6 @@ Local environment is up.
 } else if (command === "down" || command === "reset") {
   run([...compose, "down", ...(command === "reset" ? ["--volumes"] : [])]);
 } else {
-  console.error("Usage: node scripts/local.mjs up|down|reset");
+  console.error("Usage: node tooling/scripts/src/local.ts up|down|reset");
   process.exit(1);
 }
