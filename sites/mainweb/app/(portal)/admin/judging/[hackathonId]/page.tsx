@@ -29,6 +29,7 @@ import { RoomsSection } from "@/components/admin/judging/RoomsSection";
 import { RubricSection } from "@/components/admin/judging/RubricSection";
 import { LaunchSection } from "@/components/admin/judging/LaunchSection";
 import { AnnouncementsSection } from "@/components/admin/judging/AnnouncementsSection";
+import { RepoCheckSection } from "@/components/admin/judging/RepoCheckSection";
 import { DangerZone } from "@/components/admin/judging/DangerZone";
 import { ScheduleTab as JudgingSchedule } from "@/components/admin/judging/schedule/ScheduleTab";
 import { ClaimsPanel as JudgingClaims } from "@/components/admin/judging/claims/ClaimsPanel";
@@ -201,6 +202,9 @@ export default function AdminEditionJudgingPage() {
             {section === "claims" && <JudgingClaims hackathonId={hackathonId} />}
             {section === "results" && (
               <JudgingResults hackathonId={hackathonId} />
+            )}
+            {section === "repo-check" && (
+              <RepoCheckSection hackathonId={hackathonId} />
             )}
             {section === "announcements" && (
               <AnnouncementsSection hackathonId={hackathonId} />
