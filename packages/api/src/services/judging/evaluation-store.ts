@@ -395,12 +395,16 @@ export async function evaluationAccess(
   reservedUntil: Date | null;
 }> {
   const [schedule] = await db
-    .select({ id: judgingSchedules.id })
+    .select({
+      id: judgingSchedules.id,
+      setupMinutes: judgingSchedules.setupMinutes,
+      judgingMinutes: judgingSchedules.judgingMinutes,
+    })
     .from(judgingSchedules)
     .where(eq(judgingSchedules.hackathonId, input.hackathonId))
     .limit(1);
 
-  const [presentation] = schedule
+  const [found] = schedule
     ? await db
         .select({
           id: judgingAppointments.id,
@@ -420,6 +424,13 @@ export async function evaluationAccess(
         )
         .limit(1)
     : [];
+  const presentation = found && schedule && {
+    ...found,
+    slot: {
+      setupMinutes: schedule.setupMinutes,
+      judgingMinutes: schedule.judgingMinutes,
+    },
+  };
 
   const seat = await seatOf(db, input.judgeId, input.challenges);
   const mode =
@@ -442,7 +453,7 @@ export async function evaluationAccess(
     schedule && mode === "scheduled" && !input.evaluation
       ? reservedUntilOf(presentation ?? null, input.judgeId, now)
       : null;
-  return { timing, presentation: presentation ?? null, reservedUntil };
+  return { timing, presentation: found ?? null, reservedUntil };
 }
 
 /**

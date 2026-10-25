@@ -52,7 +52,11 @@ export async function loadQueue(
 ): Promise<Queue> {
   const { challenge, seat } = input;
   const [schedule] = await db
-    .select({ id: judgingSchedules.id })
+    .select({
+      id: judgingSchedules.id,
+      setupMinutes: judgingSchedules.setupMinutes,
+      judgingMinutes: judgingSchedules.judgingMinutes,
+    })
     .from(judgingSchedules)
     .where(eq(judgingSchedules.hackathonId, input.hackathonId))
     .limit(1);
@@ -176,7 +180,13 @@ export async function loadQueue(
                 mode: challenge.mode,
                 challengeId: challenge.id,
                 evaluation: null,
-                appointment: slot,
+                appointment: {
+                  ...slot,
+                  slot: {
+                    setupMinutes: schedule.setupMinutes,
+                    judgingMinutes: schedule.judgingMinutes,
+                  },
+                },
                 presenceChallengeId: seat.challengeId,
               },
               now,
