@@ -1,5 +1,5 @@
 import React from "react";
-import { PALETTES } from "./sprites";
+import { PALETTES, PALETTES_LIGHT } from "./sprites";
 import { spriteToDataUri } from "./spriteUri";
 import type { PaletteName, Palette, SpriteMap } from "./sprites";
 
@@ -47,6 +47,31 @@ const pick = (palette: Palette, stem: boolean): Palette =>
 const STEM = pick(PALETTES.dormant, true);
 const BUD = pick(PALETTES.dormant, false); // the closed bud: grey
 const HEAD = pick(PALETTES.bloom, false); // open: pink
+const STEM_L = pick(PALETTES_LIGHT.dormant, true);
+const BUD_L = pick(PALETTES_LIGHT.dormant, false);
+const HEAD_L = pick(PALETTES_LIGHT.bloom, false);
+
+type Theme = "dark" | "light";
+
+const LAYERS: Record<Theme, { stem: Palette; bud: Palette; head: Palette; dormant: Palette }> = {
+  dark: { stem: STEM, bud: BUD, head: HEAD, dormant: PALETTES.dormant },
+  light: { stem: STEM_L, bud: BUD_L, head: HEAD_L, dormant: PALETTES_LIGHT.dormant },
+};
+
+/** The plant drawn twice, in the night and the day colours, which are baked
+ *  into the images. The day copy sits on top of the night one, and .px-light
+ *  in app/globals.css fades out whichever does not match the theme. Opacity,
+ *  not display: hiding with display would restart the bloom animations on
+ *  every theme change. The night copy stays in flow, so its absolute layers
+ *  still place against the plant's own box. */
+function BothThemes({ draw }: { draw: (theme: Theme) => React.ReactNode }) {
+  return (
+    <>
+      <span className="px-dark block">{draw("dark")}</span>
+      <span className="px-light absolute inset-0 block">{draw("light")}</span>
+    </>
+  );
+}
 
 /** Per-row growth speed of a stem, and how long the grey bud holds. */
 const ROW_MS = 40;
@@ -64,7 +89,7 @@ const ms = (n: number) => `${Math.round(n)}ms`;
 
 /**
  * One plant in a bed. A dormant one is a single grey image. One that blooms
- * is four stacked copies (stem, grey bud, neon halo, pink head) that the
+ * is four stacked copies (stem, grey bud, neon halo, pink head), each drawn in the night and the day colours that the
  * stylesheet plays in order once the bed's data-bloom is "on": the stem grows
  * row by row, the bud appears, then pops open pink with a neon flash, and the
  * halo breathes. The timings are computed here and handed over as custom
@@ -97,7 +122,11 @@ export function BloomSprite({
   if (!blooms) {
     return (
       <span className={`relative shrink-0 ${className}`} style={flipStyle}>
-        <PixelImage map={map} palette="dormant" scale={scale} className="block" />
+        <BothThemes
+          draw={(theme) => (
+            <PixelImage map={map} palette={LAYERS[theme].dormant} scale={scale} className="block" />
+          )}
+        />
       </span>
     );
   }
@@ -126,10 +155,16 @@ export function BloomSprite({
       className={`relative shrink-0 ${className}`}
       style={{ ...vars, ...flipStyle }}
     >
-      <PixelImage map={map} palette={STEM} scale={scale} className="flower-stem relative block" />
-      <PixelImage map={map} palette={BUD} scale={scale} className="flower-bud absolute left-0 top-0 block" />
-      <PixelImage map={map} palette={HEAD} scale={scale} className="flower-neon absolute left-0 top-0 block" />
-      <PixelImage map={map} palette={HEAD} scale={scale} className="flower-head absolute left-0 top-0 block" />
+      <BothThemes
+        draw={(theme) => (
+          <>
+            <PixelImage map={map} palette={LAYERS[theme].stem} scale={scale} className="flower-stem relative block" />
+            <PixelImage map={map} palette={LAYERS[theme].bud} scale={scale} className="flower-bud absolute left-0 top-0 block" />
+            <PixelImage map={map} palette={LAYERS[theme].head} scale={scale} className="flower-neon absolute left-0 top-0 block" />
+            <PixelImage map={map} palette={LAYERS[theme].head} scale={scale} className="flower-head absolute left-0 top-0 block" />
+          </>
+        )}
+      />
     </span>
   );
 }

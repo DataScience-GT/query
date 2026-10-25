@@ -32,6 +32,14 @@ Mainweb production is **Firebase App Hosting**, not `ci.yml`. App Hosting builds
 
 `|| true` on `gh pr create` means a duplicate PR is not a failing job.
 
+## Uptime probe
+
+| Workflow | Behavior |
+| --- | --- |
+| `uptime.yml` | Every 5 minutes (and manual): probes `/api/ping` from outside, then force-pushes a single orphan commit holding `uptime.json` to the `status-data` branch, which `/status` reads. One run at a time (`concurrency: uptime`). Scheduled runs can lag 5 to 15 minutes. See [Status page](../features/status.md#the-external-probe) |
+
+`status-data` is excluded from `feature-to-dev-pr.yml` so the data branch never gets a PR.
+
 ## Housekeeping
 
 | Workflow / config | Behavior |
@@ -43,4 +51,4 @@ Mainweb production is **Firebase App Hosting**, not `ci.yml`. App Hosting builds
 
 ## Permissions
 
-Deploy jobs need `contents: read` plus Hosting’s `pull-requests: write` / `checks: write` for preview comments. Branch-sync needs `contents: write`. CodeQL needs `security-events: write`.
+Deploy jobs need `contents: read` plus Hosting’s `pull-requests: write` / `checks: write` for preview comments. Branch-sync and the uptime probe need `contents: write`. CodeQL needs `security-events: write`.

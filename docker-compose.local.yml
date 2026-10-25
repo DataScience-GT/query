@@ -1,0 +1,47 @@
+# Self-contained local test environment: a throwaway Postgres and a mail catcher.
+#
+#   pnpm local:up      start both, push the schema, seed fake data
+#   pnpm local:down    stop them (the data survives)
+#
+# Nothing here talks to an outside service. Every message the app sends lands in
+# Mailpit (http://localhost:8025) and never leaves this machine. Separate from
+# docker-compose.yml so it has its own project, volume and ports and cannot
+# disturb a database you already run from that file.
+#
+# Ports are bound to 127.0.0.1 only. Override LOCAL_DB_PORT, LOCAL_SMTP_PORT and
+# LOCAL_MAILPIT_PORT in .env (or the shell) if one is taken.
+
+name: query-local
+
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${LOCAL_DB_PORT:-5434}:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: neondb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d neondb"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${LOCAL_SMTP_PORT:-1025}:1025" # SMTP the app sends to
+      - "127.0.0.1:${LOCAL_MAILPIT_PORT:-8025}:8025" # inbox UI and API
+    environment:
+      # EMAIL_SERVER_USER/PASSWORD are set in .env.example; accept any login.
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+
+volumes:
+  pgdata:

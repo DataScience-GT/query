@@ -7,6 +7,11 @@ vi.mock("@query/db", () => ({
   sql: (strings: TemplateStringsArray) => strings.join(""),
 }));
 
+// unstable_cache needs Next's incremental cache; run the work straight through.
+vi.mock("next/cache", () => ({
+  unstable_cache: (work: (...args: unknown[]) => unknown) => work,
+}));
+
 import { DB_TIMEOUT_MS, loadStatus } from "./load";
 
 afterEach(() => {

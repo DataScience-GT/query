@@ -1,0 +1,78 @@
+name: Uptime probe
+
+# Probes the site from outside every five minutes and writes the result to
+# uptime.json on the status-data branch, which /status reads. The target,
+# /api/ping, never touches the database: Neon bills compute while awake, and a
+# probe that reached it would keep it awake around the clock.
+#
+# status-data is rewritten as a single orphan commit on every run, so the
+# repository does not grow. Scheduled runs can lag 5 to 15 minutes and are not
+# guaranteed; /status shows the check as stale rather than guessing.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    name: Probe and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      # The data branch is a worktree next to the code, so the script always
+      # comes from the default branch. On the first run the branch does not
+      # exist yet and the worktree starts empty.
+      - name: Check out the data branch
+        run: |
+          if git ls-remote --exit-code --heads origin status-data > /dev/null; then
+            git fetch --depth=1 origin status-data
+            git worktree add --detach data FETCH_HEAD
+          else
+            git worktree add --detach data HEAD
+            git -C data rm -rf -q .
+          fi
+
+      # Best effort: a failed lookup keeps the deploy line from the last run.
+      - name: Look up the latest deploy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha || true)
+          if [ -n "$sha" ]; then
+            {
+              echo "DEPLOY_SHA=$sha"
+              echo "DEPLOY_COMMITTED_AT=$(gh api "repos/$GITHUB_REPOSITORY/commits/$sha" --jq .commit.committer.date || true)"
+              echo "DEPLOY_ROLLOUT=$(gh api "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs?per_page=100" \
+                --jq '[.check_runs[] | select(.name | startswith("App Hosting - Rollout")) | if .status == "completed" then .conclusion else .status end][0] // "none"' || echo none)"
+            } >> "$GITHUB_ENV"
+          fi
+
+      - name: Probe
+        env:
+          UPTIME_FILE: data/uptime.json
+        run: node scripts/uptime-probe.mjs
+
+      # Always one commit: a fresh orphan, force-pushed over the old one.
+      - name: Publish
+        working-directory: data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan next
+          git rm -rf -q --cached .
+          git add uptime.json
+          git commit -q -m "chore(status): uptime data"
+          git push --force origin HEAD:refs/heads/status-data
