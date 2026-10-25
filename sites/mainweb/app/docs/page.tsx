@@ -1,8 +1,15 @@
 // force-dynamic required: useSession() needs runtime SessionProvider context
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
 import DocsPageClient from "./DocsPageClient";
+
+export const metadata: Metadata = {
+  title: "Docs",
+  description:
+    "Developer documentation for the Data Science @ Georgia Tech website and portal.",
+};
 
 export default function DocsPage() {
   // /docs sits outside the (portal) route group, so it never inherited that
