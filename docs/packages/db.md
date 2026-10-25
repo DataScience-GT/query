@@ -58,6 +58,72 @@ Admin roles: `super_admin`, `admin`, `moderator`, `volunteer`. Volunteers are no
 
 Initiative statuses: `proposed` → (`declined` \| `draft`) → `open` \| `closed`. Only `open` is visible to members. Application statuses: `pending`, `accepted`, `rejected`, `withdrawn` (`withdrawn` is a state, not a delete, so the unique index still holds).
 
+## Data model
+
+The main tables and how they relate. Club tables are not scoped to a hackathon; everything in the hackathon and judging groups hangs off `hackathon`. The second diagram covers the `judging_*` tables.
+
+```mermaid
+erDiagram
+  user ||--o{ account : "OAuth"
+  user ||--o{ session : "database sessions"
+  user ||--o| member : "club membership"
+  member ||--o{ membership_history : records
+  user ||--o{ event_check_in : "club check-in"
+  event ||--o{ event_check_in : has
+  user ||--o{ stripe_payment : "linked payments"
+  user ||--o{ initiative_application : applies
+  initiative ||--o{ initiative_application : receives
+
+  hackathon ||--o{ hackathon_team : has
+  hackathon ||--o{ hackathon_participant : registers
+  user ||--o{ hackathon_participant : is
+  hackathon_team ||--o{ hackathon_participant : groups
+  hackathon_team ||--o{ hackathon_project : submits
+  hackathon ||--o{ hackathon_event : schedules
+  hackathon_event ||--o{ hackathon_event_attendee : "check-ins"
+  hackathon_participant ||--o{ hackathon_event_attendee : attends
+  hackathon ||--o{ hackathon_interest : collects
+
+  hackathon ||--o{ judge : applications
+  user ||--o{ judge : applies
+  judge ||--o{ judge_assignment : assigned
+```
+
+```mermaid
+erDiagram
+  hackathon ||--o| judging_config : configures
+  hackathon ||--o{ judging_entry : has
+  judging_entry ||--o{ judging_entry_member : "team members"
+  judging_entry_member ||--o| judging_claim_link : "one-time claim link"
+  hackathon ||--o{ judging_challenge : has
+  judging_entry ||--o{ judging_entry_challenge : "opts in"
+  judging_challenge ||--o{ judging_entry_challenge : "entered by"
+  hackathon ||--o{ judging_building : has
+  judging_building ||--o{ judging_room : contains
+  judging_challenge ||--o{ judging_room : "scoped to"
+  judging_room ||--o{ judging_room_link : "QR join links"
+  judging_room_link ||--o{ judging_guest_session : "guest judges"
+  hackathon ||--o{ judging_judge : roster
+  user ||--o{ judging_judge : "judge account"
+  judging_judge ||--o{ judging_presence : heartbeat
+  judging_room ||--o{ judging_presence : "who is in room"
+  hackathon ||--o{ judging_schedule : plans
+  judging_schedule ||--o{ judging_appointment : slots
+  judging_entry ||--o{ judging_appointment : presents
+  judging_room ||--o{ judging_appointment : hosts
+  judging_judge ||--o{ judging_appointment : "assigned judge"
+  judging_judge ||--o{ judging_evaluation : writes
+  judging_entry ||--o{ judging_evaluation : receives
+  judging_evaluation ||--o{ judging_evaluation_rating : "rubric scores"
+  judging_evaluation ||--o{ judging_evaluation_revision : history
+  judging_judge ||--o{ judging_deliberation_section : "desk sections"
+  judging_deliberation_section ||--o{ judging_deliberation_entry : orders
+  judging_entry ||--o{ judging_deliberation_entry : listed
+  judging_entry ||--o{ judging_placement : "final placement"
+```
+
+Other tables include: `user_profile`, `club_project`, `subteam` and `subteam_application`, `member_resume`, `bootcamp_workshop` and `bootcamp_material`, `hackathon_announcement` and recipients, `hackathon_ban`, `hackathon_check_in_flag`, point adjustments, store items and purchases, `audit_logs`, `system_settings`, `admin`, `project_leader`, `user_account_link`, `verificationToken`, `judging_announcement`, `judging_rubric_item`, `judging_evaluation_draft` and `judging_evaluation_response`. The older `judging_project`, `judge_vote`, `judge_queue` and `hackathon_result` tables are retired and kept for past editions.
+
 ## Membership service
 
 `src/services/membership.ts` is the one implementation of grant/link/current-edition. Auth sign-in, Stripe webhook, and tRPC all call it.

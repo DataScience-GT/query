@@ -22,38 +22,36 @@ function ProjectCard({ project }: { project: ClubProjectCard }) {
 
   return (
     <div
-      className={`group bg-[#0a0a0a] border border-white/5 p-8 rounded-xl transition-all duration-500 shadow-2xl relative overflow-hidden flex flex-col ${
-        muted ? "opacity-70" : "hover:border-[#00A8A8]/30"
+      className={`group bg-[#0a0a0a] border border-white/5 p-8 rounded-xl transition-colors duration-300 flex flex-col ${
+        muted ? "" : "hover:border-[#00A8A8]/30"
       }`}
     >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-[#00A8A8]/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-
-      <div className="flex justify-between items-start gap-4 mb-4 relative z-10">
-        <h3 className="text-white text-xl font-bold group-hover:text-[#00A8A8] transition-colors uppercase tracking-tight italic">
+      <div className="flex justify-between items-start gap-4 mb-3">
+        <h3 className={`text-xl font-semibold tracking-tight transition-colors group-hover:text-[#00A8A8] ${muted ? "text-gray-300" : "text-white"}`}>
           {project.name}
         </h3>
         <span
-          className={`shrink-0 px-2 py-0.5 text-[9px] font-mono rounded border uppercase tracking-widest ${STATUS_CLASSES[project.status]}`}
+          className={`shrink-0 px-2 py-0.5 text-[11px] font-mono rounded border uppercase tracking-widest ${STATUS_CLASSES[project.status]}`}
         >
           {STATUS_LABELS[project.status]}
         </span>
       </div>
 
-      <p className="text-[9px] font-mono text-gray-600 uppercase tracking-widest mb-6 relative z-10">
-        {project.leadName ? `Lead // ${project.leadName}` : "Lead // Open"}
-        {project.capacityNote ? ` // ${project.capacityNote}` : ""}
+      <p className="text-xs font-mono text-gray-400 mb-5">
+        {project.leadName ? `Lead: ${project.leadName}` : "Lead: open"}
+        {project.capacityNote ? ` · ${project.capacityNote}` : ""}
       </p>
 
-      <p className="text-sm text-gray-400 leading-relaxed mb-8 italic relative z-10">
+      <p className="text-[15px] text-gray-300 leading-relaxed mb-6">
         {project.summary}
       </p>
 
       {project.tech.length > 0 && (
-        <div className="flex flex-wrap gap-2 relative z-10 mb-8">
+        <div className="flex flex-wrap gap-2 mb-6">
           {project.tech.map((tech) => (
             <span
               key={tech}
-              className="text-[9px] font-mono text-[#00A8A8]/70 bg-[#00A8A8]/5 border border-[#00A8A8]/10 px-2 py-1 rounded-sm uppercase tracking-tighter"
+              className="text-[11px] font-mono text-gray-300 bg-white/5 border border-white/10 px-2 py-1 rounded-sm"
             >
               {tech}
             </span>
@@ -61,21 +59,21 @@ function ProjectCard({ project }: { project: ClubProjectCard }) {
         </div>
       )}
 
-      <div className="mt-auto flex flex-wrap items-center gap-6 relative z-10">
+      <div className="mt-auto flex flex-wrap items-center gap-6">
         {!muted &&
           (external ? (
             <a
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase tracking-[0.2em] hover:text-white transition-colors"
+              className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.15em] hover:text-white transition-colors"
             >
               {joinLabel(project)} →
             </a>
           ) : (
             <Link
               href={href}
-              className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase tracking-[0.2em] hover:text-white transition-colors"
+              className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.15em] hover:text-white transition-colors"
             >
               {joinLabel(project)} →
             </Link>
@@ -85,7 +83,7 @@ function ProjectCard({ project }: { project: ClubProjectCard }) {
             href={project.repoUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center min-h-11 md:min-h-0 text-gray-500 font-mono text-[10px] uppercase tracking-[0.2em] hover:text-[#00A8A8] transition-colors"
+            className="inline-flex items-center min-h-11 md:min-h-0 text-gray-400 font-mono text-xs uppercase tracking-[0.15em] hover:text-[#00A8A8] transition-colors"
           >
             Repo →
           </a>
@@ -114,29 +112,26 @@ export default function ProjectsPageClient({
   const term = current.find((project) => project.term)?.term ?? "This term";
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-indigo-400/30 overflow-x-hidden">
+    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
       <Navbar
         screen_width={windowWidth}
         page="other"
         className="fixed top-0 z-30 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md"
       />
       <main className="relative z-10 pt-44 pb-32 max-w-7xl mx-auto px-6 lg:px-12">
-        <nav className="flex items-center gap-2 mb-8 text-[10px] font-mono tracking-[0.3em] uppercase">
+        <nav className="flex items-center gap-2 mb-8 text-xs font-mono tracking-[0.2em] uppercase">
           <Link href="/" className="hover:text-[#00A8A8] transition-colors">
             Home
           </Link>
-          <span className="text-gray-800">/</span>
-          <span className="text-gray-200 italic">Club_Projects</span>
+          <span className="text-gray-600">/</span>
+          <span className="text-gray-200">Club projects</span>
         </nav>
 
         <section className="max-w-3xl mb-24 space-y-6">
-          <h1 className="text-white text-6xl md:text-8xl font-black tracking-tighter leading-none uppercase italic">
-            Club <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00A8A8] to-[#006e6e] not-italic">
-              Projects.
-            </span>
+          <h1 className="text-white text-5xl md:text-7xl font-bold tracking-tighter leading-none">
+            Club projects
           </h1>
-          <p className="text-lg text-gray-400 leading-relaxed max-w-xl italic border-l-2 border-[#00A8A8]/20 pl-6">
+          <p className="text-lg text-gray-300 leading-relaxed max-w-xl">
             What DSGT members are building right now. Apply through the portal,
             or take one of the projects that still needs a lead.
           </p>
@@ -144,22 +139,22 @@ export default function ProjectsPageClient({
             href={INTEREST_FORM_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-[10px] uppercase tracking-[0.3em] hover:text-white transition-colors"
+            className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] hover:text-white transition-colors"
           >
-            One interest form for every project →
+            Fill out the interest form →
           </a>
         </section>
 
         <section id="current" className="scroll-mt-32 mb-32">
           <div className="flex items-center gap-4 mb-12">
-            <h2 className="text-white text-2xl font-black tracking-tight shrink-0 italic uppercase">
+            <h2 className="text-white text-3xl font-bold tracking-tight shrink-0">
               {term}
             </h2>
             <div className="h-px bg-gradient-to-r from-[#00A8A8]/20 to-transparent w-full" />
           </div>
 
           {current.length === 0 ? (
-            <p className="text-sm text-gray-500 italic">
+            <p className="text-gray-300">
               The roster is being updated. Check back shortly, or email{" "}
               <a
                 href="mailto:hello@datasciencegt.org"
@@ -181,12 +176,12 @@ export default function ProjectsPageClient({
         {past.length > 0 && (
           <section id="past" className="scroll-mt-32">
             <div className="flex items-center gap-4 mb-6">
-              <h2 className="text-white text-2xl font-black tracking-tight shrink-0 italic uppercase">
+              <h2 className="text-white text-3xl font-bold tracking-tight shrink-0">
                 Past
               </h2>
               <div className="h-px bg-gradient-to-r from-white/10 to-transparent w-full" />
             </div>
-            <p className="text-sm text-gray-500 italic mb-12 max-w-xl">
+            <p className="text-gray-400 mb-12 max-w-xl">
               Finished or retired. Kept here as an archive, not as something you
               can join today.
             </p>
@@ -199,24 +194,24 @@ export default function ProjectsPageClient({
         )}
 
         <section className="mt-40 border-t border-white/5 pt-20 text-center">
-          <h2 className="text-white text-2xl font-black mb-12 italic uppercase tracking-tighter">
+          <h2 className="text-white text-3xl font-bold mb-10 tracking-tight">
             Want in?
           </h2>
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-12">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-8 sm:gap-12">
             <Link
               href="/initiatives"
-              className="text-[10px] font-mono text-gray-500 hover:text-[#00A8A8] transition-all uppercase tracking-[0.4em] flex items-center min-h-11 md:min-h-0 gap-4 group"
+              className="text-xs font-mono text-gray-300 hover:text-[#00A8A8] transition-colors uppercase tracking-[0.2em] flex items-center min-h-11 md:min-h-0 gap-4 group"
             >
-              Apply_In_Portal{" "}
+              Apply in the portal{" "}
               <span className="text-lg group-hover:translate-x-2 transition-transform">
                 →
               </span>
             </Link>
             <Link
               href="/bootcamp"
-              className="text-[10px] font-mono text-gray-500 hover:text-[#00A8A8] transition-all uppercase tracking-[0.4em] flex items-center min-h-11 md:min-h-0 gap-4 group"
+              className="text-xs font-mono text-gray-300 hover:text-[#00A8A8] transition-colors uppercase tracking-[0.2em] flex items-center min-h-11 md:min-h-0 gap-4 group"
             >
-              Join_Bootcamp{" "}
+              Join the bootcamp{" "}
               <span className="text-lg group-hover:translate-x-2 transition-transform">
                 →
               </span>
@@ -226,7 +221,7 @@ export default function ProjectsPageClient({
       </main>
       <Footer
         screen_width={windowWidth}
-        className="relative z-10 border-t border-white/5 opacity-40"
+        className="relative z-10 border-t border-white/5"
       />
     </div>
   );

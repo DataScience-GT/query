@@ -2,9 +2,10 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
 import { db, events } from "@query/db";
-import { gte, lt } from "drizzle-orm";
+import { and, gte, isNull, lt } from "drizzle-orm";
 import { startOfEasternDay } from "@query/api/eastern-time";
 import Link from "next/link";
+import { eventDateParts, eventWhenWhere } from "@/lib/public-events";
 
 /**
  * The club's upcoming events.
@@ -17,20 +18,11 @@ import Link from "next/link";
  * only inside the (portal) route group, and this page's whole audience is
  * people who are not signed in.
  */
+// Bootcamp sessions share this table and are listed on /bootcamp, which is why
+// every query below filters on bootcamp_term being null.
 // Every five minutes, not every request, matching /projects. force-dynamic
 // bought freshness nobody saw — proxy.ts already serves this max-age=3600.
 export const revalidate = 300;
-
-const formatWhen = (date: Date) =>
-  date.toLocaleString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "America/New_York",
-    timeZoneName: "short",
-  });
 
 // qrCode is deliberately absent: publishing it would let anyone check
 // themselves in without being in the room.
@@ -57,7 +49,10 @@ async function loadUpcoming() {
   // empty list instead of failing the build or the revalidation.
   try {
     return await db.query.events.findMany({
-      where: gte(events.eventDate, startOfToday()),
+      where: and(
+        isNull(events.bootcampTerm),
+        gte(events.eventDate, startOfToday()),
+      ),
       orderBy: (event, { asc }) => [asc(event.eventDate)],
       limit: 20,
       columns: listedColumns,
@@ -78,7 +73,10 @@ async function loadPast() {
 
   try {
     return await db.query.events.findMany({
-      where: lt(events.eventDate, startOfToday()),
+      where: and(
+        isNull(events.bootcampTerm),
+        lt(events.eventDate, startOfToday()),
+      ),
       orderBy: (event, { desc }) => [desc(event.eventDate)],
       limit: 20,
       columns: listedColumns,
@@ -89,6 +87,52 @@ async function loadPast() {
   }
 }
 
+type ListedEvent = Awaited<ReturnType<typeof loadUpcoming>>[number];
+
+function EventRow({ event, past }: { event: ListedEvent; past?: boolean }) {
+  const { month, day } = eventDateParts(event.eventDate);
+  const full =
+    !past && !!event.maxCheckIns && event.currentCheckIns >= event.maxCheckIns;
+
+  return (
+    <li className="grid grid-cols-[3.5rem_1fr] gap-x-5 py-6 first:pt-0 last:pb-0 sm:grid-cols-[4.5rem_1fr] sm:gap-x-8">
+      <div className={past ? "text-gray-500" : "text-[#00A8A8]"}>
+        <p className="font-mono text-xs uppercase tracking-[0.2em]">{month}</p>
+        <p className="text-3xl font-bold leading-none tabular-nums sm:text-4xl">
+          {day}
+        </p>
+      </div>
+      <div>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h3
+            className={`text-lg font-semibold ${past ? "text-gray-300" : "text-white"}`}
+          >
+            {event.title}
+          </h3>
+          {full && (
+            <span className="border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-mono text-[11px] uppercase tracking-widest text-amber-300">
+              Full
+            </span>
+          )}
+          {past && event.currentCheckIns > 0 && (
+            <span className="font-mono text-[11px] text-gray-400">
+              {event.currentCheckIns} checked in
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-sm text-gray-400">
+          {eventWhenWhere(event.eventDate, event.location)}
+        </p>
+        {event.description && (
+          <p className="mt-2 max-w-prose text-sm leading-relaxed text-gray-400">
+            {event.description}
+          </p>
+        )}
+      </div>
+    </li>
+  );
+}
+
 export default async function EventsPage() {
   // Two independent reads; the slower one is the whole cost.
   const [upcoming, past] = await Promise.all([loadUpcoming(), loadPast()]);
@@ -97,97 +141,65 @@ export default async function EventsPage() {
     <div className="relative min-h-screen bg-[#050505] text-white">
       <Navbar screen_width={1024} page="events" />
       <main className="pt-20">
-        <Section className="py-32">
+        <Section className="py-24 sm:py-32">
           <div className="max-w-4xl mx-auto px-6">
-            <h1 className="text-5xl font-black uppercase tracking-tight mb-8">
-              Club Events
+            <h1 className="text-5xl font-bold tracking-tighter sm:text-6xl">
+              Club events
             </h1>
-            <p className="text-lg text-gray-400 leading-relaxed mb-12 italic">
-              Upcoming DSGT meetings, workshops, and community gatherings.
-              Hacklytics has its own page.
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-gray-300">
+              Meetings, workshops and talks open to DSGT members. The weekly
+              bootcamp sessions are on the{" "}
+              <Link
+                href="/bootcamp"
+                className="text-[#00A8A8] underline-offset-4 hover:underline"
+              >
+                bootcamp page
+              </Link>
+              , and Hacklytics has its own.
             </p>
-            <div className="bg-[#0a0a0a]/50 border border-white/5 rounded-2xl p-8">
-              <h2 className="text-xl font-bold uppercase mb-4">
-                Upcoming Club Events
+
+            <section className="mt-20" aria-labelledby="upcoming">
+              <h2
+                id="upcoming"
+                className="mb-8 border-b border-white/10 pb-3 font-mono text-xs uppercase tracking-[0.3em] text-gray-300"
+              >
+                Upcoming
               </h2>
               {upcoming.length === 0 ? (
-                <p className="text-gray-500 italic">
-                  No upcoming club events scheduled. Check back soon!
+                <p className="max-w-xl text-gray-300">
+                  Nothing is scheduled right now. The{" "}
+                  <Link
+                    href="/bootcamp"
+                    className="text-[#00A8A8] underline-offset-4 hover:underline"
+                  >
+                    bootcamp
+                  </Link>{" "}
+                  meets weekly during the semester.
                 </p>
               ) : (
                 <ul className="divide-y divide-white/5">
-                  {upcoming.map((event) => {
-                    const full =
-                      !!event.maxCheckIns &&
-                      event.currentCheckIns >= event.maxCheckIns;
-
-                    return (
-                      <li key={event.id} className="py-5 first:pt-0 last:pb-0">
-                        <div className="flex flex-wrap items-baseline gap-3">
-                          <h3 className="text-lg font-bold">{event.title}</h3>
-                          {full && (
-                            <span className="text-[10px] font-mono uppercase tracking-widest text-amber-300 border border-amber-500/30 bg-amber-500/10 px-2 py-0.5">
-                              Full
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-1 text-sm text-gray-400">
-                          {formatWhen(event.eventDate)}
-                          {event.location ? ` · ${event.location}` : ""}
-                        </p>
-                        {event.description && (
-                          <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-                            {event.description}
-                          </p>
-                        )}
-                      </li>
-                    );
-                  })}
+                  {upcoming.map((event) => (
+                    <EventRow key={event.id} event={event} />
+                  ))}
                 </ul>
               )}
-            </div>
+            </section>
+
             {past.length > 0 && (
-              <div className="mt-8 bg-[#0a0a0a]/50 border border-white/5 rounded-2xl p-8">
-                <h2 className="text-xl font-bold uppercase mb-4">
-                  Past Club Events
+              <section className="mt-24" aria-labelledby="past">
+                <h2
+                  id="past"
+                  className="mb-8 border-b border-white/10 pb-3 font-mono text-xs uppercase tracking-[0.3em] text-gray-400"
+                >
+                  Past
                 </h2>
                 <ul className="divide-y divide-white/5">
                   {past.map((event) => (
-                    <li key={event.id} className="py-5 first:pt-0 last:pb-0">
-                      <div className="flex flex-wrap items-baseline gap-3">
-                        <h3 className="text-lg font-bold text-gray-300">
-                          {event.title}
-                        </h3>
-                        {event.currentCheckIns > 0 && (
-                          <span className="text-[10px] font-mono uppercase tracking-widest text-gray-400 border border-white/10 bg-white/5 px-2 py-0.5">
-                            {event.currentCheckIns} checked in
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm text-gray-500">
-                        {formatWhen(event.eventDate)}
-                        {event.location ? ` · ${event.location}` : ""}
-                      </p>
-                      {event.description && (
-                        <p className="mt-2 text-sm text-gray-600 leading-relaxed">
-                          {event.description}
-                        </p>
-                      )}
-                    </li>
+                    <EventRow key={event.id} event={event} past />
                   ))}
                 </ul>
-              </div>
+              </section>
             )}
-            <p className="mt-8 text-sm text-gray-500">
-              Looking for Hacklytics?{" "}
-              <Link
-                href="/hacklytics"
-                className="text-[#00A8A8] hover:underline underline-offset-4"
-              >
-                Go to the hackathon page
-              </Link>
-              .
-            </p>
           </div>
         </Section>
       </main>

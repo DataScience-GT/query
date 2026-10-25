@@ -13,12 +13,12 @@ This is the club’s public site **and** the authenticated portal. There is no s
 | --- | --- |
 | `/` | Home (`HomePageClient`) |
 | `/team` | Team |
-| `/events` | Public events |
+| `/events` | Public club events (rows with no `bootcamp_term`); bootcamp sessions are not listed here |
 | `/projects` | Club projects — current roster and past archive, read from `club_project` |
 | `/history` | Club history |
-| `/bootcamp` | Bootcamp marketing |
+| `/bootcamp` | Public bootcamp page: the current term's sessions, a link to join in the portal, and the syllabus when no sessions are posted |
 | `/docs` | In-app docs UI |
-| `/status` | Status |
+| `/status` | Uptime and latency from real traffic, see [Status page](../features/status.md) |
 | `/sitemap.xml` / `robots.txt` | Generated via `app/sitemap.ts`, `app/robots.ts` |
 
 `app/api/csp-report/route.ts` receives CSP report-only violations.

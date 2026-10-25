@@ -210,7 +210,9 @@ const world = (over: Answers = {}): Answers => ({
   ],
   [via(judgingRubricItems)]: [rating],
   [entriesKey]: [entry(E_ONE, "Tidewater")],
-  [via(judgingSchedules)]: [{ id: "schedule" }],
+  [via(judgingSchedules)]: [
+    { id: "schedule", setupMinutes: 2, judgingMinutes: 6 },
+  ],
   [presenceKey]: seatAt(SPONSOR),
   ...over,
 });

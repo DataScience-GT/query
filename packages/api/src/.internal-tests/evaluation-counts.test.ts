@@ -241,7 +241,7 @@ describe("hackathon participant reads", () => {
   });
 
   describe("judging.hacker.feedback", () => {
-    it("asks only for member evaluations that hold every rating", async () => {
+    it("asks for evaluations that hold every rating, from members and guests", async () => {
       rows.set(judgingEvaluations, []);
 
       await hacker().judging.hacker.feedback({ hackathonId: HACK });
@@ -250,10 +250,12 @@ describe("hackathon participant reads", () => {
       const text = flat(read!.where);
       expect(text).toContain(HOLDS_EVERY_RATING);
       expect(text).not.toContain("is_complete");
-      // Of this project, in this edition, by a member judge.
+      // Of this project, in this edition, by any judge: a guest's response is
+      // public when the rubric item's guest visibility says so.
       expect(render(read!.where).params).toEqual(
-        expect.arrayContaining([HACK, ENTRY, "member"]),
+        expect.arrayContaining([HACK, ENTRY]),
       );
+      expect(render(read!.where).params).not.toContain("member");
     });
 
     it("shows the written responses that exist and leaves out the ones left empty", async () => {

@@ -4,8 +4,13 @@
 // a placing. The raw mean is kept beside it. Projects nobody scored are left
 // out rather than listed last, since a placing is published and "8th of 8" for
 // a project no judge reached would be a claim nobody made.
+//
+// Judges grade against a challenge's root, so a child challenge (an individual
+// prize under a group like "MLH Challenges") is ranked from its root's
+// evaluations, among the projects entered in the child.
 
 import { calibrate } from "./calibration";
+import { rootOf } from "./scope";
 import { overallScore, rankByScore, scopedScore } from "./scoring";
 import type { ScoredEvaluation } from "./scoring";
 
@@ -41,7 +46,12 @@ export function computePlacements(input: {
   /** Which projects are in which challenge. */
   memberships: readonly { entryId: string; challengeId: string }[];
   /** Every challenge, in the order rankings should come out. */
-  challenges: readonly { id: string; label: string }[];
+  challenges: readonly {
+    id: string;
+    label: string;
+    /** The group it sits in; absent for a top-level challenge. */
+    parentId?: string | null;
+  }[];
   evaluations: readonly PlacementEvaluation[];
 }): ComputedPlacement[] {
   // Sorted so a tie keeps the same order from one compute to the next.
@@ -110,7 +120,14 @@ export function computePlacements(input: {
 
   const placements = rank(OVERALL_SCOPE, OVERALL_LABEL, entryIds, overallScore);
 
+  const tree = input.challenges.map((challenge) => ({
+    id: challenge.id,
+    parentId: challenge.parentId ?? null,
+    mode: "scheduled" as const,
+  }));
   for (const challenge of input.challenges) {
+    // Evaluations are stored against the root, whichever challenge is ranked.
+    const evaluated = rootOf(tree, challenge.id)?.id ?? challenge.id;
     const members = new Set(
       input.memberships
         .filter((membership) => membership.challengeId === challenge.id)
@@ -121,7 +138,7 @@ export function computePlacements(input: {
         challenge.id,
         challenge.label,
         entryIds.filter((id) => members.has(id)),
-        (evals) => scopedScore(evals, challenge.id),
+        (evals) => scopedScore(evals, evaluated),
       ),
     );
   }
