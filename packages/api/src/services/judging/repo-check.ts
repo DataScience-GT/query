@@ -39,13 +39,26 @@ export type RepoOne = {
   ref: RepoRef | null;
   pushedAt: Date | null;
   evidence: RepoEvidence | null;
+  /** Evidence that could not be fetched, as opposed to there being none. */
+  gaps?: ("commits" | "pushes")[];
+};
+
+/** What the repos of an entry looked like, before deciding late or not. */
+export type RepoFound = {
+  refs: readonly RepoRef[];
+  done: RepoOne[];
+  limited: boolean;
 };
 
 /**
  * An entry against the deadline: the repo that decided the outcome, and every
  * repo that was looked at.
  */
-export type RepoResult = RepoOne & { repos: RepoPart[] };
+export type RepoResult = RepoOne & {
+  repos: RepoPart[];
+  /** Per repo (lowercase owner/name), the evidence that could not be fetched. */
+  repoGaps?: Record<string, ("commits" | "pushes")[]>;
+};
 
 const MAX_REPOS = 3;
 
@@ -190,14 +203,20 @@ export class GithubClient {
 }
 
 
-/** Commits and pushes after the deadline. Context only; a failure leaves it short. */
+type EvidenceKind = "commits" | "pushes";
+
+/**
+ * Commits and pushes after the deadline. Context only. `gaps` names what could
+ * not be fetched, so a failure is not mistaken for there being nothing.
+ */
 async function gatherEvidence(
   client: GithubClient,
   ref: RepoRef,
   deadline: Date,
-): Promise<RepoEvidence> {
+): Promise<{ evidence: RepoEvidence; gaps: EvidenceKind[] }> {
   const base = `/repos/${ref.owner}/${ref.repo}`;
   const evidence: RepoEvidence = { commits: [], pushes: [] };
+  const gaps: EvidenceKind[] = [];
   try {
     const commits = await client.get(
       `${base}/commits?since=${encodeURIComponent(deadline.toISOString())}&per_page=${EVIDENCE_LIMIT}`,
@@ -214,9 +233,11 @@ async function gatherEvidence(
           url: text(c.html_url) ?? "",
         };
       });
+    } else {
+      gaps.push("commits");
     }
   } catch {
-    // Evidence is optional: pushed_at has already decided.
+    gaps.push("commits");
   }
   try {
     const events = await client.get(`${base}/events?per_page=100`);
@@ -233,16 +254,20 @@ async function gatherEvidence(
           ref: text(obj(e.payload).ref),
           pusher: text(obj(e.actor).login),
         }));
+    } else {
+      gaps.push("pushes");
     }
   } catch {
-    // Same.
+    gaps.push("pushes");
   }
-  return evidence;
+  return { evidence, gaps };
 }
 
 /**
  * One repo against the deadline. Throws RateLimited when GitHub says to stop;
- * any other failure to reach it is an `error`, tried again next run.
+ * any other failure to reach it is an `error`, tried again next run. Evidence
+ * is gathered for any push after the deadline itself, grace or not, so a grace
+ * changed while the run is in flight can still be applied to what it found.
  */
 export async function checkRepo(
   client: GithubClient,
@@ -266,32 +291,30 @@ export async function checkRepo(
   }
   // An empty repo has never been pushed to.
   const pushedAt = pushed ? new Date(pushed) : null;
-  if (!pushedAt || !isLate(pushedAt, deadline, graceMinutes)) {
+  if (!pushedAt || !isLate(pushedAt, deadline, 0)) {
     return { outcome: "ok", ref, pushedAt, evidence: null };
   }
+  const { evidence, gaps } = await gatherEvidence(client, ref, deadline);
   return {
-    outcome: "late",
+    outcome: isLate(pushedAt, deadline, graceMinutes) ? "late" : "ok",
     ref,
     pushedAt,
-    evidence: await gatherEvidence(client, ref, deadline),
+    evidence,
+    gaps,
   };
 }
 
 /**
- * Every repo an entry links to (at most three), one after the other. Late if
- * any of them is, with that repo's evidence; otherwise the worst thing that
- * happened (a rate limit or error, then an unreadable repo). Throws nothing:
- * a rate limit part way through ends the entry with what it has.
+ * Every repo an entry links to (at most three), one after the other, as found.
+ * Throws nothing: a rate limit part way through ends the entry with what it
+ * has.
  */
 export async function checkEntry(
   client: GithubClient,
   refs: readonly RepoRef[],
   deadline: Date,
   graceMinutes: number,
-): Promise<RepoResult> {
-  if (refs.length === 0) {
-    return { outcome: "no_repo", ref: null, pushedAt: null, evidence: null, repos: [] };
-  }
+): Promise<RepoFound> {
   const done: RepoOne[] = [];
   let limited = false;
   for (const ref of refs) {
@@ -303,6 +326,33 @@ export async function checkEntry(
       break;
     }
   }
+  return { refs, done, limited };
+}
+
+/**
+ * What an entry's repos come to against a deadline and grace. Late if any of
+ * them is, with that repo's evidence; otherwise the worst thing that happened
+ * (a rate limit or error, then an unreadable repo). Decided here, from the
+ * stored push times, so the run can apply the grace as it stands when it
+ * saves rather than as it was when it began.
+ */
+export function settle(
+  found: RepoFound,
+  deadline: Date,
+  graceMinutes: number,
+): RepoResult {
+  const { refs, limited } = found;
+  if (refs.length === 0) {
+    return { outcome: "no_repo", ref: null, pushedAt: null, evidence: null, repos: [] };
+  }
+  const done = found.done.map((one): RepoOne =>
+    one.pushedAt && (one.outcome === "ok" || one.outcome === "late")
+      ? {
+          ...one,
+          outcome: isLate(one.pushedAt, deadline, graceMinutes) ? "late" : "ok",
+        }
+      : one,
+  );
   const repos: RepoPart[] = done.map((one) => ({
     owner: one.ref!.owner,
     repo: one.ref!.repo,
@@ -310,6 +360,10 @@ export async function checkEntry(
     pushedAt: one.pushedAt?.toISOString() ?? null,
     evidence: one.evidence,
   }));
+  const repoGaps: NonNullable<RepoResult["repoGaps"]> = {};
+  for (const one of done) {
+    if (one.gaps?.length) repoGaps[repoKey(one.ref!)] = one.gaps;
+  }
 
   const late = done
     .filter((one) => one.outcome === "late")
@@ -324,9 +378,37 @@ export async function checkEntry(
         (a, b) => (b.pushedAt?.getTime() ?? 0) - (a.pushedAt?.getTime() ?? 0),
       )[0];
   if (primary && (primary.outcome === "late" || !limited)) {
-    return { ...primary, repos };
+    // An ok repo's evidence is kept in its part but is not the entry's.
+    const evidence = primary.outcome === "late" ? primary.evidence : null;
+    return { ...primary, evidence, repos, repoGaps };
   }
-  return { outcome: "error", ref: refs[0]!, pushedAt: null, evidence: null, repos };
+  return { outcome: "error", ref: refs[0]!, pushedAt: null, evidence: null, repos, repoGaps };
+}
+
+const repoKey = (ref: RepoRef) => `${ref.owner}/${ref.repo}`.toLowerCase();
+
+/**
+ * A late repo's evidence with what an earlier check held on to wherever this
+ * one could not fetch it or came back with nothing.
+ */
+function keepEvidence(
+  previous: RepoCheckRow["repos"],
+  result: RepoResult,
+): RepoPart[] {
+  return result.repos.map((part) => {
+    const before = previous?.find(
+      (p) => repoKey({ owner: p.owner, repo: p.repo }) === repoKey({ owner: part.owner, repo: part.repo }),
+    )?.evidence;
+    if (part.outcome !== "late" || !before) return part;
+    const now = part.evidence ?? { commits: [], pushes: [] };
+    const failed = result.repoGaps?.[repoKey({ owner: part.owner, repo: part.repo })] ?? [];
+    const pick = <K extends EvidenceKind>(kind: K) =>
+      failed.includes(kind) || now[kind].length === 0 ? before[kind] : now[kind];
+    return {
+      ...part,
+      evidence: { commits: pick("commits"), pushes: pick("pushes") },
+    };
+  });
 }
 
 /**
@@ -360,7 +442,13 @@ export function nextCheck(
     removedDeletedAt: existing?.removedDeletedAt ?? null,
   };
   if (existing?.decision === "pending" && existing.outcome === "late") {
-    if (result.outcome === "late") return fresh;
+    if (result.outcome === "late") {
+      const repos = keepEvidence(existing.repos, result);
+      const primary = repos.find(
+        (part) => result.ref && repoKey(part) === repoKey(result.ref),
+      );
+      return { ...fresh, repos, evidence: primary?.evidence ?? fresh.evidence };
+    }
     const { entryId: _entryId, hackathonId: _hackathonId, ...kept } = existing;
     return { ...kept, lastOutcome: result.outcome, checkedAt };
   }
@@ -463,16 +551,28 @@ export async function runRepoCheck(
       deps.token ?? (process.env.GITHUB_TOKEN || undefined),
     );
     await mapLimit(todo, MAX_IN_FLIGHT, async (entry) => {
-      const result = await checkEntry(
+      const found = await checkEntry(
         client,
         reposOfEntry(entry),
         deadline,
         config.graceMinutes,
       );
       // Under the edition lock the decision procedures take, and against the
-      // row as it is now: an organiser may have decided while GitHub answered.
+      // row and the grace as they are now: an organiser may have decided, or
+      // changed the grace, while GitHub answered.
       await db.transaction(async (tx) => {
         await lockEdition(tx, hackathonId);
+        const [latest] = await tx
+          .select({ graceMinutes: judgingConfigs.repoCheckGraceMinutes })
+          .from(judgingConfigs)
+          .where(eq(judgingConfigs.hackathonId, hackathonId))
+          .limit(1);
+        const base = await loadHackathonBaseTime(tx as unknown as DrizzleDB, hackathonId);
+        const result = settle(
+          found,
+          computeSubmissionWindow(base, now).closesAt,
+          latest?.graceMinutes ?? config.graceMinutes,
+        );
         const [current] = await tx
           .select()
           .from(judgingRepoChecks)

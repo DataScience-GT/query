@@ -15,6 +15,7 @@ import {
   repoCheckThrottle,
   reposOfEntry,
   runRepoCheck,
+  settle,
 } from "./repo-check";
 import type { RepoCheckRow, RepoResult } from "./repo-check";
 
@@ -280,6 +281,15 @@ describe("checkRepo", () => {
     expect(done.evidence!.pushes).toHaveLength(20);
   });
 
+  it("says which evidence could not be fetched", async () => {
+    const { result } = run([
+      ["/commits", { body: [] }],
+      ["/events", { status: 500 }],
+      ["/repos/team/app", repoReply("2026-02-09T00:00:00Z")],
+    ]);
+    await expect(result).resolves.toMatchObject({ gaps: ["pushes"] });
+  });
+
   it("is still late when the evidence cannot be fetched", async () => {
     const { result } = run([
       ["/commits", { status: 500 }],
@@ -407,9 +417,15 @@ describe("checkEntry", () => {
   ];
   const client = (rules: Parameters<typeof fakeFetch>[0]) =>
     new GithubClient(fakeFetch(rules).fn, undefined);
+  const check = async (
+    c: GithubClient,
+    list: typeof refs,
+    deadline: Date,
+    grace: number,
+  ) => settle(await checkEntry(c, list, deadline, grace), deadline, grace);
 
   it("flags the entry when any of its repos is late, with that repo's evidence", async () => {
-    const done = await checkEntry(
+    const done = await check(
       client([
         ["/repos/t/a", repoReply("2026-02-08T10:00:00Z")],
         ["/repos/t/b", repoReply("2026-02-08T13:00:00Z")],
@@ -432,22 +448,35 @@ describe("checkEntry", () => {
       ["/repos/t/a", repoReply("2026-02-08T10:00:00Z")],
       ["/repos/t/b", { status: 404 }],
     ];
-    expect((await checkEntry(client(rules), refs, DEADLINE, 0)).outcome).toBe(
+    expect((await check(client(rules), refs, DEADLINE, 0)).outcome).toBe(
       "unreadable",
     );
     rules[1] = ["/repos/t/b", repoReply("2026-02-08T11:00:00Z")];
-    expect((await checkEntry(client(rules), refs, DEADLINE, 0)).outcome).toBe("ok");
+    expect((await check(client(rules), refs, DEADLINE, 0)).outcome).toBe("ok");
+  });
+
+  it("applies the grace it is settled with, not the one it was fetched with", async () => {
+    const found = await checkEntry(
+      client([["/repos/t/a", repoReply("2026-02-08T12:30:00Z")]]),
+      [refs[0]!],
+      DEADLINE,
+      0,
+    );
+    expect(settle(found, DEADLINE, 0).outcome).toBe("late");
+    expect(settle(found, DEADLINE, 60).outcome).toBe("ok");
+    expect(settle(found, DEADLINE, 29).outcome).toBe("late");
+    expect(settle(found, DEADLINE, 30).outcome).toBe("ok");
   });
 
   it("has no repo to check without a link", async () => {
-    expect(await checkEntry(client([]), [], DEADLINE, 0)).toMatchObject({
+    expect(await check(client([]), [], DEADLINE, 0)).toMatchObject({
       outcome: "no_repo",
       repos: [],
     });
   });
 
   it("is an error when the rate limit hits before any repo is late", async () => {
-    const done = await checkEntry(
+    const done = await check(
       client([
         ["/repos/t/a", repoReply("2026-02-08T10:00:00Z")],
         ["/repos/t/b", { status: 429 }],
@@ -460,7 +489,7 @@ describe("checkEntry", () => {
   });
 
   it("still reports a late repo found before the rate limit", async () => {
-    const done = await checkEntry(
+    const done = await check(
       client([
         ["/commits", { status: 500 }],
         ["/events", { status: 500 }],
@@ -538,6 +567,84 @@ describe("nextCheck", () => {
         checkedAt,
       });
     }
+  });
+
+  describe("evidence of a pending late flag", () => {
+    const commit = (sha: string) => ({
+      sha,
+      message: sha,
+      author: "Ada",
+      committedAt: null,
+      url: "u",
+    });
+    const push = (at: string) => ({ at, ref: "r", pusher: "p" });
+    const held = {
+      commits: [commit("old")],
+      pushes: [push("2026-02-08T13:00:00Z")],
+    };
+    const part = (evidence: RepoResult["evidence"], pushedAt: string) => ({
+      owner: "team",
+      repo: "app",
+      outcome: "late" as const,
+      pushedAt,
+      evidence,
+    });
+    const flag = decided({
+      decision: "pending",
+      decidedAt: null,
+      evidence: held,
+      repos: [part(held, "2026-02-08T13:00:00.000Z")],
+    });
+    const later = new Date("2026-02-08T18:00:00Z");
+    const found = (
+      evidence: RepoResult["evidence"],
+      gaps: ("commits" | "pushes")[] = [],
+    ) =>
+      result({
+        pushedAt: later,
+        evidence,
+        repos: [part(evidence, later.toISOString())],
+        repoGaps: gaps.length ? { "team/app": gaps } : {},
+      });
+
+    it("keeps it, and takes the new push time, when the fetch failed", () => {
+      const row = nextCheck(
+        flag,
+        found({ commits: [], pushes: [] }, ["commits", "pushes"]),
+        checkedAt,
+      );
+      expect(row).toMatchObject({ outcome: "late", pushedAt: later });
+      expect(row!.evidence).toEqual(held);
+      expect(row!.repos![0]).toMatchObject({
+        pushedAt: later.toISOString(),
+        evidence: held,
+      });
+    });
+
+    it("keeps what an empty fetch lacks and takes what the other fetch found", () => {
+      const fresh = { commits: [commit("new")], pushes: [] };
+      const row = nextCheck(flag, found(fresh), checkedAt);
+      expect(row!.evidence).toEqual({
+        commits: [commit("new")],
+        pushes: held.pushes,
+      });
+    });
+
+    it("takes the new evidence when the fetch succeeded", () => {
+      const fresh = {
+        commits: [commit("new")],
+        pushes: [push("2026-02-08T18:00:00Z")],
+      };
+      expect(nextCheck(flag, found(fresh), checkedAt)!.evidence).toEqual(fresh);
+    });
+
+    it("keeps a failed side only where it failed", () => {
+      const fresh = { commits: [], pushes: [push("2026-02-08T18:00:00Z")] };
+      expect(nextCheck(flag, found(fresh, ["commits"]), checkedAt)!.evidence).toEqual({
+        commits: held.commits,
+        pushes: fresh.pushes,
+      });
+    });
   });
 
   it("replaces a pending late flag with a newer late one", () => {
@@ -845,6 +952,21 @@ describe("runRepoCheck", () => {
     const rows = written(writes);
     expect(rows.has("e1")).toBe(false);
     expect(rows.get("e2")).toMatchObject({ outcome: "late", decision: "pending" });
+  });
+
+  it("settles against the grace as it is when the result is saved", async () => {
+    const config = { graceMinutes: 0 };
+    const { db, writes } = fakeDb({
+      config,
+      entries: [entryRow("e1", "https://github.com/t/a")],
+    });
+    // 30 minutes after the deadline; an organiser allows an hour meanwhile.
+    const fetchFn = vi.fn(async () => {
+      config.graceMinutes = 60;
+      return new Response(JSON.stringify({ pushed_at: "2026-02-08T12:30:00Z" }));
+    }) as unknown as typeof fetch;
+    await runRepoCheck(db, HACK, { fetchFn });
+    expect(written(writes).get("e1")).toMatchObject({ outcome: "ok" });
   });
 
   it("checks the longest unchecked first", async () => {
