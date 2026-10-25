@@ -8,6 +8,7 @@ import { judgingConfigs, judgingEntries, judgingRepoChecks } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { isAdmin } from "../../../middleware/procedures";
 import { recordAdminAction } from "../../../middleware/audit";
+import { lockEdition } from "../../../services/judging/challenges";
 import {
   assertHackathonExists,
   ensureJudgingConfig,
@@ -124,34 +125,39 @@ export const repoCheckProcedures = {
       const db = ctx.db as DrizzleDB;
       await assertHackathonExists(db, input.hackathonId);
       await ensureJudgingConfig(db, input.hackathonId);
-      // Flags not yet decided were worked out with the old grace; they are
-      // checked afresh. Decided ones, and ones whose project is out, stay.
-      if (input.graceMinutes !== undefined) {
-        await db
-          .delete(judgingRepoChecks)
-          .where(
-            and(
-              eq(judgingRepoChecks.hackathonId, input.hackathonId),
-              eq(judgingRepoChecks.decision, "pending"),
-              eq(judgingRepoChecks.removedEntry, false),
-            ),
-          );
-      }
-      await db
-        .update(judgingConfigs)
-        .set({
-          ...(input.enabled !== undefined && {
-            repoCheckEnabled: input.enabled,
-          }),
-          ...(input.graceMinutes !== undefined && {
-            repoCheckGraceMinutes: input.graceMinutes,
-          }),
-          // Due at once; the throttle here would otherwise hold a new setting
-          // back for up to 15 minutes.
-          repoCheckLastRunAt: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(judgingConfigs.hackathonId, input.hackathonId));
+      // Under the edition lock, as a run's saves are: a run in flight then
+      // settles what it found against the new grace, not the old one.
+      await db.transaction(async (tx) => {
+        await lockEdition(tx, input.hackathonId);
+        // Flags not yet decided were worked out with the old grace; they are
+        // checked afresh. Decided ones, and ones whose project is out, stay.
+        if (input.graceMinutes !== undefined) {
+          await tx
+            .delete(judgingRepoChecks)
+            .where(
+              and(
+                eq(judgingRepoChecks.hackathonId, input.hackathonId),
+                eq(judgingRepoChecks.decision, "pending"),
+                eq(judgingRepoChecks.removedEntry, false),
+              ),
+            );
+        }
+        await tx
+          .update(judgingConfigs)
+          .set({
+            ...(input.enabled !== undefined && {
+              repoCheckEnabled: input.enabled,
+            }),
+            ...(input.graceMinutes !== undefined && {
+              repoCheckGraceMinutes: input.graceMinutes,
+            }),
+            // Due at once; the throttle here would otherwise hold a new
+            // setting back for up to 15 minutes.
+            repoCheckLastRunAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(judgingConfigs.hackathonId, input.hackathonId));
+      });
       repoCheckThrottle.delete(input.hackathonId);
       await recordAdminAction(db, {
         userId: ctx.userId,
