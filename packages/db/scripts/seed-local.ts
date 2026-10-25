@@ -254,7 +254,11 @@ async function main() {
       registrationDeadline: new Date(now.getTime() - 7 * DAY),
       hackingStartTime: new Date(now.getTime() - DAY),
       maxParticipants: 300,
-      currentParticipants: HACKERS.length,
+      // Seats are held by approved and checked-in rows only, as
+      // syncCurrentParticipants counts them.
+      currentParticipants: HACKERS.filter(
+        (h) => h.status === "approved" || h.status === "checked_in",
+      ).length,
       status: "in_progress",
       theme: "Data for good",
       tracks: ["Healthcare", "Sports", "Finance"],
