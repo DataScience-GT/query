@@ -308,15 +308,17 @@ body {
   50%      { visibility: visible; opacity: 0.75; }
 }
 
-/* Sprites bake their colours, so each layer is drawn twice (night, day) and
-   the theme picks one. Same selectors as the tokens above; display:none on the
-   other keeps the layout and the animations on the visible copy. */
-.px-light { display: none; }
-:root[data-theme="light"] .px-dark { display: none; }
-:root[data-theme="light"] .px-light { display: block; }
+/* Sprites bake their colours, so each plant is drawn twice (night, day) and
+   the theme picks one. Same selectors as the tokens above. Opacity rather than
+   display: display:none would restart the bloom animations on a theme change,
+   and the layers' own visibility keyframes cannot override a parent's
+   opacity. */
+.px-light { opacity: 0; }
+:root[data-theme="light"] .px-dark { opacity: 0; }
+:root[data-theme="light"] .px-light { opacity: 1; }
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .px-dark { display: none; }
-  :root:not([data-theme="dark"]) .px-light { display: block; }
+  :root:not([data-theme="dark"]) .px-dark { opacity: 0; }
+  :root:not([data-theme="dark"]) .px-light { opacity: 1; }
 }
 
 /* A planted flower past the bed's cap sinks back into the soil, row by row. */
