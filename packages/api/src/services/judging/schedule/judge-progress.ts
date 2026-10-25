@@ -1,4 +1,5 @@
 import { DEADLINE_GRACE_MS, takeoverAt } from "../timing";
+import type { SlotMinutes } from "../timing";
 import { belongsTo } from "./board";
 
 // How far the judge assigned to a presentation has got, for the organiser's
@@ -37,6 +38,8 @@ export function judgeProgress(
     /** The presentation's deadline: judging for it ends here. */
     deadlineAt: Date;
     assignedJudgeId: string | null;
+    /** The schedule's minutes, which set the takeover time (timing.ts). */
+    slot?: SlotMinutes;
     /** Judges who submitted an evaluation of the presentation. */
     evaluations: readonly Started[];
     /** Judges with a draft of it open. */
@@ -66,7 +69,7 @@ export function judgeProgress(
   if (holder)
     return holder.judgeId === assignedJudgeId ? "grading" : "taken_over";
 
-  return now >= takeoverAt(input.startsAt) ? "not_started" : null;
+  return now >= takeoverAt(input.startsAt, input.slot) ? "not_started" : null;
 }
 
 type Booked = {
@@ -95,6 +98,7 @@ export function judgeProgressById(
   drafts: readonly (Row & Draft)[],
   rootIdOf: (challengeId: string) => string | null,
   now: Date,
+  slot?: SlotMinutes,
 ): Map<string, JudgeProgress> {
   const byEntry = <T extends Row>(rows: readonly T[]) => {
     const map = new Map<string, T[]>();
@@ -119,6 +123,7 @@ export function judgeProgressById(
         startsAt: appointment.startsAt,
         deadlineAt: appointment.deadlineAt,
         assignedJudgeId: appointment.assignedJudgeId,
+        slot,
         evaluations: mine(evaluationsOf),
         drafts: mine(draftsOf),
       },

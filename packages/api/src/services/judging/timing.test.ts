@@ -175,6 +175,22 @@ describe("TAKEOVER_AFTER_MS", () => {
     expect(TAKEOVER_AFTER_MS).toBe(5 * 60_000);
     expect(takeoverAt(startsAt)).toEqual(new Date("2027-02-08T15:05:00Z"));
   });
+
+  it("is capped by setup plus half the judging time in a short slot", () => {
+    const defaults = { setupMinutes: 2, judgingMinutes: 6 };
+    expect(takeoverAt(startsAt, defaults)).toEqual(
+      new Date("2027-02-08T15:05:00Z"),
+    );
+    // 2 + 3 minutes: the deadline is 5 minutes in, so a fixed 5 never opens.
+    const short = { setupMinutes: 2, judgingMinutes: 3 };
+    expect(takeoverAt(startsAt, short)).toEqual(
+      new Date("2027-02-08T15:03:30Z"),
+    );
+    const assigned = { startsAt, assignedJudgeId: "judge-b", slot: short };
+    expect(
+      reservedUntil(assigned, "judge-a", new Date("2027-02-08T15:03:30Z")),
+    ).toBeNull();
+  });
 });
 
 describe("reservedUntil", () => {
