@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * One entry point for the local test environment.
  *

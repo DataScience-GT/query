@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Refuses to run a command that could touch production from a dev machine.
  *
@@ -81,10 +80,9 @@ export function violations(env, checks = ["db", "stripe", "email"]) {
   return problems;
 }
 
-// Minimal KEY=VALUE reader for the root .env; a variable already in the
+// Minimal KEY=VALUE reader for an env file; a variable already in the
 // environment wins, as with dotenv.
-function readRootEnv(root) {
-  const file = resolve(root, ".env");
+function readEnvFile(file) {
   if (!existsSync(file)) return {};
   const out = {};
   for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
@@ -103,8 +101,16 @@ if (
 ) {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const flags = process.argv.slice(2).map((arg) => arg.replace(/^--/, ""));
+  // The web app's own env files too: Next.js reads them, and .env.local wins
+  // over .env there, so a live key set only in .env.local must be caught.
+  const web = resolve(root, "sites/mainweb");
   const problems = violations(
-    { ...readRootEnv(root), ...process.env },
+    {
+      ...readEnvFile(resolve(root, ".env")),
+      ...readEnvFile(resolve(web, ".env")),
+      ...readEnvFile(resolve(web, ".env.local")),
+      ...process.env,
+    },
     flags.length ? flags : undefined,
   );
 
