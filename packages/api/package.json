@@ -40,7 +40,7 @@
     "sanitize-html": "2.18.1",
     "stripe": "^23.0.0",
     "superjson": "2.2.6",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
