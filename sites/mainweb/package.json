@@ -28,7 +28,7 @@
     "@yudiel/react-qr-scanner": "^2.6.0",
     "archiver": "^8.0.0",
     "chart.js": "^4.5.1",
-    "drizzle-orm": "0.45.3",
+    "drizzle-orm": "0.45.4",
     "geist": "^1.7.2",
     "lucide-react": "^1.48.0",
     "minimatch": "10.2.6",
