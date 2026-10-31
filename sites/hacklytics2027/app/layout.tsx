@@ -1,41 +1,28 @@
+import "./fonts.generated.css";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { Instrument_Sans, Silkscreen } from "next/font/google";
+import { preload } from "react-dom";
 import Navbar from "../components/Navbar";
 import ServiceWorkerRegistrar from "../components/ServiceWorkerRegistrar";
+import ThemeScript from "../components/ThemeScript";
 import Footer from "../components/Footer";
+import { FONT_PRELOADS } from "../lib/fonts.generated";
 import { INTEREST_URL } from "../lib/links";
+import { GROUND } from "../lib/theme";
 
-// Text and UI.
-const instrumentSans = Instrument_Sans({
-  subsets: ["latin"],
-  variable: "--font-instrument",
-});
+// Fonts: Instrument Sans for text and UI, Silkscreen for display type (hero,
+// section titles, track names, countdown). Silkscreen has one weight, so
+// nothing sets it bold: a synthesized bold smears the pixel cells. Both come
+// from scripts/subset-fonts.py, which says when to rerun it.
 
-// Pixel face: the display type (hero, section titles, track names, countdown)
-// and the kickers. Loaded at 400 only, so nothing sets it bold: a synthesized
-// bold smears the pixel cells.
-const silkscreen = Silkscreen({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-silkscreen",
-});
-
-// --ground in globals.css, per theme. The browser bar follows the device
-// setting by default; ThemeToggle repeats these when a choice is made.
-const ground = { light: "#f1f4f6", dark: "#0e0f13" };
-
+// The browser bar follows the device setting by default; ThemeToggle repeats
+// these when a choice is made.
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: ground.light },
-    { media: "(prefers-color-scheme: dark)", color: ground.dark },
+    { media: "(prefers-color-scheme: light)", color: GROUND.light },
+    { media: "(prefers-color-scheme: dark)", color: GROUND.dark },
   ],
 };
-
-// Runs before first paint so a saved light/dark choice never flashes the
-// other theme, and points the theme-color metas at it so the bar matches the
-// page. Kept tiny and dependency-free; the key matches ThemeToggle.
-const themeScript = `try{var t=localStorage.getItem("hl-theme");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=t==="light"?"${ground.light}":"${ground.dark}"})}}catch(e){}`;
 
 export const metadata: Metadata = {
   title: "Hacklytics 2027: Digital Bloom · Data Science Hackathon at Georgia Tech",
@@ -66,11 +53,13 @@ export const metadata: Metadata = {
     images: ["/og-image.jpg"],
     creator: "@datasciencegt",
   },
-  icons: { icon: "/favicon.ico", apple: "/apple-icon.png" },
   metadataBase: new URL("https://hacklytics.io"),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // preload(), not a <link>: Next and React each emit a <link> in <head>.
+  FONT_PRELOADS.forEach((href) => preload(href, { as: "font", type: "font/woff2", crossOrigin: "" }));
+
   // JSON-LD structured data for SEO Event Schema
   const jsonLd = {
     "@context": "https://schema.org",
@@ -116,18 +105,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    // Font variables go on <html>, not <body>: the theme tokens in
-    // globals.css (--font-display etc.) are declared on :root and resolve there.
-    <html
-      lang="en"
-      className={`${instrumentSans.variable} ${silkscreen.variable}`}
-      suppressHydrationWarning
-    >
+    // data-scroll-behavior: route changes jump, and only in-page links glide.
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <ThemeScript />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
         />
       </head>
       <body

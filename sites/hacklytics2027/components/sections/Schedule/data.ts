@@ -1,7 +1,7 @@
 export interface BoardEvent {
   when: string;
   event: string;
-  /** Set in semibold: the two times the weekend turns on. */
+  /** Set in medium: the two times the weekend turns on. */
   accent?: boolean;
 }
 

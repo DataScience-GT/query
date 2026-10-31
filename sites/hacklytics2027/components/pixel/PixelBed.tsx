@@ -3,19 +3,19 @@
 import React, { useRef, useState, useSyncExternalStore } from "react";
 import { BloomSprite } from "./PixelSprite";
 import { useBloomInView } from "./useInView";
-import { BUD, DAISY, MUSHROOM, TULIP } from "./sprites";
+import type { Plant } from "./beds";
+import { BUD, DAISY, TULIP } from "./sprites";
 import type { SpriteMap } from "./sprites";
-
-export type Plant = { map: SpriteMap; scale: number; blooms?: boolean; flip?: boolean };
 
 /**
  * Beds run edge to edge and show more plants the wider the screen: every
- * fourth on phones, every other from md, all of them from xl. Spread with
- * justify-around, so each tier looks composed on its own. --step keeps the
+ * fourth on phones, every other from md, all of them from xl. Each plant is
+ * centred in an equal cell and may overhang it, so a big bed crowds together
+ * like a garden instead of pushing plants off the edge. --step keeps the
  * visible neighbours 80ms apart in the bloom wave at every tier.
  */
 const tierClass = (i: number) =>
-  i % 4 === 0 ? "inline-block" : i % 2 === 0 ? "hidden md:inline-block" : "hidden xl:inline-block";
+  i % 4 === 0 ? "flex" : i % 2 === 0 ? "hidden md:flex" : "hidden xl:flex";
 const BED_STEP = "[--step:20ms] md:[--step:40ms] xl:[--step:80ms]";
 
 /* Planting: what can be planted, how big, and how many a bed keeps. */
@@ -45,6 +45,9 @@ export function PixelBed({
   plantable = false,
   hint = false,
   caption,
+  big = false,
+  gap,
+  heading,
 }: {
   plants: Plant[];
   /** Extra classes for the row of plants. */
@@ -54,10 +57,18 @@ export function PixelBed({
   plantable?: boolean;
   /** Show the one-time "Click the soil" hint (hides after the first plant). */
   hint?: boolean;
-  /** Small meta line under the bed, from xl up (where every plant shows). */
+  /** Small meta line under the bed. */
   caption?: string;
+  /** Twice the size from sm up. */
+  big?: boolean;
+  /** Classes for a clear space across the middle of the bed: its display and
+   *  width. Nothing grows there, and a flower planted in it moves to the edge. */
+  gap?: string;
+  /** Sits under the soil, before the hint. */
+  heading?: React.ReactNode;
 }) {
   const ref = useBloomInView<HTMLDivElement>();
+  const gapRef = useRef<HTMLSpanElement>(null);
   const [planted, setPlanted] = useState<Planted[]>([]);
   const [hasPlanted, setHasPlanted] = useState(false);
   const nextId = useRef(0);
@@ -75,9 +86,18 @@ export function PixelBed({
     bed.dataset.bloom = "on";
 
     const map = PLANTABLE[Math.floor(Math.random() * PLANTABLE.length)];
-    const w = Math.max(...map.map((r) => r.length)) * PLANT_SCALE;
+    const cell = PLANT_SCALE * (Number(getComputedStyle(bed).getPropertyValue("--bed")) || 1);
+    const w = Math.max(...map.map((r) => r.length)) * cell;
     const centred = Math.min(bed.clientWidth - w, Math.max(0, x - w / 2));
-    const left = Math.round(centred / PLANT_SCALE) * PLANT_SCALE;
+    let left = Math.round(centred / cell) * cell;
+    const clear = gapRef.current;
+    if (clear?.offsetWidth) {
+      const start = clear.offsetLeft;
+      const end = start + clear.offsetWidth;
+      if (left + w > start && left < end) {
+        left = left + w / 2 < start + clear.offsetWidth / 2 ? start - w : end;
+      }
+    }
     const fresh = { id: nextId.current++, left, map, flip: Math.random() < 0.5, wilting: false };
 
     let next = [...planted, fresh];
@@ -104,31 +124,38 @@ export function PixelBed({
     <div
       ref={ref}
       data-bloom="off"
-      data-anim="running"
       aria-hidden="true"
       onClick={plantable ? onBedClick : undefined}
-      className={`relative w-full flex items-end justify-around overflow-x-clip overflow-y-visible select-none ${BED_STEP} ${
-        plantable ? "cursor-pointer" : "pointer-events-none"
-      } ${className}`}
+      className={`relative w-full flex items-end overflow-x-clip overflow-y-visible select-none ${BED_STEP} ${
+        big ? "[--bed:1] sm:[--bed:2]" : ""
+      } ${plantable ? "cursor-pointer" : "pointer-events-none"} ${className}`}
     >
       {plants.map((p, i) => (
-        <BloomSprite
-          key={i}
-          map={p.map}
-          scale={p.scale}
-          blooms={p.blooms}
-          flip={p.flip}
-          index={i}
-          className={tierClass(i)}
-        />
+        <React.Fragment key={i}>
+          {gap && i === plants.length / 2 && (
+            <span ref={gapRef} className={`shrink-0 ${gap}`} />
+          )}
+          {/* A gap splits the phone tier 3 and 2, so the odd plant out goes. */}
+          <span
+            className={`${gap && i === 8 ? "hidden md:flex" : tierClass(i)} min-w-0 flex-1 basis-0 items-end justify-center`}
+          >
+            <BloomSprite
+              map={p.map}
+              scale={p.scale}
+              blooms={p.blooms}
+              flip={p.flip}
+              index={i}
+            />
+          </span>
+        </React.Fragment>
       ))}
       {planted.map((p) => (
         <span
           key={p.id}
-          className={`absolute bottom-0 ${p.wilting ? "flower-wilt" : ""}`}
+          className={`absolute bottom-0 flex ${p.wilting ? "flower-wilt" : ""}`}
           style={{ left: p.left }}
         >
-          <BloomSprite map={p.map} scale={PLANT_SCALE} blooms flip={p.flip} phase={p.id * 1373} />
+          <BloomSprite map={p.map} scale={PLANT_SCALE} blooms flip={p.flip} />
         </span>
       ))}
     </div>
@@ -148,19 +175,22 @@ export function PixelBed({
     <>
       {soil ? <div className="border-b border-rule">{row}</div> : row}
       {hint || caption ? (
-        <div className="wrap flex items-baseline justify-between gap-6 pt-3 font-sans text-[13px] text-ink-3">
-          {hint && (
-            <span
-              aria-hidden="true"
-              className={`transition-opacity duration-700 motion-reduce:transition-none ${
-                hasPlanted ? "opacity-0" : ""
-              }`}
-            >
-              {touch ? "Tap" : "Click"} the soil to plant one.
-            </span>
-          )}
+        <div className="wrap flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-x-6 gap-y-1 pt-3 font-sans text-[13px] text-ink-3">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            {heading}
+            {hint && (
+              <span
+                aria-hidden="true"
+                className={`transition-opacity duration-300 ease-(--ease) motion-reduce:transition-none ${
+                  hasPlanted ? "opacity-0" : ""
+                }`}
+              >
+                {touch ? "Tap" : "Click"} the soil to plant one
+              </span>
+            )}
+          </div>
           {button}
-          {caption && <span className="hidden xl:inline ml-auto text-right">{caption}</span>}
+          {caption && <span className="sm:text-right">{caption}</span>}
         </div>
       ) : (
         <div className="wrap">{button}</div>
@@ -168,51 +198,3 @@ export function PixelBed({
     </>
   );
 }
-
-/* Deterministic: the same bed on the server and the client. */
-const MAPS = [TULIP, DAISY, BUD, DAISY, TULIP, MUSHROOM, DAISY, TULIP];
-
-/** Plants in a full bed (the xl tier); phones show a quarter of them. */
-export const BED_SIZE = 20;
-
-/** A bed of BED_SIZE dormant plants. Choose which bloom with bloomSet. */
-export function plantBed(seed = 0): Plant[] {
-  return Array.from({ length: BED_SIZE }, (_, i) => {
-    const n = (seed * 7 + i * 5) % 13;
-    return {
-      map: MAPS[(i + seed) % MAPS.length],
-      scale: 4 + (n % 3),
-      flip: n % 2 === 1,
-    };
-  });
-}
-
-/** `n` items of `list`, spread evenly across it. */
-const spread = <T,>(list: T[], n: number) =>
-  Array.from({ length: n }, (_, k) => list[Math.floor(((k + 0.5) * list.length) / n)]);
-
-/**
- * Which `n` plants of a bed bloom: evenly spaced, and filled tier by tier
- * (phone tier first), so a bed with only a few in bloom still shows them on
- * a phone, and every tier looks composed rather than random.
- */
-export function bloomSet(n: number, total = BED_SIZE): Set<number> {
-  const all = Array.from({ length: total }, (_, i) => i);
-  const tiers = [
-    all.filter((i) => i % 4 === 0),
-    all.filter((i) => i % 4 === 2),
-    all.filter((i) => i % 2 === 1),
-  ];
-  const picked: number[] = [];
-  let left = Math.min(n, total);
-  for (const tier of tiers) {
-    const take = Math.min(left, tier.length);
-    picked.push(...spread(tier, take));
-    left -= take;
-  }
-  return new Set(picked);
-}
-
-/** Mark the plants in `set` as blooming. */
-export const withBlooms = (plants: Plant[], set: Set<number>): Plant[] =>
-  plants.map((p, i) => ({ ...p, blooms: set.has(i) }));

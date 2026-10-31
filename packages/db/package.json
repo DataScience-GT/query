@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@t3-oss/env-nextjs": "0.13.11",
-    "drizzle-orm": "0.45.3",
+    "drizzle-orm": "0.45.4",
     "next-auth": "5.0.0-beta.32",
     "pg": "8.23.0",
     "postgres": "3.4.9",

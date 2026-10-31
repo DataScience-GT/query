@@ -15,7 +15,7 @@
   "dependencies": {
     "@auth/drizzle-adapter": "1.11.3",
     "@query/db": "workspace:*",
-    "drizzle-orm": "0.45.3",
+    "drizzle-orm": "0.45.4",
     "next-auth": "5.0.0-beta.32",
     "nodemailer": "^10.1.4"
   },
