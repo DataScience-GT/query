@@ -52,9 +52,9 @@ let probe: { env: string; command: Command | null } | undefined;
  */
 function cpsatCommand(): Command | null {
   // Settings of the running server; nothing turbo builds depends on them.
-  // eslint-disable-next-line turbo/no-undeclared-env-vars
+  // oxlint-disable-next-line turbo/no-undeclared-env-vars
   const python = process.env.JUDGING_CPSAT_PYTHON?.trim() ?? "";
-  // eslint-disable-next-line turbo/no-undeclared-env-vars
+  // oxlint-disable-next-line turbo/no-undeclared-env-vars
   const configured = process.env.JUDGING_CPSAT_SCRIPT?.trim() ?? "";
   const env = `${python}\n${configured}`;
   if (probe?.env !== env) {

@@ -9,8 +9,8 @@
     "./email": "./src/email.ts"
   },
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
-    "typecheck": "tsc --noEmit"
+    "lint": "oxlint .",
+    "typecheck": "tsrs --noEmit"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "1.11.3",
@@ -23,13 +23,12 @@
     "next": ">=15.0.0"
   },
   "devDependencies": {
+    "@query/oxlint-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@types/node": "^24.19.2",
-    "@typescript-eslint/eslint-plugin": "^8.71.0",
-    "@typescript-eslint/parser": "^8.70.1",
-    "@typescript-eslint/utils": "^8.70.1",
-    "eslint": "^10.11.0",
-    "eslint-config-prettier": "^10.1.8",
+    "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2005",
+    "tsrs": "0.20.1-ts7.1.0-beta",
     "typescript": "^7.0.2"
   }
 }

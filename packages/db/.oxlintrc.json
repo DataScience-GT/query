@@ -1,0 +1,14 @@
+{
+  "extends": ["../../tooling/oxlint/base.json"],
+  "ignorePatterns": ["**/*.config.*", "drizzle/**"],
+  "overrides": [
+    {
+      "files": ["scripts/**"],
+      "rules": {
+        "no-console": "off",
+        "typescript/no-non-null-assertion": "off",
+        "turbo/no-undeclared-env-vars": "off"
+      }
+    }
+  ]
+}

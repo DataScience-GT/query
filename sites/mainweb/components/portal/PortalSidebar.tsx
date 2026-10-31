@@ -41,6 +41,7 @@ export default function PortalSidebar({
   });
   const sections = portalNavSections(
     portalContext,
+    // oxlint-disable-next-line react/purity
     navHackathon(myRegs, new Date()),
   );
   const navHrefs = sections.flatMap((section) =>

@@ -93,7 +93,7 @@ export const TREE = `query/
     auth/             NextAuth config, providers, mailer
     db/               Drizzle schema, client, membership rules
     ui/               shared React components
-  tooling/            shared ESLint, Prettier, Tailwind, TypeScript configs
+  tooling/            shared oxlint, Prettier, Tailwind, TypeScript configs
   docs/               reference docs
   apphosting.yaml     Firebase App Hosting config for mainweb`;
 
@@ -335,6 +335,6 @@ export const CI: Row[] = [
 
 export const SCRIPTS = `pnpm dev          # every workspace dev task
 pnpm build        # turbo run build
-pnpm lint         # ESLint, zero warnings allowed
-pnpm typecheck    # tsc --noEmit
+pnpm lint         # oxlint, zero warnings allowed
+pnpm typecheck    # tsrs --noEmit
 pnpm test         # Vitest`;

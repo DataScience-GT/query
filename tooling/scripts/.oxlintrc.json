@@ -1,0 +1,8 @@
+{
+  "extends": ["../oxlint/base.json"],
+  "ignorePatterns": ["**/*.config.*"],
+  "rules": {
+    "no-console": "off",
+    "turbo/no-undeclared-env-vars": "off"
+  }
+}

@@ -22,7 +22,7 @@ Member-facing overview — what it is, what members use, current status, and how
 | `packages/auth` | `@query/auth` | NextAuth (Google, GitHub, email codes) |
 | `packages/db` | `@query/db` | Drizzle schema, client, membership rules |
 | `packages/ui` | `@query/ui` | Shared React components |
-| `tooling/*` | `@query/eslint-config`, `@query/prettier-config`, `@query/tailwind-config`, `@query/tsconfig` | Shared configs |
+| `tooling/*` | `@query/oxlint-config`, `@query/prettier-config`, `@query/tailwind-config`, `@query/tsconfig` | Shared configs |
 
 ## How it fits together
 

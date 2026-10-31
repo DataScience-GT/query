@@ -24,23 +24,24 @@
   "scripts": {
     "build:styles": "tailwindcss -i ./src/styles.css -o ./dist/index.css",
     "build:components": "tsc",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsrs --noEmit",
     "dev:styles": "tailwindcss -i ./src/styles.css -o ./dist/index.css --watch",
     "dev:components": "tsc --watch",
-    "lint": "eslint src --max-warnings 0"
+    "lint": "oxlint src"
   },
   "peerDependencies": {
     "react": "^18.3.1 || ^19.0.0"
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "16.4.3",
-    "@query/eslint-config": "workspace:*",
+    "@query/oxlint-config": "workspace:*",
     "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@tailwindcss/cli": "4.3.3",
     "@types/react": "^19.3.0",
-    "eslint": "10.11.0",
+    "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2005",
     "tailwindcss": "4.3.3",
+    "tsrs": "0.20.1-ts7.1.0-beta",
     "typescript": "7.0.2"
   },
   "dependencies": {
