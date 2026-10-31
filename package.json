@@ -31,7 +31,6 @@
       "postcss": "^8.5.23",
       "esbuild": "^0.25.12",
       "ws": "^8.20.1",
-      "@eslint/plugin-kit": "^0.3.4",
       "@auth/core": "^0.41.3",
       "@grpc/grpc-js": "^1.14.4",
       "websocket-driver": "^0.7.5",

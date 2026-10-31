@@ -140,7 +140,7 @@ export const judgeAdminRouter = createTRPCRouter({
         } catch (error) {
           // Deliberate operational logging: the judge stands and this is the only
           // record that the notice did not go out.
-          // eslint-disable-next-line no-console
+          // oxlint-disable-next-line no-console
           console.error(
             `[Email Service] Judge added notice failed for user ${user.id}:`,
             error,
@@ -220,7 +220,7 @@ export const judgeAdminRouter = createTRPCRouter({
         } catch (error) {
           // Deliberate operational logging: the approval stands and this is the only
           // record that the notice did not go out.
-          // eslint-disable-next-line no-console
+          // oxlint-disable-next-line no-console
           console.error(
             `[Email Service] Judge approval notice failed for judge ${input.judgeId}:`,
             error,

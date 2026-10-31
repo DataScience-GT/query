@@ -6,7 +6,7 @@ const packagesToRestore = [
   "@query/auth",
   "@query/db",
   "@query/ui",
-  "@query/eslint-config",
+  "@query/oxlint-config",
   "@query/prettier-config",
   "@query/tailwind-config",
   "@query/tsconfig",
