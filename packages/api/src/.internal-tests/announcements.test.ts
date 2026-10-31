@@ -430,11 +430,14 @@ describe("Announcements", () => {
       ]);
       mockSelectRows.mockReturnValue([{ count: 0 }]);
       mockSendAnnouncement.mockRejectedValueOnce(new Error("550 rejected"));
+      const logged = vi.spyOn(console, "error").mockImplementation(() => {});
 
       const res = await callerFor(ADMIN).hackathon.sendBatch({
         announcementId: ANNOUNCEMENT,
       });
 
+      expect(logged).toHaveBeenCalled();
+      logged.mockRestore();
       expect(res.sent).toBe(1);
       expect(res.failed).toEqual(["bounces@example.com"]);
       const stamped = mockUpdate.mock.calls.slice(1).map((c) => c[2][0]);
