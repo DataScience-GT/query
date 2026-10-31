@@ -1,11 +1,11 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
+import { preload } from "react-dom";
+import "./fonts.generated.css";
 import "./globals.css";
+import { FONT_PRELOADS } from "@/lib/fonts.generated";
 
-const geistSansVar = GeistSans.variable;
-const geistMonoVar = GeistMono.variable;
+// Geist comes from scripts/subset-fonts.py, which says when to rerun it.
 
 export const metadata: Metadata = {
   // Without this, every relative OG image resolves against nothing and social
@@ -65,14 +65,15 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // preload(), not a <link>: Next and React each emit a <link> in <head>.
+  FONT_PRELOADS.root.forEach((href) =>
+    preload(href, { as: "font", type: "font/woff2", crossOrigin: "" }),
+  );
+
   return (
     // suppressHydrationWarning on <html>: next-themes writes the theme class
     // here before hydration, so the server markup never matches.
-    <html
-      lang="en"
-      className={`${geistSansVar} ${geistMonoVar}`}
-      suppressHydrationWarning
-    >
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased bg-[#050505] text-gray-400">
         {/* Identifies the publisher behind every page, which is what a crawler
             needs before it will attribute an event to an organisation. */}
