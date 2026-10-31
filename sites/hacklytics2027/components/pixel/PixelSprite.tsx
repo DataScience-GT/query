@@ -34,7 +34,14 @@ export function PixelImage({
       height={h * scale}
       decoding="async"
       className={className}
-      style={{ imageRendering: "pixelated", ...style }}
+      style={{
+        imageRendering: "pixelated",
+        // A bed sets --bed to double its plants. Always a whole number, so a
+        // sprite pixel stays a whole number of screen pixels.
+        width: `calc(${w * scale}px * var(--bed, 1))`,
+        height: `calc(${h * scale}px * var(--bed, 1))`,
+        ...style,
+      }}
     />
   );
 }
@@ -76,8 +83,6 @@ function BothThemes({ draw }: { draw: (theme: Theme) => React.ReactNode }) {
 /** Per-row growth speed of a stem, and how long the grey bud holds. */
 const ROW_MS = 40;
 const BUD_MS = 220;
-const FLASH_MS = 120;
-const BREATHE_MS = 4000;
 
 /** First row with a stem pixel; the sprite's height if it has none. */
 function stemTop(map: SpriteMap) {
@@ -89,10 +94,10 @@ const ms = (n: number) => `${Math.round(n)}ms`;
 
 /**
  * One plant in a bed. A dormant one is a single grey image. One that blooms
- * is four stacked copies (stem, grey bud, neon halo, pink head), each drawn in the night and the day colours that the
- * stylesheet plays in order once the bed's data-bloom is "on": the stem grows
- * row by row, the bud appears, then pops open pink with a neon flash, and the
- * halo breathes. The timings are computed here and handed over as custom
+ * is three stacked copies (stem, grey bud, pink head), each drawn in the night
+ * and the day colours, that the stylesheet plays in order once the bed's
+ * data-bloom is "on": the stem grows row by row, the bud appears, then pops
+ * open pink. The timings are computed here and handed over as custom
  * properties; see .flower-stem in app/globals.css.
  */
 export function BloomSprite({
@@ -100,7 +105,6 @@ export function BloomSprite({
   scale = 4,
   blooms = false,
   index = 0,
-  phase,
   flip = false,
   className = "inline-block",
 }: {
@@ -110,8 +114,6 @@ export function BloomSprite({
   /** Place in the left-to-right wave. It starts growing index × --step
    *  (80ms unless the bed sets it) after the bed blooms. */
   index?: number;
-  /** Offset of this flower's breathing, so a bed never pulses in unison. */
-  phase?: number;
   flip?: boolean;
   /** Includes the display class (inline-block by default) so a bed can hide it per breakpoint. */
   className?: string;
@@ -134,7 +136,6 @@ export function BloomSprite({
   const top = stemTop(map);
   const rows = map.length - top;
   const grow = Math.max(1, rows * ROW_MS);
-  const breathe = (phase ?? index * 1040) % BREATHE_MS;
   // The delays chain off --d in CSS, because --step (and so --d) can change
   // with the breakpoint: a bed showing every other plant on phones keeps
   // its neighbours 80ms apart.
@@ -146,8 +147,7 @@ export function BloomSprite({
     "--d": `calc(${index} * var(--step, 80ms))`,
     "--t1": `calc(var(--d) + ${ms(grow)})`,
     "--t2": `calc(var(--t1) + ${ms(BUD_MS)})`,
-    "--t3": `calc(var(--t2) + ${ms(FLASH_MS + breathe)})`,
-    "--px": `${scale}px`,
+    "--px": `calc(${scale}px * var(--bed, 1))`,
   } as React.CSSProperties;
 
   return (
@@ -160,7 +160,6 @@ export function BloomSprite({
           <>
             <PixelImage map={map} palette={LAYERS[theme].stem} scale={scale} className="flower-stem relative block" />
             <PixelImage map={map} palette={LAYERS[theme].bud} scale={scale} className="flower-bud absolute left-0 top-0 block" />
-            <PixelImage map={map} palette={LAYERS[theme].head} scale={scale} className="flower-neon absolute left-0 top-0 block" />
             <PixelImage map={map} palette={LAYERS[theme].head} scale={scale} className="flower-head absolute left-0 top-0 block" />
           </>
         )}
