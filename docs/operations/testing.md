@@ -14,6 +14,8 @@ vitest run packages/api packages/db sites/mainweb/lib
 
 `pnpm test` first runs `tooling/scripts/src/guard-local.ts`, which refuses a non-local `DATABASE_URL` or a Stripe live key. The suites mock the database, so CI sets neither and passes.
 
+Files run in parallel in two groups, set up in the root `vitest.config.ts`. A file that calls `vi.mock`, `vi.doMock`, `vi.stubEnv` or `vi.stubGlobal`, or assigns to `process.env`, gets a fresh worker, because that state would leak into the next file. Every other file shares workers, so it does not reload the app. The grouping is read from the source, so a new test needs no config. Tests inside one file still run one at a time: they share their file's mocks.
+
 CI: the `verify` job in `.github/workflows/ci.yml` on pushes to `main`/`dev` and on pull requests.
 
 ## `@query/api`
@@ -36,7 +38,7 @@ Config: `packages/api/vitest.config.ts`. Includes `src/**/*.test.ts` and `src/.i
 | Portal context | `services/portal-context.test.ts`, `routers/user/portal-context.test.ts` |
 | Judging scoring, scope, room links | `services/judging/*.test.ts` |
 
-Tests use `src/test/create-mock-context.ts` and `.internal-tests/_db-tx-mock.ts` rather than a live database.
+Tests use `src/test/create-mock-context.ts` and `.internal-tests/_db-tx-mock.ts` rather than a live database. CI still starts the compose database with `pnpm local:up` and stops it with `pnpm local:down`, so the schema and seed run on the same Postgres version as Neon on every PR.
 
 `scrubMarkup` is exported specifically so tests hit the sanitizer the request path runs (a previous unused stripper made the suite lie).
 
