@@ -7,8 +7,8 @@
     "dev": "node ../../tooling/scripts/src/guard-local.ts --stripe --email && next dev --port 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . --max-warnings 0",
-    "typecheck": "tsc --noEmit",
+    "lint": "oxlint .",
+    "typecheck": "tsrs --noEmit",
     "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
@@ -48,8 +48,7 @@
   },
   "devDependencies": {
     "@next/bundle-analyzer": "16.4.3",
-    "@next/eslint-plugin-next": "16.4.3",
-    "@query/eslint-config": "workspace:*",
+    "@query/oxlint-config": "workspace:*",
     "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
@@ -62,11 +61,12 @@
     "@types/three": "^0.186.0",
     "autoprefixer": "^10.6.1",
     "cross-env": "^10.1.0",
-    "eslint": "10.11.0",
+    "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2005",
     "postcss": "^8.5.28",
     "tailwindcss": "4.3.3",
+    "tsrs": "0.20.1-ts7.1.0-beta",
     "turbo": "^2.11.7",
-    "typescript": "^7.0.2",
-    "typescript-eslint": "^8.70.1"
+    "typescript": "^7.0.2"
   }
 }

@@ -40,7 +40,7 @@ export const announcementText = z
   .trim()
   .min(1)
   .max(1000)
-  // eslint-disable-next-line no-control-regex
+  // oxlint-disable-next-line no-control-regex
   .refine((value) => !/[\u0000-\u0009\u000b-\u001f\u007f]/.test(value), {
     message: "The announcement contains characters that cannot be shown.",
   });

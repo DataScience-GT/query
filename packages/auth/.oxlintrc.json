@@ -1,0 +1,4 @@
+{
+  "extends": ["../../tooling/oxlint/base.json"],
+  "ignorePatterns": ["**/*.config.*"]
+}

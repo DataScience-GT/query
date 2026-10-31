@@ -98,7 +98,7 @@ export async function notifyItineraryPosted(
       } catch (error) {
         // Deliberate operational logging: the only record of which address the
         // provider rejected.
-        // eslint-disable-next-line no-console
+        // oxlint-disable-next-line no-console
         console.error(
           `[Judging] Itinerary notice to ${email} failed:`,
           error,
@@ -108,7 +108,7 @@ export async function notifyItineraryPosted(
   } catch (error) {
     // Deliberate operational logging: the publish stands, and this is the only
     // record that the notices did not go out.
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line no-console
     console.error(
       `[Judging] Itinerary notices for ${hackathonId} failed:`,
       error,
@@ -210,14 +210,14 @@ export async function notifyResultsPublished(
       } catch (error) {
         // Deliberate operational logging: the only record of which address the
         // provider rejected.
-        // eslint-disable-next-line no-console
+        // oxlint-disable-next-line no-console
         console.error(`[Judging] Results notice to ${email} failed:`, error);
       }
     });
   } catch (error) {
     // Deliberate operational logging: the publish stands, and this is the only
     // record that the notices did not go out.
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line no-console
     console.error(`[Judging] Results notices for ${hackathonId} failed:`, error);
   }
 }

@@ -533,7 +533,7 @@ export const judgingHackerRouter = createTRPCRouter({
         };
       } catch (error) {
         // Deliberate server-side logging: the only record of the failed send.
-        // eslint-disable-next-line no-console
+        // oxlint-disable-next-line no-console
         console.error("[Judging] Teammate claim email failed:", error);
         return {
           added: reserved.added,
@@ -1068,7 +1068,7 @@ export const judgingHackerRouter = createTRPCRouter({
           failed.push(item.email);
           // Deliberate operational logging: the only record of which address
           // the provider rejected.
-          // eslint-disable-next-line no-console
+          // oxlint-disable-next-line no-console
           console.error(
             `[Judging] Claim email to ${item.email} failed:`,
             error,

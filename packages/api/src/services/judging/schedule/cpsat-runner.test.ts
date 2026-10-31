@@ -297,7 +297,7 @@ process.exitCode = 1;
 
 // The real thing, when a Python with OR-Tools is at hand:
 //   CPSAT_TEST_PYTHON=/path/to/python npx vitest run <this file>
-// eslint-disable-next-line turbo/no-undeclared-env-vars
+// oxlint-disable-next-line turbo/no-undeclared-env-vars
 const realPython = process.env.CPSAT_TEST_PYTHON;
 
 describe.runIf(realPython)("runCpsat with cpsat.py", () => {

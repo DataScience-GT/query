@@ -66,6 +66,7 @@ export default function ClubPage() {
   });
 
   const upcomingEvents = (allEvents ?? [])
+    // oxlint-disable-next-line react/purity
     .filter((event) => new Date(event.eventDate) >= new Date())
     .sort(
       (a, b) =>

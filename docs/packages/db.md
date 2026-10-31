@@ -16,7 +16,7 @@ Drizzle ORM schemas, Postgres client, and membership rules. Package: `packages/d
 
 If `DATABASE_URL` is missing, `db` is `null` and a warning is logged. Builds that never query still succeed.
 
-Production: Neon serverless Postgres (`us-east-1`, next to App Hosting in us-east4), pooled endpoint (`-pooler` host). Local: `docker compose` Postgres 15 on port 5433, database `neondb`.
+Production: Neon serverless Postgres (`us-east-1`, next to App Hosting in us-east4), pooled endpoint (`-pooler` host). Local: `docker compose` Postgres 18.6 (the version Neon runs) on port 5433, database `neondb`.
 
 ## Schema layout
 

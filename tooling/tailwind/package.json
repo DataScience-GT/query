@@ -16,7 +16,6 @@
     "tailwindcss": "4.3.3"
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "16.4.3",
     "typescript": "^7.0.2"
   }
 }

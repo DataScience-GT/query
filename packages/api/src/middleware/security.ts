@@ -376,7 +376,7 @@ export class SecurityEventLog {
       this.requeue(batch);
       // stderr, not a file: this used to append to a source path relative to the
       // working directory, which does not exist in the deployed container.
-      // eslint-disable-next-line no-console
+      // oxlint-disable-next-line no-console
       console.error(
         `[Security] CRITICAL: DB unavailable, ${batch.length} security logs affected.`,
       );
@@ -409,12 +409,12 @@ export class SecurityEventLog {
     } catch (err) {
       const requeued = this.requeue(batch);
       const dropped = batch.length - requeued;
-      // eslint-disable-next-line no-console
+      // oxlint-disable-next-line no-console
       console.error(
         `[Security] Error flushing ${batch.length} logs: ${String(err)}`,
       );
       if (dropped > 0) {
-        // eslint-disable-next-line no-console
+        // oxlint-disable-next-line no-console
         console.error(
           `[Security] Dropped ${dropped} security log(s): the retry queue is full.`,
         );
@@ -460,7 +460,7 @@ export class ClientIpResolver {
 
     if (!this.logged && parts.length > 0) {
       this.logged = true;
-      // eslint-disable-next-line no-console
+      // oxlint-disable-next-line no-console
       console.log(
         `[Security] x-forwarded-for has ${parts.length} entr${parts.length === 1 ? "y" : "ies"}; TRUSTED_PROXY_HOPS=${this.trustedProxyHops} selects index ${Math.max(0, parts.length - 1 - this.trustedProxyHops)}. Expect hops = entries - 1.`,
       );

@@ -32,4 +32,4 @@ Mainweb `transpilePackages` includes `@query/ui`, so the site can import source 
 
 ## Tooling
 
-ESLint: `@query/eslint-config`. Tailwind: `@query/tailwind-config`. TSConfig: `@query/tsconfig`.
+oxlint: `@query/oxlint-config`. Tailwind: `@query/tailwind-config`. TSConfig: `@query/tsconfig`.

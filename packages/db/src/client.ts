@@ -52,7 +52,7 @@ if (DATABASE_URL) {
   // uncaught exception; the pool already drops the dead client on its own.
   if (!globalForDb.conn) {
     conn.on("error", (error) => {
-      // eslint-disable-next-line no-console
+      // oxlint-disable-next-line no-console
       console.warn("[db] idle client error:", error.message);
     });
   }
@@ -64,7 +64,7 @@ if (DATABASE_URL) {
   // Deliberate startup diagnostic: `db` stays null instead of throwing so
   // builds that never touch the database still succeed, which makes this the
   // only signal that the variable is missing.
-  // eslint-disable-next-line no-console
+  // oxlint-disable-next-line no-console
   console.warn("DATABASE_URL not set - database operations will fail");
 }
 

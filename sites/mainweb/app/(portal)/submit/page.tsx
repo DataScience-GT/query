@@ -210,6 +210,7 @@ function SubmitPortalContent() {
     reg.hackathon.endDate
       ? new Date(
           new Date(reg.hackathon.endDate).getTime() + 12 * 60 * 60 * 1000,
+        // oxlint-disable-next-line react/purity
         ) >= new Date()
       : true;
 

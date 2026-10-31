@@ -1837,6 +1837,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       // What reached the user_profile upsert.
       const upsertedValues = () => {
         const call = mockInsert.mock.calls.at(-1);
+        // oxlint-disable-next-line no-unsafe-optional-chaining
         return (call?.[2] as Record<string, unknown>[])[0] as {
           gtEmail?: string | null;
         };

@@ -1,0 +1,7 @@
+{
+  "extends": [
+    "../../tooling/oxlint/base.json",
+    "../../tooling/oxlint/react-internal.json"
+  ],
+  "ignorePatterns": ["**/*.config.*", "**/*.jsx"]
+}

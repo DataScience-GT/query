@@ -1,6 +1,7 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import { GeistSans, GeistMono } from "geist/font";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 
 const geistSansVar = GeistSans.variable;

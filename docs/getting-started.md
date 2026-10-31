@@ -43,7 +43,7 @@ pnpm dev
 
 ## Local database
 
-Production uses Neon (serverless Postgres). Locally, `docker-compose.yml` starts Postgres 15 with the same database name (`neondb`) so only `DATABASE_URL` changes.
+Production uses Neon (serverless Postgres). Locally, `docker-compose.yml` starts Postgres 18.6, the version Neon runs, with the same database name (`neondb`) so only `DATABASE_URL` changes.
 
 ```bash
 docker compose up -d
@@ -103,8 +103,8 @@ pnpm --filter @query/db studio        # Drizzle Studio
 | --- | --- |
 | `pnpm dev` | All workspace `dev` tasks |
 | `pnpm build` | `turbo run build` |
-| `pnpm lint` | ESLint across workspaces (`--max-warnings 0`) |
-| `pnpm typecheck` | `tsc --noEmit` via Turbo |
+| `pnpm lint` | oxlint across workspaces, warnings fail |
+| `pnpm typecheck` | `tsrs --noEmit` via Turbo |
 | `pnpm test` | Vitest: `packages/api`, `packages/db`, `sites/mainweb/lib` |
 | `pnpm format` | Prettier write |
 

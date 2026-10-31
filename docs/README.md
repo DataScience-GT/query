@@ -68,4 +68,4 @@ Room-based judging, from setup to results.
 
 ## Tooling
 
-Shared ESLint, Prettier, Tailwind, and TypeScript configs live under [`tooling/`](./tooling.md).
+Shared oxlint, Prettier, Tailwind, and TypeScript configs live under [`tooling/`](./tooling.md).

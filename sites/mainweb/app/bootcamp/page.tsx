@@ -90,6 +90,7 @@ function SessionRow({ session, past }: { session: Session; past?: boolean }) {
 export default async function BootcampPage() {
   const term = currentTerm();
   const sessions = await loadSessions(term);
+  // oxlint-disable-next-line react/purity
   const { upcoming, past } = splitByDay(sessions, startOfEasternDay(new Date()));
   const facts = bootcampSummary(
     { upcoming, past },

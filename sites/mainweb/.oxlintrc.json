@@ -1,0 +1,11 @@
+{
+  "extends": [
+    "../../tooling/oxlint/base.json",
+    "../../tooling/oxlint/react.json",
+    "../../tooling/oxlint/next.json"
+  ],
+  "ignorePatterns": ["**/*.config.*"],
+  "rules": {
+    "no-console": "off"
+  }
+}

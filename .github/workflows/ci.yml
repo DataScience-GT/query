@@ -39,8 +39,21 @@ jobs:
       - name: Lint and typecheck
         run: pnpm turbo run lint typecheck
 
+      # The compose database with its schema and fake data. DATABASE_URL stays
+      # on these steps: the build must not look for a database that is gone.
+      - name: Start test database
+        run: pnpm local:up
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
+
       - name: Test
         run: pnpm test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
+
+      - name: Stop test database
+        if: always()
+        run: pnpm local:down
 
       - name: Build
         run: pnpm turbo run build

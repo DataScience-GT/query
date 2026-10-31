@@ -10,8 +10,8 @@ import {
   UptimeLegend,
   UptimeStrip,
 } from "@/components/status/charts";
-import { BUCKET_MS, uptimePercent  } from "@/lib/status";
-import type {Level} from "@/lib/status";
+import { BUCKET_MS, uptimePercent } from "@/lib/status";
+import type { Level } from "@/lib/status";
 import {
   externalState,
   foldProbe,
@@ -45,40 +45,6 @@ const LEVELS: Record<
 const pct = (value: number | null) =>
   value === null ? "No data" : `${value.toFixed(value >= 99.995 ? 0 : 2)}%`;
 
-const SHORT_SHA = 7;
-
-const deployedAt = (iso: string | null) => {
-  const t = iso ? Date.parse(iso) : NaN;
-  return Number.isNaN(t)
-    ? "at an unknown time"
-    : new Date(t).toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        timeZone: "America/New_York",
-        timeZoneName: "short",
-      });
-};
-
-const ROLLOUT_TEXT: Record<string, string> = {
-  success: "rollout succeeded",
-  failure: "rollout failed",
-  cancelled: "rollout cancelled",
-  timed_out: "rollout timed out",
-  in_progress: "rollout in progress",
-  queued: "rollout queued",
-  none: "no rollout result",
-};
-
-const checkedAt = (t: number) =>
-  new Date(t).toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "America/New_York",
-    timeZoneName: "short",
-  });
-
 export default async function StatusPage() {
   const [data, uptime] = await Promise.all([loadStatus(), loadUptime()]);
   const outside = uptime ? externalState(uptime, data.generatedAt) : null;
@@ -96,45 +62,30 @@ export default async function StatusPage() {
       <main className="pt-20">
         <Section className="py-32">
           <div className="max-w-4xl mx-auto px-6">
-            <h1 className="text-5xl font-bold tracking-tighter sm:text-6xl mb-8">
-              Status
-            </h1>
+            <h1 className="mb-3 text-lg font-semibold text-gray-300">Status</h1>
 
-            <div className="flex items-center gap-4" aria-live="polite">
-              <Icon size={44} strokeWidth={2.25} color={color} aria-hidden />
-              <p className="text-4xl sm:text-5xl font-black tracking-tight">
+            <div
+              className="flex items-center gap-4 sm:gap-6"
+              aria-live="polite"
+            >
+              <Icon
+                strokeWidth={2.25}
+                color={color}
+                className="size-12 shrink-0 sm:size-20"
+                aria-hidden
+              />
+              <p
+                className="text-5xl font-black tracking-tighter sm:text-8xl"
+                style={{ color }}
+              >
                 {label}
               </p>
             </div>
-            <p className="mt-3 text-gray-300">{reason}</p>
-            <p className="mt-1 text-sm text-gray-500">
-              App serving. Checked {checkedAt(data.live.checkedAt)}, this page
-              reloads itself every five minutes while open.
-            </p>
-            {outside && (
-              <p className="mt-1 text-sm text-gray-500">
-                {outside.kind === "stale"
-                  ? outside.last
-                    ? `The outside check is stale. Its last result was at ${checkedAt(outside.last.t)}, so it says nothing about the site right now.`
-                    : "The outside check has no results yet."
-                  : `Checked from outside every 5 minutes. Last check ${checkedAt(outside.last.t)}, ${outside.last.ok ? `answered in ${outside.last.ms} ms` : "no answer"}.`}
-              </p>
-            )}
-            {uptime?.deploy && (
-              <p className="mt-1 text-sm text-gray-500">
-                Latest deploy{" "}
-                <a
-                  href={`https://github.com/DataScience-GT/query/commit/${uptime.deploy.sha}`}
-                  className="font-mono text-gray-300 hover:text-white"
-                >
-                  {uptime.deploy.sha.slice(0, SHORT_SHA)}
-                </a>
-                , committed {deployedAt(uptime.deploy.committedAt)};{" "}
-                {ROLLOUT_TEXT[uptime.deploy.rollout] ?? uptime.deploy.rollout}.
-              </p>
+            {level !== "operational" && (
+              <p className="mt-3 text-gray-300">{reason}</p>
             )}
 
-            <section className="mt-14" aria-labelledby="uptime-heading">
+            <section className="mt-20" aria-labelledby="uptime-heading">
               <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 mb-5">
                 <h2 id="uptime-heading" className="text-xl font-bold">
                   Uptime, last 90 days
@@ -159,7 +110,7 @@ export default async function StatusPage() {
                 </p>
               </div>
               <UptimeStrip days={data.days} />
-              <div className="mt-2 flex justify-between text-xs text-gray-500">
+              <div className="mt-2 flex justify-between text-xs text-gray-400">
                 <span>90 days ago</span>
                 <span>Today</span>
               </div>
@@ -170,17 +121,11 @@ export default async function StatusPage() {
             </section>
 
             {uptime && windows && (
-              <section className="mt-14" aria-labelledby="outside-heading">
+              <section className="mt-20" aria-labelledby="outside-heading">
                 <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 mb-5">
-                  <div>
-                    <h2 id="outside-heading" className="text-xl font-bold">
-                      Outside check, last 90 days
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-400">
-                      A probe outside our network requests the site every five
-                      minutes. It never touches the database.
-                    </p>
-                  </div>
+                  <h2 id="outside-heading" className="text-xl font-bold">
+                    Outside check, last 90 days
+                  </h2>
                   <p className="flex gap-8 tabular-nums">
                     {(
                       [
@@ -200,38 +145,25 @@ export default async function StatusPage() {
                     ))}
                   </p>
                 </div>
-                <UptimeStrip
-                  days={probeDays(uptime, data.generatedAt)}
-                  probe
-                />
-                <div className="mt-2 flex justify-between text-xs text-gray-500">
+                <UptimeStrip days={probeDays(uptime, data.generatedAt)} probe />
+                <div className="mt-2 flex justify-between text-xs text-gray-400">
                   <span>90 days ago</span>
                   <span>Today</span>
-                </div>
-                <div className="mt-4">
-                  <UptimeLegend />
                 </div>
               </section>
             )}
 
-            <section className="mt-14" aria-labelledby="latency-heading">
-              <h2 id="latency-heading" className="text-xl font-bold">
+            <section className="mt-20" aria-labelledby="latency-heading">
+              <h2 id="latency-heading" className="mb-4 text-xl font-bold">
                 Response time, last 24 hours
               </h2>
-              <p className="mt-1 mb-4 text-sm text-gray-400">
-                95th percentile in milliseconds per 5 minutes. When several
-                servers were running, the slowest one is shown.
-              </p>
               <LatencyChart hours={data.hours} lastT={lastT} />
             </section>
 
-            <section className="mt-14" aria-labelledby="traffic-heading">
-              <h2 id="traffic-heading" className="text-xl font-bold">
+            <section className="mt-20" aria-labelledby="traffic-heading">
+              <h2 id="traffic-heading" className="mb-4 text-xl font-bold">
                 Requests and errors, last 24 hours
               </h2>
-              <p className="mt-1 mb-4 text-sm text-gray-400">
-                API calls per 5 minutes. Errors are server failures only.
-              </p>
               <RequestsChart hours={data.hours} lastT={lastT} />
               <div className="mt-3">
                 <RequestsLegend />
@@ -239,11 +171,13 @@ export default async function StatusPage() {
               <HoursTable hours={data.hours} lastT={lastT} />
             </section>
 
-            <p className="mt-14 max-w-2xl border-t border-white/5 pt-6 text-sm text-gray-500 leading-relaxed">
-              {data.historyOk
-                ? "The charts above come from real visits. A quiet hour shows as no data, not as down. A five-minute window counts as up when the database answered and fewer than 5% of requests failed on our side. Days are UTC; times are Eastern."
-                : "The history could not be read just now, so the charts are empty. This is a limit of the status page and says nothing about earlier uptime."}
-            </p>
+            {!data.historyOk && (
+              <p className="mt-14 max-w-2xl border-t border-white/5 pt-6 text-sm text-gray-500 leading-relaxed">
+                The history could not be read just now, so the charts are empty.
+                This is a limit of the status page and says nothing about
+                earlier uptime.
+              </p>
+            )}
           </div>
         </Section>
       </main>
