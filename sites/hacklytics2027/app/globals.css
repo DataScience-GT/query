@@ -1,14 +1,17 @@
 /* app/globals.css — Digital Bloom, redrawn from the globe key art: a flat
    globe on black with a pale-pink ribbon of cherry blossoms across it.
-   Four colours come off that art (sampled from the PNG): ocean #509cbd,
-   sage #96bf98, ribbon pink #ffbfcf and the dark navy outline #262731.
-   Pink is still the one accent and only means "act here" or "in bloom";
-   ocean and sage are the quiet secondary tones (kickers, schedule rules,
-   the key times); navy is the hairline rule. The ground is near-black with a
-   cool cast. The light theme keeps the same hues but deepens each one until
-   it reads as text on a pale ground; the art's own pastels do not.
+   Three colours come off that art (sampled from the PNG): ribbon pink
+   #ffbfcf, sage #96bf98 and the dark navy outline #262731.
+   Pink is the one accent and only means "act here" or "in bloom"; sage is the
+   soil under the track plants and nothing else; navy is the hairline rule.
+   The ground is near-black with a cool cast. The light theme keeps the same
+   hues but deepens each one until it reads on a pale ground; the art's own
+   pastels do not.
    Every text/UI pair below is checked at WCAG AA in both themes. */
 @import "tailwindcss";
+
+/* Laptop-height screens: the hero tightens so the soil stays in the first view. */
+@custom-variant short (@media (min-width: 1024px) and (max-height: 820px));
 
 @theme inline {
   --color-ground: var(--ground);
@@ -20,18 +23,16 @@
   --color-line: var(--line-border);
   --color-bloom: var(--bloom);
   --color-bloom-deep: var(--bloom-deep);
-  --color-ocean: var(--ocean);
   --color-sage: var(--sage);
   --color-on-bloom: var(--on-bloom);
 
   /* Font variables come from next/font in app/layout.tsx. */
   --font-display: var(--font-silkscreen), ui-monospace, monospace;
   --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
-  --font-pixel: var(--font-silkscreen), ui-monospace, monospace;
 }
 
 /* Night. On the ground #0e0f13: ink 17.5:1, body 9.8:1, meta 6.5:1 (6.0:1 on
-   raised), bloom pink 12.4:1, ocean 6.2:1, sage 9.3:1, UI line 3.3:1. The
+   raised), bloom pink 12.4:1, sage 9.3:1, UI line 3.3:1. The
    pink button's label is 12.4:1 on the pink; its pressed state is white on
    #b03a5f at 5.8:1. The rule (the art's navy) is a hairline, not a boundary
    anything depends on. */
@@ -47,24 +48,21 @@
   --bloom-hover: #ffd3dd;
   --bloom-deep: #b03a5f;
   --on-bloom: #1a0a10;
-  --ocean: #509cbd;
   --sage: #96bf98;
   --line-border: #5f6577; /* ≥3:1 on ground */
 
-  /* Neon halo on blooming flowers. */
-  --glow-1: #ffbfcf;
-  --glow-2: #ffbfcf;
-  --glow-3: rgba(255, 191, 207, 0.4);
+  --badge-edge: transparent;
 
   --navbar-height: 72px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1); /* the one curve: ease-(--ease) */
   color-scheme: dark;
 }
 
 /* Day: the same globe with the lights on. A cool paper ground (not cream),
    near-black ink, and deeper versions of the three art colours, since the
    art's pastels are too light to read as text on a pale ground. On the ground
-   #f1f4f6: ink 16.9:1, body 8.1:1, meta 5.5:1, bloom 5.7:1, ocean 5.8:1,
-   sage 5.1:1, UI line 3.3:1; all of them clear 4.5:1 on raised #fafbfc too.
+   #f1f4f6: ink 16.9:1, body 8.1:1, meta 5.5:1, bloom 5.7:1, sage 5.1:1,
+   UI line 3.3:1; all of them clear 4.5:1 on raised #fafbfc too.
    The pink button is white on #b02a5b at 6.3:1. Used when the visitor picks
    light, or has no choice saved and their system is light. */
 :root[data-theme="light"] {
@@ -79,13 +77,9 @@
   --bloom-hover: #98234f;
   --bloom-deep: #7a1a40;
   --on-bloom: #ffffff;
-  --ocean: #1f6585;
   --sage: #3b7440;
   --line-border: #7f8794; /* ≥3:1 on ground */
-
-  --glow-1: rgba(176, 42, 91, 0.55);
-  --glow-2: rgba(176, 42, 91, 0.35);
-  --glow-3: rgba(176, 42, 91, 0.18);
+  --badge-edge: #d5dbe1;
 
   color-scheme: light;
 }
@@ -102,13 +96,9 @@
     --bloom-hover: #98234f;
     --bloom-deep: #7a1a40;
     --on-bloom: #ffffff;
-    --ocean: #1f6585;
     --sage: #3b7440;
     --line-border: #7f8794; /* ≥3:1 on ground */
-
-    --glow-1: rgba(176, 42, 91, 0.55);
-    --glow-2: rgba(176, 42, 91, 0.35);
-    --glow-3: rgba(176, 42, 91, 0.18);
+    --badge-edge: #d5dbe1;
 
     color-scheme: light;
   }
@@ -149,20 +139,29 @@ body {
     .wrap { padding-inline: 3rem; }
   }
 
-  /* Display type: the Silkscreen pixel face at its one loaded weight (400).
-     Pixel glyphs need their own spacing, so no negative tracking. */
+  /* Silkscreen's pixel cell is 1/8em and it sets two cells between letters.
+     Taking one back tightens the type and keeps every glyph on the grid, at
+     any size that is a multiple of 8. */
+  .font-display {
+    letter-spacing: -0.125em;
+  }
+
+  /* Display type: the Silkscreen pixel face at its one loaded weight (400). */
   .display {
     font-family: var(--font-display);
     font-weight: 400;
-    letter-spacing: 0;
+    letter-spacing: -0.125em;
     line-height: 1;
   }
-  /* 32px, 48px from lg: multiples of 8, so a pixel cell is a whole 4 or 6px. */
+  /* 32px, 48px from lg: multiples of 8, so a pixel cell is a whole 4 or 6px.
+     The negative margin takes off the cell of side bearing, so the ink, not
+     the glyph box, starts on the page's left edge. */
   .section-title {
     font-family: var(--font-display);
     font-weight: 400;
     font-size: 2rem;
-    letter-spacing: 0;
+    letter-spacing: -0.125em;
+    margin-left: -0.125em;
     line-height: 1.05;
     color: var(--ink);
   }
@@ -170,30 +169,30 @@ body {
     .section-title { font-size: 3rem; }
   }
 
-  /* Silkscreen kicker: small, as written, one per section at most. Ocean
-     blue, the globe's sea. */
+  /* Small line above a title, one per section at most. In the text face:
+     Silkscreen below 16px falls off its pixel grid and blurs. */
   .kicker {
-    font-family: var(--font-pixel);
-    font-size: 0.8125rem;
-    line-height: 1.4;
-    letter-spacing: 0.02em;
-    color: var(--ocean);
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    line-height: 1.25rem;
+    color: var(--ink-2);
   }
 
-  /* Buttons: pills, verbs. Pink only for the action. */
+  /* Buttons: verbs. Pink only for the action. */
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    border-radius: 999px;
-    padding: 0.875rem 1.375rem;
+    height: 3rem;
+    border-radius: 0.5rem;
+    padding-inline: 1.25rem;
     font-family: var(--font-sans);
     font-size: 0.9375rem;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1.2;
     text-decoration: none;
-    transition: background-color 160ms linear, border-color 160ms linear, color 160ms linear;
+    transition: background-color 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease);
   }
   .btn-bloom {
     background: var(--bloom);
@@ -220,6 +219,15 @@ body {
   .text-link:hover { color: var(--bloom); }
 }
 
+/* The badge's white body vanishes on the light ground, so it gets a hard 1px
+   edge there. Outside the art: MLH's own drawing is untouched. */
+.mlh-badge {
+  filter:
+    drop-shadow(1px 0 0 var(--badge-edge))
+    drop-shadow(-1px 0 0 var(--badge-edge))
+    drop-shadow(0 1px 0 var(--badge-edge));
+}
+
 /* ─── Section anchor offset for fixed navbar ───
    No content-visibility here: skipped sections sat at a 600px placeholder, so
    a nav tap or a /#faqs link computed its target from heights that changed
@@ -232,37 +240,24 @@ body {
 .pixelated { image-rendering: pixelated; }
 
 /* ─── The bloom ───────────────────────────────────────────────────────────
-   A blooming flower is four stacked copies of one sprite (see BloomSprite):
-   its stem, a grey closed bud, a neon halo, and the pink head. All of it is
-   hidden until the bed's data-bloom flips to "on" (useBloomInView, or a
-   click that plants a flower), and then plays out on per-flower delays set
-   inline by BloomSprite:
+   A blooming flower is three stacked copies of one sprite (see BloomSprite):
+   its stem, a grey closed bud, and the pink head. All of it is hidden until
+   the bed's data-bloom flips to "on" (useBloomInView, or a click that plants
+   a flower), and then plays out once on per-flower delays set inline by
+   BloomSprite:
 
      --d    stem starts growing (the 80ms left-to-right stagger)
      --t1   stem done: the grey bud appears, small
-     --t2   the bud pops open pink, with a 120ms neon flash
-     --t3   the halo starts breathing (staggered so flowers never pulse together)
+     --t2   the bud pops open pink
 
-   Everything steps; nothing fades. The halo is a pink copy of the head with
-   a static drop-shadow stack; only its opacity animates, so the blur is
-   rasterised once and the breathing is compositor work. */
+   Everything steps; nothing fades, and nothing loops. */
 
 .flower-stem { clip-path: inset(100% 0 0 0); }
 .flower-bud,
-.flower-head,
-.flower-neon { visibility: hidden; }
+.flower-head { visibility: hidden; }
 .flower-bud {
   transform: scale(0.6);
   transform-origin: 50% var(--top);
-}
-.flower-neon {
-  opacity: 0;
-  will-change: opacity;
-  transform-origin: 50% calc(var(--top) / 2);
-  filter:
-    drop-shadow(0 0 2px var(--glow-1))
-    drop-shadow(0 0 8px var(--glow-2))
-    drop-shadow(0 0 22px var(--glow-3));
 }
 
 [data-bloom="on"] .flower-stem {
@@ -274,15 +269,6 @@ body {
 [data-bloom="on"] .flower-head {
   animation: flower-open 110ms steps(1, end) var(--t2) forwards;
 }
-[data-bloom="on"] .flower-neon {
-  animation:
-    flower-flash 120ms steps(1, end) var(--t2) forwards,
-    flower-breathe 4s ease-in-out var(--t3) infinite;
-}
-/* Offscreen beds stop breathing (data-anim is kept by useBloomInView). */
-/* Only the breathing: the list matches flower-flash, flower-breathe, so a flash
-   cut off by scrolling away still finishes instead of freezing at 1.6x. */
-[data-anim="paused"] .flower-neon { animation-play-state: running, paused; }
 
 @keyframes flower-stem {
   from { clip-path: inset(100% 0 0 0); }
@@ -297,15 +283,6 @@ body {
 @keyframes flower-open {
   from { visibility: visible; transform: translateY(calc(var(--px) * -1)); }
   to   { visibility: visible; transform: none; }
-}
-/* The flash: the halo at 1.6x for one beat, then at rest. */
-@keyframes flower-flash {
-  from { visibility: visible; opacity: 1; transform: scale(1.6); }
-  to   { visibility: visible; opacity: 1; transform: none; }
-}
-@keyframes flower-breathe {
-  0%, 100% { visibility: visible; opacity: 1; }
-  50%      { visibility: visible; opacity: 0.75; }
 }
 
 /* Sprites bake their colours, so each plant is drawn twice (night, day) and
@@ -328,19 +305,16 @@ body {
   to   { clip-path: inset(100% 0 0 0); }
 }
 
-/* Reduced motion: every flower is already grown and open, with a still halo.
-   No growth, no bud, no flash, no breathing, no wilt. */
+/* Reduced motion: every flower is already grown and open.
+   No growth, no bud, no wilt. */
 @media (prefers-reduced-motion: reduce) {
   .flower-stem,
   [data-bloom="on"] .flower-stem { clip-path: none; animation: none; }
   .flower-bud,
   [data-bloom="on"] .flower-bud { visibility: hidden; animation: none; }
   .flower-head,
-  .flower-neon,
-  [data-bloom="on"] .flower-head,
-  [data-bloom="on"] .flower-neon {
+  [data-bloom="on"] .flower-head {
     visibility: visible;
-    opacity: 1;
     transform: none;
     animation: none;
   }

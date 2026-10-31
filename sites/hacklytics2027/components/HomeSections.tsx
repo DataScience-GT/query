@@ -1,7 +1,3 @@
-// components/HomeSections.tsx
-"use client";
-
-import React from "react";
 import AboutSection from "./sections/AboutSection";
 import TracksSection from "./sections/TracksSection";
 import ScheduleSection from "./sections/Schedule/Schedule";
