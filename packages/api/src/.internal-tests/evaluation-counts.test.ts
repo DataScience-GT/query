@@ -31,6 +31,13 @@ import {
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
 import type * as Store from "../services/judging/evaluation-store";
+import type * as RepoCheck from "../services/judging/repo-check";
+
+// The overview starts the repo check in the background. It has its own tests.
+vi.mock("../services/judging/repo-check", async (importActual) => ({
+  ...(await importActual<typeof RepoCheck>()),
+  repoCheckIfDue: async () => undefined,
+}));
 
 // Nothing is due on any read here, so there is nothing to reconcile.
 vi.mock("../services/judging/evaluation-store", async (importActual) => ({
