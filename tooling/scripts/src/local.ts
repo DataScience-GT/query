@@ -27,8 +27,10 @@ function run(command: string[]) {
 }
 
 // Next.js reads sites/mainweb/.env.local, drizzle and the seed read the root
-// .env. Existing files are never overwritten.
+// .env. Existing files are never overwritten. CI sets what it needs per step,
+// and a generated .env.local would point its build at the test database.
 function ensureEnvFiles() {
+  if (process.env.CI) return;
   for (const target of [".env", "sites/mainweb/.env.local"]) {
     if (existsSync(resolve(root, target))) continue;
     copyFileSync(resolve(root, ".env.example"), resolve(root, target));

@@ -22,8 +22,8 @@
     "./judging-access": "./src/services/judging/principal.ts"
   },
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
-    "typecheck": "tsc --noEmit",
+    "lint": "oxlint .",
+    "typecheck": "tsrs --noEmit",
     "test": "node ../../node_modules/vitest/vitest.mjs run --config vitest.config.ts"
   },
   "dependencies": {
@@ -43,8 +43,12 @@
     "zod": "4.6.6"
   },
   "devDependencies": {
+    "@query/oxlint-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@types/sanitize-html": "^2.16.2",
+    "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2005",
+    "tsrs": "0.20.1-ts7.1.0-beta",
     "typescript": "7.0.2",
     "vite": "^7.3.5",
     "vitest": "^5.0.3"

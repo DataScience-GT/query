@@ -88,6 +88,7 @@ export default function Dashboard() {
   const [chosenView, setChosenView] = useState<"club" | "hackathon" | null>(
     null,
   );
+  // oxlint-disable-next-line react/purity
   const now = new Date();
   // Somebody accepted to an event that is on today lands on the hackathon
   // half, member or not: that is the half with their next step.

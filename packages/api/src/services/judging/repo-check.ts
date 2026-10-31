@@ -589,7 +589,7 @@ export async function runRepoCheck(
   } catch (error) {
     // Deliberate operational logging: nothing awaits a background run, so this
     // is the only record that it failed. The next run starts afresh.
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line no-console
     console.error(`[Judging] Repo check for ${hackathonId} failed:`, error);
   } finally {
     if (running.get(hackathonId) === mine) running.delete(hackathonId);
@@ -637,7 +637,7 @@ export async function repoCheckIfDue(
     if (!claimed) return;
     return { done: runRepoCheck(db, hackathonId, { ...deps, now }) };
   } catch (error) {
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line no-console
     console.error(`[Judging] Repo check for ${hackathonId} failed:`, error);
   }
 }

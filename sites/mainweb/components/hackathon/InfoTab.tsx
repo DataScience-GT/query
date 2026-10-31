@@ -451,6 +451,7 @@ export function InfoTab({
   );
   const deadlinePassed = !!(
     hackathon.registrationDeadline &&
+    // oxlint-disable-next-line react/purity
     new Date(hackathon.registrationDeadline) < new Date()
   );
   // Full no longer blocks applying: capacity counts accepted people only, and

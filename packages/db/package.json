@@ -16,8 +16,8 @@
     "db:seed": "node ../../tooling/scripts/src/guard-local.ts && tsx scripts/seed-local.ts",
     "db:seed:club-projects": "node ../../tooling/scripts/src/guard-local.ts && tsx scripts/seed-club-projects.ts",
     "export:clickhouse": "tsx scripts/export-clickhouse.mts",
-    "lint": "eslint . --max-warnings 0",
-    "typecheck": "tsc --noEmit"
+    "lint": "oxlint .",
+    "typecheck": "tsrs --noEmit"
   },
   "dependencies": {
     "@t3-oss/env-nextjs": "0.13.11",
@@ -28,10 +28,14 @@
     "zod": "4.6.6"
   },
   "devDependencies": {
+    "@query/oxlint-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@types/pg": "^8.23.1",
     "dotenv": "^18.0.5",
     "drizzle-kit": "0.31.11",
+    "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2005",
+    "tsrs": "0.20.1-ts7.1.0-beta",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
