@@ -98,7 +98,7 @@ export async function flaggingRuleBreaks<T>(
       } catch (flagError) {
         // Deliberate server-side logging: the refusal is the answer the person
         // gets, so the console is the only place a lost flag can show up.
-        // eslint-disable-next-line no-console
+        // oxlint-disable-next-line no-console
         console.error(
           "[CheckInFlags] Failed to record a rule break:",
           flagError,

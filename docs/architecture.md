@@ -44,7 +44,7 @@ flowchart TD
   db["@query/db"]
   ui["@query/ui"]
   subgraph tooling["tooling"]
-    eslint["@query/eslint-config"]
+    oxlint["@query/oxlint-config"]
     prettier["@query/prettier-config"]
     tailwind["@query/tailwind-config"]
     tsconfig["@query/tsconfig"]
@@ -57,17 +57,16 @@ flowchart TD
   api --> auth
   api --> db
   auth --> db
-  web -.-> eslint
+  web -.-> oxlint
   web -.-> tailwind
   web -.-> tsconfig
-  ui -.-> eslint
+  ui -.-> oxlint
   ui -.-> tailwind
   ui -.-> tsconfig
   api -.-> tsconfig
   auth -.-> tsconfig
   db -.-> tsconfig
-  eslint -.-> prettier
-  eslint -.-> tsconfig
+  oxlint -.-> prettier
   prettier -.-> tsconfig
   hack ~~~ web
 ```

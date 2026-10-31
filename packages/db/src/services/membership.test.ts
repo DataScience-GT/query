@@ -350,6 +350,7 @@ describe("createOrUpdateMembership", () => {
     expect(historyInserts[0]?.memberId).toBe("m1");
     // The renewal overwrites membershipEndDate in place, so the history row is
     // what preserves where the new term started.
+    // oxlint-disable-next-line no-unsafe-optional-chaining
     expect((historyInserts[0]?.startDate as Date).getTime()).toBe(
       existingEnd.getTime(),
     );

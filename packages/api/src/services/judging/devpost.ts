@@ -287,7 +287,7 @@ export function parseDevpostDate(value: string | undefined): Date | null {
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// eslint-disable-next-line no-control-regex
+// oxlint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f]/;
 
 /** A problem with one project. Caught per project and reported. */

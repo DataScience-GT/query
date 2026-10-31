@@ -318,6 +318,7 @@ export default function StaffPage() {
                   <p className={meta}>
                     {roleLabel(row.role)}
                     {row.expiresAt
+                      // oxlint-disable-next-line react/purity
                       ? new Date(row.expiresAt) < new Date()
                         ? ` · expired ${termDate(row.expiresAt)}`
                         : ` · until ${termDate(row.expiresAt)}`
