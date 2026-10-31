@@ -48,3 +48,10 @@ next-env.d.ts
 /playwright/.cache/
 playwright.config.ts
 tests/
+
+# subset-fonts.py downloads
+/scripts/.font-cache/
+
+# The root .gitignore drops every .txt. These ship with the fonts.
+!/public/fonts/OFL-*.txt
+!/scripts/subset-fonts.requirements.txt

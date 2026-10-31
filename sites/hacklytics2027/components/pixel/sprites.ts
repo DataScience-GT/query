@@ -54,9 +54,7 @@ export const TULIP: SpriteMap = [
 ];
 
 /** Round bloom on a stem — the "digital lotus", but made of pixels. The head
- *  is one solid disc with no detached pixels, so the neon halo (a copy of the
- *  head pixels only) frames a flower instead of drawing a star. 15 rows, 90px
- *  at scale 6. */
+ *  is one solid disc with no detached pixels. 15 rows, 90px at scale 6. */
 export const BLOOM: SpriteMap = [
   "....ppp....",
   "..ppPPPpp..",
