@@ -1,14 +1,9 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-
-/** localStorage key; also read by the pre-paint script in app/layout.tsx. */
-export const THEME_KEY = "hl-theme";
+import { GROUND, THEME_KEY } from "@/lib/theme";
 
 type Theme = "light" | "dark";
-
-// --ground in globals.css, per theme; app/layout.tsx has the same pair.
-const GROUND: Record<Theme, string> = { light: "#f1f4f6", dark: "#0e0f13" };
 
 // Points the browser bar at the page. It reads the theme-color metas, which
 // Next renders one per system scheme: a chosen theme sets both to its ground,
@@ -97,7 +92,7 @@ export default function ThemeToggle({
         next === "light" ? "Switch to light mode" : "Switch to dark mode"
       }
       title={next === "light" ? "Light mode" : "Dark mode"}
-      className={`w-11 h-11 rounded-full flex items-center justify-center border border-line hover:border-ink-3 text-ink transition-colors bg-transparent shrink-0 ${className}`}
+      className={`w-11 h-11 rounded-lg flex items-center justify-center border border-line hover:border-ink-3 text-ink transition-colors bg-transparent shrink-0 ${className}`}
     >
       {theme === "dark" ? (
         // Sun, drawn on the pixel grid like the rest of the site.

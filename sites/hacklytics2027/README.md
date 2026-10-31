@@ -7,7 +7,6 @@ Static marketing site for Hacklytics 2027 (Digital Bloom). No database. Interest
 ```bash
 pnpm --filter hacklytics2027 dev    # http://localhost:3000
 pnpm --filter hacklytics2027 build  # static export → out/
-pnpm --filter hacklytics2027 e2e    # Playwright
 ```
 
 Outbound links are centralized in `lib/links.ts`.
