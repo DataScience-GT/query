@@ -196,6 +196,7 @@ export default function HacklyticsPage() {
   const { data: myRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, {
     enabled: authStatus === "authenticated",
   });
+  // oxlint-disable-next-line react/purity
   const now = new Date();
   const shown = upcoming.data;
   const myReg = shown ? myRegs?.find((r) => r.hackathonId === shown.id) : null;

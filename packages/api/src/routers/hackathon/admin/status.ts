@@ -423,7 +423,7 @@ export const statusProcedures = {
             failedEmails.push(participant.user.email);
             // Deliberate operational logging: the only record of which address the
             // provider rejected.
-            // eslint-disable-next-line no-console
+            // oxlint-disable-next-line no-console
             console.error(
               `[Email Service] Failed to send acceptance email to ${participant.user.email}:`,
               error,

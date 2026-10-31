@@ -165,6 +165,7 @@ export default function HackathonDetailPage() {
 
   // The next-step strip reads up to four more queries, each held back until
   // the step can use it, so only a registered hacker at the right point pays.
+  // oxlint-disable-next-line react/purity
   const now = new Date();
   const needs =
     hackathon && regStatus
@@ -243,6 +244,7 @@ export default function HackathonDetailPage() {
   const eventLive =
     EVENT_STATUSES.has(hackathon.status) ||
     (hackathon.status !== "cancelled" &&
+      // oxlint-disable-next-line react/purity
       startOfDay(hackathon.startDate) <= startOfDay(new Date()));
   const tabs = eventLive ? TABS : TABS.filter((t) => !EVENT_TABS.has(t.id));
   // A ?tab= for a tab that is not shown yet falls back to the overview.

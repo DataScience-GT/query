@@ -64,6 +64,7 @@ export function RegistrationControls({
   const regDeadline = hackathon?.registrationDeadline
     ? new Date(hackathon.registrationDeadline)
     : null;
+  // oxlint-disable-next-line react/purity
   const deadlinePassed = !!regDeadline && regDeadline < new Date();
 
   const registrationOpen =
