@@ -1051,7 +1051,7 @@ export async function rebalanceIfDue(
   } catch (error) {
     // Deliberate operational logging: the read goes on and the next one
     // tries again, so this is the only record that it failed.
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line no-console
     console.error(`[Judging] Re-balance for ${hackathonId} failed:`, error);
   }
 }

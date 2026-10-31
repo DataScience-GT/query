@@ -125,6 +125,7 @@ const Footer = ({
         {/* BOTTOM COPYRIGHT */}
         <div className="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between gap-4">
           <p className="text-[10px] font-mono text-gray-600 uppercase tracking-widest">
+            {/* oxlint-disable-next-line react/purity */}
             © {new Date().getFullYear()} Data Science at Georgia Tech
           </p>
         </div>

@@ -1,0 +1,16 @@
+{
+  "extends": ["../../tooling/oxlint/base.json"],
+  "ignorePatterns": ["**/*.config.*"],
+  "rules": {
+    "typescript/no-non-null-assertion": "off"
+  },
+  "overrides": [
+    {
+      "files": ["src/.internal-tests/**/*.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off",
+        "typescript/no-namespace": "off"
+      }
+    }
+  ]
+}
