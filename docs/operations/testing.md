@@ -50,11 +50,7 @@ Tests use `src/test/create-mock-context.ts` and `.internal-tests/_db-tx-mock.ts`
 
 ## Hacklytics
 
-```bash
-pnpm --filter hacklytics2027 e2e
-```
-
-Playwright (`@playwright/test`). `scripts/capture-vision.ts` is a visual capture helper, not the default CI job.
+No automated tests. CI lints and builds the site in the `verify` job. `scripts/capture-vision.mts` lets people and agents drive the site in a browser; see [the site reference](../sites/hacklytics2027.md#driving-the-site-from-an-agent). It is not a CI job.
 
 ## What “green” means
 
