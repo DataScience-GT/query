@@ -16,6 +16,7 @@ import { ScanAccess } from "@/components/portal/ScanAccess";
 import { ClubScannerTab } from "@/components/portal/ClubScannerTab";
 import { ClubAttendanceMetrics } from "@/components/portal/ClubAttendanceMetrics";
 import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
+import { EventOptions } from "@/components/portal/EventOptions";
 
 /** Staff pages carry a smaller headline than member pages. */
 const adminTitle =
@@ -67,7 +68,7 @@ export default function ClubScanPage() {
         <div className="mt-8 flex flex-wrap items-end gap-4">
           <div className="w-full sm:max-w-sm">
             <label htmlFor="scan-club-event" className={fieldLabel}>
-              Club event
+              Event
             </label>
             <select
               id="scan-club-event"
@@ -75,12 +76,8 @@ export default function ClubScanPage() {
               onChange={(e) => setClubEventId(e.target.value)}
               className={`min-h-11 ${input}`}
             >
-              <option value="">Select a club event…</option>
-              {clubEvents?.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.title}
-                </option>
-              ))}
+              <option value="">Select an event…</option>
+              <EventOptions events={clubEvents} />
             </select>
           </div>
           <button
