@@ -125,7 +125,10 @@ export const adminRouter = createTRPCRouter({
           (ctx.db as DrizzleDB)
             .select({ count: count() })
             .from(hackathonParticipants),
-          (ctx.db as DrizzleDB).select({ count: count() }).from(events),
+          (ctx.db as DrizzleDB)
+            .select({ count: count() })
+            .from(events)
+            .where(eq(events.kind, "club")),
           (ctx.db as DrizzleDB)
             .select({ count: count() })
             .from(hackathons)

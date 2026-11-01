@@ -6,9 +6,15 @@ These are separate from hackathon weekend events, which have their own tables, p
 
 ## Club events and bootcamp sessions
 
-Both are rows in the `event` table. A bootcamp session has `bootcamp_term` set (see `create` below); a club event does not. Check-in works the same for both.
+Both are rows in the `event` table, told apart by `kind`, which is `club` or `bootcamp`. Postgres generates it from `bootcamp_term`, so nothing writes it and it cannot disagree with that column. Filter on `kind`, not on the bootcamp columns. Check-in works the same for both.
 
-- `/events` lists club events only. Its queries filter `isNull(events.bootcampTerm)`.
+| Surface | Shows |
+| --- | --- |
+| `/events`, `/club` upcoming list, `/admin` event list | Club events only |
+| `attendanceMetrics` on `/scan/club`, "Events hosted" on `/admin/analytics` | Club events only. Bootcamp attendance is the grid on `/admin/bootcamp` |
+| `/scan/club` and `/admin/attendees` pickers | Both, in separate groups, because officers work the door at both |
+| `/club` history and `myStats` | Both. History labels bootcamp sessions |
+
 - `/bootcamp` (`sites/mainweb/app/bootcamp/page.tsx`) lists the current term's sessions (`currentTerm()`), up to 30, split into upcoming and past. It is a server page revalidated every 300 seconds. The summary row comes from `bootcampSummary` in `lib/public-events.ts`: next session, time and room; or the last session once all have passed; or the planned start date and room before any are posted.
 - `/bootcamp` shows the syllabus only when the term has no sessions, and always shows a "Join in the portal" link to `/club/bootcamp` for the $10 add-on.
 - Sessions from earlier terms do not appear on either public page.
@@ -86,7 +92,7 @@ A bootcamp week is unique per term (`event_bootcamp_session_idx` on `bootcamp_we
 
 | Procedure | Gate | Returns |
 | --- | --- | --- |
-| `list` | public | Up to 50 events, newest first, with `status` of `open` or `closed`. `qrCode` is stripped. Cached 30s, one key for all visitors |
+| `list` | public | Up to 50 events of both kinds, newest first, with `status` of `open` or `closed`. `qrCode` is stripped. Cached 30s, one key for all visitors |
 | `myEvents` | protected | Own last 50 check-ins with event details. Cached 60s |
 | `myStats` | protected | `{ totalEvents }`. Cached 60s |
 
@@ -111,7 +117,7 @@ The scanner hook (`components/portal/EventCheckIn.tsx`) also recognises a hackat
 
 | Table | Key columns |
 | --- | --- |
-| `event` | `title`, `event_date`, `qr_code` (unique), `check_in_enabled`, `max_check_ins`, `current_check_ins`, `bootcamp_week`, `bootcamp_term`, `bootcamp_only`, `created_by_id` |
+| `event` | `title`, `event_date`, `qr_code` (unique), `check_in_enabled`, `max_check_ins`, `current_check_ins`, `bootcamp_week`, `bootcamp_term`, `bootcamp_only`, `kind` (generated), `created_by_id` |
 | `event_check_in` | `event_id`, `user_id`, `member_id` (null for non-members), `check_in_method` (`qr_code` or `manual`), `checked_in_at`. Unique on `(event_id, user_id)` |
 
 `current_check_ins` is a counter kept in step with the rows. It is the capacity check, so every insert and delete moves it in the same transaction.
@@ -123,5 +129,5 @@ The scanner hook (`components/portal/EventCheckIn.tsx`) also recognises a hackat
 | Router | `packages/api/src/routers/events.ts` (mounted as `events`) |
 | Eastern day helper | `packages/api/src/services/eastern-time.ts` (`startOfEasternDay`, shared with the site) |
 | Public page | `sites/mainweb/app/events/page.tsx` |
-| Components | `sites/mainweb/components/portal/EventCheckIn.tsx`, `EventQR.tsx`, `EventFormModal.tsx`, `EventAttendanceModal.tsx`, `ClubScannerTab.tsx`, `ClubAttendanceMetrics.tsx` |
+| Components | `sites/mainweb/components/portal/EventCheckIn.tsx`, `EventQR.tsx`, `EventFormModal.tsx`, `EventAttendanceModal.tsx`, `EventOptions.tsx`, `ClubScannerTab.tsx`, `ClubAttendanceMetrics.tsx` |
 | Tests | `packages/api/src/.internal-tests/qr-checkin.test.ts`, `club-attendance.test.ts`, `eastern-day.test.ts` |
