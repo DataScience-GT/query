@@ -429,11 +429,6 @@ export function ClubAttendanceMetrics({
                             >
                               {event.title}
                             </button>
-                            {event.bootcampWeek && (
-                              <span className={`block ${meta}`}>
-                                Bootcamp week {event.bootcampWeek}
-                              </span>
-                            )}
                           </th>
                           <td
                             className={`${td} whitespace-nowrap tabular-nums text-[var(--text-muted)]`}

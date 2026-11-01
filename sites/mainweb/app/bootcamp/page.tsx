@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import Section from "@/components/Section";
 import { db, events } from "@query/db";
 import { currentTerm } from "@query/db/services/membership";
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { startOfEasternDay } from "@query/api/eastern-time";
 import { BOOTCAMP_ADDON_CENTS, formatCents } from "@query/api/pricing";
 import Link from "next/link";
@@ -48,7 +48,10 @@ async function loadSessions(term: string) {
   // of failing the build or the revalidation.
   try {
     return await db.query.events.findMany({
-      where: eq(events.bootcampTerm, term),
+      where: and(
+        eq(events.bootcampTerm, term),
+        isNotNull(events.bootcampWeek),
+      ),
       orderBy: (event, { asc }) => [asc(event.eventDate)],
       limit: 30,
       columns: listedColumns,

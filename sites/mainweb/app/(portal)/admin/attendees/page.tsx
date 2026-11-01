@@ -18,6 +18,7 @@ import {
   sectionRule,
   status as statusText,
 } from "@/components/portal/ui";
+import { EventOptions } from "@/components/portal/EventOptions";
 
 const adminTitle =
   "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
@@ -109,12 +110,8 @@ export default function AttendeesPage() {
               onChange={(e) => setSelectedEvent(e.target.value || null)}
               className={`${input} min-h-11 cursor-pointer`}
             >
-              <option value="">Select a club event…</option>
-              {eventList?.map((event) => (
-                <option key={event.id} value={event.id}>
-                  {event.title}
-                </option>
-              ))}
+              <option value="">Select an event…</option>
+              <EventOptions events={eventList} />
             </select>
           </div>
           {selectedEvent && (

@@ -8,7 +8,7 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
 import { members } from "./members";
 
@@ -29,13 +29,23 @@ export const events = pgTable(
     // No longer read: check-in is open to everyone signed in. Kept because
     // schema changes here are additive only; drop it in a later change.
     membersOnly: boolean("members_only").notNull().default(true),
-    /** Week N of the bootcamp. Null on every event that is not a session. */
+    /**
+     * Week N of the bootcamp. Null on every event that is not a scheduled
+     * session, which includes a session whose date was cleared.
+     */
     bootcampWeek: integer("bootcamp_week"),
     // Which bootcamp it belongs to, as `2026-fall`. Server-set. Without it the
     // grid stacks every semester together and week 1 is usable once, ever.
     bootcampTerm: text("bootcamp_term"),
     /** Refuses anyone whose bootcamp enrolment is not for the current term. */
     bootcampOnly: boolean("bootcamp_only").notNull().default(false),
+    // Filter on this, not on the bootcamp columns. Generated so it cannot
+    // disagree with them and so push fills in existing rows with no backfill.
+    // Never null, but do not add .notNull(): drizzle-kit treats that as a
+    // required column with no default and plans to truncate the table first.
+    kind: text("kind", { enum: ["club", "bootcamp"] }).generatedAlwaysAs(
+      sql`case when bootcamp_term is null then 'club' else 'bootcamp' end`,
+    ),
     maxCheckIns: integer("max_check_ins"),
     currentCheckIns: integer("current_check_ins").notNull().default(0),
     createdById: text("created_by_id")
