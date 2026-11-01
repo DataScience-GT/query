@@ -849,12 +849,15 @@ describe("Hackathon admin management edge cases", () => {
       mockSendAcceptanceEmail.mockRejectedValueOnce(
         new Error("450 mailbox unavailable"),
       );
+      const logged = vi.spyOn(console, "error").mockImplementation(() => {});
 
       const res = await caller.hackathon.sendMassAcceptanceEmails({
         hackathonId: HACK_A,
         participantIds: [PART_A1, PART_A2],
       });
 
+      expect(logged).toHaveBeenCalled();
+      logged.mockRestore();
       expect(res.approved).toBe(2);
       expect(res.emailed).toBe(1);
       expect(res.failedEmails).toEqual(["ada@example.com"]);
@@ -1818,6 +1821,7 @@ describe("Hackathon admin management edge cases", () => {
       mockInsert.mockImplementation(() => {
         throw new Error("audit_logs unavailable");
       });
+      const logged = vi.spyOn(console, "error").mockImplementation(() => {});
 
       await expect(
         caller.hackathon.delete({
@@ -1825,6 +1829,9 @@ describe("Hackathon admin management edge cases", () => {
           confirmName: "Hacklytics 2027",
         }),
       ).resolves.toMatchObject({ success: true });
+
+      expect(logged).toHaveBeenCalled();
+      logged.mockRestore();
     });
 
     // Eleven tables cascade off this row. A click-through confirm is one stray

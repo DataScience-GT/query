@@ -13,7 +13,7 @@ This is the club’s public site **and** the authenticated portal. There is no s
 | --- | --- |
 | `/` | Home (`HomePageClient`) |
 | `/team` | Team |
-| `/events` | Public club events (rows with no `bootcamp_term`); bootcamp sessions are not listed here |
+| `/events` | Public club events (`kind` is `club`); bootcamp sessions are not listed here |
 | `/projects` | Club projects — current roster and past archive, read from `club_project` |
 | `/history` | Club history |
 | `/bootcamp` | Public bootcamp page: the current term's sessions, a link to join in the portal, and the syllabus when no sessions are posted |
@@ -89,6 +89,25 @@ Helpers: `lib/hackathon-slug.ts`, `lib/phone.ts`, `lib/bootcamp-schedule.ts`, `l
 ## UI stack
 
 Portal: liquid-glass CSS, Lucide icons, Stripe React, QR scanner (`@yudiel/react-qr-scanner`), Chart.js on admin analytics. Public marketing: custom Hero/Section/Navbar/Footer plus `@query/ui` glass.
+
+## Fonts
+
+All six families are subset by hand and committed; `next/font` is not used. `body` is Arial, so public pages only reach Geist through `font-sans` and `font-mono`. Geist loads everywhere, Schibsted Grotesk and Newsreader in the portal, Instrument Sans and Silkscreen on `/hacklytics`. Each layout imports its own `fonts.generated.css` and preloads from `lib/fonts.generated.ts`.
+
+```bash
+pip install -r sites/mainweb/scripts/subset-fonts.requirements.txt
+python sites/mainweb/scripts/subset-fonts.py          # rebuild the fonts
+python sites/mainweb/scripts/subset-fonts.py --check  # after next build
+```
+
+Each font has a **core** file (ASCII, curly quotes, dashes, ellipsis, plus `·` and `©`) and an **extended** file behind `unicode-range`, which a page downloads only when it uses one of those characters. Only Regular Geist, Schibsted Grotesk, Newsreader, Instrument Sans and Silkscreen cores are preloaded. Rerun the script for a new Geist or Silkscreen weight, italic Newsreader, a headline under 18px, or a character `--check` reports; its header has the full list.
+
+Four limits are deliberate:
+
+- Geist is static, one file per weight, with hinting kept. The variable font has no hinting, so on Windows at 1x every Geist glyph changes. Setting `hinting` to False saves about 5 KB per file.
+- Other axis ranges stop only at a design master. Cutting between masters rounds the advances, and text moves.
+- Kerning does not cross between the core and extended files, so accented words sit slightly wider than they did.
+- `Ĕ ĕ Ĭ ĭ Ŏ ŏ` come from the fallback stack in Geist. Geist builds them from a letter and U+0306, and Chrome only sees the characters in a face's `unicode-range`, so the letter would have to join the extended range and every page would download it. Characters beyond Latin Extended-A also fall back.
 
 ## Tests
 
