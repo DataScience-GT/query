@@ -128,11 +128,15 @@ const sessionColumns = {
   checkInEnabled: events.checkInEnabled,
 };
 
+// A session whose date was cleared keeps its term and loses its week.
+const scheduledIn = (term: string) =>
+  and(eq(events.bootcampTerm, term), isNotNull(events.bootcampWeek));
+
 async function sessionsForTerm(db: DrizzleDB, term: string): Promise<Session[]> {
   return db
     .select(sessionColumns)
     .from(events)
-    .where(eq(events.bootcampTerm, term))
+    .where(scheduledIn(term))
     .orderBy(asc(events.bootcampWeek));
 }
 
@@ -147,7 +151,7 @@ async function adminSessionsForTerm(db: DrizzleDB, term: string) {
       maxCheckIns: events.maxCheckIns,
     })
     .from(events)
-    .where(eq(events.bootcampTerm, term))
+    .where(scheduledIn(term))
     .orderBy(asc(events.bootcampWeek));
 }
 
@@ -365,13 +369,13 @@ export const bootcampRouter = createTRPCRouter({
         input.location === undefined ? {} : { location: input.location || null };
 
       if (input.sessionDate === null) {
-        // Clearing keeps the event, QR code, and check-ins; only its bootcamp
-        // association is removed so the workshop honestly returns to TBA.
+        // Clearing keeps the event, QR code, and check-ins; only its week is
+        // removed so the workshop honestly returns to TBA. The term stays, or
+        // the row would turn into a club event and appear on /events.
         const [detached] = await db
           .update(events)
           .set({
             bootcampWeek: null,
-            bootcampTerm: null,
             bootcampOnly: false,
             updatedAt: new Date(),
           })

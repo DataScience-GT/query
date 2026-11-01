@@ -795,8 +795,8 @@ export const eventRouter = createTRPCRouter({
   /**
    * Club meeting attendance for /scan/club. Every number is aggregated in the
    * database: one row per event and one per person, never a row per check-in.
-   * Club events only, which includes bootcamp sessions (they are rows of this
-   * table); hackathon events live in their own tables and are not read here.
+   * Club events only. Bootcamp sessions have their own grid on /admin/bootcamp,
+   * and hackathon events live in their own tables and are not read here.
    */
   attendanceMetrics: isAdmin
     .input(z.object({ range: z.enum(ATTENDANCE_RANGES).default("term") }))
@@ -814,6 +814,7 @@ export const eventRouter = createTRPCRouter({
         // Held means it has happened. A meeting on next week's calendar has no
         // check-ins yet and would only drag the average down.
         const held = and(
+          eq(events.kind, "club"),
           lte(events.eventDate, now),
           from ? gte(events.eventDate, from) : undefined,
         );
@@ -830,7 +831,6 @@ export const eventRouter = createTRPCRouter({
               location: events.location,
               eventDate: events.eventDate,
               maxCheckIns: events.maxCheckIns,
-              bootcampWeek: events.bootcampWeek,
               checkIns: count(eventCheckIns.id),
             })
             .from(events)
@@ -907,6 +907,7 @@ export const eventRouter = createTRPCRouter({
               description: true,
               location: true,
               eventDate: true,
+              kind: true,
             },
           },
         },

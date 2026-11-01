@@ -64,7 +64,7 @@ export default function AdminPage() {
       enabled: !!session && canViewAdmin(portalContext),
     });
   // Bootcamp sessions have their own check-in controls on /admin/bootcamp.
-  const events = allEvents?.filter((e) => e.bootcampWeek == null);
+  const events = allEvents?.filter((e) => e.kind === "club");
 
   type StatusFilter = "all" | "open" | "closed";
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");

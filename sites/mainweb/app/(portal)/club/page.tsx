@@ -65,7 +65,9 @@ export default function ClubPage() {
     enabled: !!session,
   });
 
+  // Sessions are for enrolled members and are listed on /club/bootcamp.
   const upcomingEvents = (allEvents ?? [])
+    .filter((event) => event.kind === "club")
     // oxlint-disable-next-line react/purity
     .filter((event) => new Date(event.eventDate) >= new Date())
     .sort(
@@ -304,6 +306,9 @@ export default function ClubPage() {
                           {checkIn.event.title}
                         </p>
                         <p className={`${meta} mt-0.5`}>
+                          {checkIn.event.kind === "bootcamp"
+                            ? "Bootcamp · "
+                            : ""}
                           {new Date(checkIn.checkedInAt).toLocaleDateString()}
                           {checkIn.event.location
                             ? ` · ${checkIn.event.location}`

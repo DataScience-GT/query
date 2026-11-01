@@ -2,7 +2,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
 import { db, events } from "@query/db";
-import { and, gte, isNull, lt } from "drizzle-orm";
+import { and, eq, gte, lt } from "drizzle-orm";
 import { startOfEasternDay } from "@query/api/eastern-time";
 import Link from "next/link";
 import { eventDateParts, eventWhenWhere } from "@/lib/public-events";
@@ -50,7 +50,7 @@ async function loadUpcoming() {
   try {
     return await db.query.events.findMany({
       where: and(
-        isNull(events.bootcampTerm),
+        eq(events.kind, "club"),
         gte(events.eventDate, startOfToday()),
       ),
       orderBy: (event, { asc }) => [asc(event.eventDate)],
@@ -74,7 +74,7 @@ async function loadPast() {
   try {
     return await db.query.events.findMany({
       where: and(
-        isNull(events.bootcampTerm),
+        eq(events.kind, "club"),
         lt(events.eventDate, startOfToday()),
       ),
       orderBy: (event, { desc }) => [desc(event.eventDate)],

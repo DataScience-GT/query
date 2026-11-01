@@ -13,7 +13,7 @@ This is the club’s public site **and** the authenticated portal. There is no s
 | --- | --- |
 | `/` | Home (`HomePageClient`) |
 | `/team` | Team |
-| `/events` | Public club events (rows with no `bootcamp_term`); bootcamp sessions are not listed here |
+| `/events` | Public club events (`kind` is `club`); bootcamp sessions are not listed here |
 | `/projects` | Club projects — current roster and past archive, read from `club_project` |
 | `/history` | Club history |
 | `/bootcamp` | Public bootcamp page: the current term's sessions, a link to join in the portal, and the syllabus when no sessions are posted |
