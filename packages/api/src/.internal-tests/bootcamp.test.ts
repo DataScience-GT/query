@@ -505,7 +505,7 @@ describe("Bootcamp", () => {
       expect(call?.conflict?.set).not.toHaveProperty("location");
     });
 
-    it("clears a session by detaching its event without deleting check-ins", async () => {
+    it("clears a session without deleting check-ins or making it a club event", async () => {
       mockFindFirst.mockImplementation(adminWithWorkshop);
       onMutation = () => [{ id: WEEK_1 }];
 
@@ -520,11 +520,13 @@ describe("Bootcamp", () => {
         table: events,
         set: {
           bootcampWeek: null,
-          bootcampTerm: null,
           bootcampOnly: false,
           updatedAt: expect.any(Date),
         },
       });
+      // `kind` is derived from the term, so clearing it would move the row to
+      // the public /events list.
+      expect(mutationCalls[0]?.set).not.toHaveProperty("bootcampTerm");
       expect(mutationCalls[0]?.set).not.toHaveProperty("title");
       expect(mutationCalls[0]?.set).not.toHaveProperty("location");
     });
