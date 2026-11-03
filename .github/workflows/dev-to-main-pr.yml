@@ -45,4 +45,10 @@ jobs:
               --reviewer aamoghS \
               --assignee aamoghS \
               --label ":arrow_heading_down: pull"
+          elif [ "${{ github.event_name }}" != "push" ]; then
+            exit 0
           fi
+          # Greptile does not start on its own for a PR this bot opened, so ask
+          # in a comment: when the PR is created and on each push to dev, not on
+          # the daily scheduled run.
+          gh pr comment dev --repo "${{ github.repository }}" --body "@greptileai"
