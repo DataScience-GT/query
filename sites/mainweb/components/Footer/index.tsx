@@ -10,7 +10,7 @@ interface FooterProps {
 const Footer = ({ className = "" }: FooterProps) => {
   return (
     <footer
-      className={`relative w-full py-20 bg-[#050505] border-t border-white/5 text-gray-400 font-sans ${className}`}
+      className={`relative w-full py-14 md:py-20 bg-[#050505] border-t border-white/5 text-gray-400 font-sans ${className}`}
     >
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-8">
