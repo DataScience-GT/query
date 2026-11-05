@@ -18,7 +18,7 @@
     "local:reset": "node tooling/scripts/src/local.ts reset"
   },
   "dependencies": {
-    "next": "16.4.3",
+    "next": "16.4.4",
     "typescript": "^7.0.2"
   },
   "devDependencies": {
