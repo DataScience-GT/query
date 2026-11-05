@@ -88,14 +88,14 @@ const HomeCharts = () => {
   return (
     <div
       ref={gridRef}
-      className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto items-stretch"
+      className="grid lg:grid-cols-2 gap-6 md:gap-8 max-w-6xl mx-auto items-stretch"
     >
-      <div className="glass-card p-6 sm:p-10 rounded-3xl flex flex-col items-center transition-all group shadow-2xl">
-        <p className="text-xs font-mono text-gray-400 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">
+      <div className="glass-card p-5 sm:p-8 rounded-3xl flex flex-col items-center transition-all group shadow-2xl">
+        <p className="text-xs font-mono text-gray-400 mb-6 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">
           Class Year Distribution
         </p>
-        <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
-          <div className="w-full h-full max-w-[320px] aspect-square">
+        <div className="w-full relative flex items-center justify-center">
+          <div className="w-full max-w-[280px] sm:max-w-[320px] aspect-square">
             {chartsReady ? (
               <Pie data={ClassData} options={chartOptions} />
             ) : (
@@ -106,12 +106,12 @@ const HomeCharts = () => {
           </div>
         </div>
       </div>
-      <div className="glass-card p-6 sm:p-10 rounded-3xl flex flex-col items-center transition-all group shadow-2xl">
-        <p className="text-xs font-mono text-gray-400 mb-10 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">
+      <div className="glass-card p-5 sm:p-8 rounded-3xl flex flex-col items-center transition-all group shadow-2xl">
+        <p className="text-xs font-mono text-gray-400 mb-6 uppercase tracking-widest border-b border-white/5 pb-2 w-full text-center group-hover:text-[#00A8A8] transition-colors">
           Academic Major Split
         </p>
-        <div className="w-full relative flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
-          <div className="w-full h-full max-w-[320px] aspect-square">
+        <div className="w-full relative flex items-center justify-center">
+          <div className="w-full max-w-[280px] sm:max-w-[320px] aspect-square">
             {chartsReady ? (
               <Pie data={MajorData} options={chartOptions} />
             ) : (
