@@ -62,6 +62,13 @@ export default function LoginActions({
   // null means "we could not ask" — show it and let signIn report the truth.
   const hasProvider = (id: string) => providers === null || id in providers;
 
+  // A redirect to this page, such as /docs sending a signed-out visitor here,
+  // arrives with the fragment of the page it left. It goes back on the
+  // destination, or sign-in would land on the top of /docs, not #api.
+  const destination = () =>
+    callbackUrl && !callbackUrl.includes("#")
+      ? callbackUrl + window.location.hash
+      : callbackUrl;
 
   const isRedirecting = status === "authenticated";
 
@@ -85,7 +92,7 @@ export default function LoginActions({
       // send has to be read off the result or every failure looks like a send.
       const res = await signIn("nodemailer", {
         email,
-        callbackUrl: callbackUrl ?? "/dashboard",
+        callbackUrl: destination() ?? "/dashboard",
         redirect: false,
       });
 
@@ -101,8 +108,9 @@ export default function LoginActions({
       // The destination has to ride along to /verify. The code flow finishes on
       // that screen, not through NextAuth's own redirect, so dropping it here
       // is what sent everybody to /dashboard no matter where they came from.
-      const next = callbackUrl
-        ? `&callbackUrl=${encodeURIComponent(callbackUrl)}`
+      const to = destination();
+      const next = to
+        ? `&callbackUrl=${encodeURIComponent(to)}`
         : "";
       router.push(`/verify?email=${encodeURIComponent(email)}${next}`);
     } catch {
@@ -112,11 +120,11 @@ export default function LoginActions({
   };
 
   const handleSignIn = () => {
-    signIn("google", { callbackUrl: callbackUrl ?? "/dashboard" });
+    signIn("google", { callbackUrl: destination() ?? "/dashboard" });
   };
 
   const handleGithubSignIn = () => {
-    signIn("github", { callbackUrl: callbackUrl ?? "/dashboard" });
+    signIn("github", { callbackUrl: destination() ?? "/dashboard" });
   };
 
   const busy = emailSending || isRedirecting;

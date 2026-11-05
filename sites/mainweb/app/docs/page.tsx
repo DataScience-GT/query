@@ -2,10 +2,10 @@
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@query/auth";
 import DocsPageClient from "./DocsPageClient";
-import SignInRedirect from "./SignInRedirect";
 
 export const metadata: Metadata = {
   title: "Docs",
@@ -21,7 +21,10 @@ export default async function DocsPage() {
   // stays for a session that ends while the page is open.
   const session = await auth();
   if (!session?.user) {
-    return <SignInRedirect />;
+    // The server cannot see the #section in the URL, but the browser carries
+    // it across a redirect and the login page puts it back on the callback, so
+    // /docs#api still comes back to the API section after sign-in.
+    redirect("/login?callbackUrl=%2Fdocs");
   }
 
   // /docs sits outside the (portal) route group, so it never inherited that
@@ -29,9 +32,11 @@ export default async function DocsPage() {
   // undefined without a provider in scope and threw
   // "Cannot destructure property 'status'" — a hard 500 on this route.
   // Only the session context is needed here, not the full portal provider
-  // stack (tRPC / react-query / theme).
+  // stack (tRPC / react-query / theme). The session is passed in so the first
+  // render already knows it, rather than showing a spinner while the browser
+  // asks for the session the server just read.
   return (
-    <SessionProvider basePath="/api/auth">
+    <SessionProvider basePath="/api/auth" session={session}>
       <DocsPageClient />
     </SessionProvider>
   );
