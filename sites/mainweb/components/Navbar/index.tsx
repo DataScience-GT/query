@@ -5,10 +5,9 @@ import Image from "next/image";
 import { Link as ScrollLink } from "react-scroll";
 import Link from "next/link";
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
-import { useWindowWidth } from "@/lib/use-window-width";
 
 interface NavbarProps {
-  screen_width: number;
+  screen_width?: number;
   page?: string;
   className?: string;
 }
@@ -18,7 +17,6 @@ export default function Navbar({
   page,
   className = "",
 }: NavbarProps) {
-  const windowWidth = useWindowWidth(0);
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
   const navbarHeight = 80;
@@ -145,35 +143,32 @@ export default function Navbar({
           </div>
 
           {/* Desktop Links */}
-          {windowWidth >= WIDTH_THRESHOLD ? (
-            <div className="flex items-center gap-8">
-              {menuItems.map((item) => renderMenuItem(item))}
-              <Link
-                href="/login"
-                rel="noopener noreferrer"
-                className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-ui duration-300"
-                onClick={() => setMenuOpen(false)}
-              >
-                Portal
-              </Link>
-            </div>
-          ) : (
-            <button
-              className="relative w-12 h-12 flex flex-col justify-center items-end gap-1.5 z-[140] -mr-2"
-              onClick={() => setMenuOpen(!menuOpen)}
-              aria-label="Toggle Menu"
+          <div className="hidden min-[1000px]:flex items-center gap-8">
+            {menuItems.map((item) => renderMenuItem(item))}
+            <Link
+              href="/login"
+              rel="noopener noreferrer"
+              className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-ui duration-300"
+              onClick={() => setMenuOpen(false)}
             >
-              <span
-                className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 rotate-45 translate-y-2" : "w-8"}`}
-              />
-              <span
-                className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "opacity-0" : "w-5"}`}
-              />
-              <span
-                className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 -rotate-45 -translate-y-2" : "w-8"}`}
-              />
-            </button>
-          )}
+              Portal
+            </Link>
+          </div>
+          <button
+            className="min-[1000px]:hidden relative w-12 h-12 flex flex-col justify-center items-end gap-1.5 z-[140] -mr-2"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle Menu"
+          >
+            <span
+              className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 rotate-45 translate-y-2" : "w-8"}`}
+            />
+            <span
+              className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "opacity-0" : "w-5"}`}
+            />
+            <span
+              className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 -rotate-45 -translate-y-2" : "w-8"}`}
+            />
+          </button>
         </div>
       </nav>
 
