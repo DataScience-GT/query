@@ -84,8 +84,7 @@ export default async function HomePage() {
               Club events →
             </Link>
           </div>
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-[#00A8A8]/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition duration-500"></div>
+          <div className="relative">
             <Image
               src={squad}
               alt="DSGT Executive Board"
@@ -196,14 +195,9 @@ export default async function HomePage() {
         className="pt-24 pb-14 md:pt-36 md:pb-20 relative z-10"
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="mb-8 md:mb-12 space-y-2">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
-              Projects.
-            </h2>
-            <p className="font-mono text-xs text-[#00A8A8] uppercase tracking-[0.3em]">
-              Member projects
-            </p>
-          </div>
+          <h2 className="mb-8 md:mb-12 text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
+            Projects.
+          </h2>
 
           {currentProjects.length === 0 ? (
             <p className="text-gray-300">
@@ -309,14 +303,9 @@ export default async function HomePage() {
         className="pt-16 pb-14 md:pt-24 md:pb-20 bg-[#080808] relative z-10"
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="text-center mb-8 md:mb-12 space-y-3">
-            <h2 className="text-white text-4xl md:text-5xl font-bold tracking-tight leading-none">
-              Get involved.
-            </h2>
-            <p className="font-mono text-xs text-gray-400 uppercase tracking-[0.3em]">
-              Georgia Tech Primary Data Science Organization{" "}
-            </p>
-          </div>
+          <h2 className="mb-8 md:mb-12 text-center text-white text-4xl md:text-5xl font-bold tracking-tight leading-none">
+            Get involved.
+          </h2>
           <div className="grid md:grid-cols-3 gap-6 md:gap-8">
             {[
               {
