@@ -21,7 +21,8 @@ import Hero from "@/components/Hero";
 import Section from "@/components/Section";
 import Card from "@/components/Card";
 import Footer from "@/components/Footer";
-import HomeCharts from "@/components/HomeCharts";
+import ShareBar from "@/components/ShareBar";
+import { classYears, majors } from "@/assets/Data/demographics";
 
 import slide1 from "@/assets/images/slides/slide1.jpg";
 import squad from "@/assets/images/2025/squad.jpg";
@@ -121,7 +122,10 @@ export default async function HomePage() {
               550+ Verified Members
             </p>
           </div>
-          <HomeCharts />
+          <div className="mx-auto grid max-w-5xl gap-12 lg:grid-cols-2 lg:gap-16">
+            <ShareBar title="Class year" shares={classYears} />
+            <ShareBar title="Major" shares={majors} />
+          </div>
         </div>
       </Section>
 
