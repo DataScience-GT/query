@@ -7,16 +7,11 @@ import Link from "next/link";
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
 
 interface NavbarProps {
-  screen_width?: number;
   page?: string;
   className?: string;
 }
 
-export default function Navbar({
-  screen_width: _screen_width,
-  page,
-  className = "",
-}: NavbarProps) {
+export default function Navbar({ page, className = "" }: NavbarProps) {
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
   const navbarHeight = 80;

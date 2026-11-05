@@ -4,14 +4,10 @@ import Link from "next/link";
 import logo from "@/assets/images/dsgt/apple-touch-icon.png";
 
 interface FooterProps {
-  screen_width?: number;
   className?: string;
 }
 
-const Footer = ({
-  screen_width: _screen_width,
-  className = "",
-}: FooterProps) => {
+const Footer = ({ className = "" }: FooterProps) => {
   return (
     <footer
       className={`relative w-full py-20 bg-[#050505] border-t border-white/5 text-gray-400 font-sans ${className}`}
