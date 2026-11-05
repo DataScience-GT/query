@@ -9,7 +9,7 @@ import { ClassData, MajorData } from "@/assets/Data/demographics";
 const Pie = dynamic(() => import("react-chartjs-2").then((mod) => mod.Pie), {
   ssr: false,
   loading: () => (
-    <div className="h-64 w-64 flex items-center justify-center text-gray-500 font-mono text-xs uppercase tracking-widest">
+    <div className="h-64 w-64 flex items-center justify-center text-gray-400 font-mono text-xs uppercase tracking-widest">
       Loading chart
     </div>
   ),
@@ -99,7 +99,7 @@ const HomeCharts = () => {
             {chartsReady ? (
               <Pie data={ClassData} options={chartOptions} />
             ) : (
-              <div className="h-full flex items-center justify-center text-gray-500 font-mono text-xs uppercase tracking-widest">
+              <div className="h-full flex items-center justify-center text-gray-400 font-mono text-xs uppercase tracking-widest">
                 Loading chart
               </div>
             )}
@@ -115,7 +115,7 @@ const HomeCharts = () => {
             {chartsReady ? (
               <Pie data={MajorData} options={chartOptions} />
             ) : (
-              <div className="h-full flex items-center justify-center text-gray-500 font-mono text-xs uppercase tracking-widest">
+              <div className="h-full flex items-center justify-center text-gray-400 font-mono text-xs uppercase tracking-widest">
                 Loading chart
               </div>
             )}

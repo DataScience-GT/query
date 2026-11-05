@@ -58,16 +58,13 @@ const Hero = () => {
 
         {/* Right Logo */}
         <div className="hidden md:flex md:w-1/3 justify-center md:justify-end">
-          <div className="relative group">
-            <div className="absolute -inset-4 bg-indigo-500/20 rounded-full blur-3xl group-hover:bg-indigo-500/30 transition-ui duration-700"></div>
-            <Image
-              src={herologo}
-              alt="DSGT logo"
-              width={300}
-              height={300}
-              className="relative w-48 h-48 md:w-72 md:h-72 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-            />
-          </div>
+          <Image
+            src={herologo}
+            alt="DSGT logo"
+            width={300}
+            height={300}
+            className="w-48 h-48 md:w-72 md:h-72 object-contain"
+          />
         </div>
       </div>
     </section>
