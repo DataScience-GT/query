@@ -28,7 +28,6 @@ import { classYears, majors } from "@/assets/Data/demographics";
 import slide1 from "@/assets/images/slides/slide1.jpg";
 import squad from "@/assets/images/2025/squad.jpg";
 import slide6 from "@/assets/images/slides/slide6.jpg";
-import slide7 from "@/assets/images/slides/slide7.jpg";
 import arc from "@/assets/images/logos/arc-logo-v3.png";
 import gtaa from "@/assets/images/logos/gtaa.png";
 import stock from "@/assets/images/logos/stock.png";
@@ -318,64 +317,65 @@ export default async function HomePage() {
         id="getinvolved"
         className="pt-16 pb-14 md:pt-24 md:pb-20 bg-[#080808] relative z-10"
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <h2 className="mb-8 md:mb-12 text-center text-white text-4xl md:text-5xl font-bold tracking-tight leading-none">
-            Get involved.
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
-            {[
-              {
-                t: "Member",
-                d: "Join the mailing list for weekly updates.",
-                i: slide1,
-                l: "/login",
-                a: "Join Here →",
-              },
-              {
-                t: "Leadership",
-                d: "Join the executive board and lead teams.",
-                i: slide7,
-                l: "/team",
-                a: "Meet the Team →",
-              },
-              {
-                t: "Hacklytics",
-                d: "Attend our 36-hour flagship datathon.",
-                i: slide6,
-                l: "/hacklytics",
-                a: "About Hacklytics →",
-              },
-            ].map((card, i) => (
-              <div
-                key={i}
-                className="bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden group hover:border-[#00A8A8]/30 transition-all shadow-2xl"
-              >
-                <div className="h-44 md:h-56 overflow-hidden relative">
-                  <div className="absolute inset-0 bg-[#00A8A8]/10 z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Image
-                    src={card.i}
-                    alt={card.t}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    placeholder="blur"
-                  />
-                </div>
-                <div className="p-6 md:p-8 space-y-3 md:space-y-4">
-                  <h4 className="text-white text-lg font-bold tracking-tight">
-                    {card.t}
-                  </h4>
-                  <p className="text-sm text-gray-400 leading-relaxed">
-                    {card.d}
-                  </p>
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid items-center gap-10 lg:grid-cols-[3fr_2fr] lg:gap-20">
+          <div>
+            <h2 className="text-white text-5xl md:text-7xl font-bold tracking-tighter leading-none">
+              Join DSGT.
+            </h2>
+            <p className="mt-5 max-w-md text-lg text-gray-300 leading-relaxed">
+              Make an account to get weekly updates, sign up for the bootcamp,
+              and find a club project.
+            </p>
+            <Link
+              href="/login"
+              className="mt-8 inline-flex min-h-14 w-full items-center justify-center rounded-sm bg-[#00A8A8] px-12 text-sm font-bold uppercase tracking-widest text-black transition-colors hover:bg-white sm:w-auto"
+            >
+              Join DSGT
+            </Link>
+            <ul className="mt-12 max-w-md divide-y divide-white/10 border-y border-white/10">
+              {[
+                {
+                  href: "/team",
+                  title: "Lead a team",
+                  note: "Join the executive board.",
+                },
+                {
+                  href: "/hacklytics",
+                  title: "Attend Hacklytics",
+                  note: "Our 36-hour flagship datathon.",
+                },
+              ].map((path) => (
+                <li key={path.href}>
                   <Link
-                    href={card.l}
-                    className="inline-flex items-center min-h-11 md:min-h-0 text-xs font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
+                    href={path.href}
+                    className="group flex min-h-14 items-center justify-between gap-4 py-3 text-gray-300 transition-colors hover:text-white"
                   >
-                    {card.a}
+                    <span>
+                      <span className="block font-semibold text-white">
+                        {path.title}
+                      </span>
+                      <span className="block text-sm text-gray-400">
+                        {path.note}
+                      </span>
+                    </span>
+                    <span
+                      aria-hidden
+                      className="text-[#00A8A8] transition-transform group-hover:translate-x-1"
+                    >
+                      →
+                    </span>
                   </Link>
-                </div>
-              </div>
-            ))}
+                </li>
+              ))}
+            </ul>
           </div>
+          <Image
+            src={slide1}
+            alt="Members working on laptops at a DSGT workshop"
+            className="h-56 w-full rounded-lg object-cover sm:h-72 lg:h-[30rem]"
+            sizes="(min-width: 1024px) 480px, 100vw"
+            placeholder="blur"
+          />
         </div>
       </Section>
 
