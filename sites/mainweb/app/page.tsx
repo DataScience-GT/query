@@ -11,6 +11,10 @@ import {
   joinLabel,
 } from "@/lib/club-projects";
 import { loadClubProjects } from "@/lib/club-projects.server";
+import { loadBootcampSessions } from "@/lib/bootcamp-sessions.server";
+import { splitByDay } from "@/lib/public-events";
+import { currentTerm } from "@query/db/services/membership";
+import { startOfEasternDay } from "@query/api/eastern-time";
 
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
@@ -39,7 +43,12 @@ const PROJECT_LOGOS: Record<string, StaticImageData> = {
 };
 
 export default async function HomePage() {
-  const projects = await loadClubProjects();
+  const [projects, sessions] = await Promise.all([
+    loadClubProjects(),
+    loadBootcampSessions(currentTerm()),
+  ]);
+  // oxlint-disable-next-line react/purity
+  const { upcoming } = splitByDay(sessions, startOfEasternDay(new Date()));
   const { current: currentProjects } = groupClubProjects(projects);
 
   return (
@@ -51,7 +60,7 @@ export default async function HomePage() {
         page="home"
         className="fixed top-0 z-50 border-b border-white/5 bg-[#1A1A1A]/80 backdrop-blur-md"
       />
-      <Hero />
+      <Hero nextSession={upcoming[0] ?? null} />
 
       {/* ABOUT SECTION */}
       <Section
