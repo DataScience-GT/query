@@ -77,7 +77,7 @@ export default async function HomePage() {
       {/* ABOUT SECTION */}
       <Section
         id="about"
-        className="pt-16 pb-12 md:pt-24 md:pb-20 relative z-10"
+        className="scroll-mt-20 md:scroll-mt-0 pt-16 pb-12 md:pt-24 md:pb-20 relative z-10"
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
           <h2 className="max-w-5xl text-white text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter leading-[1.05]">
@@ -137,7 +137,7 @@ export default async function HomePage() {
       {/* BOOTCAMP SECTION */}
       <Section
         id="bootcamp"
-        className="pt-16 pb-14 md:pt-24 md:pb-20 relative z-10"
+        className="scroll-mt-20 md:scroll-mt-0 pt-16 pb-14 md:pt-24 md:pb-20 relative z-10"
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-[2fr_3fr] gap-10 lg:gap-24">
           <div className="space-y-5 md:space-y-6">
@@ -176,7 +176,7 @@ export default async function HomePage() {
       {/* HACKLYTICS SECTION */}
       <section
         id="golden-byte"
-        className="relative z-10 isolate flex min-h-[26rem] items-end overflow-hidden md:min-h-[34rem]"
+        className="scroll-mt-20 relative z-10 isolate flex min-h-[26rem] items-end overflow-hidden md:min-h-[34rem]"
       >
         <Image
           src={slide6}
@@ -210,7 +210,7 @@ export default async function HomePage() {
       {/* PROJECTS SECTION */}
       <Section
         id="projects"
-        className="pt-24 pb-14 md:pt-36 md:pb-20 relative z-10"
+        className="scroll-mt-20 md:scroll-mt-0 pt-24 pb-14 md:pt-36 md:pb-20 relative z-10"
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
           <h2 className="mb-8 md:mb-12 text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
@@ -318,7 +318,7 @@ export default async function HomePage() {
       {/* GET INVOLVED */}
       <Section
         id="getinvolved"
-        className="pt-16 pb-14 md:pt-24 md:pb-20 bg-[#080808] relative z-10"
+        className="scroll-mt-20 md:scroll-mt-0 pt-16 pb-14 md:pt-24 md:pb-20 bg-[#080808] relative z-10"
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12 grid items-center gap-10 lg:grid-cols-[3fr_2fr] lg:gap-20">
           <div>
