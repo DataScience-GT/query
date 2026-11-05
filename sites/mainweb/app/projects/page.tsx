@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -12,6 +13,8 @@ import {
 } from "@/lib/club-projects";
 import type { ClubProjectCard } from "@/lib/club-projects";
 import { loadClubProjects } from "@/lib/club-projects.server";
+
+export const metadata: Metadata = { title: "Projects" };
 
 export const revalidate = 300;
 

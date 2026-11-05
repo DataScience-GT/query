@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
@@ -6,6 +7,8 @@ import { and, eq, gte, lt } from "drizzle-orm";
 import { startOfEasternDay } from "@query/api/eastern-time";
 import Link from "next/link";
 import { eventDateParts, eventWhenWhere } from "@/lib/public-events";
+
+export const metadata: Metadata = { title: "Events" };
 
 /**
  * The club's upcoming events.

@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
+
+export const metadata: Metadata = { title: "History" };
 
 const YEARS = [
   { year: "2020-2021", note: "Foundation year. First official hackathon." },
