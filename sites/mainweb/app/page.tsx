@@ -164,13 +164,12 @@ export default async function HomePage() {
               hundreds of students for a weekend of data science challenges and
               workshops.
             </p>
-            <a
-              href="https://hacklytics-2025.devpost.com/"
-              target="_blank"
+            <Link
+              href="/hacklytics"
               className="inline-block border border-amber-500/30 text-amber-500 px-8 py-4 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
             >
-              View Devpost
-            </a>
+              About Hacklytics
+            </Link>
           </div>
           <div className="relative">
             <Image
@@ -326,8 +325,8 @@ export default async function HomePage() {
                 t: "Hacklytics",
                 d: "Attend our 36-hour flagship datathon.",
                 i: slide6,
-                l: "https://hacklytics-2025.devpost.com/",
-                a: "View Devpost →",
+                l: "/hacklytics",
+                a: "About Hacklytics →",
               },
             ].map((card, i) => (
               <div
@@ -350,23 +349,12 @@ export default async function HomePage() {
                   <p className="text-sm text-gray-400 leading-relaxed">
                     {card.d}
                   </p>
-                  {card.l.startsWith("http") ? (
-                    <a
-                      href={card.l}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center min-h-11 md:min-h-0 text-xs font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
-                    >
-                      {card.a}
-                    </a>
-                  ) : (
-                    <Link
-                      href={card.l}
-                      className="inline-flex items-center min-h-11 md:min-h-0 text-xs font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
-                    >
-                      {card.a}
-                    </Link>
-                  )}
+                  <Link
+                    href={card.l}
+                    className="inline-flex items-center min-h-11 md:min-h-0 text-xs font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
+                  >
+                    {card.a}
+                  </Link>
                 </div>
               </div>
             ))}
