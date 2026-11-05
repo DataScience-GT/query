@@ -31,7 +31,7 @@
     "@query/oxlint-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@types/pg": "^8.23.1",
-    "dotenv": "^18.0.5",
+    "dotenv": "^18.0.9",
     "drizzle-kit": "0.31.11",
     "oxlint": "1.90.0",
     "oxlint-tsgolint": "7.0.2005",
