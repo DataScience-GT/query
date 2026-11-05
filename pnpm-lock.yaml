@@ -78,8 +78,8 @@ importers:
         specifier: 2.18.1
         version: 2.18.1
       stripe:
-        specifier: ^23.0.0
-        version: 23.0.0(@types/node@24.19.2)
+        specifier: ^23.1.0
+        version: 23.1.0(@types/node@24.19.2)
       superjson:
         specifier: 2.2.6
         version: 2.2.6
@@ -401,8 +401,8 @@ importers:
         specifier: ^2.18.1
         version: 2.18.1
       stripe:
-        specifier: ^23.0.0
-        version: 23.0.0(@types/node@24.19.2)
+        specifier: ^23.1.0
+        version: 23.1.0(@types/node@24.19.2)
       superjson:
         specifier: ^2.2.6
         version: 2.2.6
@@ -3658,8 +3658,8 @@ packages:
     resolution: {integrity: sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==}
     engines: {node: '>=8'}
 
-  stripe@23.0.0:
-    resolution: {integrity: sha512-MDE2A5ZVVluYURORaZEVghSmnLJc3w6aHAlZSxDQMsOjOb3V0O6ro/CiaeFlJS4N7uIVmsg98ocRsPmUK6YfyA==}
+  stripe@23.1.0:
+    resolution: {integrity: sha512-fVUfMSfTPoukfoV//MUKAx2+YxyKmYaYtnAL9VkfnHfaPNQylFdWZMD+zgUFerI8rjbaiER8Vzj2XEUQ2AhAsQ==}
     engines: {node: '>=20'}
     peerDependencies:
       '@types/node': '>=20'
@@ -6470,7 +6470,7 @@ snapshots:
     dependencies:
       ansi-regex: 5.0.1
 
-  stripe@23.0.0(@types/node@24.19.2):
+  stripe@23.1.0(@types/node@24.19.2):
     optionalDependencies:
       '@types/node': 24.19.2
 
