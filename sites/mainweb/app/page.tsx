@@ -11,6 +11,7 @@ import {
   joinLabel,
 } from "@/lib/club-projects";
 import { loadClubProjects } from "@/lib/club-projects.server";
+import { BOOTCAMP_CURRICULUM } from "@/lib/bootcamp-schedule";
 import { loadBootcampSessions } from "@/lib/bootcamp-sessions.server";
 import { splitByDay } from "@/lib/public-events";
 import { currentTerm } from "@query/db/services/membership";
@@ -28,13 +29,21 @@ import slide1 from "@/assets/images/slides/slide1.jpg";
 import squad from "@/assets/images/2025/squad.jpg";
 import slide6 from "@/assets/images/slides/slide6.jpg";
 import slide7 from "@/assets/images/slides/slide7.jpg";
-import slide9 from "@/assets/images/slides/slide9.jpg";
 import arc from "@/assets/images/logos/arc-logo-v3.png";
 import gtaa from "@/assets/images/logos/gtaa.png";
 import stock from "@/assets/images/logos/stock.png";
 import trading from "@/assets/images/logos/trading.png";
 
 export const revalidate = 300;
+
+const BOOTCAMP_ARC = BOOTCAMP_CURRICULUM.reduce<
+  { first: number; last: number; title: string }[]
+>((arc, { week, title }) => {
+  const prev = arc.at(-1);
+  if (prev?.title === title) prev.last = week;
+  else arc.push({ first: week, last: week, title });
+  return arc;
+}, []);
 
 const PROJECT_LOGOS: Record<string, StaticImageData> = {
   arc,
@@ -68,42 +77,36 @@ export default async function HomePage() {
         id="about"
         className="pt-16 pb-12 md:pt-24 md:pb-20 relative z-10"
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          <div className="space-y-5 md:space-y-8">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
-              About us.
-            </h2>
-            <p className="text-lg text-gray-300 leading-relaxed max-w-xl border-l-2 border-[#00A8A8]/20 pl-6">
-              As the{" "}
-              <strong className="text-white">
-                largest student-run data science organization at Georgia Tech
-              </strong>
-              , we provide technical skill development via club projects,
-              workshops, and guest speakers.
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <h2 className="max-w-5xl text-white text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter leading-[1.05]">
+            The largest student-run data science organization at Georgia Tech.
+          </h2>
+          <Image
+            src={squad}
+            alt="DSGT Executive Board"
+            className="mt-10 md:mt-14 h-64 w-full rounded-lg object-cover object-[50%_40%] sm:h-80 lg:h-[28rem]"
+            sizes="(min-width: 1280px) 1184px, 100vw"
+            placeholder="blur"
+          />
+          <div className="mt-8 md:mt-10 flex flex-col gap-6 md:flex-row md:items-start md:justify-between md:gap-16">
+            <p className="max-w-xl text-lg text-gray-300 leading-relaxed">
+              We build technical skill through club projects, workshops, and
+              guest speakers.
             </p>
-            <Link
-              href="/team"
-              className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
-            >
-              Meet the Team →
-            </Link>
-            <Link
-              href="/events"
-              className="ml-6 inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
-            >
-              Club events →
-            </Link>
-          </div>
-          <div className="relative">
-            <Image
-              src={squad}
-              alt="DSGT Executive Board"
-              className="relative rounded-xl border border-white/10 shadow-2xl transition-all duration-700"
-              width={800}
-              height={450}
-              priority
-              placeholder="blur"
-            />
+            <div className="flex shrink-0 gap-x-8">
+              <Link
+                href="/team"
+                className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
+              >
+                Meet the Team →
+              </Link>
+              <Link
+                href="/events"
+                className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
+              >
+                Club events →
+              </Link>
+            </div>
           </div>
         </div>
       </Section>
@@ -132,75 +135,75 @@ export default async function HomePage() {
       {/* BOOTCAMP SECTION */}
       <Section
         id="bootcamp"
-        className="pt-16 pb-10 md:pt-24 md:pb-14 relative z-10"
+        className="pt-16 pb-14 md:pt-24 md:pb-20 relative z-10"
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-8 lg:gap-20 items-center">
-          <div className="order-2 lg:order-1 relative">
-            <Image
-              src={slide9}
-              alt="Bootcamp Session"
-              className="rounded-xl border border-white/10 shadow-xl transition-all duration-700"
-              width={600}
-              height={400}
-              placeholder="blur"
-            />
-          </div>
-          <div className="space-y-5 md:space-y-8 order-1 lg:order-2">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-[2fr_3fr] gap-10 lg:gap-24">
+          <div className="space-y-5 md:space-y-6">
             <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
               Bootcamp.
             </h2>
-            <p className="text-gray-300 leading-relaxed border-l-2 border-[#00A8A8]/20 pl-6">
-              Teaching core skills from{" "}
-              <span className="text-white">data cleaning</span> to{" "}
-              <span className="text-white">model building</span>. Learn Python
-              and pandas through hands-on project work, one session a week
-              for nine weeks.
+            <p className="max-w-md text-gray-300 leading-relaxed">
+              One session a week, from data wrangling to deep learning. The last
+              weeks are yours to spend on a project of your own.
             </p>
             <Link
               href="/bootcamp"
-              className="inline-block bg-white text-black px-8 py-4 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-[#00A8A8] hover:text-white transition-all shadow-lg shadow-white/5"
+              className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
             >
-              See the bootcamp
+              See the bootcamp →
             </Link>
           </div>
+          <ol className="divide-y divide-white/10 border-y border-white/10">
+            {BOOTCAMP_ARC.map((step) => (
+              <li
+                key={step.first}
+                className="grid grid-cols-[4.5rem_1fr] items-baseline gap-x-4 py-3.5 md:py-4"
+              >
+                <span className="font-mono text-xs uppercase tracking-[0.2em] text-gray-400 tabular-nums">
+                  {step.first === step.last
+                    ? `Wk ${step.first}`
+                    : `Wk ${step.first}–${step.last}`}
+                </span>
+                <span className="text-white md:text-lg">{step.title}</span>
+              </li>
+            ))}
+          </ol>
         </div>
       </Section>
 
       {/* HACKLYTICS SECTION */}
-      <Section
+      <section
         id="golden-byte"
-        className="py-10 md:py-14 border-y border-white/5 relative z-10"
+        className="relative z-10 isolate flex min-h-[26rem] items-end overflow-hidden md:min-h-[34rem]"
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-8 lg:gap-20 items-center">
-          <div className="space-y-5 md:space-y-8">
+        <Image
+          src={slide6}
+          alt="Hacklytics 2024 attendees under the balloon sign"
+          fill
+          sizes="100vw"
+          className="-z-10 object-cover object-[50%_25%]"
+          placeholder="blur"
+        />
+        <div className="absolute inset-0 -z-10 bg-linear-to-t from-[#1A1A1A] via-[#1A1A1A]/70 to-[#1A1A1A]/20 md:bg-linear-to-r md:from-[#1A1A1A]/95 md:via-[#1A1A1A]/70 md:to-transparent" />
+        <div className="relative mx-auto w-full max-w-7xl px-6 py-14 lg:px-12 md:py-20">
+          <div className="max-w-md space-y-5">
             <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
               Hacklytics.
             </h2>
-            <p className="text-gray-300 leading-relaxed border-l-2 border-amber-500/20 pl-6">
+            <p className="text-gray-200 leading-relaxed">
               Georgia Tech&apos;s premier{" "}
-              <span className="text-white">36-hour datathon</span>. Join
-              hundreds of students for a weekend of data science challenges and
-              workshops.
+              <span className="text-white">36-hour datathon</span>. Hundreds of
+              students, a weekend of data science challenges and workshops.
             </p>
             <Link
               href="/hacklytics"
-              className="inline-block border border-amber-500/30 text-amber-500 px-8 py-4 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
+              className="inline-flex items-center min-h-11 md:min-h-0 text-white font-mono text-xs uppercase tracking-[0.2em] border-b border-white/40 pb-1 hover:text-[#00A8A8] hover:border-[#00A8A8] transition-colors"
             >
-              About Hacklytics
+              About Hacklytics →
             </Link>
           </div>
-          <div className="relative">
-            <Image
-              src={slide6}
-              alt="Hacklytics Event"
-              className="rounded-xl border border-white/10 shadow-xl transition-all duration-700"
-              width={600}
-              height={400}
-              placeholder="blur"
-            />
-          </div>
         </div>
-      </Section>
+      </section>
 
       {/* PROJECTS SECTION */}
       <Section
