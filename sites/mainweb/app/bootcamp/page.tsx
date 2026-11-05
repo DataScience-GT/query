@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
@@ -21,6 +22,8 @@ import {
   splitByDay,
   termLabel,
 } from "@/lib/public-events";
+
+export const metadata: Metadata = { title: "Bootcamp" };
 
 /**
  * The current term's bootcamp: where and when it meets, the sessions the
