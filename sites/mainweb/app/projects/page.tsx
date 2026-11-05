@@ -14,7 +14,10 @@ import {
 import type { ClubProjectCard } from "@/lib/club-projects";
 import { loadClubProjects } from "@/lib/club-projects.server";
 
-export const metadata: Metadata = { title: "Projects" };
+export const metadata: Metadata = {
+  title: "Projects",
+  alternates: { canonical: "/projects" },
+};
 
 export const revalidate = 300;
 

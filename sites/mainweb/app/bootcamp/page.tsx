@@ -23,7 +23,10 @@ import {
   termLabel,
 } from "@/lib/public-events";
 
-export const metadata: Metadata = { title: "Bootcamp" };
+export const metadata: Metadata = {
+  title: "Bootcamp",
+  alternates: { canonical: "/bootcamp" },
+};
 
 /**
  * The current term's bootcamp: where and when it meets, the sessions the

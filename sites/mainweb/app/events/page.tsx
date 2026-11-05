@@ -8,7 +8,10 @@ import { startOfEasternDay } from "@query/api/eastern-time";
 import Link from "next/link";
 import { eventDateParts, eventWhenWhere } from "@/lib/public-events";
 
-export const metadata: Metadata = { title: "Events" };
+export const metadata: Metadata = {
+  title: "Events",
+  alternates: { canonical: "/events" },
+};
 
 /**
  * The club's upcoming events.

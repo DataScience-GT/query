@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import type { StaticImageData } from "next/image";
 import Link from "next/link";
@@ -32,6 +33,8 @@ import arc from "@/assets/images/logos/arc-logo-v3.png";
 import gtaa from "@/assets/images/logos/gtaa.png";
 import stock from "@/assets/images/logos/stock.png";
 import trading from "@/assets/images/logos/trading.png";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export const revalidate = 300;
 
