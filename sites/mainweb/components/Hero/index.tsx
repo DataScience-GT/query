@@ -1,6 +1,4 @@
 // src/components/Hero.tsx
-"use client";
-
 import Image from "next/image";
 import Mini from "../Text/Mini";
 
@@ -8,26 +6,26 @@ import hero3 from "@/assets/images/blobs/hero3--export.svg";
 import hero2mobile from "@/assets/images/blobs/hero2-mobile--export.svg";
 import herologo from "@/assets/images/dsgt/square-logo.png";
 
-interface HeroProps {
-  screen_width: number;
-}
-
-const Hero = ({ screen_width }: HeroProps) => {
-  const windowWidth = screen_width;
-  const WIDTH_THRESHOLD = 1000;
-
+const Hero = () => {
   return (
     <section
       id="hero"
       className="relative w-full h-screen flex items-center justify-center px-8 overflow-hidden bg-[#050505]"
     >
-      {/* Background Blob - Kept your logic */}
+      {/* CSS picks the blob so the server HTML is already right at every width. */}
       <div className="absolute inset-0 z-0">
         <Image
-          src={windowWidth >= WIDTH_THRESHOLD ? hero3 : hero2mobile}
+          src={hero3}
           alt="background"
           fill
-          className="object-cover object-right opacity-40"
+          className="hidden min-[1000px]:block object-cover object-right opacity-40"
+          priority
+        />
+        <Image
+          src={hero2mobile}
+          alt="background"
+          fill
+          className="min-[1000px]:hidden object-cover object-right opacity-40"
           priority
         />
       </div>
