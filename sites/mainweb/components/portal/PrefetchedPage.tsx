@@ -19,7 +19,8 @@ export async function PrefetchedPage({
   reads: (caller: PortalCaller) => readonly Prefetch[];
   children: React.ReactNode;
 }) {
-  const signedIn = await getPortalCaller();
+  // A failed session lookup renders the page as before; it fetches for itself.
+  const signedIn = await getPortalCaller().catch(() => null);
   if (!signedIn) return children;
   return (
     <HydrationBoundary state={await dehydratePrefetched(reads(signedIn.caller))}>

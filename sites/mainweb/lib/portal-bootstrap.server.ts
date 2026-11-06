@@ -62,7 +62,9 @@ export async function dehydratePrefetched(entries: readonly Prefetch[]) {
  * round trip for the portal context after hydration.
  */
 export async function loadPortalBootstrap() {
-  const signedIn = await getPortalCaller();
+  // A failed lookup (the database unreachable, say) must not take the whole
+  // portal down with it: fall back to the browser asking, as it did before.
+  const signedIn = await getPortalCaller().catch(() => null);
   if (!signedIn) return { session: undefined, state: undefined };
   const { caller } = signedIn;
 
