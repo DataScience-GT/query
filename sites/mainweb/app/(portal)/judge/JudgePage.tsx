@@ -1,5 +1,6 @@
 "use client";
 
+import { venueFormat } from "@/lib/venue-time";
 import { useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -28,9 +29,7 @@ const APPLYING = new Set(["announced", "open", "closed", "in_progress"]);
 
 function formatDates(start: Date | string, end: Date | string) {
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  const s = new Date(start);
-  const e = new Date(end);
-  return `${s.toLocaleDateString("en-US", opts)} – ${e.toLocaleDateString("en-US", { ...opts, year: "numeric" })}`;
+  return `${venueFormat(start, opts)} – ${venueFormat(end, { ...opts, year: "numeric" })}`;
 }
 
 export default function JudgePage() {

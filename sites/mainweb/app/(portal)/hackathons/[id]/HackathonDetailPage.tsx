@@ -1,5 +1,6 @@
 "use client";
 
+import { venueDayNumber, venueFormat, venueParts } from "@/lib/venue-time";
 import React, {
   useState,
   useEffect,
@@ -57,7 +58,7 @@ const preloadTabs = () => {
 };
 
 function formatDate(d: Date | string) {
-  return new Date(d).toLocaleDateString("en-US", {
+  return venueFormat(d, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -65,15 +66,16 @@ function formatDate(d: Date | string) {
 }
 
 function formatDateRange(start: Date | string, end: Date | string) {
-  const s = new Date(start);
-  const e = new Date(end);
-  if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
-    return `${s.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${e.getDate()}, ${e.getFullYear()}`;
+  const s = venueParts(start);
+  const e = venueParts(end);
+  const short = { month: "short", day: "numeric" } as const;
+  if (s.month === e.month && s.year === e.year) {
+    return `${venueFormat(start, short)} - ${e.day}, ${e.year}`;
   }
-  if (s.getFullYear() === e.getFullYear()) {
-    return `${s.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${e.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${e.getFullYear()}`;
+  if (s.year === e.year) {
+    return `${venueFormat(start, short)} - ${venueFormat(end, short)}, ${e.year}`;
   }
-  return `${formatDate(s)} - ${formatDate(e)}`;
+  return `${formatDate(start)} - ${formatDate(end)}`;
 }
 
 type TabType =
@@ -104,8 +106,8 @@ const EVENT_STATUSES = new Set(["in_progress", "completed"]);
 const tabFade =
   "[mask-image:linear-gradient(to_right,#000_calc(100%_-_1.5rem),transparent)]";
 
-// Day granularity, on the viewer's clock: the last day counts all day.
-const startOfDay = (d: Date | string) => new Date(d).setHours(0, 0, 0, 0);
+// Day granularity, on the venue's calendar: the last day counts all day.
+const startOfDay = venueDayNumber;
 
 export default function HackathonDetailPage() {
   const { data: session, status: authStatus } = useSession();

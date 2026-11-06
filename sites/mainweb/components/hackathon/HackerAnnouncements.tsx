@@ -1,5 +1,6 @@
 "use client";
 
+import { venueFormat } from "@/lib/venue-time";
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import {
@@ -14,10 +15,6 @@ import {
 const COLLAPSE_AFTER_CHARS = 200;
 const COLLAPSE_AFTER_LINES = 3;
 
-const dateFmt = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-});
 
 // The link is typed in by an organiser and rendered in a hacker's browser, so
 // only a real web address becomes an href. `javascript:` passes URL parsing.
@@ -51,7 +48,7 @@ function Announcement({
 
   return (
     <article className="py-4">
-      <p className={meta}>{dateFmt.format(new Date(announcement.sentAt))}</p>
+      <p className={meta}>{venueFormat(announcement.sentAt, { month: "short", day: "numeric" })}</p>
       <h3 className="mt-1 text-[17px] font-semibold text-[var(--text-primary)]">
         {announcement.heading}
       </h3>

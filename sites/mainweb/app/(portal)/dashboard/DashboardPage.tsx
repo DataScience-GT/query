@@ -1,5 +1,6 @@
 "use client";
 
+import { venueDayNumber, venueFormat } from "@/lib/venue-time";
 import { useSession, signOut } from "next-auth/react";
 import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
@@ -62,14 +63,12 @@ export default function Dashboard() {
       // An accepted hacker is waiting on the door scan. While an event runs,
       // re-read so the headline flips to checked in without a reload.
       refetchInterval: (query) => {
-        const startOfDay = (d: Date | string) =>
-          new Date(d).setHours(0, 0, 0, 0);
-        const today = startOfDay(new Date());
+        const today = venueDayNumber(new Date());
         return query.state.data?.some(
           (r) =>
             r.registrationStatus === "approved" &&
-            startOfDay(r.hackathon.startDate) <= today &&
-            today <= startOfDay(r.hackathon.endDate),
+            venueDayNumber(r.hackathon.startDate) <= today &&
+            today <= venueDayNumber(r.hackathon.endDate),
         )
           ? 30_000
           : false;
@@ -199,7 +198,7 @@ export default function Dashboard() {
       ? "Member"
       : "Guest";
 
-  const today = now.toLocaleDateString(undefined, {
+  const today = venueFormat(now, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -208,7 +207,7 @@ export default function Dashboard() {
   const daysLeft = memberStatus?.daysRemaining;
   const endsSoon = typeof daysLeft === "number" && daysLeft <= 30;
   const expiresOn = memberStatus?.expiresAt
-    ? new Date(memberStatus.expiresAt).toLocaleDateString(undefined, {
+    ? venueFormat(memberStatus.expiresAt, {
         month: "long",
         day: "numeric",
         year: "numeric",
