@@ -2,26 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Link as ScrollLink } from "react-scroll";
 import Link from "next/link";
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
-import { useWindowWidth } from "@/lib/use-window-width";
 
 interface NavbarProps {
-  screen_width: number;
   page?: string;
   className?: string;
 }
 
-export default function Navbar({
-  screen_width: _screen_width,
-  page,
-  className = "",
-}: NavbarProps) {
-  const windowWidth = useWindowWidth(0);
+export default function Navbar({ page, className = "" }: NavbarProps) {
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
-  const navbarHeight = 80;
   const isHomePage = !page || page === "home";
 
   useEffect(() => {
@@ -38,12 +29,10 @@ export default function Navbar({
   }, [menuOpen]);
 
   /**
-   * `link: false` renders a react-scroll ScrollLink, so `to` has to be the id
-   * of an element on THIS page. Four entries carried a route path under
-   * `link: false`, which sent ScrollLink hunting for an element with id
-   * "/events" — it warns to the console and does nothing, so those four were
-   * dead clicks on the highest-traffic page in the site. Anything starting with
-   * a slash is a destination, not an anchor.
+   * `link: false` renders a plain `<a href="#to">`, so `to` has to be the id
+   * of an element on THIS page. Anything starting with a slash is a
+   * destination, not an anchor. Smooth scrolling and the fixed-nav offset live
+   * in CSS (`html:has(#home-page)` and `scroll-mt-20 md:scroll-mt-0` on each section, the md padding already clears the nav).
    */
   const homeMenuItems = [
     { name: "About", to: "about", link: false },
@@ -82,10 +71,10 @@ export default function Navbar({
      * than the type keeps the design identical and makes the link hittable;
      * `inline-flex items-center` keeps the label centred in the taller box.
      */
-    const baseClass = `inline-flex items-center min-h-11 text-[11px] font-mono uppercase tracking-[0.2em] transition-ui duration-300 cursor-pointer ${
+    const baseClass = `inline-flex items-center min-h-11 text-[11px] font-mono uppercase whitespace-nowrap transition-ui duration-300 cursor-pointer ${
       isMobile
-        ? "text-gray-300 hover:text-white text-xl font-bold"
-        : "text-gray-400 hover:text-[#00A8A8]"
+        ? "tracking-[0.2em] text-gray-300 hover:text-white text-xl font-bold"
+        : "tracking-[0.14em] min-[1200px]:tracking-[0.2em] text-gray-400 hover:text-[#00A8A8]"
     }`;
 
     if (item.link) {
@@ -102,19 +91,14 @@ export default function Navbar({
     }
 
     return (
-      <ScrollLink
+      <a
         key={item.name}
-        to={item.to}
-        spy={true}
-        smooth={true}
-        offset={-navbarHeight}
-        duration={500}
+        href={`#${item.to}`}
         className={baseClass}
-        activeClass="text-white lg:text-[#00A8A8]"
         onClick={() => setMenuOpen(false)}
       >
         {item.name}
-      </ScrollLink>
+      </a>
     );
   };
 
@@ -125,7 +109,7 @@ export default function Navbar({
       >
         <div className="max-w-7xl mx-auto h-full flex justify-between items-center px-6 lg:px-12">
           {/* Logo Section */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <Link
               href="/"
               className="flex items-center gap-3 group"
@@ -145,35 +129,32 @@ export default function Navbar({
           </div>
 
           {/* Desktop Links */}
-          {windowWidth >= WIDTH_THRESHOLD ? (
-            <div className="flex items-center gap-8">
-              {menuItems.map((item) => renderMenuItem(item))}
-              <Link
-                href="/login"
-                rel="noopener noreferrer"
-                className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-ui duration-300"
-                onClick={() => setMenuOpen(false)}
-              >
-                Portal
-              </Link>
-            </div>
-          ) : (
-            <button
-              className="relative w-12 h-12 flex flex-col justify-center items-end gap-1.5 z-[140] -mr-2"
-              onClick={() => setMenuOpen(!menuOpen)}
-              aria-label="Toggle Menu"
+          <div className="hidden min-[1000px]:flex items-center gap-4 min-[1200px]:gap-8 ml-6">
+            {menuItems.map((item) => renderMenuItem(item))}
+            <Link
+              href="/login"
+              rel="noopener noreferrer"
+              className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-ui duration-300"
+              onClick={() => setMenuOpen(false)}
             >
-              <span
-                className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 rotate-45 translate-y-2" : "w-8"}`}
-              />
-              <span
-                className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "opacity-0" : "w-5"}`}
-              />
-              <span
-                className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 -rotate-45 -translate-y-2" : "w-8"}`}
-              />
-            </button>
-          )}
+              Portal
+            </Link>
+          </div>
+          <button
+            className="min-[1000px]:hidden relative w-12 h-12 flex flex-col justify-center items-end gap-1.5 z-[140] -mr-2"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle Menu"
+          >
+            <span
+              className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 rotate-45 translate-y-2" : "w-8"}`}
+            />
+            <span
+              className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "opacity-0" : "w-5"}`}
+            />
+            <span
+              className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 -rotate-45 -translate-y-2" : "w-8"}`}
+            />
+          </button>
         </div>
       </nav>
 
