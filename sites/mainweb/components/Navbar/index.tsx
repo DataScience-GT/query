@@ -75,10 +75,10 @@ export default function Navbar({ page, className = "" }: NavbarProps) {
      * than the type keeps the design identical and makes the link hittable;
      * `inline-flex items-center` keeps the label centred in the taller box.
      */
-    const baseClass = `inline-flex items-center min-h-11 text-[11px] font-mono uppercase tracking-[0.2em] transition-ui duration-300 cursor-pointer ${
+    const baseClass = `inline-flex items-center min-h-11 text-[11px] font-mono uppercase whitespace-nowrap transition-ui duration-300 cursor-pointer ${
       isMobile
-        ? "text-gray-300 hover:text-white text-xl font-bold"
-        : "text-gray-400 hover:text-[#00A8A8]"
+        ? "tracking-[0.2em] text-gray-300 hover:text-white text-xl font-bold"
+        : "tracking-[0.14em] min-[1200px]:tracking-[0.2em] text-gray-400 hover:text-[#00A8A8]"
     }`;
 
     if (item.link) {
@@ -118,7 +118,7 @@ export default function Navbar({ page, className = "" }: NavbarProps) {
       >
         <div className="max-w-7xl mx-auto h-full flex justify-between items-center px-6 lg:px-12">
           {/* Logo Section */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <Link
               href="/"
               className="flex items-center gap-3 group"
@@ -138,7 +138,7 @@ export default function Navbar({ page, className = "" }: NavbarProps) {
           </div>
 
           {/* Desktop Links */}
-          <div className="hidden min-[1000px]:flex items-center gap-8">
+          <div className="hidden min-[1000px]:flex items-center gap-4 min-[1200px]:gap-8 ml-6">
             {menuItems.map((item) => renderMenuItem(item))}
             <Link
               href="/login"

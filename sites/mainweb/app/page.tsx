@@ -54,9 +54,12 @@ export default async function HomePage() {
       <Hero />
 
       {/* ABOUT SECTION */}
-      <Section id="about" className="py-32 relative z-10">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-16 items-center">
-          <div className="space-y-8">
+      <Section
+        id="about"
+        className="pt-16 pb-12 md:pt-24 md:pb-20 relative z-10"
+      >
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <div className="space-y-5 md:space-y-8">
             <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
               About us.
             </h2>
@@ -81,8 +84,7 @@ export default async function HomePage() {
               Club events →
             </Link>
           </div>
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-[#00A8A8]/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition duration-500"></div>
+          <div className="relative">
             <Image
               src={squad}
               alt="DSGT Executive Board"
@@ -99,10 +101,10 @@ export default async function HomePage() {
       {/* STATS SECTION */}
       <Section
         id="stats"
-        className="py-32 border-y border-white/5 glass-section relative z-10"
+        className="py-14 md:py-20 border-y border-white/5 glass-section relative z-10"
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="text-center mb-20 space-y-4">
+          <div className="text-center mb-8 md:mb-12 space-y-3">
             <h2 className="text-white text-4xl md:text-5xl font-bold tracking-tight leading-none">
               Our club.
             </h2>
@@ -115,8 +117,11 @@ export default async function HomePage() {
       </Section>
 
       {/* BOOTCAMP SECTION */}
-      <Section id="bootcamp" className="py-32 relative z-10">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-20 items-center">
+      <Section
+        id="bootcamp"
+        className="pt-16 pb-10 md:pt-24 md:pb-14 relative z-10"
+      >
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-8 lg:gap-20 items-center">
           <div className="order-2 lg:order-1 relative">
             <Image
               src={slide9}
@@ -127,7 +132,7 @@ export default async function HomePage() {
               placeholder="blur"
             />
           </div>
-          <div className="space-y-8 order-1 lg:order-2">
+          <div className="space-y-5 md:space-y-8 order-1 lg:order-2">
             <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
               Bootcamp.
             </h2>
@@ -151,10 +156,10 @@ export default async function HomePage() {
       {/* HACKLYTICS SECTION */}
       <Section
         id="golden-byte"
-        className="py-32 border-y border-white/5 relative z-10"
+        className="py-10 md:py-14 border-y border-white/5 relative z-10"
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-20 items-center">
-          <div className="space-y-8">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-2 gap-8 lg:gap-20 items-center">
+          <div className="space-y-5 md:space-y-8">
             <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
               Hacklytics.
             </h2>
@@ -164,13 +169,12 @@ export default async function HomePage() {
               hundreds of students for a weekend of data science challenges and
               workshops.
             </p>
-            <a
-              href="https://hacklytics-2025.devpost.com/"
-              target="_blank"
+            <Link
+              href="/hacklytics"
               className="inline-block border border-amber-500/30 text-amber-500 px-8 py-4 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
             >
-              View Devpost
-            </a>
+              About Hacklytics
+            </Link>
           </div>
           <div className="relative">
             <Image
@@ -186,16 +190,14 @@ export default async function HomePage() {
       </Section>
 
       {/* PROJECTS SECTION */}
-      <Section id="projects" className="py-32 relative z-10">
+      <Section
+        id="projects"
+        className="pt-24 pb-14 md:pt-36 md:pb-20 relative z-10"
+      >
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="mb-16 space-y-2">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
-              Projects.
-            </h2>
-            <p className="font-mono text-xs text-[#00A8A8] uppercase tracking-[0.3em]">
-              Member projects
-            </p>
-          </div>
+          <h2 className="mb-8 md:mb-12 text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
+            Projects.
+          </h2>
 
           {currentProjects.length === 0 ? (
             <p className="text-gray-300">
@@ -218,10 +220,10 @@ export default async function HomePage() {
                 return (
                   <Card
                     key={project.id}
-                    className="flex flex-col h-full bg-[#0a0a0a] border border-white/5 p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl"
+                    className="flex flex-col h-full bg-[#0a0a0a] border border-white/5 p-6 md:p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl"
                   >
                     {logo && (
-                      <div className="w-full flex justify-center mb-6">
+                      <div className="w-full flex justify-center mb-4 md:mb-6">
                         <div className="p-4 bg-white/5 rounded-xl group-hover:bg-[#00A8A8]/10 transition-all">
                           <Image
                             src={logo}
@@ -275,7 +277,7 @@ export default async function HomePage() {
 
               <Link
                 href="/projects"
-                className="bg-[#00A8A8] p-8 rounded-xl flex flex-col justify-between hover:bg-[#008f8f] transition-all shadow-xl shadow-[#00A8A8]/10 group"
+                className="bg-[#00A8A8] p-6 md:p-8 rounded-xl flex flex-col justify-between hover:bg-[#008f8f] transition-all shadow-xl shadow-[#00A8A8]/10 group"
               >
                 <div className="space-y-4">
                   <h3 className="text-black text-2xl font-bold tracking-tight">
@@ -296,17 +298,15 @@ export default async function HomePage() {
       </Section>
 
       {/* GET INVOLVED */}
-      <Section id="getinvolved" className="py-32 bg-[#080808] relative z-10">
+      <Section
+        id="getinvolved"
+        className="pt-16 pb-14 md:pt-24 md:pb-20 bg-[#080808] relative z-10"
+      >
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="text-center mb-20 space-y-4">
-            <h2 className="text-white text-4xl md:text-5xl font-bold tracking-tight leading-none">
-              Get involved.
-            </h2>
-            <p className="font-mono text-xs text-gray-400 uppercase tracking-[0.3em]">
-              Georgia Tech Primary Data Science Organization{" "}
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          <h2 className="mb-8 md:mb-12 text-center text-white text-4xl md:text-5xl font-bold tracking-tight leading-none">
+            Get involved.
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
             {[
               {
                 t: "Member",
@@ -326,15 +326,15 @@ export default async function HomePage() {
                 t: "Hacklytics",
                 d: "Attend our 36-hour flagship datathon.",
                 i: slide6,
-                l: "https://hacklytics-2025.devpost.com/",
-                a: "View Devpost →",
+                l: "/hacklytics",
+                a: "About Hacklytics →",
               },
             ].map((card, i) => (
               <div
                 key={i}
                 className="bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden group hover:border-[#00A8A8]/30 transition-all shadow-2xl"
               >
-                <div className="h-56 overflow-hidden relative">
+                <div className="h-44 md:h-56 overflow-hidden relative">
                   <div className="absolute inset-0 bg-[#00A8A8]/10 z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <Image
                     src={card.i}
@@ -343,30 +343,19 @@ export default async function HomePage() {
                     placeholder="blur"
                   />
                 </div>
-                <div className="p-8 space-y-4">
+                <div className="p-6 md:p-8 space-y-3 md:space-y-4">
                   <h4 className="text-white text-lg font-bold tracking-tight">
                     {card.t}
                   </h4>
                   <p className="text-sm text-gray-400 leading-relaxed">
                     {card.d}
                   </p>
-                  {card.l.startsWith("http") ? (
-                    <a
-                      href={card.l}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center min-h-11 md:min-h-0 text-xs font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
-                    >
-                      {card.a}
-                    </a>
-                  ) : (
-                    <Link
-                      href={card.l}
-                      className="inline-flex items-center min-h-11 md:min-h-0 text-xs font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
-                    >
-                      {card.a}
-                    </Link>
-                  )}
+                  <Link
+                    href={card.l}
+                    className="inline-flex items-center min-h-11 md:min-h-0 text-xs font-mono text-[#00A8A8] uppercase tracking-[0.2em] hover:text-white transition-colors"
+                  >
+                    {card.a}
+                  </Link>
                 </div>
               </div>
             ))}

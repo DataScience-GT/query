@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
@@ -22,6 +23,8 @@ import { CircleCheck, CircleX, TriangleAlert } from "lucide-react";
 import AutoRefresh from "./AutoRefresh";
 import { loadStatus } from "./load";
 import { loadUptime } from "./uptime";
+
+export const metadata: Metadata = { title: "Status" };
 
 /**
  * Uptime and latency from real traffic.
