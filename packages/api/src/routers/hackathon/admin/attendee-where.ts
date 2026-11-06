@@ -41,6 +41,11 @@ export const buildAttendeeWhere = (input: {
     // Escaped so a literal % or _ in a name searches for that character instead
     // of turning into a wildcard.
     const pattern = `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+    // The user table gets its own alias, written by hand. Inside the relational
+    // roster query (db.query...findMany) Drizzle renders every column in this
+    // template against the participants alias, so `${users.id}` came out as
+    // "hackathonParticipants"."id" (a uuid) compared with user_id (text) and
+    // every search answered 500.
     clauses.push(
       sql`(
         ${hackathonParticipants.firstName} ilike ${pattern}
@@ -49,9 +54,9 @@ export const buildAttendeeWhere = (input: {
         or ${hackathonParticipants.major} ilike ${pattern}
         or ${hackathonParticipants.whyAttend} ilike ${pattern}
         or exists (
-          select 1 from ${users}
-          where ${users.id} = ${hackathonParticipants.userId}
-            and (${users.name} ilike ${pattern} or ${users.email} ilike ${pattern})
+          select 1 from ${users} as attendee_user
+          where attendee_user."id" = ${hackathonParticipants.userId}
+            and (attendee_user."name" ilike ${pattern} or attendee_user."email" ilike ${pattern})
         )
       )`,
     );
