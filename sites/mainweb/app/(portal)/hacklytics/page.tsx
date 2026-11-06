@@ -4,6 +4,7 @@ import { appRouter, createContext, resolveClientIp } from "@query/api";
 import type { RouterOutputs } from "@query/api";
 import { hackathonSlug } from "@/lib/hackathon-slug";
 import { InterestForm } from "@/components/hackathon/InterestForm";
+import type { KnownSession } from "@/components/hackathon/InterestForm";
 import {
   body,
   btnPrimary,
@@ -180,7 +181,13 @@ function FlowerBed() {
 type Upcoming = NonNullable<RouterOutputs["hackathon"]["getUpcoming"]>;
 
 /** What a visitor with no registration is offered, by where the edition is. */
-function CallToAction({ event }: { event: Upcoming }) {
+function CallToAction({
+  event,
+  session,
+}: {
+  event: Upcoming;
+  session: KnownSession;
+}) {
   // This page is the only public entrance to the hackathon, so it has to keep
   // working past the moment registration opens — before, it collected the
   // interest list; after, it points at the registration itself.
@@ -204,7 +211,13 @@ function CallToAction({ event }: { event: Upcoming }) {
   }
 
   if (event.status === "announced") {
-    return <InterestForm hackathonId={event.id} callbackPath="/hacklytics" />;
+    return (
+      <InterestForm
+        hackathonId={event.id}
+        callbackPath="/hacklytics"
+        serverSession={session}
+      />
+    );
   }
 
   // The interest list only takes sign-ups before registration opens;
@@ -283,7 +296,10 @@ export default async function HacklyticsPage() {
     );
   }
 
-  const offer = <CallToAction event={event} />;
+  const session = ctx.userId
+    ? { user: { email: ctx.session?.user?.email } }
+    : null;
+  const offer = <CallToAction event={event} session={session} />;
 
   return (
     <main className={page}>
