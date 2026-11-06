@@ -394,9 +394,6 @@ importers:
       react-dom:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
-      react-scroll:
-        specifier: 1.9.3
-        version: 1.9.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       sanitize-html:
         specifier: ^2.18.1
         version: 2.18.1
@@ -437,9 +434,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.3.0
         version: 19.3.0(@types/react@19.3.0)
-      '@types/react-scroll':
-        specifier: ^1.8.10
-        version: 1.8.10
       '@types/three':
         specifier: ^0.186.0
         version: 0.186.0
@@ -2190,9 +2184,6 @@ packages:
     peerDependencies:
       '@types/react': ^19.3.0
 
-  '@types/react-scroll@1.8.10':
-    resolution: {integrity: sha512-RD4Z7grbdNGOKwKnUBKar6zNxqaW3n8m9QSrfvljW+gmkj1GArb8AFBomVr6xMOgHPD3v1uV3BrIf01py57daQ==}
-
   '@types/react@19.3.0':
     resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
 
@@ -3083,9 +3074,6 @@ packages:
     resolution: {integrity: sha512-t7hw9pI+WvuwNJXwk5zVHpyhIqzg2qTlklJOf0mVxGSbe3Fp2VieZcduNYjaLDoy6p9uGpQEGWG87WpMKlNq8g==}
     engines: {node: '>=8'}
 
-  lodash.throttle@4.1.1:
-    resolution: {integrity: sha512-wIkUCfVKpVsWo3JSZlc+8MB5it+2AN5W8J7YVMST30UrvcQNZ1Okbj+rbVniijTWE6FGYy4XJq/rHkas8qJMLQ==}
-
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
     hasBin: true
@@ -3508,12 +3496,6 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
-
-  react-scroll@1.9.3:
-    resolution: {integrity: sha512-xv7FXqF3k63aSLNu4/NjFvRNI0ge7DmmmsbeGarP7LZVAlJMSjUuW3dTtLxp1Afijyv0lS2qwC0GiFHvx1KBHQ==}
-    peerDependencies:
-      react: ^15.5.4 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-dom: ^15.5.4 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   react-style-singleton@2.2.3:
     resolution: {integrity: sha512-b6jSvxvVnyptAiLjbkWLE/lOnR4lfTtDAl+eUC7RZy+QQWc6wRzIV2CE6xBuMmDxc2qIihtDCZD5NPOFl7fRBQ==}
@@ -5238,10 +5220,6 @@ snapshots:
     dependencies:
       '@types/react': 19.3.0
 
-  '@types/react-scroll@1.8.10':
-    dependencies:
-      '@types/react': 19.3.0
-
   '@types/react@19.3.0':
     dependencies:
       csstype: 3.2.3
@@ -5937,8 +5915,6 @@ snapshots:
     dependencies:
       p-locate: 4.1.0
 
-  lodash.throttle@4.1.1: {}
-
   loose-envify@1.4.0:
     dependencies:
       js-tokens: 4.0.0
@@ -6264,13 +6240,6 @@ snapshots:
       use-sidecar: 1.1.3(@types/react@19.3.0)(react@19.3.1)
     optionalDependencies:
       '@types/react': 19.3.0
-
-  react-scroll@1.9.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
-    dependencies:
-      lodash.throttle: 4.1.1
-      prop-types: 15.8.1
-      react: 19.3.1
-      react-dom: 19.3.1(react@19.3.1)
 
   react-style-singleton@2.2.3(@types/react@19.3.0)(react@19.3.1):
     dependencies:

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Link as ScrollLink } from "react-scroll";
 import Link from "next/link";
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
 
@@ -14,7 +13,6 @@ interface NavbarProps {
 export default function Navbar({ page, className = "" }: NavbarProps) {
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
-  const navbarHeight = 80;
   const isHomePage = !page || page === "home";
 
   useEffect(() => {
@@ -31,12 +29,10 @@ export default function Navbar({ page, className = "" }: NavbarProps) {
   }, [menuOpen]);
 
   /**
-   * `link: false` renders a react-scroll ScrollLink, so `to` has to be the id
-   * of an element on THIS page. Four entries carried a route path under
-   * `link: false`, which sent ScrollLink hunting for an element with id
-   * "/events" — it warns to the console and does nothing, so those four were
-   * dead clicks on the highest-traffic page in the site. Anything starting with
-   * a slash is a destination, not an anchor.
+   * `link: false` renders a plain `<a href="#to">`, so `to` has to be the id
+   * of an element on THIS page. Anything starting with a slash is a
+   * destination, not an anchor. Smooth scrolling and the fixed-nav offset live
+   * in CSS (`html:has(#home-page)` and `scroll-mt-20 md:scroll-mt-0` on each section, the md padding already clears the nav).
    */
   const homeMenuItems = [
     { name: "About", to: "about", link: false },
@@ -95,19 +91,14 @@ export default function Navbar({ page, className = "" }: NavbarProps) {
     }
 
     return (
-      <ScrollLink
+      <a
         key={item.name}
-        to={item.to}
-        spy={true}
-        smooth={true}
-        offset={-navbarHeight}
-        duration={500}
+        href={`#${item.to}`}
         className={baseClass}
-        activeClass="text-white lg:text-[#00A8A8]"
         onClick={() => setMenuOpen(false)}
       >
         {item.name}
-      </ScrollLink>
+      </a>
     );
   };
 
