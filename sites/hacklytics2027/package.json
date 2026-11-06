@@ -11,9 +11,9 @@
     "vision": "node scripts/capture-vision.mts"
   },
   "dependencies": {
-    "@astrojs/react": "5.0.7",
+    "@astrojs/react": "7.1.1",
     "@tailwindcss/vite": "4.3.3",
-    "astro": "6.4.8",
+    "astro": "7.4.2",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
