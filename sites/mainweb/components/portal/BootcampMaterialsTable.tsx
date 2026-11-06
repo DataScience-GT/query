@@ -1,5 +1,6 @@
 "use client";
 
+import { venueFormat } from "@/lib/venue-time";
 import { ExternalLink, Pencil, Trash2 } from "lucide-react";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { status } from "./ui";
@@ -31,7 +32,7 @@ interface BootcampMaterialsTableProps {
 
 const dateLabel = (date: Date | string | null) =>
   date
-    ? new Date(date).toLocaleDateString(undefined, {
+    ? venueFormat(date, {
         weekday: "short",
         month: "short",
         day: "numeric",

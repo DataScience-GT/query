@@ -1,4 +1,5 @@
 import { hackathonPathSegment } from "./hackathon-slug";
+import { venueDayNumber } from "./venue-time";
 import { eventDay, eventMoment } from "../components/hackathon/judging/event-time";
 
 /**
@@ -92,36 +93,32 @@ const formatDeadline = (at: Date) => {
   return deadlineFmt.format(at);
 };
 
-// Day granularity, on the viewer's clock: the last day counts all day.
-const startOfDay = (d: DateLike) => {
-  const day = new Date(d);
-  day.setHours(0, 0, 0, 0);
-  return day;
-};
+// Day granularity, on the venue's calendar: the last day counts all day. The
+// server render and every viewer agree on which day it is.
+const startOfDay = venueDayNumber;
 
 /**
  * Whether today falls on the edition's days, widened by `leadDays` before it
- * starts. Viewer's clock, day granularity.
+ * starts. Venue's calendar, day granularity.
  */
 export function isWithinEditionDates(
   edition: { startDate: DateLike; endDate: DateLike },
   now: Date,
   leadDays = 0,
 ): boolean {
-  const from = startOfDay(edition.startDate);
-  from.setDate(from.getDate() - leadDays);
-  const today = startOfDay(now).getTime();
-  return from.getTime() <= today && today <= startOfDay(edition.endDate).getTime();
+  const from = startOfDay(edition.startDate) - leadDays;
+  const today = startOfDay(now);
+  return from <= today && today <= startOfDay(edition.endDate);
 }
 
 const isOver = (hackathon: NextStepHackathon, now: Date) =>
   hackathon.status === "completed" ||
-  startOfDay(hackathon.endDate).getTime() < startOfDay(now).getTime();
+  startOfDay(hackathon.endDate) < startOfDay(now);
 
 const hasStarted = (hackathon: NextStepHackathon, now: Date) =>
   hackathon.status === "in_progress" ||
   hackathon.status === "completed" ||
-  startOfDay(hackathon.startDate).getTime() <= startOfDay(now).getTime();
+  startOfDay(hackathon.startDate) <= startOfDay(now);
 
 const ADMITTED = new Set(["approved", "checked_in"]);
 
@@ -270,7 +267,7 @@ export function hackathonNextStep(
       step: "pass",
       label: "Show your pass at check-in",
       detail:
-        startOfDay(hackathon.startDate).getTime() > startOfDay(now).getTime()
+        startOfDay(hackathon.startDate) > startOfDay(now)
           ? `The event starts ${eventDay(new Date(hackathon.startDate))}.`
           : "Have it scanned at the door.",
       href: tab("SCHEDULE"),
