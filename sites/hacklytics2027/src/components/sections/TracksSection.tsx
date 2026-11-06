@@ -1,7 +1,5 @@
-"use client";
 import React from "react";
 import { BloomSprite } from "../pixel/PixelSprite";
-import { useBloomInView } from "../pixel/useInView";
 import { BLOOM, DAISY, MUSHROOM, TULIP } from "../pixel/sprites";
 import type { SpriteMap } from "../pixel/sprites";
 
@@ -14,9 +12,8 @@ const tracks: { title: string; description: string; sprite: SpriteMap }[] = [
 
 export default function TracksSection() {
   // The signature: the four plants are dormant until the row is seen, then
-  // ribbon pink one after another, left to right.
-  const bedRef = useBloomInView<HTMLUListElement>();
-
+  // ribbon pink one after another, left to right. scripts/bloom.ts flips
+  // data-bloom on the first time the row is in view.
   return (
     <section id="tracks" className="section-anchor relative">
       <div className="wrap py-12 md:py-24">
@@ -28,8 +25,8 @@ export default function TracksSection() {
             a row gap, which the subgrid would also put between a title and
             its description; -mb-14 takes it back off the last row. */}
         <ul
-          ref={bedRef}
           data-bloom="off"
+          data-bloom-watch=""
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 sm:-mb-14 [--bed:1] md:[--bed:2]"
         >
           {tracks.map((t, i) => (

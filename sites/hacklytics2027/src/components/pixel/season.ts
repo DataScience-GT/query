@@ -1,9 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { BED_SIZE } from "./beds";
+import { EVENT_START } from "./event";
 
-// Check-in opens 5pm ET (the JSON-LD startDate). Without an offset the string
-// meant midnight in each visitor's own timezone.
-export const EVENT_START = new Date("2027-02-26T17:00:00-05:00");
 // When the 2027 season opened. Beds fill in from here to EVENT_START: a tenth
 // of each in bloom at the start, all of it on the day.
 const SEASON_START = new Date("2026-09-01T00:00:00-04:00");

@@ -1,4 +1,4 @@
-/* app/globals.css — Digital Bloom, redrawn from the globe key art: a flat
+/* styles/globals.css — Digital Bloom, redrawn from the globe key art: a flat
    globe on black with a pale-pink ribbon of cherry blossoms across it.
    Three colours come off that art (sampled from the PNG): ribbon pink
    #ffbfcf, sage #96bf98 and the dark navy outline #262731.
@@ -26,7 +26,7 @@
   --color-sage: var(--sage);
   --color-on-bloom: var(--on-bloom);
 
-  /* Font variables come from next/font in app/layout.tsx. */
+  /* The font variables are defined in fonts.generated.css. */
   --font-display: var(--font-silkscreen), ui-monospace, monospace;
   --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
 }
@@ -319,4 +319,15 @@ body {
     animation: none;
   }
   .flower-wilt { animation: none; }
+}
+
+/* ThemeToggle shows the sun on the night theme and the moon on the day one,
+   decided here so the icon is right before any script runs. Same selectors as
+   .px-light above. */
+.theme-moon { display: none; }
+:root[data-theme="light"] .theme-sun { display: none; }
+:root[data-theme="light"] .theme-moon { display: block; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .theme-sun { display: none; }
+  :root:not([data-theme="dark"]) .theme-moon { display: block; }
 }

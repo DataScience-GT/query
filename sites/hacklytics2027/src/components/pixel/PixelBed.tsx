@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useRef, useState, useSyncExternalStore } from "react";
 import { BloomSprite } from "./PixelSprite";
