@@ -519,6 +519,19 @@ describe("isWithinEditionDates", () => {
     expect(isWithinEditionDates(HACKATHON, BEFORE)).toBe(false);
   });
 
+  it("changes day at the venue's midnight, whatever zone the runtime is in", () => {
+    const edition = {
+      startDate: "2027-02-25T17:00:00Z",
+      endDate: "2027-02-27T17:00:00Z",
+    };
+    // 04:59Z is 11:59 PM on the 24th in Atlanta, though it is the 25th in Auckland.
+    expect(isWithinEditionDates(edition, new Date("2027-02-25T04:59:00Z"))).toBe(false);
+    expect(isWithinEditionDates(edition, new Date("2027-02-25T05:00:00Z"))).toBe(true);
+    // 04:59Z on the 28th is still the 27th in Atlanta, the edition's last day.
+    expect(isWithinEditionDates(edition, new Date("2027-02-28T04:59:00Z"))).toBe(true);
+    expect(isWithinEditionDates(edition, new Date("2027-02-28T05:00:00Z"))).toBe(false);
+  });
+
   it("widens the start by the lead days", () => {
     const threeDaysOut = new Date("2027-02-23T12:00:00Z");
     expect(isWithinEditionDates(HACKATHON, threeDaysOut, 2)).toBe(false);
