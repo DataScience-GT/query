@@ -1,0 +1,62 @@
+---
+// Night / day switch. The greenhouse at night stays the default look for
+// anyone whose system is dark; this lets either side pick the other.
+// scripts/theme-toggle.ts wires every [data-theme-toggle] button. The icon
+// follows the theme in CSS (.theme-sun, .theme-moon in styles/globals.css), so
+// it is right on the first paint, before any script runs.
+interface Props {
+  class?: string;
+}
+const { class: className = "" } = Astro.props;
+---
+
+<button
+  type="button"
+  data-theme-toggle
+  aria-label="Switch to light mode"
+  title="Light mode"
+  class:list={[
+    "w-11 h-11 rounded-lg flex items-center justify-center border border-line hover:border-ink-3 text-ink transition-colors bg-transparent shrink-0",
+    className,
+  ]}
+>
+  {/* Sun, drawn on the pixel grid like the rest of the site. */}
+  <svg
+    class="theme-sun"
+    viewBox="0 0 16 16"
+    width="16"
+    height="16"
+    shape-rendering="crispEdges"
+    aria-hidden="true"
+    fill="currentColor"
+  >
+    <rect x="6" y="5" width="4" height="6"></rect>
+    <rect x="5" y="6" width="6" height="4"></rect>
+    <rect x="7" y="1" width="2" height="2"></rect>
+    <rect x="7" y="13" width="2" height="2"></rect>
+    <rect x="1" y="7" width="2" height="2"></rect>
+    <rect x="13" y="7" width="2" height="2"></rect>
+    <rect x="3" y="3" width="2" height="2"></rect>
+    <rect x="11" y="3" width="2" height="2"></rect>
+    <rect x="3" y="11" width="2" height="2"></rect>
+    <rect x="11" y="11" width="2" height="2"></rect>
+  </svg>
+  {/* Moon: a fat crescent, tips to the upper right, so it does not read as the letter C. */}
+  <svg
+    class="theme-moon"
+    viewBox="0 0 16 16"
+    width="16"
+    height="16"
+    shape-rendering="crispEdges"
+    aria-hidden="true"
+    fill="currentColor"
+  >
+    <rect x="4" y="0" width="2" height="2"></rect>
+    <rect x="2" y="2" width="4" height="2"></rect>
+    <rect x="0" y="4" width="6" height="4"></rect>
+    <rect x="0" y="8" width="8" height="2"></rect>
+    <rect x="0" y="10" width="16" height="2"></rect>
+    <rect x="2" y="12" width="12" height="2"></rect>
+    <rect x="4" y="14" width="8" height="2"></rect>
+  </svg>
+</button>

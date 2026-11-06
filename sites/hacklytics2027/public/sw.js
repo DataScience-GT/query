@@ -68,7 +68,7 @@ self.addEventListener("activate", (event) => {
  * is never stale.
  */
 function isStaticAsset(url) {
-  return url.pathname.includes("/_next/static/");
+  return url.pathname.includes("/_astro/");
 }
 
 /**
