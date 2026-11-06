@@ -126,6 +126,14 @@ body {
   }
 }
 
+/* Smooth in-page anchors on the homepage only, so portal scrollIntoView calls
+   keep their instant behaviour. */
+@media (prefers-reduced-motion: no-preference) {
+  html:has(#home-page) {
+    scroll-behavior: smooth;
+  }
+}
+
 /* Honour the OS setting. The portal animates a lot — pulsing status dots,
    staggered card entrances, blur transitions — and for a motion-sensitive
    person that is not decoration, it is a symptom trigger. Kept as one near-zero
