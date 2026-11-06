@@ -1,5 +1,4 @@
 import React from "react";
-import Link from "next/link";
 import { INTEREST_URL } from "@/lib/links";
 
 const faqItems: { q: string; a: React.ReactNode }[] = [
@@ -32,14 +31,14 @@ const faqItems: { q: string; a: React.ReactNode }[] = [
     a: (
       <>
         Applications are not open yet.{" "}
-        <Link
+        <a
           href={INTEREST_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="text-link"
         >
           Get notified
-        </Link>{" "}
+        </a>{" "}
         and we’ll tell you when they do.
       </>
     ),
@@ -62,14 +61,14 @@ const faqItems: { q: string; a: React.ReactNode }[] = [
     a: (
       <>
         All participants follow the{" "}
-        <Link
+        <a
           href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf"
           target="_blank"
           rel="noopener noreferrer"
           className="text-link"
         >
           MLH Code of Conduct
-        </Link>
+        </a>
         . Harassment of any kind is not tolerated.
       </>
     ),

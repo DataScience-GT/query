@@ -87,7 +87,7 @@ Turbo runs every workspace `dev` task. The two sites:
 | Site | URL | Notes |
 | --- | --- | --- |
 | Main website + portal | [http://localhost:3001](http://localhost:3001) | Next.js App Router, `output: "standalone"` |
-| Hacklytics 2027 | [http://localhost:3000](http://localhost:3000) | Static-export marketing site (`--turbopack`) |
+| Hacklytics 2027 | [http://localhost:3000](http://localhost:3000) | Astro static marketing site (`astro dev`, port set in `astro.config.mjs`) |
 
 Useful filters:
 

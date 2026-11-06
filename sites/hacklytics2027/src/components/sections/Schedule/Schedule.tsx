@@ -1,7 +1,5 @@
-"use client";
 import React from "react";
 import { BloomSprite } from "../../pixel/PixelSprite";
-import { useBloomInView } from "../../pixel/useInView";
 import { BUD, TULIP } from "../../pixel/sprites";
 import { board } from "./data";
 
@@ -26,7 +24,6 @@ const split = (when: string) => {
 
 export default function Schedule() {
   const rows = board.map((row) => ({ ...row, ...split(row.when) }));
-  const seedlingRef = useBloomInView<HTMLDivElement>();
 
   return (
     <section id="schedule" className="section-anchor">
@@ -40,7 +37,7 @@ export default function Schedule() {
         </div>
 
         {/* A bud where hacking begins, in bloom where it ends. */}
-        <div ref={seedlingRef} data-bloom="off" className="relative">
+        <div data-bloom="off" data-bloom-watch="" className="relative">
           <p
             className="font-display text-[16px] text-ink pb-3 pl-8"
             style={{ marginLeft: toRail(HACK_START) }}

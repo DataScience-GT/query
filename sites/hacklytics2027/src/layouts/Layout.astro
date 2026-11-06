@@ -1,0 +1,120 @@
+---
+import "../styles/fonts.generated.css";
+import "../styles/globals.css";
+import Footer from "../components/Footer.astro";
+import Navbar from "../components/Navbar.astro";
+import { FONT_PRELOADS } from "../lib/fonts.generated";
+import { INTEREST_URL } from "../lib/links";
+import { GROUND, THEME_KEY } from "../lib/theme";
+
+// Fonts: Instrument Sans for text and UI, Silkscreen for display type (hero,
+// section titles, track names, countdown). Silkscreen has one weight, so
+// nothing sets it bold: a synthesized bold smears the pixel cells. Both come
+// from scripts/subset-fonts.py, which says when to rerun it.
+
+interface Props {
+  /** Whether this is the home page; the footer's call to action and bed only belong there. */
+  home?: boolean;
+}
+const { home = false } = Astro.props;
+
+const SITE = "https://hacklytics.io";
+const title = "Hacklytics 2027: Digital Bloom · Data Science Hackathon at Georgia Tech";
+const description =
+  "Hacklytics 2027 is a free, 36-hour data science and AI hackathon run by Data Science @ GT at Georgia Tech in Atlanta, February 26–28, 2027.";
+const keywords = ["hackathon", "data science", "machine learning", "AI", "Georgia Tech", "Atlanta", "coding", "competition"];
+
+// Runs before first paint so a saved light/dark choice never flashes the other
+// theme, and points the theme-color metas at it so the bar matches the page.
+// Kept tiny and dependency-free.
+const themeScript = `try{var t=localStorage.getItem("${THEME_KEY}");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=t==="light"?"${GROUND.light}":"${GROUND.dark}"})}}catch(e){}`;
+
+// JSON-LD structured data for SEO Event Schema
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Event",
+  name: "Hacklytics 2027: Digital Bloom",
+  startDate: "2027-02-26T17:00:00-05:00",
+  endDate: "2027-02-28T16:00:00-05:00",
+  eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+  eventStatus: "https://schema.org/EventScheduled",
+  location: {
+    "@type": "Place",
+    name: "Klaus Advanced Computing Building",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "266 Ferst Dr NW",
+      addressLocality: "Atlanta",
+      postalCode: "30332",
+      addressRegion: "GA",
+      addressCountry: "US",
+    },
+  },
+  image: [`${SITE}/og-image.jpg`],
+  description: "Data Science @ GT runs the Southeast’s data science hackathon: 36 hours of data science and AI at Georgia Tech.",
+  offers: {
+    "@type": "Offer",
+    url: INTEREST_URL,
+    price: "0",
+    priceCurrency: "USD",
+    // PreOrder, not InStock: registration has not opened, and the link behind
+    // this offer joins an interest list rather than securing a place. Search
+    // results that promise "register now" against a page that cannot are the
+    // kind of thing that gets rich results pulled.
+    availability: "https://schema.org/PreOrder",
+    validFrom: "2026-08-01T00:00:00-04:00",
+  },
+  organizer: {
+    "@type": "Organization",
+    name: "Data Science @ GT",
+    url: "https://datasciencegt.org",
+  },
+};
+---
+
+<!doctype html>
+<html lang="en" data-scroll-behavior="smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {FONT_PRELOADS.map((href) => <link rel="preload" href={href} as="font" crossorigin="" type="font/woff2" />)}
+    <link rel="preload" href="/mlh-trust-badge.svg" as="image" />
+    <slot name="head" />
+    {/* The browser bar follows the device setting by default; the theme
+        toggle repeats these when a choice is made. */}
+    <meta name="theme-color" content={GROUND.light} media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content={GROUND.dark} media="(prefers-color-scheme: dark)" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="author" content="Data Science @ GT" />
+    <meta name="keywords" content={keywords.join(",")} />
+    <meta property="og:title" content="Hacklytics 2027: Digital Bloom" />
+    <meta property="og:description" content="A 36-hour data science and AI hackathon at Georgia Tech. Room for 1,000+ hackers in Atlanta." />
+    <meta property="og:url" content={SITE} />
+    <meta property="og:site_name" content="Hacklytics" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content={`${SITE}/og-image.jpg`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Hacklytics 2027 Digital Bloom" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:creator" content="@datasciencegt" />
+    <meta name="twitter:title" content="Hacklytics 2027: Digital Bloom" />
+    <meta name="twitter:description" content="A 36-hour data science and AI hackathon at Georgia Tech." />
+    <meta name="twitter:image" content={`${SITE}/og-image.jpg`} />
+    <link rel="icon" href="/favicon.ico" sizes="64x64" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="/apple-icon.png" sizes="180x180" type="image/png" />
+    <script is:inline set:html={themeScript} />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")} />
+  </head>
+  <body class="font-sans antialiased">
+    <Navbar />
+    <slot />
+    <Footer home={home} />
+    <script>
+      import "../scripts/theme-toggle";
+    </script>
+    {import.meta.env.PROD && <script>import "../scripts/service-worker";</script>}
+  </body>
+</html>

@@ -13,8 +13,8 @@
 # testing
 /coverage
 
-# next.js
-/.next/
+# astro
+/.astro/
 # Build output is included for Firebase deployment
 # /out/
 
@@ -39,7 +39,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # Playwright
 /test-results/
