@@ -1,49 +1,86 @@
+import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { dehydrate, QueryClient } from "@tanstack/react-query";
 import type { Session } from "next-auth";
 import { appRouter, createContext, resolveClientIp } from "@query/api";
 
 /**
- * What every signed-in portal page needs before it can draw: who is signed in
- * and the two reads the sidebar makes. Fetched here, once, and handed to the
- * client providers, so the browser neither asks /api/auth/session for the
- * session nor makes a tRPC round trip for the portal context after hydration.
+ * The signed-in visitor's tRPC caller for this request, or null when there is
+ * none. Cached per request so the layout and a page's prefetch share one
+ * session lookup.
  *
- * Visitors with no session cookie (the login page, guest judges, the public
- * hacklytics page) skip all of it and mount exactly as they did before.
+ * A visitor with no session cookie (the login page, guest judges, the public
+ * hacklytics page) costs nothing here and mounts exactly as before.
  */
-export async function loadPortalBootstrap() {
+export const getPortalCaller = cache(async () => {
   const jar = await cookies();
-  const hasSessionCookie = jar
-    .getAll()
-    .some((c) => c.name.endsWith("authjs.session-token"));
-  if (!hasSessionCookie) return { session: undefined, state: undefined };
-
+  if (!jar.getAll().some((c) => c.name.endsWith("authjs.session-token"))) {
+    return null;
+  }
   const ctx = await createContext({
     clientIp: resolveClientIp((await headers()).get("x-forwarded-for")),
   });
-  if (!ctx.session?.user) return { session: undefined, state: undefined };
+  if (!ctx.session?.user) return null;
+  return { session: ctx.session, caller: appRouter.createCaller(ctx) };
+});
 
-  const caller = appRouter.createCaller(ctx);
-  const queryClient = new QueryClient();
+export type PortalCaller = NonNullable<
+  Awaited<ReturnType<typeof getPortalCaller>>
+>["caller"];
 
-  // Keys match what trpc.<path>.useQuery builds on the client.
+/** A prefetched read: `trpc.<path>.useQuery(input)` on the client hits this key. */
+export type Prefetch = readonly [
+  path: string,
+  input: unknown,
+  result: Promise<unknown>,
+];
+
+/**
+ * Settles the reads and dehydrates the ones that succeeded. A failed read is
+ * left out, so the browser fetches it and reports the error as it always did.
+ */
+export async function dehydratePrefetched(entries: readonly Prefetch[]) {
+  const client = new QueryClient();
+  await Promise.all(
+    entries.map(async ([path, input, result]) => {
+      const data = await result.catch(() => undefined);
+      if (data === undefined) return;
+      const key =
+        input === undefined
+          ? [path.split("."), { type: "query" }]
+          : [path.split("."), { input, type: "query" }];
+      client.setQueryData(key, data);
+    }),
+  );
+  return dehydrate(client);
+}
+
+/**
+ * What every signed-in portal page needs before it can draw: who is signed in
+ * and the two reads the sidebar makes. Handed to the client providers, so the
+ * browser neither asks /api/auth/session for the session nor makes a tRPC
+ * round trip for the portal context after hydration.
+ */
+export async function loadPortalBootstrap() {
+  const signedIn = await getPortalCaller();
+  if (!signedIn) return { session: undefined, state: undefined };
+  const { caller } = signedIn;
+
   const portal = await caller.user.getPortalContext().catch(() => null);
+  const entries: Prefetch[] = [];
   if (portal) {
-    queryClient.setQueryData([["user", "getPortalContext"], { type: "query" }], portal);
-  }
-  if (portal && !portal.isAdmin && !portal.isBugTester) {
-    const regs = await caller.hackathon.myRegistrations().catch(() => null);
-    if (regs) {
-      queryClient.setQueryData(
-        [["hackathon", "myRegistrations"], { type: "query" }],
-        regs,
-      );
+    entries.push(["user.getPortalContext", undefined, Promise.resolve(portal)]);
+    if (!portal.isAdmin && !portal.isBugTester) {
+      entries.push([
+        "hackathon.myRegistrations",
+        undefined,
+        caller.hackathon.myRegistrations(),
+      ]);
     }
   }
 
   // Only what the browser's own session carries, never the session token.
-  const { user, expires } = ctx.session;
+  const { user, expires } = signedIn.session;
   const session: Session = {
     expires: expires ?? "",
     user: {
@@ -53,5 +90,5 @@ export async function loadPortalBootstrap() {
       image: user?.image,
     } as Session["user"],
   };
-  return { session, state: dehydrate(queryClient) };
+  return { session, state: await dehydratePrefetched(entries) };
 }
