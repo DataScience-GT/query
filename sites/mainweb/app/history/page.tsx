@@ -3,7 +3,10 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
 
-export const metadata: Metadata = { title: "History" };
+export const metadata: Metadata = {
+  title: "History",
+  alternates: { canonical: "/history" },
+};
 
 const YEARS = [
   { year: "2020-2021", note: "Foundation year. First official hackathon." },

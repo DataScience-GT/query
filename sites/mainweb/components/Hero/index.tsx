@@ -1,16 +1,51 @@
 // src/components/Hero.tsx
 import Image from "next/image";
+import Link from "next/link";
 import Mini from "../Text/Mini";
+
+import type { BootcampSession } from "@/lib/bootcamp-sessions.server";
+import { eventDateParts, sessionTitle } from "@/lib/public-events";
 
 import hero3 from "@/assets/images/blobs/hero3--export.svg";
 import hero2mobile from "@/assets/images/blobs/hero2-mobile--export.svg";
 import herologo from "@/assets/images/dsgt/square-logo.png";
 
-const Hero = () => {
+function NextSession({ session }: { session: BootcampSession }) {
+  const { weekday, month, day, time } = eventDateParts(session.eventDate);
+  const heading = session.bootcampWeek
+    ? `Week ${session.bootcampWeek}: ${sessionTitle(session.title)}`
+    : sessionTitle(session.title);
+
+  return (
+    <>
+      <p className="text-lg font-semibold leading-snug text-white">{heading}</p>
+      <p className="mt-1 text-sm text-gray-300">
+        {weekday.slice(0, 3)}, {month} {day} · {time}
+        {session.location ? ` · ${session.location}` : ""}
+      </p>
+    </>
+  );
+}
+
+function NoSession() {
+  return (
+    <p className="text-lg font-semibold leading-snug text-white">
+      Bootcamp meets weekly during the semester.{" "}
+      <Link
+        href="/bootcamp"
+        className="whitespace-nowrap text-[#00A8A8] transition-colors hover:text-white"
+      >
+        See the schedule →
+      </Link>
+    </p>
+  );
+}
+
+const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
   return (
     <section
       id="hero"
-      className="relative w-full h-screen flex items-center justify-center px-8 overflow-hidden bg-[#050505]"
+      className="relative w-full min-h-screen py-24 flex items-center justify-center px-8 overflow-hidden bg-[#050505]"
     >
       {/* CSS picks the blob so the server HTML is already right at every width. */}
       <div className="absolute inset-0 z-0">
@@ -33,9 +68,6 @@ const Hero = () => {
       <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12">
         {/* Left Content */}
         <div className="flex flex-col justify-center items-start w-full md:w-3/5 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#00A8A8] text-[10px] font-mono uppercase tracking-[0.2em]">
-            Georgia Institute of Technology
-          </div>
           <h1
             className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.85] text-transparent"
             style={{ WebkitTextStroke: "1.5px rgba(255,255,255,0.8)" }}
@@ -54,6 +86,29 @@ const Hero = () => {
               engineering.
             </Mini>
           </div>
+
+          <dl className="grid w-full max-w-xl grid-cols-1 gap-6 border-t-2 border-[#00A8A8] pt-5 sm:grid-cols-[auto_1fr] sm:gap-10">
+            <div>
+              <dt className="font-mono text-[11px] uppercase tracking-[0.2em] text-gray-400">
+                Verified members
+              </dt>
+              <dd className="mt-2 text-3xl font-bold leading-none tracking-tight text-white tabular-nums">
+                550+
+              </dd>
+            </div>
+            <div>
+              <dt className="font-mono text-[11px] uppercase tracking-[0.2em] text-gray-400">
+                Next bootcamp session
+              </dt>
+              <dd className="mt-2">
+                {nextSession ? (
+                  <NextSession session={nextSession} />
+                ) : (
+                  <NoSession />
+                )}
+              </dd>
+            </div>
+          </dl>
         </div>
 
         {/* Right Logo */}
