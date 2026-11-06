@@ -1,0 +1,126 @@
+---
+import { INTEREST_URL } from "@/lib/links";
+import { EVENT_START } from "./pixel/event";
+import MlhBadge from "./MlhBadge.astro";
+import { HeroBed } from "./pixel/GardenBeds";
+
+const units = ["days", "hours", "minutes", "seconds"] as const;
+---
+
+<section class="relative flex min-h-[100svh] flex-col">
+  <MlhBadge />
+
+  {/* Top padding clears the navbar and the MLH badge, which hangs to
+      98px on phones and 158px from md (90px wide, 1:1.75). */}
+  <div class="wrap relative z-20 flex flex-1 flex-col pt-28 md:pt-40 short:pt-24">
+    <div class="text-center">
+      <p class="kicker text-[17px] max-[340px]:text-[15px] md:text-[20px] leading-7 text-ink">
+        Feb 26–28, 2027 · Klaus, Georgia Tech
+      </p>
+
+      {/* One line at every width, and only multiples of 8, so a pixel
+          cell is always a whole number of screen pixels. "Hacklytics"
+          is 5.75em wide. The nudge undoes the tracking after the last
+          letter, which pushed the ink right of centre. */}
+      <h1 class="display whitespace-nowrap text-[40px] min-[360px]:text-[48px] min-[390px]:text-[56px] sm:text-[96px] md:text-[112px] lg:text-[160px] xl:text-[192px] short:text-[128px] mt-4 short:mt-2 -translate-x-[0.0625em]">
+        Hacklytics
+      </h1>
+    </div>
+
+    {/* The globe stands dead centre, with the words either side from lg
+        and above it below that. -mb-24 sets it down on the soil, past
+        the bed's 96px row, in the gap the bed leaves for it. This box is
+        above the bed, so no flower can ever cover the globe. */}
+    <div class="mt-6 md:mt-8 short:mt-4 grid flex-1 grid-cols-1 lg:grid-cols-[1fr_24rem_1fr] xl:grid-cols-[1fr_30rem_1fr] short:grid-cols-[1fr_auto_1fr] gap-x-8 gap-y-8">
+      <div class="text-center lg:text-left lg:self-center lg:pb-10 short:pb-4">
+        <p class="font-sans text-[17px] leading-[1.5] text-ink-2">
+          <span class="text-ink">
+            36 hours of data science and AI in Atlanta, run by Data
+            Science @ GT.
+          </span>{" "}
+          Free to attend; meals and swag are covered.
+        </p>
+
+        <div class="mt-8 flex flex-col min-[360px]:grid min-[360px]:grid-cols-[8rem_1fr] sm:flex sm:flex-row sm:justify-center lg:flex-col lg:items-start xl:flex-row xl:justify-start gap-3">
+          <a
+            href={INTEREST_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-bloom"
+          >
+            Notify me
+          </a>
+          <a href="#tracks" class="btn btn-line max-[389px]:px-3 max-[389px]:text-[14px]">
+            See tracks and prizes
+          </a>
+        </div>
+      </div>
+
+      {/* The key art: a flat globe, a ribbon of blossoms across the
+          Americas, and 8-bit text that spells "Data Science GT" and
+          "Hacklytics 2027". The black is keyed out, so it sits on either
+          theme. 807x705 is its native size; 480 serves 1x phones. */}
+      <img
+        src="/hero-globe-807.webp"
+        srcset="/hero-globe-480.webp 480w, /hero-globe-807.webp 807w"
+        sizes="(min-width: 1280px) 480px, (min-width: 768px) 416px, (min-width: 640px) 368px, 270px"
+        width={807}
+        height={705}
+        alt="A flat illustration of the Americas on a globe, crossed by a pale pink ribbon of pixelated cherry blossoms, with lines of binary code over the oceans."
+        fetchpriority="high"
+        class="pointer-events-none order-last lg:order-none mx-auto block h-auto self-end w-[240px] min-[390px]:w-[270px] sm:w-[23rem] md:w-[26rem] lg:w-full short:w-[min(calc(100svh-19rem),42vw)] -mb-24 -translate-x-[1%]"
+      />
+
+      {/* Quiet figures: a big number over a small unit, no colour. The dim
+          zeros are the static HTML, and the inline script below fills in the
+          real numbers while the page is still being parsed, before first
+          paint, so the figures never jump from "00" to "112". It then ticks
+          them each second. */}
+      <div class="flex flex-wrap justify-center gap-x-8 max-[340px]:gap-x-4 gap-y-4 lg:grid lg:grid-cols-[auto_auto] lg:self-center lg:justify-self-end lg:pb-10 xl:flex short:pb-4">
+        {units.map((unit) => (
+          <div class="flex flex-col">
+            <span
+              data-countdown-unit={unit}
+              class="font-display text-[2rem] leading-none tabular-nums text-ink-3/40"
+            >
+              00
+            </span>
+            <span class="font-sans text-[13px] text-ink-3 mt-2">{unit}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {/* The flower bed the hero stands in. Its share in bloom tracks the
+      season; visitors can plant their own. The garden is the one part of the
+      first screen that needs React, and nothing on it is needed to read the
+      page, so it hydrates once the browser is idle. */}
+  <div class="pb-6">
+    <HeroBed client:idle />
+  </div>
+</section>
+
+<script is:inline define:vars={{ start: EVENT_START.getTime() }}>
+  {
+    const figures = document.querySelectorAll("[data-countdown-unit]");
+    const tick = () => {
+      const distance = start - Date.now();
+      const left =
+        distance > 0
+          ? {
+              days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+              hours: Math.floor((distance / (1000 * 60 * 60)) % 24),
+              minutes: Math.floor((distance / (1000 * 60)) % 60),
+              seconds: Math.floor((distance / 1000) % 60),
+            }
+          : null;
+      figures.forEach((figure) => {
+        figure.textContent = String((left ? left[figure.dataset.countdownUnit] : 0)).padStart(2, "0");
+        figure.classList.replace("text-ink-3/40", "text-ink");
+      });
+    };
+    tick();
+    setInterval(tick, 1000);
+  }
+</script>

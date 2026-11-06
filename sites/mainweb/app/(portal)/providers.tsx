@@ -2,7 +2,12 @@
 
 import type { ReactNode } from "react";
 import { SessionProvider } from "next-auth/react";
-import { QueryClientProvider } from "@tanstack/react-query";
+import {
+  HydrationBoundary,
+  QueryClientProvider,
+} from "@tanstack/react-query";
+import type { DehydratedState } from "@tanstack/react-query";
+import type { Session } from "next-auth";
 import { httpBatchLink } from "@trpc/client";
 import { useEffect, useState } from "react";
 import superjson from "superjson";
@@ -39,7 +44,15 @@ function AppThemeProvider({
   );
 }
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({
+  children,
+  session,
+  state,
+}: {
+  children: React.ReactNode;
+  session?: Session;
+  state?: DehydratedState;
+}) {
   const [queryClient] = useState(() => createAppQueryClient());
 
   const [trpcClient] = useState(() =>
@@ -55,9 +68,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <AppThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-      <SessionProvider basePath="/api/auth">
+      <SessionProvider basePath="/api/auth" session={session}>
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
-          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+          <QueryClientProvider client={queryClient}>
+            <HydrationBoundary state={state}>{children}</HydrationBoundary>
+          </QueryClientProvider>
         </trpc.Provider>
       </SessionProvider>
     </AppThemeProvider>
