@@ -1,3 +1,4 @@
+import { venueFormat } from "@/lib/venue-time";
 import type { SubteamApplicationStatus } from "@query/db";
 import { status as statusClass } from "@/components/portal/ui";
 import type { Tone } from "@/components/portal/ui";
@@ -53,7 +54,7 @@ export function SubteamChip({
 }
 
 export const shortDate = (value: Date | string) =>
-  new Date(value).toLocaleDateString("en-US", {
+  venueFormat(value, {
     month: "short",
     day: "numeric",
     year: "numeric",

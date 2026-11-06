@@ -1,5 +1,6 @@
 "use client";
 
+import { venueDayNumber } from "@/lib/venue-time";
 import React from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
@@ -61,8 +62,8 @@ function subscribeMinute(onChange: () => void) {
   return () => clearInterval(id);
 }
 
-// Day granularity, on the viewer's clock: the last day counts all day.
-const startOfDay = (d: Date | string) => new Date(d).setHours(0, 0, 0, 0);
+// Day granularity, on the venue's calendar: the last day counts all day.
+const startOfDay = venueDayNumber;
 
 export function ScheduleTab({
   hackathonId,
