@@ -13,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   meta,
   page,
@@ -26,12 +27,6 @@ import { hackathonStatus } from "@/lib/hackathon-status";
 
 // Extracted Tab Components
 import { InfoTab } from "@/components/hackathon/InfoTab";
-import { ScheduleTab } from "@/components/hackathon/ScheduleTab";
-import { ProjectsTab } from "@/components/hackathon/ProjectsTab";
-import { ResultsTab } from "@/components/hackathon/ResultsTab";
-import { TeamsTab } from "@/components/hackathon/TeamsTab";
-import { HackerJudgingTab } from "@/components/hackathon/judging/HackerJudgingTab";
-import { PointsTab } from "@/components/hackathon/points/PointsTab";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { HackathonUnavailable } from "@/components/hackathon/HackathonUnavailable";
 import { HackerAnnouncements } from "@/components/hackathon/HackerAnnouncements";
@@ -42,6 +37,24 @@ import {
   nextStepQueries,
   projectSubmitted,
 } from "@/lib/hackathon-next-step";
+
+// Only the open tab is needed to draw, so the others stay out of the first
+// load. They are fetched once the browser is idle, so a click finds them ready.
+const loadScheduleTab = () => import("@/components/hackathon/ScheduleTab").then((m) => m.ScheduleTab);
+const ScheduleTab = dynamic(loadScheduleTab);
+const loadProjectsTab = () => import("@/components/hackathon/ProjectsTab").then((m) => m.ProjectsTab);
+const ProjectsTab = dynamic(loadProjectsTab);
+const loadResultsTab = () => import("@/components/hackathon/ResultsTab").then((m) => m.ResultsTab);
+const ResultsTab = dynamic(loadResultsTab);
+const loadTeamsTab = () => import("@/components/hackathon/TeamsTab").then((m) => m.TeamsTab);
+const TeamsTab = dynamic(loadTeamsTab);
+const loadHackerJudgingTab = () => import("@/components/hackathon/judging/HackerJudgingTab").then((m) => m.HackerJudgingTab);
+const HackerJudgingTab = dynamic(loadHackerJudgingTab);
+const loadPointsTab = () => import("@/components/hackathon/points/PointsTab").then((m) => m.PointsTab);
+const PointsTab = dynamic(loadPointsTab);
+const preloadTabs = () => {
+  for (const load of [loadScheduleTab, loadProjectsTab, loadResultsTab, loadTeamsTab, loadHackerJudgingTab, loadPointsTab]) void load();
+};
 
 function formatDate(d: Date | string) {
   return new Date(d).toLocaleDateString("en-US", {
@@ -111,13 +124,20 @@ export default function HackathonDetailPage() {
   const urlTab = TABS.find((t) => t.id === tabParam)?.id ?? "INFO";
   const [shownTab, setShownTab] = useOptimistic<TabType>(urlTab);
 
-  // Keep the tab in the URL so refreshing, sharing and Back all work.
+  useEffect(() => {
+    const id = window.setTimeout(preloadTabs, 1000);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  // Keep the tab in the URL so refreshing, sharing and Back all work. Next's
+  // history.replaceState keeps useSearchParams in step without asking the
+  // server to render the page again, which router.replace did on every click.
   const selectTab = (next: TabType) => {
     startTransition(() => {
       setShownTab(next);
       const qs = new URLSearchParams(searchParams.toString());
       qs.set("tab", next);
-      router.replace(`?${qs.toString()}`, { scroll: false });
+      window.history.replaceState(null, "", `?${qs.toString()}`);
     });
   };
 
