@@ -1,10 +1,6 @@
-"use client";
 import React from "react";
 import { BloomSprite } from "../pixel/PixelSprite";
 import { BUD, DAISY, TULIP } from "../pixel/sprites";
-
-// A client component only to keep the page small: rendered on the server, the
-// sprites' data URIs would go out twice, in the HTML and in the RSC payload.
 
 // An empty plot: the seedlings are the 2027 partners, not announced yet.
 const PLOT = [BUD, TULIP, BUD, DAISY, BUD];

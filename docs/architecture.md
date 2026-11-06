@@ -1,6 +1,6 @@
 # Architecture
 
-**query** is a pnpm + Turborepo monorepo. Two Next.js sites share four internal packages. Club operations and hackathon operations share one Postgres database but are modeled as separate domains.
+**query** is a pnpm + Turborepo monorepo. Two sites (the Next.js portal and an Astro marketing site) sit beside four internal packages. Club operations and hackathon operations share one Postgres database but are modeled as separate domains.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -182,7 +182,7 @@ The webhook is `sites/mainweb/app/(portal)/api/webhooks/stripe/route.ts`. Linkin
 | Surface | Where it runs | Output |
 | --- | --- | --- |
 | `sites/mainweb` | Firebase App Hosting / Cloud Run (`apphosting.yaml`) | Next `standalone` |
-| `sites/hacklytics2027` | Firebase Hosting target `hacklytics` | Static `output: "export"` |
+| `sites/hacklytics2027` | Firebase Hosting target `hacklytics` | Astro static build (`astro build` writes `out/`) |
 
 The event site does not talk to the database. Interest and registration live on the portal; the marketing site links to `/login?callbackUrl=/hacklytics`.
 

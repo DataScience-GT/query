@@ -1,0 +1,135 @@
+---
+import { INTEREST_URL } from "@/lib/links";
+import { MenuBed } from "./pixel/GardenBeds";
+import ThemeToggle from "./ThemeToggle.astro";
+
+const navItems = [
+  { name: "About", href: "/#about" },
+  { name: "Tracks", href: "/#tracks" },
+  { name: "Prizes", href: "/#prizes" },
+  { name: "Schedule", href: "/#schedule" },
+  { name: "Sponsors", href: "/#sponsors" },
+  { name: "FAQ", href: "/#faqs" },
+];
+
+// The menu is a tinted layer over the page: hidden only by opacity, and the
+// open/hidden/scrolled states ride on data attributes that scripts/navbar.ts
+// flips, so the markup here is the whole closed, top-of-page state.
+---
+
+<header
+  id="site-header"
+  data-nav-header
+  class="group/h fixed top-0 left-0 right-0 z-50 bg-ground border-b transition-[translate,opacity,border-color] duration-300 ease-(--ease) translate-y-0 opacity-100 border-transparent data-[hidden]:-translate-y-full data-[hidden]:opacity-0 data-[scrolled]:border-rule"
+  style={{ height: "var(--navbar-height)" }}
+>
+  {/* The right padding keeps clear of the MLH badge hanging from the top
+       right of the hero (owned elsewhere): 20px + 56px wide on phones,
+       48px + up to 90px from md. .wrap sits in the components layer, so
+       this right padding wins over its gutter. What is left on a phone
+       holds the logo, Notify me and the menu button, so the theme switch
+       lives in the menu until sm. */}
+  <div class="wrap h-full flex items-center justify-between gap-2 sm:gap-6 pr-[5.75rem] md:pr-40">
+    <a
+      href="/"
+      data-nav-home
+      class="font-display text-[16px] text-ink shrink-0 inline-flex h-11 items-center"
+    >
+      Hacklytics
+    </a>
+
+    {/* Six links, the logo and the button do not fit below 1024px. Centred on
+         the page from xl, under nothing but the hero title's own centre line.
+         There is no room for that at lg. */}
+    <nav class="hidden lg:flex items-center gap-3 xl:absolute xl:left-1/2 xl:-translate-x-1/2">
+      {navItems.map(({ name, href }) => (
+        <a
+          href={href}
+          class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors py-3 px-2 min-w-11 text-center"
+        >
+          {name}
+        </a>
+      ))}
+    </nav>
+
+    <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+      <div class="hidden sm:block">
+        <ThemeToggle />
+      </div>
+      {/* Compact on phones, where it used to hide in the menu. Below 356px
+           there is no room beside the logo; the menu has it. */}
+      <a
+        href={INTEREST_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Notify me (opens a sign-up form)"
+        class="btn btn-bloom h-11 px-2.5 text-[12px] max-[356px]:hidden sm:px-4 sm:text-[15px] shrink-0 group-data-[open]/h:invisible"
+      >
+        Notify me
+      </a>
+
+      <button
+        type="button"
+        data-nav-toggle
+        aria-label="Toggle menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        class="group lg:hidden w-11 h-11 rounded-lg flex flex-col justify-center items-center gap-[5px] border border-line hover:border-ink-3 transition-colors bg-transparent"
+      >
+        <span class="block w-[18px] h-[2px] bg-ink transition-[translate,rotate,scale,opacity] duration-200 ease-(--ease) group-aria-expanded:rotate-45 group-aria-expanded:translate-y-[7px]"></span>
+        <span class="block w-[18px] h-[2px] bg-ink transition-[translate,rotate,scale,opacity] duration-200 ease-(--ease) group-aria-expanded:opacity-0 group-aria-expanded:scale-x-0"></span>
+        <span class="block w-[18px] h-[2px] bg-ink transition-[translate,rotate,scale,opacity] duration-200 ease-(--ease) group-aria-expanded:-rotate-45 group-aria-expanded:-translate-y-[7px]"></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+{/* Hidden only by opacity, so without inert its links would stay in the tab
+     order and the accessibility tree while closed. */}
+<div
+  id="mobile-menu"
+  data-nav-menu
+  inert
+  class="fixed inset-0 z-40 flex flex-col bg-ground transition-[opacity,visibility] duration-200 ease-(--ease) opacity-0 pointer-events-none invisible data-[open]:opacity-100 data-[open]:pointer-events-auto data-[open]:visible"
+  style={{ paddingTop: "var(--navbar-height)" }}
+>
+  <nav class="wrap flex flex-col pt-8 gap-0">
+    {navItems.map(({ name, href }) => (
+      <a
+        href={href}
+        class="font-display text-[1.5rem] leading-none text-ink hover:text-ink-2 py-4 border-b border-rule transition-colors"
+      >
+        {name}
+      </a>
+    ))}
+  </nav>
+  <div class="wrap mt-10">
+    <a
+      href={INTEREST_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Notify me (opens a sign-up form)"
+      class="btn btn-bloom w-full"
+    >
+      Notify me
+    </a>
+  </div>
+  <div class="mt-auto">
+    {/* Fills the space under the button on a tall phone. On a short one there
+         is none, and the theme switch below has to stay on screen. The menu
+         only opens below 1024px, so the bed hydrates only there. */}
+    <div class="[@media(max-height:760px)]:hidden">
+      <MenuBed client:media="(max-width: 1023px)" />
+    </div>
+    <div class="wrap pt-4 pb-12 flex items-center justify-between gap-4">
+      <span class="font-sans text-[13px] text-ink-3">Digital Bloom · 2027</span>
+      <div class="sm:hidden">
+        <ThemeToggle />
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import "../scripts/navbar";
+</script>
