@@ -28,7 +28,6 @@ export const metadata: Metadata = {
     "Data Science at Georgia Tech",
   ],
   authors: [{ name: "aamoghS" }],
-  alternates: { canonical: "/" },
   robots: {
     index: true,
     follow: true,

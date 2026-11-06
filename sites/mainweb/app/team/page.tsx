@@ -1,6 +1,4 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import type { Metadata } from "next";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import Section from "@/components/Section";
@@ -12,18 +10,12 @@ import Diya from "@/assets/images/2025/diya.jpeg";
 import Advisor from "@/assets/images/2025/jake.png";
 import IDEaS from "@/assets/images/2025/ideas.png";
 
+export const metadata: Metadata = {
+  title: "Team",
+  alternates: { canonical: "/team" },
+};
+
 const Team = () => {
-  const [windowWidth, setWindowWidth] = useState<number>(
-    typeof window !== "undefined" ? window.innerWidth : 1024,
-  );
-
-  useEffect(() => {
-    document.body.style.overflow = "auto";
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   return (
     <div
       id="team-page"
@@ -31,7 +23,6 @@ const Team = () => {
     >
       {/* Navbar fixed with glassmorphism */}
       <Navbar
-        screen_width={windowWidth}
         className="fixed top-0 left-0 w-full z-30 border-b border-white/5 bg-[#1A1A1A]/80 backdrop-blur-md"
         page="team"
       />
@@ -160,7 +151,6 @@ const Team = () => {
         </Section>
 
         <Footer
-          screen_width={windowWidth}
           className="mt-32 border-t border-white/5"
         />
       </main>

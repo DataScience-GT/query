@@ -1,9 +1,8 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
-import { db, events } from "@query/db";
 import { currentTerm } from "@query/db/services/membership";
-import { and, eq, isNotNull } from "drizzle-orm";
 import { startOfEasternDay } from "@query/api/eastern-time";
 import { BOOTCAMP_ADDON_CENTS, formatCents } from "@query/api/pricing";
 import Link from "next/link";
@@ -13,6 +12,8 @@ import {
   BOOTCAMP_ROOM,
   BOOTCAMP_START_DATE,
 } from "@/lib/bootcamp-schedule";
+import { loadBootcampSessions } from "@/lib/bootcamp-sessions.server";
+import type { BootcampSession } from "@/lib/bootcamp-sessions.server";
 import {
   bootcampSummary,
   eventDateParts,
@@ -21,6 +22,11 @@ import {
   splitByDay,
   termLabel,
 } from "@/lib/public-events";
+
+export const metadata: Metadata = {
+  title: "Bootcamp",
+  alternates: { canonical: "/bootcamp" },
+};
 
 /**
  * The current term's bootcamp: where and when it meets, the sessions the
@@ -31,40 +37,13 @@ import {
  */
 export const revalidate = 300;
 
-// qrCode is deliberately absent: publishing it would let anyone check
-// themselves in without being in the room.
-const listedColumns = {
-  id: true,
-  title: true,
-  location: true,
-  eventDate: true,
-  bootcampWeek: true,
-} as const;
-
-async function loadSessions(term: string) {
-  if (!db) return [];
-
-  // Same as /events: an unreachable database renders the empty state instead
-  // of failing the build or the revalidation.
-  try {
-    return await db.query.events.findMany({
-      where: and(
-        eq(events.bootcampTerm, term),
-        isNotNull(events.bootcampWeek),
-      ),
-      orderBy: (event, { asc }) => [asc(event.eventDate)],
-      limit: 30,
-      columns: listedColumns,
-    });
-  } catch (error) {
-    console.error("Failed to load bootcamp sessions", error);
-    return [];
-  }
-}
-
-type Session = Awaited<ReturnType<typeof loadSessions>>[number];
-
-function SessionRow({ session, past }: { session: Session; past?: boolean }) {
+function SessionRow({
+  session,
+  past,
+}: {
+  session: BootcampSession;
+  past?: boolean;
+}) {
   const { month, day } = eventDateParts(session.eventDate);
 
   return (
@@ -92,7 +71,7 @@ function SessionRow({ session, past }: { session: Session; past?: boolean }) {
 
 export default async function BootcampPage() {
   const term = currentTerm();
-  const sessions = await loadSessions(term);
+  const sessions = await loadBootcampSessions(term);
   // oxlint-disable-next-line react/purity
   const { upcoming, past } = splitByDay(sessions, startOfEasternDay(new Date()));
   const facts = bootcampSummary(
@@ -106,7 +85,7 @@ export default async function BootcampPage() {
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-white">
-      <Navbar screen_width={1024} page="bootcamp" />
+      <Navbar page="bootcamp" />
       <main className="pt-20">
         <Section className="py-24 sm:py-32">
           <div className="max-w-4xl mx-auto px-6">

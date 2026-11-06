@@ -18,11 +18,11 @@
     "local:reset": "node tooling/scripts/src/local.ts reset"
   },
   "dependencies": {
-    "next": "16.4.3",
+    "next": "16.4.4",
     "typescript": "^7.0.2"
   },
   "devDependencies": {
-    "turbo": "^2.11.7",
+    "turbo": "^2.11.10",
     "vite": "^7.3.7",
     "vitest": "^5.0.3"
   },

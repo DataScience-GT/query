@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
@@ -22,6 +23,8 @@ import { CircleCheck, CircleX, TriangleAlert } from "lucide-react";
 import AutoRefresh from "./AutoRefresh";
 import { loadStatus } from "./load";
 import { loadUptime } from "./uptime";
+
+export const metadata: Metadata = { title: "Status" };
 
 /**
  * Uptime and latency from real traffic.
@@ -58,7 +61,7 @@ export default async function StatusPage() {
   return (
     <div className="relative min-h-screen bg-[#050505] text-white">
       <AutoRefresh />
-      <Navbar screen_width={1024} page="status" />
+      <Navbar page="status" />
       <main className="pt-20">
         <Section className="py-32">
           <div className="max-w-4xl mx-auto px-6">
