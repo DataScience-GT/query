@@ -4,6 +4,7 @@ export const revalidate = 0; // Disable ISR for authenticated pages
 
 import { preload } from "react-dom";
 import { Providers } from "./providers";
+import { loadPortalBootstrap } from "@/lib/portal-bootstrap.server";
 import "./fonts.generated.css";
 import "./liquid-glass.css";
 import PortalWrapper from "@/components/portal/PortalWrapper";
@@ -14,7 +15,7 @@ import { FONT_PRELOADS } from "@/lib/fonts.generated";
 // stylesheet sets their variables on :root, so modals portaled to <body>
 // resolve the font roles in liquid-glass.css too.
 
-export default function PortalLayout({
+export default async function PortalLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -23,8 +24,10 @@ export default function PortalLayout({
     preload(href, { as: "font", type: "font/woff2", crossOrigin: "" }),
   );
 
+  const { session, state } = await loadPortalBootstrap();
+
   return (
-    <Providers>
+    <Providers session={session} state={state}>
       <div className="portal-type">
         <PortalWrapper>{children}</PortalWrapper>
       </div>
