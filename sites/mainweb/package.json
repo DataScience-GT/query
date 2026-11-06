@@ -19,6 +19,8 @@
     "@query/db": "workspace:*",
     "@query/ui": "workspace:*",
     "@stripe/react-stripe-js": "^6.12.0",
+    "@stripe/stripe-js": "^10.1.0",
+    "@tanstack/react-query": "^5.103.2",
     "@stripe/stripe-js": "^9.17.0",
     "@tanstack/react-query": "^5.105.0",
     "@trpc/client": "11.19.0",
