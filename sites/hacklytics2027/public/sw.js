@@ -4,8 +4,10 @@
 
 // Bumped when cached assets must be dropped: v3 flushed images that v2 served
 // cache-first forever; v4 drops every page cached before the greenhouse
-// redesign. Activation deletes every other cache name.
-const CACHE_VERSION = "hacklytics-v4";
+// redesign; v5 drops the Next.js pages and /_next/static chunks cached before
+// the move to Astro, so an offline visit cannot serve a shell whose scripts are
+// gone. Activation deletes every other cache name.
+const CACHE_VERSION = "hacklytics-v5";
 
 // Shell routes worth having offline. 404 is included so a bad link still
 // renders the themed page instead of the browser's offline error.
