@@ -75,16 +75,22 @@ export type NextStepInput = {
 // field is remote, and a deadline in the wrong zone costs somebody their entry.
 const EVENT_TZ = "America/New_York";
 
-// Same fields as the submit page prints its deadlines with.
-const deadlineFmt = new Intl.DateTimeFormat("en-US", {
-  timeZone: EVENT_TZ,
-  weekday: "short",
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  timeZoneName: "short",
-});
+// Same fields as the submit page prints its deadlines with. Built on first
+// use: the portal navigation imports this file for isWithinEditionDates, and a
+// formatter built on import cost every portal page about 25 ms of script.
+let deadlineFmt: Intl.DateTimeFormat | undefined;
+const formatDeadline = (at: Date) => {
+  deadlineFmt ??= new Intl.DateTimeFormat("en-US", {
+    timeZone: EVENT_TZ,
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  return deadlineFmt.format(at);
+};
 
 // Day granularity, on the viewer's clock: the last day counts all day.
 const startOfDay = (d: DateLike) => {
@@ -192,7 +198,7 @@ export function hackathonNextStep(
       step: "register",
       label: "Register",
       detail: deadline
-        ? `Applications close ${deadlineFmt.format(deadline)}.`
+        ? `Applications close ${formatDeadline(deadline)}.`
         : "Applications are reviewed as they arrive.",
       href: tab("INFO"),
     };
@@ -303,11 +309,11 @@ export function hackathonNextStep(
     return {
       step: "submit",
       label: closesAt
-        ? `Submit by ${deadlineFmt.format(closesAt)}`
+        ? `Submit by ${formatDeadline(closesAt)}`
         : "Submit your project",
       detail:
         opensAt && now < opensAt
-          ? `Submissions open ${deadlineFmt.format(opensAt)}.`
+          ? `Submissions open ${formatDeadline(opensAt)}.`
           : undefined,
       href: `/submit?id=${hackathon.id}`,
     };
