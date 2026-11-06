@@ -1,5 +1,6 @@
 "use client";
 
+import { venueFormat } from "@/lib/venue-time";
 import type { RouterOutputs } from "@query/api";
 import { trpc } from "@/lib/trpc";
 import { fieldHint, fieldLabel, input } from "@/components/portal/ui";
@@ -57,7 +58,7 @@ export const MODE_HINT = {
 } as const;
 
 export const shortTime = (value: Date | string) =>
-  new Date(value).toLocaleString("en-US", {
+  venueFormat(value, {
     month: "short",
     day: "numeric",
     hour: "numeric",
