@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: "Docs",
   description:
     "Developer documentation for the Data Science @ Georgia Tech website and portal.",
+  alternates: { canonical: "/docs" },
   // Signed-in only, so there is nothing for a crawler to index.
   robots: { index: false, follow: false },
 };
