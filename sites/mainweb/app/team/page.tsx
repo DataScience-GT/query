@@ -10,7 +10,10 @@ import Diya from "@/assets/images/2025/diya.jpeg";
 import Advisor from "@/assets/images/2025/jake.png";
 import IDEaS from "@/assets/images/2025/ideas.png";
 
-export const metadata: Metadata = { title: "Team" };
+export const metadata: Metadata = {
+  title: "Team",
+  alternates: { canonical: "/team" },
+};
 
 const Team = () => {
   return (
