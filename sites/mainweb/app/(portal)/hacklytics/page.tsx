@@ -1,17 +1,10 @@
-"use client";
-
 import Link from "next/link";
-import { useSession } from "next-auth/react";
-import { trpc } from "@/lib/trpc";
+import { headers } from "next/headers";
+import { appRouter, createContext, resolveClientIp } from "@query/api";
+import type { RouterOutputs } from "@query/api";
 import { hackathonSlug } from "@/lib/hackathon-slug";
-import {
-  hackathonNextStep,
-  nextStepQueries,
-  projectSubmitted,
-} from "@/lib/hackathon-next-step";
-import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { InterestForm } from "@/components/hackathon/InterestForm";
-import { StatusBadge } from "@/components/hackathon/StatusBadge";
+import type { KnownSession } from "@/components/hackathon/InterestForm";
 import {
   body,
   btnPrimary,
@@ -25,6 +18,9 @@ import {
   pageTitle,
   textLink,
 } from "@/components/portal/ui";
+import { MyRegistration } from "./MyRegistration";
+import { RetryButton } from "./RetryButton";
+import { hlSectionTitle } from "./styles";
 
 /**
  * The public landing page for an edition that has been announced but is not yet
@@ -33,8 +29,9 @@ import {
  * Lives inside the (portal) route group so it inherits the tRPC and session
  * providers, which are mounted only there — but it is NOT an authenticated
  * page. A signed-out stranger is the entire audience, so everything above the
- * form renders without a session and the sidebar is suppressed for it in
- * PortalWrapper.
+ * form renders on the server without a session and the sidebar is suppressed
+ * for it in PortalWrapper. Only the interest form and, for a signed-in
+ * visitor, their registration status run in the browser.
  *
  * The form writes against this edition's id (from getUpcoming), not a
  * singleton. The same component is mounted on the edition page so joining
@@ -66,12 +63,6 @@ const formatDeadline = (deadline: Date) =>
     timeZoneName: "short",
     timeZone: "America/New_York",
   });
-
-// sectionTitle in the pixel display face wraps "Your registration" and
-// "Apply for Hacklytics 2027" into orphaned lines; this steps it down a size.
-// The .hl-theme h2 rule already resets tracking and sets the weight.
-const hlSectionTitle =
-  "font-[family-name:var(--font-display)] text-[22px] font-semibold leading-tight text-[var(--text-primary)] text-balance";
 
 /**
  * The sidebar is suppressed here, so the page carries its own masthead: the
@@ -187,69 +178,94 @@ function FlowerBed() {
   );
 }
 
-export default function HacklyticsPage() {
-  const { status: authStatus } = useSession();
-  const upcoming = trpc.hackathon.getUpcoming.useQuery();
+type Upcoming = NonNullable<RouterOutputs["hackathon"]["getUpcoming"]>;
 
-  // A signed-in visitor who already registered for this edition gets their
-  // status instead of the Register button. Signed out, none of this is read.
-  const { data: myRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, {
-    enabled: authStatus === "authenticated",
+/** What a visitor with no registration is offered, by where the edition is. */
+function CallToAction({
+  event,
+  session,
+}: {
+  event: Upcoming;
+  session: KnownSession;
+}) {
+  // This page is the only public entrance to the hackathon, so it has to keep
+  // working past the moment registration opens — before, it collected the
+  // interest list; after, it points at the registration itself.
+  if (event.registrationOpen) {
+    return (
+      <div className="space-y-4">
+        <h2 className={hlSectionTitle}>Apply for {event.name}</h2>
+        <p className={body}>
+          {event.registrationDeadline
+            ? `Applications close ${formatDeadline(event.registrationDeadline)}.`
+            : "Applications are reviewed as they arrive."}
+        </p>
+        <Link
+          href={`/hackathons/${hackathonSlug(event.name)}`}
+          className={`w-full sm:w-auto ${btnPrimary}`}
+        >
+          Register
+        </Link>
+      </div>
+    );
+  }
+
+  if (event.status === "announced") {
+    return (
+      <InterestForm
+        hackathonId={event.id}
+        callbackPath="/hacklytics"
+        serverSession={session}
+      />
+    );
+  }
+
+  // The interest list only takes sign-ups before registration opens;
+  // offering it afterwards ended in an error on submit.
+  return (
+    <div className="space-y-4">
+      <h2 className={hlSectionTitle}>
+        {event.status === "in_progress"
+          ? "Happening now"
+          : event.status === "completed"
+            ? "This edition has ended"
+            : "Registration has closed"}
+      </h2>
+      <p className={body}>
+        {event.status === "in_progress"
+          ? "Registered hackers can find their schedule, team and check-in pass on the event page."
+          : event.status === "completed"
+            ? "The projects and the results, once they are published, are on the event page."
+            : "If you applied, your status is on the event page."}
+      </p>
+      <Link
+        href={`/hackathons/${hackathonSlug(event.name)}${event.status === "completed" ? "?tab=RESULTS" : ""}`}
+        className={btnSecondary}
+      >
+        {event.status === "completed"
+          ? "See the results"
+          : "Go to the event page"}
+      </Link>
+    </div>
+  );
+}
+
+export default async function HacklyticsPage() {
+  // getUpcoming is public and its rate limit is keyed by address. Without the
+  // visitor's own, every page view would draw on one shared "unknown" bucket.
+  const ctx = await createContext({
+    clientIp: resolveClientIp((await headers()).get("x-forwarded-for")),
   });
-  // oxlint-disable-next-line react/purity
-  const now = new Date();
-  const shown = upcoming.data;
-  const myReg = shown ? myRegs?.find((r) => r.hackathonId === shown.id) : null;
-  // The rest of the step is read only when it can change the answer: the
-  // submission and judging for a checked-in hacker while the event runs,
-  // results for an admitted one once it has begun.
-  const needs =
-    shown && myReg
-      ? nextStepQueries({
-          now,
-          hackathon: shown,
-          registrationStatus: myReg.registrationStatus,
-        })
-      : { submission: false, judging: false, results: false };
-  const stepId = shown?.id ?? "";
-  const submissionWindow = trpc.team.submissionWindow.useQuery(
-    { hackathonId: stepId },
-    { enabled: needs.submission },
-  );
-  const mySubmission = trpc.team.mySubmission.useQuery(
-    { hackathonId: stepId },
-    { enabled: needs.submission },
-  );
-  const itinerary = trpc.judging.hacker.itinerary.useQuery(
-    { hackathonId: stepId },
-    { enabled: needs.judging },
-  );
-  const results = trpc.hackathon.getResults.useQuery(
-    { hackathonId: stepId },
-    { enabled: needs.results },
-  );
-  const stepLoading =
-    submissionWindow.isLoading ||
-    mySubmission.isLoading ||
-    itinerary.isLoading ||
-    results.isLoading;
-  const nextStep =
-    shown && myReg && !stepLoading
-      ? hackathonNextStep({
-          now,
-          hackathon: shown,
-          registrationStatus: myReg.registrationStatus,
-          hasTeam: !!myReg.teamId,
-          submissionWindow: submissionWindow.data,
-          submitted: projectSubmitted(mySubmission.data),
-          itinerary: itinerary.data,
-          resultsPublished: (results.data?.length ?? 0) > 0,
-        })
-      : null;
+  let event: Upcoming | null = null;
+  let failed = false;
+  try {
+    event = await appRouter.createCaller(ctx).hackathon.getUpcoming();
+  } catch (error) {
+    failed = true;
+    console.error("[hacklytics] could not load the next hackathon:", error);
+  }
 
-  if (upcoming.isPending) return <LoadingScreen />;
-
-  if (upcoming.isError) {
+  if (failed) {
     return (
       <main className={page}>
         <Masthead />
@@ -258,13 +274,7 @@ export default function HacklyticsPage() {
             We could not load the next hackathon just now. Check your
             connection and try again.
           </p>
-          <button
-            type="button"
-            onClick={() => upcoming.refetch()}
-            className={`mt-4 ${btnSecondary}`}
-          >
-            Try again
-          </button>
+          <RetryButton />
         </div>
       </main>
     );
@@ -272,7 +282,7 @@ export default function HacklyticsPage() {
 
   // Nothing announced. Said plainly rather than left as an empty page or a
   // date invented to fill the space.
-  if (!upcoming.data) {
+  if (!event) {
     return (
       <main className={page}>
         <Masthead />
@@ -286,11 +296,10 @@ export default function HacklyticsPage() {
     );
   }
 
-  const event = upcoming.data;
-  // This page is the only public entrance to the hackathon, so it has to keep
-  // working past the moment registration opens — before, it collected the
-  // interest list; after, it points at the registration itself.
-  const registrationOpen = event.registrationOpen;
+  const session = ctx.userId
+    ? { user: { email: ctx.session?.user?.email } }
+    : null;
+  const offer = <CallToAction event={event} session={session} />;
 
   return (
     <main className={page}>
@@ -298,7 +307,7 @@ export default function HacklyticsPage() {
 
       <header className="mt-12">
         <p className={kicker}>
-          {registrationOpen
+          {event.registrationOpen
             ? "Registration is open"
             : event.status === "in_progress"
               ? "The hackathon is under way"
@@ -317,79 +326,10 @@ export default function HacklyticsPage() {
       </header>
 
       <section className="mt-8 border-t border-[var(--border-subtle)] pt-6">
-        {myReg ? (
-          <div className="space-y-4">
-            <h2 className={hlSectionTitle}>Your registration</h2>
-            <p className={body}>
-              Your status: <StatusBadge status={myReg.registrationStatus} />
-            </p>
-            {nextStep &&
-              (nextStep.step === "status" ? (
-                nextStep.detail && <p className={body}>{nextStep.detail}</p>
-              ) : (
-                <p className={body}>
-                  Next step:{" "}
-                  <Link href={nextStep.href} className={textLink}>
-                    {nextStep.label}
-                  </Link>
-                  {nextStep.detail && (
-                    <span className={`mt-1 block ${meta}`}>
-                      {nextStep.detail}
-                    </span>
-                  )}
-                </p>
-              ))}
-            <Link
-              href={`/hackathons/${hackathonSlug(event.name)}`}
-              className={`w-full sm:w-auto ${btnPrimary}`}
-            >
-              Open my Hacklytics
-            </Link>
-          </div>
-        ) : registrationOpen ? (
-          <div className="space-y-4">
-            <h2 className={hlSectionTitle}>Apply for {event.name}</h2>
-            <p className={body}>
-              {event.registrationDeadline
-                ? `Applications close ${formatDeadline(event.registrationDeadline)}.`
-                : "Applications are reviewed as they arrive."}
-            </p>
-            <Link
-              href={`/hackathons/${hackathonSlug(event.name)}`}
-              className={`w-full sm:w-auto ${btnPrimary}`}
-            >
-              Register
-            </Link>
-          </div>
-        ) : event.status === "announced" ? (
-          <InterestForm hackathonId={event.id} callbackPath="/hacklytics" />
+        {ctx.userId ? (
+          <MyRegistration event={event}>{offer}</MyRegistration>
         ) : (
-          // The interest list only takes sign-ups before registration opens;
-          // offering it afterwards ended in an error on submit.
-          <div className="space-y-4">
-            <h2 className={hlSectionTitle}>
-              {event.status === "in_progress"
-                ? "Happening now"
-                : event.status === "completed"
-                  ? "This edition has ended"
-                  : "Registration has closed"}
-            </h2>
-            <p className={body}>
-              {event.status === "in_progress"
-                ? "Registered hackers can find their schedule, team and check-in pass on the event page."
-                : event.status === "completed"
-                  ? "The projects and the results, once they are published, are on the event page."
-                  : "If you applied, your status is on the event page."}
-            </p>
-            <Link
-              href={`/hackathons/${hackathonSlug(event.name)}${event.status === "completed" ? "?tab=RESULTS" : ""}`}
-              className={btnSecondary}
-            >
-              {event.status === "completed"
-                ? "See the results"
-                : "Go to the event page"}
-            </Link>
-          </div>
+          offer
         )}
       </section>
 
