@@ -1,5 +1,6 @@
 "use client";
 
+import { venueFormat } from "@/lib/venue-time";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import SkillsInterestsInput from "@/components/portal/profile/SkillsInterestsInput";
@@ -155,7 +156,7 @@ export function MembershipTab() {
             <span className={statusClass("success")}>
               Active until{" "}
               {status.expiresAt
-                ? new Date(status.expiresAt).toLocaleDateString()
+                ? venueFormat(status.expiresAt)
                 : "—"}
             </span>
             {status.daysRemaining !== null && (
@@ -361,8 +362,8 @@ export function MembershipTab() {
                 className="flex flex-wrap items-baseline gap-x-2 py-2.5 border-b border-[var(--border-subtle)] text-[15px] text-[var(--text-primary)]"
               >
                 <span>
-                  {new Date(row.startDate).toLocaleDateString()} –{" "}
-                  {row.endDate ? new Date(row.endDate).toLocaleDateString() : "—"}
+                  {venueFormat(row.startDate)} –{" "}
+                  {row.endDate ? venueFormat(row.endDate) : "—"}
                 </span>
                 <span className="text-[13px] text-[var(--text-subtle)]">
                   · {row.action}

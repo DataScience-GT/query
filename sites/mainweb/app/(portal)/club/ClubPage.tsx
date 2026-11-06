@@ -1,5 +1,6 @@
 "use client";
 
+import { venueFormat } from "@/lib/venue-time";
 import { useEffect, useState } from "react";
 import { loginHref } from "@/lib/safe-callback";
 import Image from "next/image";
@@ -31,7 +32,7 @@ import {
 type Tab = "general" | "history" | "status";
 
 const eventWhen = (date: Date | string) =>
-  new Date(date).toLocaleString("en-US", {
+  venueFormat(date, {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -309,7 +310,7 @@ export default function ClubPage() {
                           {checkIn.event.kind === "bootcamp"
                             ? "Bootcamp · "
                             : ""}
-                          {new Date(checkIn.checkedInAt).toLocaleDateString()}
+                          {venueFormat(checkIn.checkedInAt)}
                           {checkIn.event.location
                             ? ` · ${checkIn.event.location}`
                             : ""}
@@ -350,7 +351,7 @@ export default function ClubPage() {
                   <dt className={label}>Valid through</dt>
                   <dd className="text-[15px] font-semibold text-[var(--text-primary)]">
                     {memberStatus?.expiresAt
-                      ? new Date(memberStatus.expiresAt).toLocaleDateString()
+                      ? venueFormat(memberStatus.expiresAt)
                       : "N/A"}
                   </dd>
                 </div>

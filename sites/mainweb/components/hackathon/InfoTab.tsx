@@ -1,5 +1,6 @@
 "use client";
 
+import { venueFormat } from "@/lib/venue-time";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
@@ -82,7 +83,7 @@ const MIN_GRAD_YEAR = CURRENT_YEAR - 1;
 const MAX_GRAD_YEAR = CURRENT_YEAR + 8;
 
 function formatDate(d: Date | string) {
-  return new Date(d).toLocaleDateString("en-US", {
+  return venueFormat(d, {
     month: "short",
     day: "numeric",
     year: "numeric",
