@@ -49,6 +49,11 @@ import { AttendeeStats } from "./AttendeeStats";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import type { RegistrationStatus } from "./attendee-status";
 import type { HackathonStatus } from "./constants";
+import { venueFormat } from "@/lib/venue-time";
+import { useIsClient } from "@/lib/use-is-client";
+
+// What toLocaleString() prints in en-US, on the venue's clock.
+const DATE_TIME = { year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" } as const;
 
 export function AttendeesTab({
   hackathonId,
@@ -61,6 +66,7 @@ export function AttendeesTab({
 }) {
   const utils = trpc.useUtils();
   const readOnly = useReadOnly();
+  const isClient = useIsClient();
 
   const [page, setPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -497,7 +503,11 @@ export function AttendeesTab({
 
   return (
     <div className="space-y-8">
-      <RegistrationControls hackathonId={hackathonId} status={status} />
+      {/* Its deadline and inputs are in the organiser's own time zone, which
+          the server does not know: drawn after hydration so both agree. */}
+      {isClient && (
+        <RegistrationControls hackathonId={hackathonId} status={status} />
+      )}
 
       {announced ? (
         <section className={sectionRule}>
@@ -855,9 +865,7 @@ export function AttendeesTab({
                           {attendee.attendanceConfirmedAt ? (
                             <span
                               className={statusPill("success")}
-                              title={new Date(
-                                attendee.attendanceConfirmedAt,
-                              ).toLocaleString()}
+                              title={venueFormat(attendee.attendanceConfirmedAt, DATE_TIME)}
                             >
                               Confirmed
                             </span>
@@ -880,13 +888,9 @@ export function AttendeesTab({
                       {attendee.acceptanceEmailSentAt ? (
                         <span
                           className="tabular-nums text-[var(--text-muted)]"
-                          title={new Date(
-                            attendee.acceptanceEmailSentAt,
-                          ).toLocaleString()}
+                          title={venueFormat(attendee.acceptanceEmailSentAt, DATE_TIME)}
                         >
-                          {new Date(
-                            attendee.acceptanceEmailSentAt,
-                          ).toLocaleDateString()}
+                          {venueFormat(attendee.acceptanceEmailSentAt)}
                         </span>
                       ) : attendee.registrationStatus === "approved" ? (
                         <span className={statusPill("warning")}>
@@ -919,7 +923,7 @@ export function AttendeesTab({
                         )
                       }
                     >
-                      {new Date(attendee.registeredAt).toLocaleDateString()}
+                      {venueFormat(attendee.registeredAt)}
                     </td>
                     <td
                       className="px-3 py-3 text-right"
