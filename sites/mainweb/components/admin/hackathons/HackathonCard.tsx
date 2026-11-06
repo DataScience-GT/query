@@ -1,5 +1,6 @@
 "use client";
 
+import { venueFormat } from "@/lib/venue-time";
 import React from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
@@ -111,8 +112,7 @@ export function HackathonCard({
             <div className="min-w-0 sm:border-l sm:border-[var(--border-subtle)] sm:pl-8">
               <dt className={label}>Dates</dt>
               <dd className="mt-1 text-[15px] tabular-nums text-[var(--text-primary)]">
-                {new Date(hackathon.startDate).toLocaleDateString()} –{" "}
-                {new Date(hackathon.endDate).toLocaleDateString()}
+                {venueFormat(hackathon.startDate)} – {venueFormat(hackathon.endDate)}
               </dd>
             </div>
             <div className="min-w-0 sm:border-l sm:border-[var(--border-subtle)] sm:pl-8">
