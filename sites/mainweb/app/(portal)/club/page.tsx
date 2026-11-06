@@ -10,6 +10,7 @@ export default function Page() {
         ["events.myStats", undefined, c.events.myStats()],
         ["events.myEvents", undefined, c.events.myEvents()],
         ["events.list", undefined, c.events.list()],
+        ["member.myPass", undefined, c.member.myPass()],
       ]}
     >
       <ClubPage />
