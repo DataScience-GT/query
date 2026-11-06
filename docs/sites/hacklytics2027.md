@@ -2,7 +2,7 @@
 
 Path: `sites/hacklytics2027`  
 Workspace name: `hacklytics2027`  
-Framework: Astro 6 (static build), React 19 islands, Tailwind 4 (`@tailwindcss/vite`)
+Framework: Astro 7 (static build), React 19 islands, Tailwind 4 (`@tailwindcss/vite`)
 
 Marketing site for Hacklytics 2027 (“Digital Bloom”). It has **no database** and **no tRPC**. Anything dynamic (interest list, registration) lives on the portal.
 
@@ -17,7 +17,7 @@ pnpm --filter hacklytics2027 typecheck  # tsc --noEmit
 
 `astro check` is not used: it needs the TypeScript JavaScript API, and the repo's TypeScript 7 ships only the native compiler. `tsc --noEmit` covers `.ts` and `.tsx`; `.astro` files are checked by the build.
 
-Astro 6 and `@astrojs/react` 5 are pinned, not Astro 7, because the root `package.json` overrides `vite` to 7 for the whole repo and Astro 7 needs Vite 8.
+Astro 7 needs Vite 8 while the root `package.json` overrides `vite` to 7 for the rest of the repo, so two scoped overrides (`astro>vite`, `@astrojs/react>vite`) give this site Vite 8 and leave every other workspace on Vite 7. Astro 6 is not an option: GHSA-26w7-cxv4-gfx2 (AVIF RCE) affects every version below 7.2.8.
 
 ## Structure
 
