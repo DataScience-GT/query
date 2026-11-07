@@ -18,6 +18,9 @@ import {
   pageTitle,
   textLink,
 } from "@/components/portal/ui";
+import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
+import { nextStepReads } from "@/lib/next-step-reads.server";
+import type { Prefetch } from "@/lib/portal-bootstrap.server";
 import { MyRegistration } from "./MyRegistration";
 import { RetryButton } from "./RetryButton";
 import { hlSectionTitle } from "./styles";
@@ -327,7 +330,24 @@ export default async function HacklyticsPage() {
 
       <section className="mt-8 border-t border-[var(--border-subtle)] pt-6">
         {ctx.userId ? (
-          <MyRegistration event={event}>{offer}</MyRegistration>
+          <PrefetchedPage
+            reads={async (c) => {
+              const myRegs = c.hackathon.myRegistrations();
+              const entries: Prefetch[] = [
+                ["hackathon.myRegistrations", undefined, myRegs],
+              ];
+              const reg = (await myRegs.catch(() => [])).find(
+                (r) => r.hackathonId === event.id,
+              );
+              if (!reg) return entries;
+              return [
+                ...entries,
+                ...nextStepReads(c, event, reg.registrationStatus),
+              ];
+            }}
+          >
+            <MyRegistration event={event}>{offer}</MyRegistration>
+          </PrefetchedPage>
         ) : (
           offer
         )}
