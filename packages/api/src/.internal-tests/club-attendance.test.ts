@@ -60,7 +60,7 @@ vi.mock("@query/db", () => {
       location: "location",
       eventDate: "event_date",
       maxCheckIns: "max_check_ins",
-      bootcampWeek: "bootcamp_week",
+      kind: "kind",
     },
     eventCheckIns: { id: "id", eventId: "event_id", userId: "user_id" },
     // Read at import time by the bootcamp router; unused here.
@@ -99,16 +99,14 @@ const seed = () => {
         location: "Klaus 1443",
         eventDate: new Date("2026-09-10T22:00:00Z"),
         maxCheckIns: 40,
-        bootcampWeek: null,
         checkIns: 3,
       },
       {
         id: EVENT_A,
-        title: "Bootcamp week 1",
+        title: "Info session",
         location: null,
         eventDate: new Date("2026-09-03T22:00:00Z"),
         maxCheckIns: null,
-        bootcampWeek: 1,
         checkIns: 1,
       },
     ])

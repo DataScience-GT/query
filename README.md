@@ -17,12 +17,12 @@ Member-facing overview — what it is, what members use, current status, and how
 | Path | Workspace | Role |
 | --- | --- | --- |
 | `sites/mainweb` | `web` | Public club site + authenticated portal (App Hosting) |
-| `sites/hacklytics2027` | `hacklytics2027` | Hacklytics 2027 marketing site, static export (Firebase Hosting) |
+| `sites/hacklytics2027` | `hacklytics2027` | Hacklytics 2027 marketing site, Astro static build (Firebase Hosting) |
 | `packages/api` | `@query/api` | tRPC routers, middleware, pricing |
 | `packages/auth` | `@query/auth` | NextAuth (Google, GitHub, email codes) |
 | `packages/db` | `@query/db` | Drizzle schema, client, membership rules |
 | `packages/ui` | `@query/ui` | Shared React components |
-| `tooling/*` | `@query/eslint-config`, `@query/prettier-config`, `@query/tailwind-config`, `@query/tsconfig` | Shared configs |
+| `tooling/*` | `@query/oxlint-config`, `@query/prettier-config`, `@query/tailwind-config`, `@query/tsconfig` | Shared configs |
 
 ## How it fits together
 
@@ -44,7 +44,7 @@ flowchart LR
     routes["Route handlers: /api/trpc /api/auth /api/webhooks/stripe /api/resume /api/bootcamp/materials"]
   end
 
-  hack["sites/hacklytics2027 (static export)"]
+  hack["sites/hacklytics2027 (Astro static build)"]
   api["@query/api (tRPC appRouter)"]
   auth["@query/auth (NextAuth)"]
   db["@query/db (Drizzle)"]

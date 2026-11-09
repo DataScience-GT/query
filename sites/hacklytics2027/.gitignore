@@ -13,8 +13,8 @@
 # testing
 /coverage
 
-# next.js
-/.next/
+# astro
+/.astro/
 # Build output is included for Firebase deployment
 # /out/
 
@@ -39,7 +39,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # Playwright
 /test-results/
@@ -48,3 +47,10 @@ next-env.d.ts
 /playwright/.cache/
 playwright.config.ts
 tests/
+
+# subset-fonts.py downloads
+/scripts/.font-cache/
+
+# The root .gitignore drops every .txt. These ship with the fonts.
+!/public/fonts/OFL-*.txt
+!/scripts/subset-fonts.requirements.txt

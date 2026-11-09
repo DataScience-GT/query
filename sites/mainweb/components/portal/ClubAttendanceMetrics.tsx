@@ -1,5 +1,6 @@
 "use client";
 
+import { venueFormat } from "@/lib/venue-time";
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
@@ -96,9 +97,9 @@ function readTokens(element: HTMLElement): ChartTokens {
 }
 
 const shortDate = (date: Date) =>
-  date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  venueFormat(date, { month: "short", day: "numeric" });
 const longDate = (date: Date) =>
-  date.toLocaleDateString("en-US", {
+  venueFormat(date, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -429,11 +430,6 @@ export function ClubAttendanceMetrics({
                             >
                               {event.title}
                             </button>
-                            {event.bootcampWeek && (
-                              <span className={`block ${meta}`}>
-                                Bootcamp week {event.bootcampWeek}
-                              </span>
-                            )}
                           </th>
                           <td
                             className={`${td} whitespace-nowrap tabular-nums text-[var(--text-muted)]`}

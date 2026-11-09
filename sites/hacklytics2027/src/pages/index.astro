@@ -1,0 +1,23 @@
+---
+import Hero from "../components/Hero.astro";
+import HomeSections from "../components/HomeSections.astro";
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout home>
+  <link
+    slot="head"
+    rel="preload"
+    as="image"
+    imagesrcset="/hero-globe-480.webp 480w, /hero-globe-807.webp 807w"
+    imagesizes="(min-width: 1280px) 480px, (min-width: 768px) 416px, (min-width: 640px) 368px, 270px"
+    fetchpriority="high"
+  />
+  <main class="relative w-full overflow-x-hidden">
+    <Hero />
+    <HomeSections />
+  </main>
+  <script>
+    import "../scripts/bloom";
+  </script>
+</Layout>

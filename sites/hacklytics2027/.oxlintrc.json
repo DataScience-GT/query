@@ -1,0 +1,7 @@
+{
+  "extends": [
+    "../../tooling/oxlint/base.json",
+    "../../tooling/oxlint/react.json"
+  ],
+  "ignorePatterns": ["**/*.config.*", "public/sw.js", "scripts/**"]
+}

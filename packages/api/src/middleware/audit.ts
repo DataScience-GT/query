@@ -60,7 +60,7 @@ export class AuditRetention {
         .delete(auditLogs)
         .where(lt(auditLogs.createdAt, cutoff(RETAIN_CRITICAL_DAYS)));
     } catch (error) {
-      // eslint-disable-next-line no-console
+      // oxlint-disable-next-line no-console
       console.error("[Audit] Retention prune failed:", error);
     }
   }
@@ -101,7 +101,7 @@ export const recordAdminAction = async (
   } catch (error) {
     // Deliberate server-side logging: if the audit trail itself cannot be
     // written, the console is the only remaining record that it was tried.
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line no-console
     console.error(`[Audit] Failed to record "${entry.action}":`, error);
   }
 };

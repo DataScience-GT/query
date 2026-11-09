@@ -22,6 +22,8 @@ const EXPERIENCE_OPTIONS = [
 
 type Experience = (typeof EXPERIENCE_OPTIONS)[number]["value"];
 
+export type KnownSession = { user?: { email?: string | null } } | null;
+
 function Field({
   label,
   hint,
@@ -51,11 +53,21 @@ function Field({
 export function InterestForm({
   hackathonId,
   callbackPath,
+  serverSession,
 }: {
   hackathonId: string;
   callbackPath: string;
+  /**
+   * What a server component already read of the visitor's session, `null` for
+   * signed out. It stands in for the browser's own lookup until that returns,
+   * so a page rendered on the server paints the sign-in prompt or the form
+   * straight away instead of "Checking sign-in…" and then jumping.
+   */
+  serverSession?: KnownSession;
 }) {
-  const { data: session, status: sessionStatus } = useSession();
+  const { data: liveSession, status: sessionStatus } = useSession();
+  const lookingUp = sessionStatus === "loading";
+  const session = lookingUp ? serverSession : liveSession;
   const utils = trpc.useUtils();
 
   const mine = trpc.hackathon.myInterest.useQuery(
@@ -113,7 +125,7 @@ export function InterestForm({
   const showForm = !onList || editing;
   const busy = join.isPending || leave.isPending;
 
-  if (sessionStatus === "loading") {
+  if (lookingUp && serverSession === undefined) {
     return <p className={body}>Checking sign-in…</p>;
   }
 

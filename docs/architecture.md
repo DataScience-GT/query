@@ -1,6 +1,6 @@
 # Architecture
 
-**query** is a pnpm + Turborepo monorepo. Two Next.js sites share four internal packages. Club operations and hackathon operations share one Postgres database but are modeled as separate domains.
+**query** is a pnpm + Turborepo monorepo. Two sites (the Next.js portal and an Astro marketing site) sit beside four internal packages. Club operations and hackathon operations share one Postgres database but are modeled as separate domains.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -44,7 +44,7 @@ flowchart TD
   db["@query/db"]
   ui["@query/ui"]
   subgraph tooling["tooling"]
-    eslint["@query/eslint-config"]
+    oxlint["@query/oxlint-config"]
     prettier["@query/prettier-config"]
     tailwind["@query/tailwind-config"]
     tsconfig["@query/tsconfig"]
@@ -57,17 +57,16 @@ flowchart TD
   api --> auth
   api --> db
   auth --> db
-  web -.-> eslint
+  web -.-> oxlint
   web -.-> tailwind
   web -.-> tsconfig
-  ui -.-> eslint
+  ui -.-> oxlint
   ui -.-> tailwind
   ui -.-> tsconfig
   api -.-> tsconfig
   auth -.-> tsconfig
   db -.-> tsconfig
-  eslint -.-> prettier
-  eslint -.-> tsconfig
+  oxlint -.-> prettier
   prettier -.-> tsconfig
   hack ~~~ web
 ```
@@ -82,7 +81,7 @@ Year-round DSGT operations. **Not** scoped to a hackathon row.
 
 - Membership (`member`, `membership_history`) — one paid year per person, defined by start/end dates
 - Club events and QR check-in (`event`, `event_check_in`)
-- Bootcamp sessions are club events with `bootcamp_week` + `bootcamp_term`
+- Bootcamp sessions are `event` rows with `bootcamp_week` + `bootcamp_term`. The generated `event.kind` column (`club` or `bootcamp`) tells them apart
 - Bootcamp workshop material (`bootcamp_workshop`, one row per week) joins those events on `(term, week)`; the ZIPs are in Cloud Storage and downloads are gated on the workshop's own term — see [Bootcamp materials](./bootcamp-materials.md)
 - Initiatives (`initiative`, `initiative_application`) led by `project_leader`
 - Stripe payments and account linking
@@ -183,7 +182,7 @@ The webhook is `sites/mainweb/app/(portal)/api/webhooks/stripe/route.ts`. Linkin
 | Surface | Where it runs | Output |
 | --- | --- | --- |
 | `sites/mainweb` | Firebase App Hosting / Cloud Run (`apphosting.yaml`) | Next `standalone` |
-| `sites/hacklytics2027` | Firebase Hosting target `hacklytics` | Static `output: "export"` |
+| `sites/hacklytics2027` | Firebase Hosting target `hacklytics` | Astro static build (`astro build` writes `out/`) |
 
 The event site does not talk to the database. Interest and registration live on the portal; the marketing site links to `/login?callbackUrl=/hacklytics`.
 

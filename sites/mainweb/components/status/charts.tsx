@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { BUCKET_MS, isUp, uptimePercent } from "@/lib/status";
+import { uptimePercent } from "@/lib/status";
 import type { Bucket, Day } from "@/lib/status";
 
 // Hand-built SVG. The chart width is measured, not scaled from a viewBox, so
@@ -169,7 +169,7 @@ export function UptimeStrip({
 }) {
   const [ref, width] = useWidth();
   const [active, setActive] = useState<number | null>(null);
-  const height = 44;
+  const height = 64;
   const slot = width / days.length;
   const gap = slot >= 6 ? 2 : 1;
   const barW = Math.min(24, slot - gap);
@@ -330,17 +330,42 @@ export function UptimeLegend() {
   );
 }
 
-const MARGIN = { l: 40, r: 6, t: 8, b: 22 };
-const SLOTS = 288;
+const MARGIN = { l: 52, r: 6, t: 8, b: 22 };
+const HOUR_MS = 60 * 60 * 1000;
+// The last 24 hours plus the one in progress, on clock hours.
+const SLOTS = 25;
+
+type Hour = { t: number; requests: number; errors: number; p95Ms: number };
+
+const slotStart = (lastT: number, i: number) =>
+  lastT - (lastT % HOUR_MS) - (SLOTS - 1 - i) * HOUR_MS;
+
+const slotCenter = (i: number, plotW: number) =>
+  MARGIN.l + ((i + 0.5) / SLOTS) * plotW;
+
+/** The 5 minute buckets rolled up by hour, oldest first; null is a quiet hour. */
+function byHour(buckets: (Bucket | null)[], lastT: number): (Hour | null)[] {
+  return Array.from({ length: SLOTS }, (_, i) => {
+    const t = slotStart(lastT, i);
+    const data = buckets.filter(
+      (b): b is Bucket => !!b && b.t >= t && b.t < t + HOUR_MS,
+    );
+    if (data.length === 0) return null;
+    return {
+      t,
+      requests: data.reduce((s, b) => s + b.requests, 0),
+      errors: data.reduce((s, b) => s + b.errors, 0),
+      p95Ms: Math.max(...data.map((b) => b.p95Ms)),
+    };
+  });
+}
 
 function useCrosshair(width: number) {
   const [index, setIndex] = useState<number | null>(null);
   const plotW = width - MARGIN.l - MARGIN.r;
   const move = (clientX: number, left: number) => {
     const x = clientX - left - MARGIN.l;
-    setIndex(
-      Math.min(SLOTS - 1, Math.max(0, Math.round((x / plotW) * (SLOTS - 1)))),
-    );
+    setIndex(Math.min(SLOTS - 1, Math.max(0, Math.floor((x / plotW) * SLOTS))));
   };
   return { index, setIndex, move, plotW };
 }
@@ -359,7 +384,7 @@ function XAxis({
   // A label every six hours, wherever an Eastern hour divisible by six lands.
   const ticks: { i: number; label: string }[] = [];
   for (let i = 0; i < SLOTS; i += 1) {
-    const t = lastT - (SLOTS - 1 - i) * BUCKET_MS;
+    const t = slotStart(lastT, i);
     const hour = Number(
       new Date(t).toLocaleString("en-US", {
         hour: "numeric",
@@ -367,10 +392,7 @@ function XAxis({
         timeZone: TIME_ZONE,
       }),
     );
-    const minute = new Date(t).getUTCMinutes();
-    if (hour % 6 === 0 && minute === 0) {
-      ticks.push({ i, label: hourLabel(t) });
-    }
+    if (hour % 6 === 0) ticks.push({ i, label: hourLabel(t) });
   }
   return (
     <g>
@@ -384,7 +406,7 @@ function XAxis({
       {ticks.map((tick) => (
         <text
           key={tick.i}
-          x={MARGIN.l + (tick.i / (SLOTS - 1)) * plotW}
+          x={slotCenter(tick.i, plotW)}
           y={height - 6}
           textAnchor="middle"
           fontSize={11}
@@ -440,21 +462,6 @@ function YAxis({
   );
 }
 
-/** Runs of consecutive slots that have data; a gap breaks the line. */
-function runs(hours: (Bucket | null)[]) {
-  const out: { i: number; v: number }[][] = [];
-  let current: { i: number; v: number }[] = [];
-  hours.forEach((h, i) => {
-    if (h) current.push({ i, v: h.p95Ms });
-    else if (current.length) {
-      out.push(current);
-      current = [];
-    }
-  });
-  if (current.length) out.push(current);
-  return out;
-}
-
 export function LatencyChart({
   hours,
   lastT,
@@ -464,25 +471,29 @@ export function LatencyChart({
 }) {
   const [ref, width] = useWidth();
   const { index, setIndex, move, plotW } = useCrosshair(width);
-  const height = 190;
+  const height = 220;
   const plotH = height - MARGIN.t - MARGIN.b;
-  const max = niceMax(Math.max(0, ...hours.map((h) => h?.p95Ms ?? 0)));
-  const x = (i: number) => MARGIN.l + (i / (SLOTS - 1)) * plotW;
+  const slots = byHour(hours, lastT);
+  const max = niceMax(Math.max(0, ...slots.map((h) => h?.p95Ms ?? 0)));
+  const x = (i: number) => slotCenter(i, plotW);
   const y = (v: number) => MARGIN.t + plotH - (v / max) * plotH;
-  const segments = runs(hours);
-  const empty = segments.length === 0;
-  const hit = index === null ? null : hours[index];
+  const points = slots.flatMap((h, i) => (h ? [{ i, v: h.p95Ms }] : []));
+  const first = points[0];
+  const last = points[points.length - 1];
+  const line = points.map((pt) => `${x(pt.i)},${y(pt.v)}`).join(" ");
+  const base = y(0);
+  const hit = index === null ? null : slots[index];
 
   const tip: Tip =
     index === null
       ? null
       : {
           x: x(index),
-          title: stampLabel(lastT - (SLOTS - 1 - index) * BUCKET_MS),
+          title: stampLabel(slotStart(lastT, index)),
           rows: hit ? (
             <>
               <TipRow
-                label="p95"
+                label="Worst p95"
                 value={`${hit.p95Ms} ms`}
                 color={COLORS.accent}
               />
@@ -504,7 +515,7 @@ export function LatencyChart({
         height={height}
         className="block touch-pan-y"
         role="img"
-        aria-label="Line chart of the 95th percentile response time in milliseconds, 5 minute buckets over the last 24 hours."
+        aria-label="Line chart of the slowest 95th percentile response time in milliseconds for each hour of the last 24 hours."
         onPointerMove={(e) =>
           move(e.clientX, e.currentTarget.getBoundingClientRect().left)
         }
@@ -514,68 +525,47 @@ export function LatencyChart({
           max={max}
           width={width}
           height={height}
-          format={(n) => `${Math.round(n)}`}
+          format={(n) => `${Math.round(n)} ms`}
         />
         <XAxis lastT={lastT} width={width} height={height} plotW={plotW} />
-        {segments.map((seg) => {
-          const pts = seg.map((pt) => `${x(pt.i)},${y(pt.v)}`);
-          const first = seg[0];
-          const last = seg[seg.length - 1];
-          if (!first || !last) return null;
-          if (seg.length === 1) {
-            return (
-              <circle
-                key={first.i}
-                cx={x(first.i)}
-                cy={y(first.v)}
-                r={4}
-                fill={COLORS.accent}
-                stroke={COLORS.surface}
-                strokeWidth={2}
-              />
-            );
-          }
-          const base = y(0);
-          return (
-            <g key={first.i}>
-              <polygon
-                points={`${x(first.i)},${base} ${pts.join(" ")} ${x(last.i)},${base}`}
-                fill={COLORS.accent}
-                opacity={0.1}
-              />
-              <polyline
-                points={pts.join(" ")}
-                fill="none"
-                stroke={COLORS.accent}
-                strokeWidth={2}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-            </g>
-          );
-        })}
-        {index !== null && (
+        {first && last && (
           <g>
-            <line
-              x1={x(index)}
-              x2={x(index)}
-              y1={MARGIN.t}
-              y2={height - MARGIN.b}
-              stroke="rgba(255,255,255,0.35)"
+            <polygon
+              points={`${x(first.i)},${base} ${line} ${x(last.i)},${base}`}
+              fill={COLORS.accent}
+              opacity={0.1}
             />
-            {hit && (
-              <circle
-                cx={x(index)}
-                cy={y(hit.p95Ms)}
-                r={4}
-                fill={COLORS.accent}
-                stroke={COLORS.surface}
-                strokeWidth={2}
-              />
-            )}
+            <polyline
+              points={line}
+              fill="none"
+              stroke={COLORS.accent}
+              strokeWidth={2}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
           </g>
         )}
-        {empty && (
+        {points.map((pt) => (
+          <circle
+            key={pt.i}
+            cx={x(pt.i)}
+            cy={y(pt.v)}
+            r={4}
+            fill={COLORS.accent}
+            stroke={COLORS.surface}
+            strokeWidth={2}
+          />
+        ))}
+        {index !== null && (
+          <line
+            x1={x(index)}
+            x2={x(index)}
+            y1={MARGIN.t}
+            y2={height - MARGIN.b}
+            stroke="rgba(255,255,255,0.35)"
+          />
+        )}
+        {points.length === 0 && (
           <text
             x={MARGIN.l + plotW / 2}
             y={MARGIN.t + plotH / 2}
@@ -600,23 +590,24 @@ export function RequestsChart({
 }) {
   const [ref, width] = useWidth();
   const { index, setIndex, move, plotW } = useCrosshair(width);
-  const height = 190;
+  const height = 220;
   const plotH = height - MARGIN.t - MARGIN.b;
-  const max = niceMax(Math.max(0, ...hours.map((h) => h?.requests ?? 0)));
+  const slots = byHour(hours, lastT);
+  const max = niceMax(Math.max(0, ...slots.map((h) => h?.requests ?? 0)));
   const slot = plotW / SLOTS;
-  const gap = slot >= 4 ? 1 : 0;
-  const barW = Math.min(24, Math.max(1, slot - gap));
-  const x = (i: number) => MARGIN.l + (i / (SLOTS - 1)) * plotW - barW / 2;
+  const barW = Math.min(24, Math.max(1, slot - 2));
+  const center = (i: number) => slotCenter(i, plotW);
+  const x = (i: number) => center(i) - barW / 2;
   const h = (v: number) => (v / max) * plotH;
-  const hit = index === null ? null : hours[index];
-  const empty = hours.every((b) => !b);
+  const hit = index === null ? null : slots[index];
+  const empty = slots.every((b) => !b);
 
   const tip: Tip =
     index === null
       ? null
       : {
-          x: x(index),
-          title: stampLabel(lastT - (SLOTS - 1 - index) * BUCKET_MS),
+          x: center(index),
+          title: stampLabel(slotStart(lastT, index)),
           rows: hit ? (
             <>
               <TipRow
@@ -629,7 +620,6 @@ export function RequestsChart({
                 value={hit.errors.toLocaleString("en-US")}
                 color={COLORS.bad}
               />
-              <TipRow label="Counted as" value={isUp(hit) ? "Up" : "Down"} />
             </>
           ) : (
             <div className="text-gray-300">No data</div>
@@ -644,7 +634,7 @@ export function RequestsChart({
         height={height}
         className="block touch-pan-y"
         role="img"
-        aria-label="Column chart of requests and server errors per 5 minutes over the last 24 hours."
+        aria-label="Column chart of requests and server errors for each hour of the last 24 hours."
         onPointerMove={(e) =>
           move(e.clientX, e.currentTarget.getBoundingClientRect().left)
         }
@@ -657,7 +647,7 @@ export function RequestsChart({
           format={(n) => compact(Math.round(n))}
         />
         <XAxis lastT={lastT} width={width} height={height} plotW={plotW} />
-        {hours.map((b, i) => {
+        {slots.map((b, i) => {
           if (!b) return null;
           const base = MARGIN.t + plotH;
           const reqH = Math.max(1, h(b.requests));
@@ -687,8 +677,8 @@ export function RequestsChart({
         })}
         {index !== null && (
           <line
-            x1={x(index) + barW / 2}
-            x2={x(index) + barW / 2}
+            x1={center(index)}
+            x2={center(index)}
             y1={MARGIN.t}
             y2={height - MARGIN.b}
             stroke="rgba(255,255,255,0.35)"
@@ -729,17 +719,9 @@ export function HoursTable({
   hours: (Bucket | null)[];
   lastT: number;
 }) {
-  const rows = Array.from({ length: 24 }, (_, k) => {
-    const slice = hours.slice(SLOTS - (k + 1) * 12, SLOTS - k * 12);
-    const data = slice.filter((b): b is Bucket => !!b);
-    return {
-      t: lastT - (k * 12 + 11) * BUCKET_MS,
-      requests: data.reduce((s, b) => s + b.requests, 0),
-      errors: data.reduce((s, b) => s + b.errors, 0),
-      p95: Math.max(0, ...data.map((b) => b.p95Ms)),
-      has: data.length > 0,
-    };
-  }).filter((r) => r.has);
+  const rows = byHour(hours, lastT)
+    .filter((r): r is Hour => !!r)
+    .reverse();
 
   return (
     <details className="mt-4 text-sm text-gray-400">
@@ -773,7 +755,7 @@ export function HoursTable({
                 <td className="py-1 pr-3">
                   {r.errors.toLocaleString("en-US")}
                 </td>
-                <td className="py-1">{r.p95} ms</td>
+                <td className="py-1">{r.p95Ms} ms</td>
               </tr>
             ))}
           </tbody>

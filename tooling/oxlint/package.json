@@ -1,0 +1,17 @@
+{
+  "name": "@query/oxlint-config",
+  "private": true,
+  "version": "0.3.0",
+  "type": "module",
+  "scripts": {
+    "clean": "git clean -xdf .cache .turbo node_modules",
+    "format": "prettier --check . --ignore-path ../../.gitignore",
+    "format:fix": "prettier --write . --ignore-path ../../.gitignore"
+  },
+  "devDependencies": {
+    "@query/prettier-config": "workspace:*",
+    "eslint-plugin-turbo": "2.11.10",
+    "prettier": "3.9.10"
+  },
+  "prettier": "@query/prettier-config"
+}

@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
+
+export const metadata: Metadata = {
+  title: "History",
+  alternates: { canonical: "/history" },
+};
 
 const YEARS = [
   { year: "2020-2021", note: "Foundation year. First official hackathon." },
@@ -17,7 +23,7 @@ const YEARS = [
 export default function HistoryPage() {
   return (
     <div className="relative min-h-screen bg-[#050505] text-white">
-      <Navbar screen_width={1024} page="history" />
+      <Navbar page="history" />
       <main className="pt-20">
         <Section className="py-24 sm:py-32">
           <div className="max-w-4xl mx-auto px-6">
