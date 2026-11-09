@@ -65,7 +65,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
 /* Keyboard focus, portal-wide.
@@ -123,6 +123,14 @@ body {
   :where(p, li, td, span, label) a[href] {
     min-height: 0;
     min-width: 0;
+  }
+}
+
+/* Smooth in-page anchors on the homepage only, so portal scrollIntoView calls
+   keep their instant behaviour. */
+@media (prefers-reduced-motion: no-preference) {
+  html:has(#home-page) {
+    scroll-behavior: smooth;
   }
 }
 

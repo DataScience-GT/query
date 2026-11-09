@@ -563,7 +563,7 @@ export const initiativeRouter = createTRPCRouter({
         } catch (error) {
           // Deliberate operational logging: the decision stands and this is the only
           // record that the notice did not go out.
-          // eslint-disable-next-line no-console
+          // oxlint-disable-next-line no-console
           console.error(
             `[Email Service] Initiative decision notice failed for ${outcome.applicantEmail}:`,
             error,
@@ -1089,7 +1089,7 @@ export const initiativeRouter = createTRPCRouter({
             note: input.note,
           });
         } catch (error) {
-          // eslint-disable-next-line no-console
+          // oxlint-disable-next-line no-console
           console.error(
             `[Email Service] Proposal decision notice failed for ${proposerId.email}:`,
             error,

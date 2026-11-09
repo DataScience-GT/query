@@ -42,11 +42,17 @@ const PRIVATE_PREFIXES = [
   "/scan",
 ];
 
+/** Exact paths only: a prefix would catch a dynamic page added under one. */
+const STATIC_PAGES = new Set(["/", "/bootcamp", "/status", "/team"]);
+
 function getCacheControl(pathname: string): string {
   if (PRIVATE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return "private, no-store, must-revalidate";
   }
-  if (pathname === "/") {
+  // Prerendered pages that read no cookie and revalidate every five minutes.
+  // `public` lets App Hosting's CDN serve them from an edge near the visitor;
+  // they fell through to no-store below, so every visit went to Cloud Run.
+  if (STATIC_PAGES.has(pathname)) {
     return "public, max-age=300, must-revalidate";
   }
   // Must match next.config.mjs: this runs after it and would overwrite its day

@@ -2,7 +2,7 @@
 
 Each week of a bootcamp has one workshop row: a title, a materials ZIP, a solution ZIP and a recording link. Staff manage the rows at `/admin/bootcamp` and publish each one when it's ready. Members download from `/club/bootcamp`. Nobody else can download, including members who didn't buy the bootcamp.
 
-Sessions themselves are ordinary events carrying `bootcamp_week` and `bootcamp_term`; see [Architecture](./architecture.md). A workshop row finds its session by `(term, week)`. There is no foreign key, so deleting a session never deletes the notebooks.
+Sessions themselves are `event` rows with `kind` set to `bootcamp`, carrying `bootcamp_week` and `bootcamp_term`; see [Architecture](./architecture.md). A workshop row finds its session by `(term, week)`. There is no foreign key, so deleting a session never deletes the notebooks.
 
 ## Where things are
 
@@ -31,7 +31,7 @@ Publishing is its own procedure (`setPublished`), separate from saving. That kee
 The modal's date and room fields call `upsertSession`, but only when the officer changed one of them. So saving a TBA workshop never touches an event. Term and week come from the workshop row, never from the clock, so editing a past cohort can't reach the current one.
 
 - **Setting a date** creates the week's event, or reschedules the existing one. The QR code is minted on insert only, so printed signs keep working. The event's title is left alone on reschedule.
-- **Clearing a date** detaches the event (clears `bootcamp_week`/`bootcamp_term`) rather than deleting it, because deleting an event destroys its check-ins.
+- **Clearing a date** clears `bootcamp_week` rather than deleting the event, because deleting an event destroys its check-ins. `bootcamp_term` stays, so the row is still a bootcamp row and does not appear on `/events`. Session lists skip it because it has no week.
 - A workshop's **week is fixed** once it's created, because moving it would leave its session behind. To renumber a workshop, delete it and create it again.
 
 ## Storage

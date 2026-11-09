@@ -349,7 +349,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
       });
     } catch (error) {
       // Deliberate operational logging, as in sendBatch.
-      // eslint-disable-next-line no-console
+      // oxlint-disable-next-line no-console
       console.error("[Email Service] Announcement test failed:", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
@@ -522,7 +522,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
 
             // Deliberate operational logging: the only record of which address the
             // provider rejected.
-            // eslint-disable-next-line no-console
+            // oxlint-disable-next-line no-console
             console.error(
               `[Email Service] Announcement failed for ${recipient.email}:`,
               error,

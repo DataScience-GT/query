@@ -112,7 +112,7 @@ async function notify(
   } catch (error) {
     // Deliberate operational logging: the write stands and this is the only
     // record that the notice did not go out.
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line no-console
     console.error(
       `[Email Service] Subteam ${outcome} notice failed for ${email}:`,
       error,

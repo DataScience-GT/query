@@ -895,7 +895,9 @@ describe("QR check-in", () => {
     // it as "An unexpected error occurred" on the volunteer's screen.
     it("shows a duplicate scan as a readable conflict, not a system failure", async () => {
       const caller = scannerCtx({}); // the guard read still says "not scanned"
-      mockInsert.mockImplementation(() => {
+      // Once: clearAllMocks keeps implementations, so anything longer throws in
+      // the next test too.
+      mockInsert.mockImplementationOnce(() => {
         throw Object.assign(
           new Error(
             'duplicate key value violates unique constraint "event_attendee_event_participant_idx"',

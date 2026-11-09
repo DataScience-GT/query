@@ -24,6 +24,13 @@ import {
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
 import type * as CheckInFlags from "../services/check-in-flags";
+import type * as RepoCheck from "../services/judging/repo-check";
+
+// The overview starts the repo check in the background. It has its own tests.
+vi.mock("../services/judging/repo-check", async (importActual) => ({
+  ...(await importActual<typeof RepoCheck>()),
+  repoCheckIfDue: async () => undefined,
+}));
 
 const mockFlagsForEntries = vi.fn();
 const mockFlaggedIds = vi.fn();

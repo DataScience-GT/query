@@ -106,6 +106,17 @@ const nextConfig = {
           },
         ],
       },
+      {
+        // Same default for the fonts, but each name carries a hash of its
+        // contents, so a changed file arrives under a new name.
+        source: "/fonts/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
     ];
   },
 };

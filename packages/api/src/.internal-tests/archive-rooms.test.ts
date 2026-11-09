@@ -85,6 +85,8 @@ const fakeDb: any = {
       });
     },
   }),
+  // Each audit write also sweeps expired rows, in the background.
+  delete: () => ({ where: async () => [] }),
   update: (table: unknown) => ({
     set: (values: Row) => ({
       where: (where: unknown) => {

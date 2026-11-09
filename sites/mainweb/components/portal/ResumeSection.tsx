@@ -1,5 +1,6 @@
 "use client";
 
+import { venueFormat } from "@/lib/venue-time";
 import { useRef, useState } from "react";
 import { FileText, Upload, Trash2, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -140,7 +141,7 @@ export function ResumeSection() {
                 <p className={`${meta} mt-0.5`}>
                   <span className="font-mono">{formatSize(resume.sizeBytes)}</span>
                   {" · "}Uploaded{" "}
-                  {new Date(resume.uploadedAt).toLocaleDateString()}
+                  {venueFormat(resume.uploadedAt)}
                 </p>
               </div>
             </div>

@@ -1,11 +1,17 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Section from "@/components/Section";
 import { db, events } from "@query/db";
-import { and, gte, isNull, lt } from "drizzle-orm";
+import { and, eq, gte, lt } from "drizzle-orm";
 import { startOfEasternDay } from "@query/api/eastern-time";
 import Link from "next/link";
 import { eventDateParts, eventWhenWhere } from "@/lib/public-events";
+
+export const metadata: Metadata = {
+  title: "Events",
+  alternates: { canonical: "/events" },
+};
 
 /**
  * The club's upcoming events.
@@ -50,7 +56,7 @@ async function loadUpcoming() {
   try {
     return await db.query.events.findMany({
       where: and(
-        isNull(events.bootcampTerm),
+        eq(events.kind, "club"),
         gte(events.eventDate, startOfToday()),
       ),
       orderBy: (event, { asc }) => [asc(event.eventDate)],
@@ -74,7 +80,7 @@ async function loadPast() {
   try {
     return await db.query.events.findMany({
       where: and(
-        isNull(events.bootcampTerm),
+        eq(events.kind, "club"),
         lt(events.eventDate, startOfToday()),
       ),
       orderBy: (event, { desc }) => [desc(event.eventDate)],
@@ -139,7 +145,7 @@ export default async function EventsPage() {
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-white">
-      <Navbar screen_width={1024} page="events" />
+      <Navbar page="events" />
       <main className="pt-20">
         <Section className="py-24 sm:py-32">
           <div className="max-w-4xl mx-auto px-6">

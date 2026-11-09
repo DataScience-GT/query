@@ -1,5 +1,6 @@
 "use client";
 
+import { venueFormat } from "@/lib/venue-time";
 import React, { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
@@ -197,7 +198,7 @@ export function TeamsTab({
   const canLeave = teamWindow?.canLeave ?? false;
 
   const fmt = (d: Date | string) =>
-    new Date(d).toLocaleString(undefined, {
+    venueFormat(d, {
       month: "short",
       day: "numeric",
       hour: "numeric",

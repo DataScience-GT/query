@@ -4,14 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
-    "typecheck": "tsc --noEmit"
+    "lint": "oxlint .",
+    "typecheck": "tsrs --noEmit"
   },
   "devDependencies": {
-    "@query/eslint-config": "workspace:*",
+    "@query/oxlint-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@types/node": "^24.19.2",
-    "eslint": "^10.11.0",
+    "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2005",
+    "tsrs": "0.20.1-ts7.1.0-beta",
     "typescript": "^7.0.2"
   }
 }

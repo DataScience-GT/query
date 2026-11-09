@@ -408,7 +408,7 @@ export const hackathonInterestRouter = createTRPCRouter({
             .where(eq(hackathonInterest.id, row.id));
           // Deliberate operational logging: the only record of which address the
           // provider rejected.
-          // eslint-disable-next-line no-console
+          // oxlint-disable-next-line no-console
           console.error(
             `[Email Service] Registration-open notice failed for ${row.email}:`,
             error,

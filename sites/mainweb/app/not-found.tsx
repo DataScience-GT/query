@@ -1,19 +1,12 @@
 // src/app/not-found.tsx
-"use client";
-
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useWindowWidth } from "@/lib/use-window-width";
 
 export default function NotFound() {
-  // Window width for Navbar responsiveness
-  const windowWidth = useWindowWidth(1024);
-
   return (
     <div className="relative min-h-screen flex flex-col bg-[#050505] text-gray-400 font-sans selection:bg-indigo-500/30">
       <Navbar
-        screen_width={windowWidth}
         className="fixed top-0 left-0 w-full z-30 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md"
         page="other"
       />
@@ -57,10 +50,7 @@ export default function NotFound() {
         </div>
       </main>
 
-      <Footer
-        screen_width={windowWidth}
-        className="relative z-10 border-t border-white/5"
-      />
+      <Footer className="relative z-10 border-t border-white/5" />
     </div>
   );
 }

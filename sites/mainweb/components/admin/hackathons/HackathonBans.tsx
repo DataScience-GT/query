@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { venueFormat } from "@/lib/venue-time";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import {
   body,
@@ -163,7 +164,7 @@ export function HackathonBans() {
                   <p className={`mt-1 ${body}`}>{b.reason}</p>
                   <p className={`mt-1 ${meta}`}>
                     Banned{" "}
-                    {new Date(b.createdAt).toLocaleDateString(undefined, {
+                    {venueFormat(b.createdAt, {
                       month: "short",
                       day: "numeric",
                       year: "numeric",

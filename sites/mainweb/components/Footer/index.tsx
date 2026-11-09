@@ -1,22 +1,16 @@
 // components/Footer/Footer.tsx
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import logo from "@/assets/images/dsgt/apple-touch-icon.png";
 
 interface FooterProps {
-  screen_width?: number;
   className?: string;
 }
 
-const Footer = ({
-  screen_width: _screen_width,
-  className = "",
-}: FooterProps) => {
+const Footer = ({ className = "" }: FooterProps) => {
   return (
     <footer
-      className={`relative w-full py-20 bg-[#050505] border-t border-white/5 text-gray-400 font-sans ${className}`}
+      className={`relative w-full py-14 md:py-20 bg-[#050505] border-t border-white/5 text-gray-400 font-sans ${className}`}
     >
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-8">
@@ -32,7 +26,7 @@ const Footer = ({
                 DSGT
               </span>
             </div>
-            <p className="text-sm text-gray-500 leading-relaxed max-w-[240px]">
+            <p className="text-sm text-gray-400 leading-relaxed max-w-[240px]">
               The largest student-run data science organization at Georgia Tech.
             </p>
           </div>
@@ -124,7 +118,8 @@ const Footer = ({
 
         {/* BOTTOM COPYRIGHT */}
         <div className="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between gap-4">
-          <p className="text-[10px] font-mono text-gray-600 uppercase tracking-widest">
+          <p className="text-[11px] font-mono text-gray-400 uppercase tracking-widest">
+            {/* oxlint-disable-next-line react/purity */}
             © {new Date().getFullYear()} Data Science at Georgia Tech
           </p>
         </div>

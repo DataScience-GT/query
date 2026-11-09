@@ -374,11 +374,14 @@ describe("Hackathon interest list", () => {
         ])
         .mockReturnValue([{ count: 0 }]);
       mockSendRegistrationOpen.mockRejectedValueOnce(new Error("550 rejected"));
+      const logged = vi.spyOn(console, "error").mockImplementation(() => {});
 
       const res = await callerFor(ADMIN).hackathon.notifyRegistrationOpen({
         hackathonId: HACK,
       });
 
+      expect(logged).toHaveBeenCalled();
+      logged.mockRestore();
       expect(res.sent).toBe(1);
       expect(res.failed).toEqual(["bounces@example.com"]);
       const written = mockUpdate.mock.calls.slice(1).map((c) => c[2][0]);

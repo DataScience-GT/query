@@ -8,7 +8,7 @@
  *
  *   --db      DATABASE_URL must point at localhost, 127.0.0.1, ::1 or a compose
  *             service name (db, postgres). An unset URL passes: there is
- *             nothing to hit, and CI runs the tests with no database at all.
+ *             nothing to hit.
  *   --stripe  Live keys (sk_live_, rk_live_, pk_live_) are refused unless
  *             NODE_ENV is production. No override: test mode is always enough.
  *   --email   EMAIL_SERVER_HOST must be local, so a stray SMTP login cannot

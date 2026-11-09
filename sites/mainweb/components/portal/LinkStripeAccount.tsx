@@ -101,7 +101,7 @@ export default function LinkStripeAccount({
     autoLinkMutation.mutate();
     reconcileMutation.mutate();
     // mutation refs are stable — intentionally omitted from deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Server-side confirm after payment
