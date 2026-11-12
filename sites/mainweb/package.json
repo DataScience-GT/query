@@ -51,7 +51,7 @@
     "@query/oxlint-config": "workspace:*",
     "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
-    "@tailwindcss/postcss": "^4.3.3",
+    "@tailwindcss/postcss": "^4.3.5",
     "@types/archiver": "^8.0.0",
     "@types/node": "^24.19.2",
     "@types/qrcode": "^1.5.5",
