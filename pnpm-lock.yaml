@@ -19,7 +19,7 @@ overrides:
   brace-expansion: ^5.0.9
   gaxios>uuid: ^11.1.1
   source-map-js: ^1.2.2
-  minimatch: ^11.0.3
+  minimatch: ^11.0.5
   astro>vite: 8.3.5
   '@astrojs/react>vite': 8.3.5
 
@@ -215,8 +215,8 @@ importers:
   packages/ui:
     dependencies:
       minimatch:
-        specifier: ^11.0.3
-        version: 11.0.3
+        specifier: ^11.0.5
+        version: 11.0.5
       react-dom:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
@@ -361,8 +361,8 @@ importers:
         specifier: ^1.48.0
         version: 1.48.0(react@19.3.1)
       minimatch:
-        specifier: ^11.0.3
-        version: 11.0.3
+        specifier: ^11.0.5
+        version: 11.0.5
       next:
         specifier: 16.4.5
         version: 16.4.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -479,8 +479,8 @@ importers:
         specifier: ^4.3.1
         version: 4.7.1(prettier@3.9.10)
       minimatch:
-        specifier: ^11.0.3
-        version: 11.0.3
+        specifier: ^11.0.5
+        version: 11.0.5
       prettier:
         specifier: ^3.9.10
         version: 3.9.10
@@ -550,8 +550,8 @@ importers:
   tooling/typescript:
     dependencies:
       minimatch:
-        specifier: ^11.0.3
-        version: 11.0.3
+        specifier: ^11.0.5
+        version: 11.0.5
 
 packages:
 
@@ -1204,8 +1204,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@isaacs/nonrecursive-glob-match@1.0.3':
-    resolution: {integrity: sha512-SI7kyKHq4XXDRozw+r9GlRZkia1ZkFrpLW98r2IC2Bpr8YkFGE3fvjzmxCG0x78A++69HmDNrDvSMYBZmHGpKA==}
+  '@isaacs/nonrecursive-glob-match@1.1.0':
+    resolution: {integrity: sha512-GPm/Dbvk5RLmhRnxXIa7nTpK0xtl4E0wj0MslsuNiJ1FIROU+2+9lgUC/dgF7Ey4QCWhfEsgxilMRMCdHPfDfw==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3898,9 +3898,9 @@ packages:
     engines: {node: '>=10.0.0'}
     hasBin: true
 
-  minimatch@11.0.3:
-    resolution: {integrity: sha512-iny/40PEGkNJQ5/Pv6z3nm6FbRAby32GeZRjCUJk2WnNDbgPSTcdI+DDvLqsgBdD4cD5sMtMheqPPnehCCa8Nw==}
-    engines: {node: 18 || 20 || >=22}
+  minimatch@11.0.5:
+    resolution: {integrity: sha512-snPlVppFcYWfLLFQGhDxUyBcHNtMlWmn3jtj7pEaO+DP8pqL0IvAzXhMYmn1z9ASNtgmwLBdFxSf4tMUB0OTKA==}
+    engines: {node: 20 || >=22}
 
   motion-dom@11.18.1:
     resolution: {integrity: sha512-g76KvA001z+atjfxczdRtw/RXOM3OMSdd1f4DL77qCTF/+avrRJiawSG4yDibEQ215sr9kpinSlX2pCTJ9zbhw==}
@@ -5616,7 +5616,7 @@ snapshots:
   '@img/sharp-win32-x64@0.35.5':
     optional: true
 
-  '@isaacs/nonrecursive-glob-match@1.0.3': {}
+  '@isaacs/nonrecursive-glob-match@1.1.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -7822,9 +7822,9 @@ snapshots:
 
   mime@3.0.0: {}
 
-  minimatch@11.0.3:
+  minimatch@11.0.5:
     dependencies:
-      '@isaacs/nonrecursive-glob-match': 1.0.3
+      '@isaacs/nonrecursive-glob-match': 1.1.0
       brace-expansion: 5.0.12
 
   motion-dom@11.18.1:
@@ -8218,7 +8218,7 @@ snapshots:
 
   readdir-glob@3.0.0:
     dependencies:
-      minimatch: 11.0.3
+      minimatch: 11.0.5
 
   readdirp@5.1.1: {}
 
