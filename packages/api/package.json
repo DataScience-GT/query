@@ -31,7 +31,7 @@
     "@query/db": "workspace:*",
     "@tanstack/react-query": "5.105.0",
     "@trpc/client": "11.19.0",
-    "@trpc/next": "11.19.0",
+    "@trpc/next": "11.26.0",
     "@trpc/react-query": "11.19.0",
     "@trpc/server": "11.19.0",
     "drizzle-orm": "0.45.4",
