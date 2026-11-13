@@ -515,34 +515,58 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     }),
 
   myRegistrations: protectedProcedure.query(async ({ ctx }) => {
-    const cacheKey = `hackathon:registrations:${ctx.userId}`;
-    const cached = ctx.cache.get<typeof registrations>(cacheKey);
-    if (cached) return cached;
+    const userId = ctx.userId as string;
 
-    const registrations = await (
-      ctx.db as DrizzleDB
-    ).query.hackathonParticipants.findMany({
-      where: eq(hackathonParticipants.userId, ctx.userId as string),
-      with: {
-        hackathon: true,
-        team: {
-          with: {
-            // submittedById names the teammate who filed a solo entry, and a participant
-            // id is the entire content of that person's event pass QR — a teammate does
-            // not need it to see the submission.
-            projects: { columns: { submittedById: false } },
+    // getOrSet: the portal layout and the page both prefetch this, so on a cold
+    // key two reads were in flight at once and each ran the query.
+    return ctx.cache.getOrSet(
+      `hackathon:registrations:${userId}`,
+      () =>
+        (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
+          // What the portal reads from a registration: the sidebar, dashboard,
+          // event pages and submit page. The rest of the application (phone,
+          // demographics, emergency contact, essay) is the viewer's own data but
+          // no screen draws it from here, and the edition's rules, prizes and
+          // track lists have their own read.
+          columns: {
+            id: true,
+            hackathonId: true,
+            registrationStatus: true,
+            teamId: true,
+            attendanceConfirmedAt: true,
+            hasSubmittedProject: true,
           },
-        },
-      },
-      orderBy: (hackathonParticipants, { desc }) => [
-        desc(hackathonParticipants.registeredAt),
-      ],
-    });
-
-    ctx.cache.set(cacheKey, registrations, 30);
-    return registrations;
+          where: eq(hackathonParticipants.userId, userId),
+          with: {
+            hackathon: {
+              columns: {
+                id: true,
+                name: true,
+                description: true,
+                theme: true,
+                status: true,
+                startDate: true,
+                endDate: true,
+                registrationDeadline: true,
+              },
+            },
+            team: {
+              columns: {
+                id: true,
+                name: true,
+                captainId: true,
+                currentMembers: true,
+                maxMembers: true,
+              },
+            },
+          },
+          orderBy: (hackathonParticipants, { desc }) => [
+            desc(hackathonParticipants.registeredAt),
+          ],
+        }),
+      30,
+    );
   }),
-
 
   participants: publicProcedure
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))

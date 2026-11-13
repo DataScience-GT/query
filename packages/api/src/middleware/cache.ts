@@ -232,6 +232,8 @@ export const CacheKeys = {
   // computed from, so a changed evaluation reads a new key.
   judgingCalibration: (hackathonId: string) =>
     `judging:${hackathonId}:calibration`,
+  // judging.admin.overview; any judging.* mutation sweeps `judging:*`.
+  judgingOverview: (hackathonId: string) => `judging:${hackathonId}:overview`,
 } as const;
 
 export const invalidatePortalContext = (userId: string) => {

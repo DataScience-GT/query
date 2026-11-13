@@ -52,24 +52,37 @@ const config = (over: Record<string, unknown> = {}) => ({
 });
 
 describe("ensureJudgingConfig", () => {
-  it("returns the row it just created", async () => {
-    const { db, calls } = fakeDb({ insert: [[config()]] });
+  it("reads the row and writes nothing when it already exists", async () => {
+    const existing = config({ state: "open" });
+    const { db, calls } = fakeDb({ select: [[existing]] });
+    await expect(ensureJudgingConfig(db, HACK)).resolves.toBe(existing);
+    expect(calls.select).toBe(1);
+    expect(calls.insert).toBe(0);
+  });
+
+  it("creates the row on a miss", async () => {
+    const { db, calls } = fakeDb({ select: [[]], insert: [[config()]] });
     await expect(ensureJudgingConfig(db, HACK)).resolves.toMatchObject({
       hackathonId: HACK,
       state: "draft",
     });
-    expect(calls.select).toBe(0);
-  });
-
-  it("reads the existing row when one is already there", async () => {
-    const existing = config({ state: "open" });
-    const { db, calls } = fakeDb({ insert: [[]], select: [[existing]] });
-    await expect(ensureJudgingConfig(db, HACK)).resolves.toBe(existing);
+    expect(calls.insert).toBe(1);
     expect(calls.select).toBe(1);
   });
 
+  it("reads the winner's row when a concurrent insert beat it", async () => {
+    const winner = config({ state: "open" });
+    const { db, calls } = fakeDb({
+      select: [[], [winner]],
+      insert: [[]],
+    });
+    await expect(ensureJudgingConfig(db, HACK)).resolves.toBe(winner);
+    expect(calls.select).toBe(2);
+    expect(calls.insert).toBe(1);
+  });
+
   it("is NOT_FOUND when neither insert nor read finds a row", async () => {
-    const { db } = fakeDb({ insert: [[]], select: [[]] });
+    const { db } = fakeDb({ select: [[], []], insert: [[]] });
     await expect(ensureJudgingConfig(db, HACK)).rejects.toBeInstanceOf(
       TRPCError,
     );
