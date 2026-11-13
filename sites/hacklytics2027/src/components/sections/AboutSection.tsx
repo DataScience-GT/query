@@ -1,4 +1,5 @@
 import React from "react";
+import { EVENT_DATES_LONG } from "@/lib/event";
 
 const AboutSection: React.FC = () => {
   return (
@@ -10,9 +11,7 @@ const AboutSection: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-16 gap-y-5 mt-8 md:mt-12">
           <p className="font-sans text-[17px] md:text-[19px] text-ink leading-[1.55] max-w-[60ch]">
-            Hacklytics is a 36-hour data science and AI hackathon run by Data
-            Science @ GT at the Klaus Advanced Computing Building in Atlanta,
-            February 26–28, 2027.
+            {`Hacklytics is a 36-hour data science and AI hackathon run by Data Science @ GT at the Klaus Advanced Computing Building in Atlanta, ${EVENT_DATES_LONG}.`}
           </p>
           <p className="font-sans text-[17px] md:text-[19px] text-ink-2 leading-[1.55] max-w-[60ch]">
             Room for 1,000+ hackers. It costs nothing to attend: meals and swag are covered.

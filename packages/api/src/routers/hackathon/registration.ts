@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LEVELS_OF_STUDY, SHIRT_SIZES } from "@query/db/constants";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../../trpc";
 import { notHackathonBanned } from "../../middleware/procedures";
@@ -60,15 +61,7 @@ const registrationForm = z.object({
     .int()
     .min(new Date().getFullYear() - 1)
     .max(new Date().getFullYear() + 8),
-  levelOfStudy: z.enum([
-    "Freshman",
-    "Sophomore",
-    "Junior",
-    "Senior",
-    "Graduate",
-    "PhD",
-    "Other",
-  ]),
+  levelOfStudy: z.enum(LEVELS_OF_STUDY),
   country: z.string().min(1).max(100),
   firstGeneration: z.boolean().optional(),
   // Experience
@@ -82,7 +75,7 @@ const registrationForm = z.object({
     .min(1, "Tell us why you want to attend")
     .max(2000),
   // Logistics
-  shirtSize: z.enum(["XS", "S", "M", "L", "XL", "XXL"]).optional(),
+  shirtSize: z.enum(SHIRT_SIZES).optional(),
   dietaryRestrictions: z.array(z.string().max(100)).max(10).optional(),
   emergencyContact: z.string().max(200).optional(),
   emergencyPhone: z.string().max(20).optional(),

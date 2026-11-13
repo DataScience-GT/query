@@ -1,4 +1,5 @@
 import { and, eq, isNull } from "drizzle-orm";
+import { VENUE_TZ } from "../constants";
 import type { DrizzleDB } from "../client";
 import { members, membershipHistory } from "../schemas/members";
 import { PRE_CURRENT_STATUSES } from "../schemas/hackathons";
@@ -78,7 +79,7 @@ export async function resolveCurrentHackathonId(
 // May 31 is already June and would file an evening purchase under fall.
 const easternYearMonth = (date: Date) => {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
+    timeZone: VENUE_TZ,
     year: "numeric",
     month: "numeric",
   }).formatToParts(date);

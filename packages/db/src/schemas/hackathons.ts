@@ -14,6 +14,13 @@ import {
 import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
 import { members } from "./members";
+import {
+  CHECK_IN_METHODS,
+  HACKATHON_STATUSES,
+  LEVELS_OF_STUDY,
+  PARTICIPANT_STATUSES,
+  SHIRT_SIZES,
+} from "../constants";
 
 // Hackathon events
 export const hackathons = pgTable(
@@ -33,15 +40,7 @@ export const hackathons = pgTable(
     // collects interest, but takes no registrations and is NOT the edition
     // memberships attach to. See PRE_CURRENT_STATUSES below.
     status: text("status", {
-      enum: [
-        "draft",
-        "announced",
-        "open",
-        "closed",
-        "in_progress",
-        "completed",
-        "cancelled",
-      ],
+      enum: HACKATHON_STATUSES,
     })
       .notNull()
       .default("draft"),
@@ -123,7 +122,7 @@ export const hackathonParticipants = pgTable(
 
     // Registration info
     registrationStatus: text("registration_status", {
-      enum: ["pending", "approved", "rejected", "waitlisted", "checked_in"],
+      enum: PARTICIPANT_STATUSES,
     })
       .notNull()
       .default("pending"),
@@ -149,15 +148,7 @@ export const hackathonParticipants = pgTable(
     firstGeneration: boolean("first_generation").default(false),
     graduationYear: integer("graduation_year"),
     levelOfStudy: text("level_of_study", {
-      enum: [
-        "Freshman",
-        "Sophomore",
-        "Junior",
-        "Senior",
-        "Graduate",
-        "PhD",
-        "Other",
-      ],
+      enum: LEVELS_OF_STUDY,
     }),
     country: text("country"),
 
@@ -169,7 +160,7 @@ export const hackathonParticipants = pgTable(
     whyAttend: text("why_attend"),
 
     // Logistics
-    shirtSize: text("shirt_size", { enum: ["XS", "S", "M", "L", "XL", "XXL"] }),
+    shirtSize: text("shirt_size", { enum: SHIRT_SIZES }),
     dietaryRestrictions: text("dietary_restrictions").array(),
     emergencyContact: text("emergency_contact"),
     emergencyPhone: text("emergency_phone"),
@@ -456,7 +447,7 @@ export const hackathonEventAttendees = pgTable(
     pointsAwarded: integer("points_awarded"),
     // scan: staff scanned the pass. code: the hacker entered the event's code.
     // manual: staff found them by name. Null on older rows.
-    method: text("method", { enum: ["scan", "code", "manual"] }),
+    method: text("method", { enum: CHECK_IN_METHODS }),
     checkedInById: text("checked_in_by_id"),
   },
   (table) => [
@@ -532,7 +523,7 @@ export const hackathonCheckInFlags = pgTable(
     // The event they were already in. Cleared the same way.
     conflictEventId: uuid("conflict_event_id"),
     rule: text("rule", { enum: ["overlap", "too_soon"] }).notNull(),
-    method: text("method", { enum: ["scan", "code", "manual"] }).notNull(),
+    method: text("method", { enum: CHECK_IN_METHODS }).notNull(),
     // The hacker on a code, staff otherwise.
     attemptedById: text("attempted_by_id").references(() => users.id, {
       onDelete: "set null",
