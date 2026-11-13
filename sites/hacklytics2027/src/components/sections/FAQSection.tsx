@@ -1,4 +1,10 @@
 import React from "react";
+import {
+  EVENT_END_LABEL,
+  EVENT_NAME,
+  EVENT_START_LABEL,
+  EVENT_YEAR,
+} from "@/lib/event";
 import { INTEREST_URL } from "@/lib/links";
 
 const faqItems: { q: string; a: React.ReactNode }[] = [
@@ -12,7 +18,7 @@ const faqItems: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "How long is it?",
-    a: "36 hours, Friday evening Feb 26 to Sunday Feb 28, 2027.",
+    a: `36 hours, Friday evening ${EVENT_START_LABEL} to Sunday ${EVENT_END_LABEL}, ${EVENT_YEAR}.`,
   },
   {
     q: "How many people come?",
@@ -45,7 +51,7 @@ const faqItems: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Can you participate virtually?",
-    a: "No. Hacklytics 2027 is fully in person at the Klaus Advanced Computing Building in Atlanta.",
+    a: `No. ${EVENT_NAME} is fully in person at the Klaus Advanced Computing Building in Atlanta.`,
   },
   {
     q: "What if I don’t have a team?",

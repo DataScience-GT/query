@@ -1,12 +1,13 @@
 import React from "react";
+import { EVENT_DAY_LABELS } from "@/lib/event";
 import { BloomSprite } from "../../pixel/PixelSprite";
 import { BUD, TULIP } from "../../pixel/sprites";
 import { board } from "./data";
 
 const DAYS = [
-  { key: "Fri", name: "Friday", date: "Feb 26" },
-  { key: "Sat", name: "Saturday", date: "Feb 27" },
-  { key: "Sun", name: "Sunday", date: "Feb 28" },
+  { key: "Fri", name: "Friday", date: EVENT_DAY_LABELS[0] },
+  { key: "Sat", name: "Saturday", date: EVENT_DAY_LABELS[1] },
+  { key: "Sun", name: "Sunday", date: EVENT_DAY_LABELS[2] },
 ] as const;
 
 // The rail is the three days to scale, 72 hours from Friday midnight. Hacking

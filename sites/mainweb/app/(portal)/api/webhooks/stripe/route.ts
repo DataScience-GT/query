@@ -14,6 +14,7 @@ import {
   clearMembershipCaches,
   MAX_MEMBERSHIP_CHARGE_CENTS,
   entitlementForCents,
+  isMockMode,
 } from "@query/api";
 import type { PurchasedEntitlement } from "@query/api";
 import {
@@ -125,9 +126,7 @@ export async function POST(req: NextRequest) {
    * misconfigured deploy now fails closed on a missing signature instead of
    * trusting the caller.
    */
-  const allowUnsignedMockEvents =
-    process.env.NODE_ENV !== "production" &&
-    process.env.STRIPE_MOCK_MODE === "true";
+  const allowUnsignedMockEvents = isMockMode();
 
   if (allowUnsignedMockEvents) {
     try {

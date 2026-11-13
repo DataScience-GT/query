@@ -538,6 +538,11 @@ export const RATE_LIMITS = {
   },
 } as const;
 
+/** Bucket sizes shared by the endpoints that repeat the same limit. */
+export const BURST_LIMITS = {
+  tenPerHour: { maxTokens: 10, refillRate: 10 / 3600 },
+} as const;
+
 export function validateRequestSize(
   payload: unknown,
   maxSizeBytes: number = 1024 * 100,

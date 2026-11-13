@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DAY } from "@query/db/constants";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { events, eventCheckIns, members, users } from "@query/db";
@@ -238,7 +239,7 @@ export const eventRouter = createTRPCRouter({
         ...safeEvent,
         status:
           event.checkInEnabled &&
-          event.eventDate >= new Date(now.getTime() - 24 * 60 * 60 * 1000)
+          event.eventDate >= new Date(now.getTime() - DAY)
             ? "open"
             : "closed",
       };
@@ -362,7 +363,7 @@ export const eventRouter = createTRPCRouter({
 
           // The public listing stops advertising an event 24h after it starts; the door
           // has to agree, or a photographed QR keeps admitting people afterwards.
-          if (event.eventDate < new Date(Date.now() - 24 * 60 * 60 * 1000)) {
+          if (event.eventDate < new Date(Date.now() - DAY)) {
             throw new TRPCError({
               code: "BAD_REQUEST",
               message: "Check-in for this event has closed",
@@ -809,7 +810,7 @@ export const eventRouter = createTRPCRouter({
           input.range === "term"
             ? termStart(now)
             : input.range === "90d"
-              ? new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+              ? new Date(now.getTime() - 90 * DAY)
               : null;
         // Held means it has happened. A meeting on next week's calendar has no
         // check-ins yet and would only drag the average down.

@@ -1,14 +1,16 @@
+import { VENUE_TZ } from "@query/db/constants";
+
 // Shared with the site: pages that decide what "today" is have to agree with
 // the API, and the server runs in UTC.
 
 const easternDate = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/New_York",
+  timeZone: VENUE_TZ,
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
 });
 const easternHour = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York",
+  timeZone: VENUE_TZ,
   hour: "numeric",
   hourCycle: "h23",
 });

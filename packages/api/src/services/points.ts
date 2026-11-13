@@ -1,4 +1,6 @@
 import { randomInt } from "node:crypto";
+import { SELF_CHECK_IN_LEAD_MS } from "@query/db/constants";
+import type { CheckInMethod } from "@query/db/constants";
 import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
@@ -23,7 +25,7 @@ export type PointsTx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
 /** Either the pool or a transaction. */
 export type PointsDb = DrizzleDB | PointsTx;
 
-export type AttendanceMethod = "scan" | "code" | "manual";
+export type AttendanceMethod = CheckInMethod;
 
 /** The three sums a balance is made of. */
 export type PointsTotals = {
@@ -221,7 +223,7 @@ export async function assignCheckInCode(
 
 // Doors open a little early: people queue before a workshop starts, and the
 // code is on the screen as they walk in.
-export const SELF_CHECK_IN_LEAD_MS = 15 * 60 * 1000;
+export { SELF_CHECK_IN_LEAD_MS };
 
 export type SelfCheckInWindow = "early" | "open" | "ended";
 

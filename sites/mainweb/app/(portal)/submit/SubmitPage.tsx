@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
+import { VENUE_TZ } from "@/lib/venue-time";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
@@ -35,7 +36,7 @@ const formatMoment = (moment: Date) =>
     hour: "numeric",
     minute: "2-digit",
     timeZoneName: "short",
-    timeZone: "America/New_York",
+    timeZone: VENUE_TZ,
   });
 
 /** A deadline that never breaks across lines: "EST." alone on a line is unreadable. */

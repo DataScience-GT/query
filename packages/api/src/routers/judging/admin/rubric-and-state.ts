@@ -1,6 +1,7 @@
 // The rubric and the switches flipped on judging day.
 
 import { z } from "zod";
+import { JUDGING_STATES } from "@query/db/constants";
 import { and, asc, count, eq } from "drizzle-orm";
 import { judgingConfigs, judgingRubricItems } from "@query/db";
 import type { DrizzleDB } from "@query/db";
@@ -102,7 +103,7 @@ export const rubricAndStateProcedures = {
 
   /** draft → open, open ↔ closed, and back to draft before any scoring. */
   setState: isAdmin
-    .input(hackathonInput.extend({ state: z.enum(["draft", "open", "closed"]) }))
+    .input(hackathonInput.extend({ state: z.enum(JUDGING_STATES) }))
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
       const result = await db.transaction(async (tx) => {
