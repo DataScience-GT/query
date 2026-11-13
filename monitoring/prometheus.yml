@@ -23,9 +23,9 @@ scrape_configs:
 
   # Production, on Firebase App Hosting.
   #
-  # Commented out because it needs two things this repo cannot supply: the
-  # deployed hostname, and a token written to monitoring/secrets/metrics-token
-  # (gitignored) that matches METRICS_TOKEN on the deployment.
+  # Needs a token in monitoring/secrets/metrics-token (gitignored) that matches
+  # METRICS_TOKEN on the deployment. Until that file exists the target shows
+  # down with a "reading file" error and everything else keeps working.
   #
   # Read the numbers it returns with the instance model in mind. App Hosting
   # autoscales, so each scrape lands on one arbitrary instance:
@@ -34,17 +34,16 @@ scrape_configs:
   #     instance answered.
   #   - counters and histograms are that one instance's, since its own start,
   #     and vanish when it scales down. Treat them as a sample, not a total.
-  #
-  # - job_name: mainweb-prod
-  #   metrics_path: /api/metrics
-  #   scheme: https
-  #   authorization:
-  #     type: Bearer
-  #     credentials_file: /etc/prometheus/secrets/metrics-token
-  #   static_configs:
-  #     - targets: ["your-app-hosting-domain"]
-  #       labels:
-  #         env: prod
+  - job_name: mainweb-prod
+    metrics_path: /api/metrics
+    scheme: https
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/secrets/metrics-token
+    static_configs:
+      - targets: ["datasciencegt.org"]
+        labels:
+          env: prod
 
   - job_name: prometheus
     static_configs:
