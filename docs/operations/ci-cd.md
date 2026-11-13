@@ -6,9 +6,10 @@ All workflows live in `.github/workflows/`.
 
 `ci.yml` is the one CI/CD pipeline, on every PR and every push to `main`/`dev`:
 
-1. `verify` — `pnpm install --frozen-lockfile`, then `turbo run lint typecheck`, `pnpm test`, `turbo run build` (Node from `.nvmrc`; pnpm from `packageManager`, unpinned in the workflow so it cannot drift). Uploads `sites/hacklytics2027/out`.
+1. `verify` — `pnpm install --frozen-lockfile`, then `turbo run lint typecheck`, `pnpm test`, `turbo run build` (Node from `.nvmrc`; pnpm from `packageManager`, unpinned in the workflow so it cannot drift). Uploads `sites/hacklytics2027/out` (artifact `hacklytics-out`) and `sites/hacklytics2026/out` (artifact `hacklytics2026-out`).
 2. `preview-hacklytics` — PRs from this repo (not forks, not Dependabot): deploys that build to Firebase Hosting channel `pr-N`.
 3. `deploy-hacklytics` — push to `main` only: deploys the same build to the live `hacklytics` target.
+4. `preview-hacklytics2026` and `deploy-hacklytics2026` — the same two jobs for the 2026 site, target `hacklytics2026` (Hosting site `hacklyticss2026`).
 
 `verify` restores `.turbo/cache` with `actions/cache`, keyed by commit sha and restored from the newest run, so unchanged tasks replay from cache. Env vars hash only into `mainweb`'s `build` (`sites/mainweb/turbo.json`) and `test`, never into lint or typecheck; the rest of the list in the root `turbo.json` is `globalPassThroughEnv`.
 

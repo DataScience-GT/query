@@ -97,6 +97,13 @@ jobs:
           path: sites/hacklytics2027/out
           retention-days: 3
 
+      - name: Upload Hacklytics 2026 build
+        uses: actions/upload-artifact@v7
+        with:
+          name: hacklytics2026-out
+          path: sites/hacklytics2026/out
+          retention-days: 3
+
   preview-hacklytics:
     name: Preview Hacklytics
     needs: verify
@@ -151,6 +158,66 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DSGT_WEBSITE }}
           target: hacklytics
+          projectId: dsgt-website
+          channelId: live
+          entryPoint: "."
+          # 15.34.1 checks the Service Usage API, which is disabled on dsgt-website.
+          firebaseToolsVersion: "15.34.0"
+
+  preview-hacklytics2026:
+    name: Preview Hacklytics 2026
+    needs: verify
+    # Forks and Dependabot get no repo secrets, so the deploy would fail on a
+    # missing service account. The verify job above still checks their build.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: hacklytics2026-out
+          path: sites/hacklytics2026/out
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DSGT_WEBSITE }}
+          target: hacklytics2026
+          projectId: dsgt-website
+          channelId: pr-${{ github.event.pull_request.number }}
+          entryPoint: "."
+          # 15.34.1 checks the Service Usage API, which is disabled on dsgt-website.
+          firebaseToolsVersion: "15.34.0"
+
+  deploy-hacklytics2026:
+    name: Deploy Hacklytics 2026
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: hacklytics2026-out
+          path: sites/hacklytics2026/out
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DSGT_WEBSITE }}
+          target: hacklytics2026
           projectId: dsgt-website
           channelId: live
           entryPoint: "."
