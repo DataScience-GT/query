@@ -31,11 +31,42 @@ export const rosterProcedures = {
       const [rows, [totals]] = await Promise.all([
         db.query.hackathonParticipants.findMany({
           where,
+          // The table and its expanded row. Left out: the consent flags,
+          // demographics the row does not draw (pronouns, race, underrepresented,
+          // first generation), hardware, member and wave ids, the team (the table does
+          // not show it) and timestamps nothing shows. The CSV export reads its
+          // own endpoint, with the team.
+          columns: {
+            id: true,
+            userId: true,
+            registrationStatus: true,
+            registeredAt: true,
+            acceptanceEmailSentAt: true,
+            attendanceConfirmedAt: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            age: true,
+            gender: true,
+            school: true,
+            major: true,
+            levelOfStudy: true,
+            graduationYear: true,
+            country: true,
+            hackathonsAttended: true,
+            resumeUrl: true,
+            linkedinUrl: true,
+            githubUrl: true,
+            whyAttend: true,
+            shirtSize: true,
+            dietaryRestrictions: true,
+            emergencyContact: true,
+            emergencyPhone: true,
+          },
           with: {
             user: {
               columns: { id: true, name: true, email: true, image: true },
             },
-            team: { columns: { id: true, name: true } },
           },
           orderBy: (participants, { desc }) => [
             desc(participants.registeredAt),

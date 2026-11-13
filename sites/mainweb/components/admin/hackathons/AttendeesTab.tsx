@@ -30,8 +30,8 @@ import {
  */
 import { MASS_EMAIL_BATCH } from "@query/api/email-limits";
 
-/** Rows per page. The expanded detail view needs every column, so the roster
- *  is kept small by row count rather than by narrowing what each row carries. */
+/** Rows per page. Each row carries the columns the expanded detail view draws
+ *  (see adminGetAttendees), so the roster is also kept small by row count. */
 const PAGE_SIZE = 50;
 
 /** Delays a fast-changing value so it can drive a query without firing one per

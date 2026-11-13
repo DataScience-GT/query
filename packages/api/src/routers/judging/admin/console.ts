@@ -18,6 +18,7 @@ import {
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { isAdmin, isAdminUpload } from "../../../middleware/procedures";
+import { CacheKeys, VOLATILE_TTL } from "../../../middleware/cache";
 import { recordAdminAction } from "../../../middleware/audit";
 import {
   assertHackathonExists,
@@ -44,184 +45,196 @@ import { openCheckInFlagCount } from "../../../services/check-in-flags";
 import { repoCheckIfDue } from "../../../services/judging/repo-check";
 import { hackathonInput, SEATED_WINDOW_MS } from "./shared";
 
+async function loadOverview(db: DrizzleDB, id: string) {
+  const hackathon = await assertHackathonExists(db, id);
+  const config = await ensureJudgingConfig(db, id);
+  const seatedSince = new Date(Date.now() - SEATED_WINDOW_MS);
+
+  const [
+    [entries],
+    [members],
+    [challenges],
+    [rooms],
+    [rubric],
+    [schedule],
+    [evaluations],
+    [drafts],
+    [announcements],
+    [seated],
+    openCheckInFlags,
+  ] = await Promise.all([
+    db
+      .select({
+        devpost: sql<number>`count(*) filter (where ${judgingEntries.deletedAt} is null and ${judgingEntries.source} = 'devpost')::int`,
+        portal: sql<number>`count(*) filter (where ${judgingEntries.deletedAt} is null and ${judgingEntries.source} = 'portal')::int`,
+        removed: sql<number>`count(*) filter (where ${judgingEntries.deletedAt} is not null)::int`,
+      })
+      .from(judgingEntries)
+      .where(eq(judgingEntries.hackathonId, id)),
+    db
+      .select({
+        total: count(),
+        linked: sql<number>`count(${judgingEntryMembers.userId})::int`,
+      })
+      .from(judgingEntryMembers)
+      .innerJoin(
+        judgingEntries,
+        eq(judgingEntries.id, judgingEntryMembers.entryId),
+      )
+      .where(
+        and(
+          eq(judgingEntryMembers.hackathonId, id),
+          isNull(judgingEntries.deletedAt),
+        ),
+      ),
+    db
+      .select({
+        total: count(),
+        groups: sql<number>`count(*) filter (where ${judgingChallenges.isGroup})::int`,
+      })
+      .from(judgingChallenges)
+      .where(eq(judgingChallenges.hackathonId, id)),
+    db
+      .select({
+        active: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is null)::int`,
+        tables: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is null and ${judgingRooms.kind} = 'table')::int`,
+        archived: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is not null)::int`,
+        linked: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is null and exists (select 1 from ${judgingRoomLinks} where ${judgingRoomLinks.roomId} = ${outerColumn(judgingRooms, judgingRooms.id)} and ${judgingRoomLinks.revokedAt} is null))::int`,
+      })
+      .from(judgingRooms)
+      .where(eq(judgingRooms.hackathonId, id)),
+    db
+      .select({
+        ratings: sql<number>`count(*) filter (where ${judgingRubricItems.kind} = 'rating')::int`,
+        responses: sql<number>`count(*) filter (where ${judgingRubricItems.kind} = 'response')::int`,
+      })
+      .from(judgingRubricItems)
+      .where(eq(judgingRubricItems.hackathonId, id)),
+    db
+      .select({
+        id: judgingSchedules.id,
+        windowStart: judgingSchedules.windowStart,
+        windowEnd: judgingSchedules.windowEnd,
+        firstResultAt: judgingSchedules.firstResultAt,
+        createdAt: judgingSchedules.createdAt,
+        appointments: sql<number>`(select count(*)::int from ${judgingAppointments} where ${judgingAppointments.scheduleId} = ${outerColumn(judgingSchedules, judgingSchedules.id)})`,
+      })
+      .from(judgingSchedules)
+      .where(eq(judgingSchedules.hackathonId, id))
+      .limit(1),
+    db
+      .select({
+        total: count(),
+        // The ones placings count: every rating in, written response or not.
+        complete: sql<number>`count(*) filter (where ${holdsEveryRating(id)})::int`,
+      })
+      .from(judgingEvaluations)
+      .where(eq(judgingEvaluations.hackathonId, id)),
+    db
+      .select({ total: count() })
+      .from(judgingEvaluationDrafts)
+      .where(eq(judgingEvaluationDrafts.hackathonId, id)),
+    db
+      .select({ total: count() })
+      .from(judgingAnnouncements)
+      .where(
+        and(
+          eq(judgingAnnouncements.hackathonId, id),
+          isNull(judgingAnnouncements.clearedAt),
+        ),
+      ),
+    db
+      .select({ total: count() })
+      .from(judgingPresence)
+      .where(
+        and(
+          eq(judgingPresence.hackathonId, id),
+          isNull(judgingPresence.leftAt),
+          gte(judgingPresence.lastSeenAt, seatedSince),
+        ),
+      ),
+    openCheckInFlagCount(db, id),
+  ]);
+
+  const hasEvaluations = (evaluations?.total ?? 0) + (drafts?.total ?? 0) > 0;
+  return {
+    hackathon,
+    config: {
+      state: config.state,
+      openedAt: config.openedAt,
+      closedAt: config.closedAt,
+      showAllScores: config.showAllScores,
+      inventoryLockedAt: config.inventoryLockedAt,
+      groupsInitializedAt: config.groupsInitializedAt,
+      itineraryPublished: config.itineraryPublished,
+      emergencyMode: config.emergencyMode,
+      claimsStartedAt: config.claimsStartedAt,
+    },
+    counts: {
+      entries: {
+        devpost: entries?.devpost ?? 0,
+        portal: entries?.portal ?? 0,
+        removed: entries?.removed ?? 0,
+      },
+      members: {
+        total: members?.total ?? 0,
+        linked: members?.linked ?? 0,
+      },
+      challenges: {
+        total: challenges?.total ?? 0,
+        groups: challenges?.groups ?? 0,
+      },
+      rooms: {
+        active: rooms?.active ?? 0,
+        tables: rooms?.tables ?? 0,
+        archived: rooms?.archived ?? 0,
+        linked: rooms?.linked ?? 0,
+      },
+      rubric: {
+        ratings: rubric?.ratings ?? 0,
+        responses: rubric?.responses ?? 0,
+      },
+      evaluations: {
+        total: evaluations?.total ?? 0,
+        complete: evaluations?.complete ?? 0,
+        drafts: drafts?.total ?? 0,
+      },
+      announcements: announcements?.total ?? 0,
+      judgesSeated: seated?.total ?? 0,
+      // Only how many wait for a decision. Who and why stay in the project
+      // list, which is organiser-only.
+      checkInFlags: { open: openCheckInFlags },
+    },
+    schedule: schedule ?? null,
+    locks: {
+      // The challenge tree; see assertStructureEditable.
+      structure: !!schedule || hasEvaluations,
+      rubric: rubricLockReason({
+        state: config.state,
+        scheduleSaved: !!schedule,
+        hasEvaluations,
+      }),
+    },
+  };
+}
+
 export const consoleProcedures = {
   /** The console header: the edition, its switches and how much is set up. */
   overview: isAdmin.input(hackathonInput).query(async ({ ctx, input }) => {
     const db = ctx.db as DrizzleDB;
     const id = input.hackathonId;
-    const hackathon = await assertHackathonExists(db, id);
-    const config = await ensureJudgingConfig(db, id);
     // The console polls this; it is where the late-push check is started from.
-    // Not awaited: GitHub never holds up the poll.
+    // Not awaited: GitHub never holds up the poll. Outside the cache, so a hit
+    // still starts it.
     void repoCheckIfDue(db, id);
-    const seatedSince = new Date(Date.now() - SEATED_WINDOW_MS);
-
-    const [
-      [entries],
-      [members],
-      [challenges],
-      [rooms],
-      [rubric],
-      [schedule],
-      [evaluations],
-      [drafts],
-      [announcements],
-      [seated],
-      openCheckInFlags,
-    ] = await Promise.all([
-      db
-        .select({
-          devpost: sql<number>`count(*) filter (where ${judgingEntries.deletedAt} is null and ${judgingEntries.source} = 'devpost')::int`,
-          portal: sql<number>`count(*) filter (where ${judgingEntries.deletedAt} is null and ${judgingEntries.source} = 'portal')::int`,
-          removed: sql<number>`count(*) filter (where ${judgingEntries.deletedAt} is not null)::int`,
-        })
-        .from(judgingEntries)
-        .where(eq(judgingEntries.hackathonId, id)),
-      db
-        .select({
-          total: count(),
-          linked: sql<number>`count(${judgingEntryMembers.userId})::int`,
-        })
-        .from(judgingEntryMembers)
-        .innerJoin(
-          judgingEntries,
-          eq(judgingEntries.id, judgingEntryMembers.entryId),
-        )
-        .where(
-          and(
-            eq(judgingEntryMembers.hackathonId, id),
-            isNull(judgingEntries.deletedAt),
-          ),
-        ),
-      db
-        .select({
-          total: count(),
-          groups: sql<number>`count(*) filter (where ${judgingChallenges.isGroup})::int`,
-        })
-        .from(judgingChallenges)
-        .where(eq(judgingChallenges.hackathonId, id)),
-      db
-        .select({
-          active: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is null)::int`,
-          tables: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is null and ${judgingRooms.kind} = 'table')::int`,
-          archived: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is not null)::int`,
-          linked: sql<number>`count(*) filter (where ${judgingRooms.archivedAt} is null and exists (select 1 from ${judgingRoomLinks} where ${judgingRoomLinks.roomId} = ${outerColumn(judgingRooms, judgingRooms.id)} and ${judgingRoomLinks.revokedAt} is null))::int`,
-        })
-        .from(judgingRooms)
-        .where(eq(judgingRooms.hackathonId, id)),
-      db
-        .select({
-          ratings: sql<number>`count(*) filter (where ${judgingRubricItems.kind} = 'rating')::int`,
-          responses: sql<number>`count(*) filter (where ${judgingRubricItems.kind} = 'response')::int`,
-        })
-        .from(judgingRubricItems)
-        .where(eq(judgingRubricItems.hackathonId, id)),
-      db
-        .select({
-          id: judgingSchedules.id,
-          windowStart: judgingSchedules.windowStart,
-          windowEnd: judgingSchedules.windowEnd,
-          firstResultAt: judgingSchedules.firstResultAt,
-          createdAt: judgingSchedules.createdAt,
-          appointments: sql<number>`(select count(*)::int from ${judgingAppointments} where ${judgingAppointments.scheduleId} = ${outerColumn(judgingSchedules, judgingSchedules.id)})`,
-        })
-        .from(judgingSchedules)
-        .where(eq(judgingSchedules.hackathonId, id))
-        .limit(1),
-      db
-        .select({
-          total: count(),
-          // The ones placings count: every rating in, written response or not.
-          complete: sql<number>`count(*) filter (where ${holdsEveryRating(id)})::int`,
-        })
-        .from(judgingEvaluations)
-        .where(eq(judgingEvaluations.hackathonId, id)),
-      db
-        .select({ total: count() })
-        .from(judgingEvaluationDrafts)
-        .where(eq(judgingEvaluationDrafts.hackathonId, id)),
-      db
-        .select({ total: count() })
-        .from(judgingAnnouncements)
-        .where(
-          and(
-            eq(judgingAnnouncements.hackathonId, id),
-            isNull(judgingAnnouncements.clearedAt),
-          ),
-        ),
-      db
-        .select({ total: count() })
-        .from(judgingPresence)
-        .where(
-          and(
-            eq(judgingPresence.hackathonId, id),
-            isNull(judgingPresence.leftAt),
-            gte(judgingPresence.lastSeenAt, seatedSince),
-          ),
-        ),
-      openCheckInFlagCount(db, id),
-    ]);
-
-    const hasEvaluations = (evaluations?.total ?? 0) + (drafts?.total ?? 0) > 0;
-    return {
-      hackathon,
-      config: {
-        state: config.state,
-        openedAt: config.openedAt,
-        closedAt: config.closedAt,
-        showAllScores: config.showAllScores,
-        inventoryLockedAt: config.inventoryLockedAt,
-        groupsInitializedAt: config.groupsInitializedAt,
-        itineraryPublished: config.itineraryPublished,
-        emergencyMode: config.emergencyMode,
-        claimsStartedAt: config.claimsStartedAt,
-      },
-      counts: {
-        entries: {
-          devpost: entries?.devpost ?? 0,
-          portal: entries?.portal ?? 0,
-          removed: entries?.removed ?? 0,
-        },
-        members: {
-          total: members?.total ?? 0,
-          linked: members?.linked ?? 0,
-        },
-        challenges: {
-          total: challenges?.total ?? 0,
-          groups: challenges?.groups ?? 0,
-        },
-        rooms: {
-          active: rooms?.active ?? 0,
-          tables: rooms?.tables ?? 0,
-          archived: rooms?.archived ?? 0,
-          linked: rooms?.linked ?? 0,
-        },
-        rubric: {
-          ratings: rubric?.ratings ?? 0,
-          responses: rubric?.responses ?? 0,
-        },
-        evaluations: {
-          total: evaluations?.total ?? 0,
-          complete: evaluations?.complete ?? 0,
-          drafts: drafts?.total ?? 0,
-        },
-        announcements: announcements?.total ?? 0,
-        judgesSeated: seated?.total ?? 0,
-        // Only how many wait for a decision. Who and why stay in the project
-        // list, which is organiser-only.
-        checkInFlags: { open: openCheckInFlags },
-      },
-      schedule: schedule ?? null,
-      locks: {
-        // The challenge tree; see assertStructureEditable.
-        structure: !!schedule || hasEvaluations,
-        rubric: rubricLockReason({
-          state: config.state,
-          scheduleSaved: !!schedule,
-          hasEvaluations,
-        }),
-      },
-    };
+    // One round of aggregates per edition per window, not one per open tab. Any
+    // judging.* mutation evicts the namespace, so an organiser's own change
+    // shows on the refetch that follows it.
+    return ctx.cache.getOrSet(
+      CacheKeys.judgingOverview(id),
+      () => loadOverview(db, id),
+      VOLATILE_TTL,
+    );
   }),
 
   /** What still stands between this edition and judging day. */

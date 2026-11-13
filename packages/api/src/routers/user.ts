@@ -51,63 +51,50 @@ const isDuplicateGtEmail = (error: unknown) => {
 };
 
 export const userRouter = createTRPCRouter({
-  me: protectedProcedure.query(async ({ ctx }) => {
-    const cacheKey = CacheKeys.userProfile(ctx.userId as string);
-    const cached = ctx.cache.get<{
-      id: string;
-      email: string | null;
-      name: string | null;
-      image: string | null;
-      bio: string | null | undefined;
-      website: string | null | undefined;
-      location: string | null | undefined;
-      gtEmail: string | null | undefined;
-    }>(cacheKey);
-    if (cached) return cached;
-
-    const user = await (
-      ctx.db as NonNullable<typeof ctx.db>
-    ).query.users.findFirst({
-      where: eq(users.id, ctx.userId as string),
-      columns: { id: true, email: true, name: true, image: true },
-      with: {
-        profile: {
-          columns: {
-            bio: true,
-            website: true,
-            location: true,
-            gtEmail: true,
+  me: protectedProcedure.query(async ({ ctx }) =>
+    // getOrSet: the layout and the page both ask for this, so a cold key ran
+    // the query twice.
+    ctx.cache.getOrSet(
+      CacheKeys.userProfile(ctx.userId as string),
+      async () => {
+        const user = await (
+          ctx.db as NonNullable<typeof ctx.db>
+        ).query.users.findFirst({
+          where: eq(users.id, ctx.userId as string),
+          columns: { id: true, email: true, name: true, image: true },
+          with: {
+            profile: {
+              columns: {
+                bio: true,
+                website: true,
+                location: true,
+                gtEmail: true,
+              },
+            },
           },
-        },
+        });
+
+        if (!user) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+          bio: user.profile?.bio,
+          website: user.profile?.website,
+          location: user.profile?.location,
+          gtEmail: user.profile?.gtEmail,
+        };
       },
-    });
-
-    if (!user) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
-    }
-
-    const result = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      image: user.image,
-      bio: user.profile?.bio,
-      website: user.profile?.website,
-      location: user.profile?.location,
-      gtEmail: user.profile?.gtEmail,
-    };
-
-    ctx.cache.set(cacheKey, result, 120);
-    return result;
-  }),
+      120,
+    ),
+  ),
 
   getPortalContext: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.userId as string;
-    const cacheKey = CacheKeys.portalContext(userId);
-    const cached = ctx.cache.get<Awaited<ReturnType<typeof fetchPortalContext>>>(
-      cacheKey,
-    );
-    if (cached) return cached;
 
     if (!ctx.db) {
       throw new TRPCError({
@@ -115,10 +102,15 @@ export const userRouter = createTRPCRouter({
         message: "Service unavailable. Try again later.",
       });
     }
+    const db = ctx.db as DrizzleDB;
 
-    const result = await fetchPortalContext(ctx.db as DrizzleDB, userId);
-    ctx.cache.set(cacheKey, result, 300);
-    return result;
+    // getOrSet: the layout's bootstrap and the page's prefetch both ask, so a
+    // cold key ran the four role lookups twice.
+    return ctx.cache.getOrSet(
+      CacheKeys.portalContext(userId),
+      () => fetchPortalContext(db, userId),
+      300,
+    );
   }),
 
   updateProfile: protectedProcedure

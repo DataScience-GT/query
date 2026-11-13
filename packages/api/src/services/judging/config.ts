@@ -41,13 +41,26 @@ export async function assertHackathonExists(db: JudgingDb, hackathonId: string) 
 
 /**
  * The edition's judging config, created in its default state (draft, nothing
- * locked) the first time anything asks. Safe under concurrency: a second
- * caller's insert is a no-op and it reads the row the first one wrote.
+ * locked) the first time anything asks. The row exists from then on, so the
+ * common call is one read. Safe under concurrency: on a miss a second caller's
+ * insert is a no-op and it reads the row the first one wrote.
  */
 export async function ensureJudgingConfig(
   db: JudgingDb,
   hackathonId: string,
 ): Promise<JudgingConfig> {
+  const read = async () => {
+    const [row] = await db
+      .select()
+      .from(judgingConfigs)
+      .where(eq(judgingConfigs.hackathonId, hackathonId))
+      .limit(1);
+    return row;
+  };
+
+  const found = await read();
+  if (found) return found;
+
   const [created] = await db
     .insert(judgingConfigs)
     .values({ hackathonId })
@@ -55,11 +68,7 @@ export async function ensureJudgingConfig(
     .returning();
   if (created) return created;
 
-  const [existing] = await db
-    .select()
-    .from(judgingConfigs)
-    .where(eq(judgingConfigs.hackathonId, hackathonId))
-    .limit(1);
+  const existing = await read();
   if (!existing) {
     // Only reachable if the hackathon row is gone: the insert above would have
     // hit its foreign key otherwise.

@@ -412,8 +412,10 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // and every real key carries a viewer/status/limit suffix. With an entry
   // present the namespace fallback is skipped, so nothing was evicted at all.
   "hackathon.create": ["hackathons:list*"],
-  "hackathon.update": ["hackathons:list*", "hackathon:*"],
-  "hackathon.delete": ["hackathons:list*", "hackathon:*"],
+  // The judging console header carries the edition's name and dates, and a
+  // deleted edition must stop answering from the cache.
+  "hackathon.update": ["hackathons:list*", "hackathon:*", "judging:*:overview"],
+  "hackathon.delete": ["hackathons:list*", "hackathon:*", "judging:*:overview"],
   "hackathon.createEvent": ["hackathon:*:events"],
   "hackathon.updateEvent": ["hackathon:*:events"],
   "hackathon.deleteEvent": ["hackathon:*:events"],
