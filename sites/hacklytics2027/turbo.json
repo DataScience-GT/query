@@ -4,6 +4,9 @@
   "tasks": {
     "build": {
       "outputs": ["out/**"]
+    },
+    "typecheck": {
+      "outputs": []
     }
   }
 }

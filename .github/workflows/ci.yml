@@ -36,6 +36,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Each run saves under its own sha and restores the newest cache, so a
+      # PR starts from the last main or dev run. Turbo then replays any task
+      # whose inputs did not change.
+      - name: Restore Turborepo cache
+        uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
       - name: Lint and typecheck
         run: pnpm turbo run lint typecheck
 
