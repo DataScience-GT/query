@@ -5,7 +5,13 @@
     "test": {
       "dependsOn": ["^build"],
       "outputs": [],
-      "inputs": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx"]
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "test/**/*.ts",
+        "test/**/*.tsx"
+      ],
+      "env": ["DATABASE_URL"]
     },
     "topo": {
       "dependsOn": ["^topo"]
@@ -52,7 +58,10 @@
       "interactive": true
     }
   },
-  "globalEnv": [
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "CI",
+    "npm_lifecycle_event",
     "PORT",
     "DATABASE_URL",
     "NEXTAUTH_SECRET",
@@ -77,7 +86,6 @@
     "CLUB_PROJECT_OWNER_EMAIL",
     "NEXT_RUNTIME",
     "DB_CONNECTION_TIMEOUT_MS",
-    "CLUB_PROJECT_OWNER_EMAIL",
     "RESUME_BUCKET",
     "BOOTCAMP_BUCKET",
     "AUTH_URL",
@@ -91,10 +99,5 @@
     "DDOS_BURST_THRESHOLD",
     "DDOS_BURST_WINDOW_MS",
     "DDOS_CLEANUP_INTERVAL_MS"
-  ],
-  "globalPassThroughEnv": [
-    "NODE_ENV",
-    "CI",
-    "npm_lifecycle_event"
   ]
 }
