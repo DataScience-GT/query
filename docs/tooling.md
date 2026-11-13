@@ -24,7 +24,7 @@ Root `turbo.json` defines `build`, `dev`, `lint`, `typecheck`, `test`, `format`,
 | File | Role |
 | --- | --- |
 | `.nvmrc` | Node 24 |
-| `pnpm-workspace.yaml` | Workspace globs, plus every pnpm setting: `overrides` (security pins), `allowBuilds`, `autoInstallPeers`, `publicHoistPattern` (hoists prettier), `frozenLockfile`. pnpm 12 reads settings only from here — not `.npmrc`, not `package.json`'s `pnpm` field |
+| `pnpm-workspace.yaml` | Workspace globs, the `catalog` of shared dependency versions (packages use `"catalog:"`), plus every pnpm setting: `overrides` (security pins), `allowBuilds`, `autoInstallPeers`, `publicHoistPattern` (hoists prettier), `frozenLockfile`. pnpm 12 reads settings only from here — not `.npmrc`, not `package.json`'s `pnpm` field |
 | `restore-workspace.js` | Rewrite internal deps from `"*"` back to `workspace:*` |
 | `.dockerignore` | Slim Docker context (docs, git, env files, `node_modules`) |
 | `types/globals.d.ts` | Image module declarations (png/jpg/svg) |
