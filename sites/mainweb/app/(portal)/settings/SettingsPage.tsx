@@ -13,6 +13,8 @@ import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { useIsClient } from "@/lib/use-is-client";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import { Alert } from "@query/ui/Alert";
+import { Spinner } from "@query/ui/Spinner";
 import {
   page,
   pageTitle,
@@ -23,13 +25,14 @@ import {
   body,
   fieldLabel,
   fieldHint,
-  input,
   btnPrimary,
   btnSecondary,
   tabList,
   tab as tabClass,
   status as statusClass,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
+import { FormTextarea } from "@query/ui/FormTextarea";
 
 const readOnlyInput =
   "w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-3.5 py-2.5 text-[15px] text-[var(--text-muted)] cursor-not-allowed focus:outline-none";
@@ -286,19 +289,14 @@ export default function SettingsPage() {
 
               <div className={`${sectionRule} grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-6`}>
                 {/* Display Name */}
-                <div>
-                  <label htmlFor="display-name" className={fieldLabel}>
-                    Display name
-                  </label>
-                  <input
-                    id="display-name"
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="Your full name"
-                    className={input}
-                  />
-                </div>
+                <FormInput
+                  label="Display name"
+                  id="display-name"
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Your full name"
+                />
 
                 {/* Email (read-only from Google) */}
                 <div>
@@ -320,80 +318,64 @@ export default function SettingsPage() {
                 {/* GT Email — editable, since most people sign in with a
                     personal Google account and the club needs the school
                     address on file. */}
-                <div>
-                  <label htmlFor="gt-email" className={fieldLabel}>
-                    Georgia Tech email
-                  </label>
-                  <input
-                    id="gt-email"
-                    type="email"
-                    autoComplete="off"
-                    spellCheck={false}
-                    value={form.gtEmail}
-                    onChange={(e) => setForm({ ...form, gtEmail: e.target.value })}
-                    placeholder="gburdell3@gatech.edu"
-                    className={input}
-                  />
-                  <p className={fieldHint}>
-                    Any gatech.edu address. Leave blank to remove.
-                  </p>
-                </div>
+                <FormInput
+                  label="Georgia Tech email"
+                  id="gt-email"
+                  type="email"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={form.gtEmail}
+                  onChange={(e) =>
+                    setForm({ ...form, gtEmail: e.target.value })
+                  }
+                  placeholder="gburdell3@gatech.edu"
+                  hint="Any gatech.edu address. Leave blank to remove."
+                />
 
                 {/* Location */}
-                <div>
-                  <label htmlFor="location" className={fieldLabel}>
-                    Location
-                  </label>
-                  <input
-                    id="location"
-                    type="text"
-                    value={form.location}
-                    onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    placeholder="City, State"
-                    className={input}
-                  />
-                </div>
+                <FormInput
+                  label="Location"
+                  id="location"
+                  type="text"
+                  value={form.location}
+                  onChange={(e) =>
+                    setForm({ ...form, location: e.target.value })
+                  }
+                  placeholder="City, State"
+                />
 
                 {/* Website */}
-                <div>
-                  <label htmlFor="website" className={fieldLabel}>
-                    Website
-                  </label>
-                  <input
-                    id="website"
-                    type="url"
-                    value={form.website}
-                    onChange={(e) => setForm({ ...form, website: e.target.value })}
-                    placeholder="https://yoursite.com"
-                    className={input}
-                  />
-                </div>
+                <FormInput
+                  label="Website"
+                  id="website"
+                  type="url"
+                  value={form.website}
+                  onChange={(e) =>
+                    setForm({ ...form, website: e.target.value })
+                  }
+                  placeholder="https://yoursite.com"
+                />
               </div>
 
               {/* Bio */}
-              <div>
-                <label htmlFor="bio" className={fieldLabel}>
-                  Bio
-                </label>
-                <textarea
-                  id="bio"
-                  value={form.bio}
-                  onChange={(e) => setForm({ ...form, bio: e.target.value })}
-                  placeholder="A short bio about yourself…"
-                  rows={4}
-                  className={`${input} resize-none`}
-                />
-              </div>
+              <FormTextarea
+                label="Bio"
+                id="bio"
+                value={form.bio}
+                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                placeholder="A short bio about yourself…"
+                rows={4}
+              />
 
               <ResumeSection />
 
               {updateProfile.error && (
-                <p role="alert" className="text-[13px] text-[var(--danger)]">
+                <Alert size={13}>
                   {trpcErrorMessage(
                     updateProfile.error,
                     "Could not save your profile. Check your connection and try again.",
                   )}
-                </p>
+                </Alert>
               )}
 
               {/* Save Button */}
@@ -406,7 +388,7 @@ export default function SettingsPage() {
                 >
                   {isSaving ? (
                     <>
-                      <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" aria-hidden />
+                      <Spinner />
                       <span className="sr-only">Saving</span>
                     </>
                   ) : saved ? (

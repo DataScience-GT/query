@@ -4,7 +4,7 @@ import React, { useId, useState } from "react";
 import type { RouterOutputs } from "@query/api";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
-import { body, fieldLabel, input, meta } from "@/components/portal/ui";
+import { body, fieldLabel, input, meta } from "@query/ui/classes";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { useDebounced } from "./use-debounced";
 

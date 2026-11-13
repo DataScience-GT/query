@@ -3,7 +3,7 @@
 import { ChevronRight } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
-import { body, btnSecondary, itemTitle } from "@/components/portal/ui";
+import { body, btnSecondary, itemTitle } from "@query/ui/classes";
 import {
   ICON_STROKE,
   clockTime,

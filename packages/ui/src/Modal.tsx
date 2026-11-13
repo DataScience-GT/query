@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import type { ReactNode } from "react";
 
-interface ModalWrapperProps {
-  children: React.ReactNode;
+interface ModalProps {
+  children: ReactNode;
   onClose: () => void;
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
   /** Names the dialog for screen readers when the content has no heading. */
@@ -19,17 +20,17 @@ const maxWidthClasses = {
 };
 
 /**
- * Every modal in the portal renders through here, so the dialog behaviour
- * people expect lives in one place: Escape closes it, focus moves inside and
- * comes back on close, the page behind stops scrolling, and a screen reader is
- * told a dialog opened rather than reading it as more page content.
+ * The dialog behaviour people expect lives here: Escape closes it, focus moves
+ * inside and comes back on close, the page behind stops scrolling, and a
+ * screen reader is told a dialog opened rather than reading it as more page
+ * content.
  */
-export function ModalWrapper({
+export function Modal({
   children,
   onClose,
   maxWidth = "md",
   label,
-}: ModalWrapperProps) {
+}: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Read through a ref so the effect below runs once per open. Keyed on

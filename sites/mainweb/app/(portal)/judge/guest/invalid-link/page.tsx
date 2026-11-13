@@ -5,7 +5,7 @@ import {
   pageDek,
   pageTitle,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 // Where a room QR code with a bad signature, a revoked link or an archived
 // room ends up.

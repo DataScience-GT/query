@@ -4,6 +4,7 @@ import { venueFormat } from "@/lib/venue-time";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import SkillsInterestsInput from "@/components/portal/profile/SkillsInterestsInput";
+import { Alert } from "@query/ui/Alert";
 import {
   sectionTitle,
   itemTitle,
@@ -12,7 +13,8 @@ import {
   input,
   btnPrimary,
   status as statusClass,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
 
 /**
  * The club member profile.
@@ -186,92 +188,50 @@ export function MembershipTab() {
       <div className="space-y-6 border-t border-[var(--border-subtle)] pt-6">
         {!member && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="member-first"
-                className={fieldLabel}
-              >
-                First name
-              </label>
-              <input
-                id="member-first"
-                className={input}
-                value={form.firstName}
-                onChange={(e) =>
-                  setForm({ ...form, firstName: e.target.value })
-                }
-                maxLength={100}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="member-last"
-                className={fieldLabel}
-              >
-                Last name
-              </label>
-              <input
-                id="member-last"
-                className={input}
-                value={form.lastName}
-                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                maxLength={100}
-              />
-            </div>
+            <FormInput
+              label="First name"
+              id="member-first"
+              value={form.firstName}
+              onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+              maxLength={100}
+            />
+            <FormInput
+              label="Last name"
+              id="member-last"
+              value={form.lastName}
+              onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+              maxLength={100}
+            />
           </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label
-              htmlFor="member-school"
-              className={fieldLabel}
-            >
-              School
-            </label>
-            <input
-              id="member-school"
-              className={input}
-              value={form.school}
-              onChange={(e) => setForm({ ...form, school: e.target.value })}
-              placeholder="Georgia Institute of Technology"
-              maxLength={200}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="member-major"
-              className={fieldLabel}
-            >
-              Major
-            </label>
-            <input
-              id="member-major"
-              className={input}
-              value={form.major}
-              onChange={(e) => setForm({ ...form, major: e.target.value })}
-              placeholder="Computer Science"
-              maxLength={200}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="member-grad"
-              className={fieldLabel}
-            >
-              Graduation year
-            </label>
-            <input
-              id="member-grad"
-              className={input}
-              value={form.graduationYear}
-              onChange={(e) =>
-                setForm({ ...form, graduationYear: e.target.value })
-              }
-              placeholder="2029"
-              inputMode="numeric"
-            />
-          </div>
+          <FormInput
+            label="School"
+            id="member-school"
+            value={form.school}
+            onChange={(e) => setForm({ ...form, school: e.target.value })}
+            placeholder="Georgia Institute of Technology"
+            maxLength={200}
+          />
+          <FormInput
+            label="Major"
+            id="member-major"
+            value={form.major}
+            onChange={(e) => setForm({ ...form, major: e.target.value })}
+            placeholder="Computer Science"
+            maxLength={200}
+          />
+          <FormInput
+            label="Graduation year"
+            id="member-grad"
+            value={form.graduationYear}
+            onChange={(e) =>
+              setForm({ ...form, graduationYear: e.target.value })
+            }
+            placeholder="2029"
+            inputMode="numeric"
+          />
         </div>
 
         <div>
@@ -326,12 +286,7 @@ export function MembershipTab() {
         </div>
 
         {error && (
-          <p
-            role="alert"
-            className="text-[13px] text-[var(--danger)]"
-          >
-            {error}
-          </p>
+          <Alert size={13}>{error}</Alert>
         )}
         {saved && (
           <p

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnInk,
@@ -10,7 +11,7 @@ import {
   input,
   sectionRule,
   sectionTitle,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { MASS_EMAIL_BATCH } from "@query/api/email-limits";
 
 /**
@@ -166,12 +167,7 @@ export function AcceptanceWaves({ hackathonId }: { hackathonId: string }) {
         </p>
       )}
       {error && (
-        <p
-          role="alert"
-          className="mt-4 border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
-        >
-          {error}
-        </p>
+        <Alert rule className="mt-4">{error}</Alert>
       )}
     </section>
   );

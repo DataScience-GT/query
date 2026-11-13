@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { label } from "@/components/portal/ui";
+import { label } from "@query/ui/classes";
 import type { HackathonNextStep } from "@/lib/hackathon-next-step";
 
 /**

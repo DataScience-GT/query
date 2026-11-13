@@ -5,7 +5,8 @@ import dynamic from "next/dynamic";
 import { trpc } from "@/lib/trpc";
 import { useInvalidatePortalContext } from "@/lib/use-portal-context";
 import { BOOTCAMP_ADDON_CENTS, formatCents } from "@query/api/pricing";
-import { btnPrimary, fieldHint } from "@/components/portal/ui";
+import { Alert } from "@query/ui/Alert";
+import { btnPrimary, fieldHint } from "@query/ui/classes";
 
 const StripePaymentModal = dynamic(
   () =>
@@ -70,9 +71,9 @@ export function BootcampAddOn({ term }: { term: string }) {
       </p>
 
       {error && (
-        <p role="alert" className="mt-3 text-sm text-[var(--danger)]">
+        <Alert size={14} className="mt-3">
           {error}
-        </p>
+        </Alert>
       )}
 
       {paymentData && (

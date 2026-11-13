@@ -88,7 +88,7 @@ Helpers: `lib/hackathon-slug.ts`, `lib/phone.ts`, `lib/bootcamp-schedule.ts`, `l
 
 ## UI stack
 
-Portal: liquid-glass CSS, Lucide icons, Stripe React, QR scanner (`@yudiel/react-qr-scanner`), Chart.js on admin analytics. Public marketing: custom Hero/Section/Navbar/Footer plus `@query/ui` glass.
+Portal: `@query/ui` tokens and primitives, Lucide icons, Stripe React, QR scanner (`@yudiel/react-qr-scanner`), Chart.js on admin analytics. Public marketing: custom Hero/Section/Navbar/Footer.
 
 ## Fonts
 

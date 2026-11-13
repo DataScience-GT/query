@@ -29,7 +29,7 @@
                    └─────────────┘
 ```
 
-`@query/ui` is a small shared component library consumed by mainweb. It is not on the request path.
+`@query/ui` is the shared design system: class strings, CSS tokens and React primitives. Source-only (no build step); mainweb transpiles it. It is not on the request path.
 
 ## Monorepo map
 

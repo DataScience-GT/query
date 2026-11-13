@@ -15,6 +15,8 @@ import { useState } from "react";
 import { useTheme } from "next-themes";
 import { formatCents } from "@query/api/pricing";
 import { useIsClient } from "@/lib/use-is-client";
+import { Alert } from "@query/ui/Alert";
+import { Spinner } from "@query/ui/Spinner";
 import {
   body,
   btnPrimary,
@@ -22,7 +24,7 @@ import {
   itemTitle,
   meta,
   status,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 // ── Inner form (must be inside <Elements>) ─────────────────────────────────
 function CheckoutForm({
@@ -168,10 +170,7 @@ function CheckoutForm({
         >
           {processing ? (
             <>
-              <span
-                aria-hidden="true"
-                className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin"
-              />
+              <Spinner />
               Processing…
             </>
           ) : (
@@ -363,9 +362,9 @@ export function StripePaymentModal({
             {processing ? "Recording…" : "Simulate successful payment"}
           </button>
           {error && (
-            <p role="alert" className="text-[13px] text-[var(--danger)]">
+            <Alert size={13}>
               {error}
-            </p>
+            </Alert>
           )}
         </div>
       </ModalShell>

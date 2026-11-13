@@ -19,7 +19,7 @@ import {
   meta,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import {
   ErrorLine,
   plural,

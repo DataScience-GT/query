@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   body as bodyText,
   btnPrimary,
@@ -16,7 +17,8 @@ import {
   sectionRule,
   sectionTitle,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
 import type { HackathonStatus } from "@/components/admin/hackathons/constants";
 
 const AUDIENCES = [
@@ -460,35 +462,25 @@ export function AnnouncementsTab({
         </fieldset>
 
         <div className="mt-8 max-w-2xl space-y-5">
-          <div>
-            <label htmlFor="ann-subject" className={fieldLabel}>
-              Subject line
-            </label>
-            <input
-              id="ann-subject"
-              type="text"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              maxLength={200}
-              placeholder="Registration for Hacklytics is now open"
-              className={input}
-            />
-          </div>
+          <FormInput
+            label="Subject line"
+            id="ann-subject"
+            type="text"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            maxLength={200}
+            placeholder="Registration for Hacklytics is now open"
+          />
 
-          <div>
-            <label htmlFor="ann-heading" className={fieldLabel}>
-              Heading inside the email
-            </label>
-            <input
-              id="ann-heading"
-              type="text"
-              value={heading}
-              onChange={(e) => setHeading(e.target.value)}
-              maxLength={200}
-              placeholder="Registration is open"
-              className={input}
-            />
-          </div>
+          <FormInput
+            label="Heading inside the email"
+            id="ann-heading"
+            type="text"
+            value={heading}
+            onChange={(e) => setHeading(e.target.value)}
+            maxLength={200}
+            placeholder="Registration is open"
+          />
 
           <div>
             <label htmlFor="ann-body" className={fieldLabel}>
@@ -509,34 +501,24 @@ export function AnnouncementsTab({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="ann-cta-label" className={fieldLabel}>
-                Button label (optional)
-              </label>
-              <input
-                id="ann-cta-label"
-                type="text"
-                value={ctaLabel}
-                onChange={(e) => setCtaLabel(e.target.value)}
-                maxLength={60}
-                placeholder="Apply now"
-                className={input}
-              />
-            </div>
-            <div>
-              <label htmlFor="ann-cta-url" className={fieldLabel}>
-                Button link
-              </label>
-              <input
-                id="ann-cta-url"
-                type="url"
-                value={ctaUrl}
-                onChange={(e) => setCtaUrl(e.target.value)}
-                maxLength={500}
-                placeholder="https://datasciencegt.org/hackathons"
-                className={input}
-              />
-            </div>
+            <FormInput
+              label="Button label (optional)"
+              id="ann-cta-label"
+              type="text"
+              value={ctaLabel}
+              onChange={(e) => setCtaLabel(e.target.value)}
+              maxLength={60}
+              placeholder="Apply now"
+            />
+            <FormInput
+              label="Button link"
+              id="ann-cta-url"
+              type="url"
+              value={ctaUrl}
+              onChange={(e) => setCtaUrl(e.target.value)}
+              maxLength={500}
+              placeholder="https://datasciencegt.org/hackathons"
+            />
           </div>
 
           {composed && (
@@ -601,12 +583,7 @@ export function AnnouncementsTab({
           )}
 
           {error && (
-            <p
-              role="alert"
-              className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
-            >
-              {error}
-            </p>
+            <Alert rule>{error}</Alert>
           )}
 
           {progress && (

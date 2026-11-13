@@ -4,17 +4,17 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { venueFormat } from "@/lib/venue-time";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnDanger,
   btnSecondary,
   fieldHint,
-  fieldLabel,
-  input,
   meta,
   sectionRule,
   sectionTitle,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
 
 /**
  * People barred from hackathons. A ban stops registering, the interest list,
@@ -87,34 +87,24 @@ export function HackathonBans() {
           ban.mutate({ email: email.trim(), reason: reason.trim() });
         }}
       >
-        <div>
-          <label htmlFor="ban-email" className={fieldLabel}>
-            Email
-          </label>
-          <input
-            id="ban-email"
-            type="email"
-            autoComplete="off"
-            spellCheck={false}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@gatech.edu"
-            className={input}
-          />
-        </div>
-        <div>
-          <label htmlFor="ban-reason" className={fieldLabel}>
-            Reason
-          </label>
-          <input
-            id="ban-reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            maxLength={500}
-            placeholder="What happened, for the record"
-            className={input}
-          />
-        </div>
+        <FormInput
+          label="Email"
+          id="ban-email"
+          type="email"
+          autoComplete="off"
+          spellCheck={false}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="name@gatech.edu"
+        />
+        <FormInput
+          label="Reason"
+          id="ban-reason"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          maxLength={500}
+          placeholder="What happened, for the record"
+        />
         <button
           type="submit"
           disabled={!canBan}
@@ -130,9 +120,9 @@ export function HackathonBans() {
       </p>
 
       {error && (
-        <p role="alert" className="mt-4 text-sm text-[var(--danger)]">
+        <Alert size={14} className="mt-4">
           {error}
-        </p>
+        </Alert>
       )}
       {notice && (
         <p role="status" className="mt-4 text-sm text-[var(--success)]">
@@ -144,9 +134,9 @@ export function HackathonBans() {
         {bans.isLoading ? (
           <p className={meta}>Loading bans…</p>
         ) : bans.error ? (
-          <p role="alert" className="text-sm text-[var(--danger)]">
+          <Alert size={14}>
             The ban list didn&apos;t load. Reload the page to try again.
-          </p>
+          </Alert>
         ) : !bans.data?.length ? (
           <p className={body}>Nobody is banned from hackathons.</p>
         ) : (

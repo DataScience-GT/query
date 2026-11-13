@@ -14,7 +14,7 @@ import {
   page,
   pageDek,
   pageTitle,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 /**
  * Event check-in for anyone signed in. The Club Portal has the same scanner,

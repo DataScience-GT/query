@@ -23,7 +23,7 @@ import {
   status,
   tab as tabClass,
   tabList,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { hackathonStatus } from "@/lib/hackathon-status";
 
 // Extracted Tab Components

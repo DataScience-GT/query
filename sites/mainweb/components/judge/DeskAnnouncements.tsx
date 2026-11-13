@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc";
-import { body } from "@/components/portal/ui";
+import { body } from "@query/ui/classes";
 import { clockTime, deskMeta, deskStatus } from "./desk";
 
 /**

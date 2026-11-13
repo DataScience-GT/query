@@ -66,7 +66,7 @@ export default async function HomePage() {
   return (
     <div
       id="home-page"
-      className="relative bg-[#1A1A1A] text-gray-400 selection:bg-[#00A8A8]/30 overflow-x-hidden"
+      className="relative bg-[#1A1A1A] text-gray-400 selection:bg-dsgt-teal/30 overflow-x-hidden"
     >
       <Navbar
         page="home"
@@ -98,13 +98,13 @@ export default async function HomePage() {
             <div className="flex shrink-0 gap-x-8">
               <Link
                 href="/team"
-                className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 text-dsgt-teal font-mono text-xs uppercase tracking-[0.2em] border-b border-dsgt-teal/30 pb-1 hover:text-white transition-colors"
               >
                 Meet the Team →
               </Link>
               <Link
                 href="/events"
-                className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 text-dsgt-teal font-mono text-xs uppercase tracking-[0.2em] border-b border-dsgt-teal/30 pb-1 hover:text-white transition-colors"
               >
                 Club events →
               </Link>
@@ -123,7 +123,7 @@ export default async function HomePage() {
             <h2 className="text-white text-4xl md:text-5xl font-bold tracking-tight leading-none">
               Our club.
             </h2>
-            <p className="font-mono text-xs text-[#00A8A8] uppercase tracking-[0.4em]">
+            <p className="font-mono text-xs text-dsgt-teal uppercase tracking-[0.4em]">
               550+ Verified Members
             </p>
           </div>
@@ -150,7 +150,7 @@ export default async function HomePage() {
             </p>
             <Link
               href="/bootcamp"
-              className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] border-b border-[#00A8A8]/30 pb-1 hover:text-white transition-colors"
+              className="inline-flex items-center min-h-11 md:min-h-0 text-dsgt-teal font-mono text-xs uppercase tracking-[0.2em] border-b border-dsgt-teal/30 pb-1 hover:text-white transition-colors"
             >
               See the bootcamp →
             </Link>
@@ -199,7 +199,7 @@ export default async function HomePage() {
             </p>
             <Link
               href="/hacklytics"
-              className="inline-flex items-center min-h-11 md:min-h-0 text-white font-mono text-xs uppercase tracking-[0.2em] border-b border-white/40 pb-1 hover:text-[#00A8A8] hover:border-[#00A8A8] transition-colors"
+              className="inline-flex items-center min-h-11 md:min-h-0 text-white font-mono text-xs uppercase tracking-[0.2em] border-b border-white/40 pb-1 hover:text-dsgt-teal hover:border-dsgt-teal transition-colors"
             >
               About Hacklytics →
             </Link>
@@ -222,7 +222,7 @@ export default async function HomePage() {
               The project roster is being updated —{" "}
               <Link
                 href="/projects"
-                className="text-[#00A8A8] hover:text-white transition-colors"
+                className="text-dsgt-teal hover:text-white transition-colors"
               >
                 see all club projects
               </Link>
@@ -238,11 +238,11 @@ export default async function HomePage() {
                 return (
                   <Card
                     key={project.id}
-                    className="flex flex-col h-full bg-[#0a0a0a] border border-white/5 p-6 md:p-8 rounded-xl hover:border-[#00A8A8]/40 transition-all group shadow-2xl"
+                    className="flex flex-col h-full bg-[#0a0a0a] border border-white/5 p-6 md:p-8 rounded-xl hover:border-dsgt-teal/40 transition-all group shadow-2xl"
                   >
                     {logo && (
                       <div className="w-full flex justify-center mb-4 md:mb-6">
-                        <div className="p-4 bg-white/5 rounded-xl group-hover:bg-[#00A8A8]/10 transition-all">
+                        <div className="p-4 bg-white/5 rounded-xl group-hover:bg-dsgt-teal/10 transition-all">
                           <Image
                             src={logo}
                             alt={project.name}
@@ -277,14 +277,14 @@ export default async function HomePage() {
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
+                        className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-dsgt-teal font-mono text-xs uppercase mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
                       >
                         {label} →
                       </a>
                     ) : (
                       <Link
                         href={href}
-                        className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
+                        className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-dsgt-teal font-mono text-xs uppercase mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
                       >
                         {label} →
                       </Link>
@@ -295,7 +295,7 @@ export default async function HomePage() {
 
               <Link
                 href="/projects"
-                className="bg-[#00A8A8] p-6 md:p-8 rounded-xl flex flex-col justify-between hover:bg-[#008f8f] transition-all shadow-xl shadow-[#00A8A8]/10 group"
+                className="bg-dsgt-teal p-6 md:p-8 rounded-xl flex flex-col justify-between hover:bg-[#008f8f] transition-all shadow-xl shadow-dsgt-teal/10 group"
               >
                 <div className="space-y-4">
                   <h3 className="text-black text-2xl font-bold tracking-tight">
@@ -331,7 +331,7 @@ export default async function HomePage() {
             </p>
             <Link
               href="/login"
-              className="mt-8 inline-flex min-h-14 w-full items-center justify-center rounded-sm bg-[#00A8A8] px-12 text-sm font-bold uppercase tracking-widest text-black transition-colors hover:bg-white sm:w-auto"
+              className="mt-8 inline-flex min-h-14 w-full items-center justify-center rounded-sm bg-dsgt-teal px-12 text-sm font-bold uppercase tracking-widest text-black transition-colors hover:bg-white sm:w-auto"
             >
               Join DSGT
             </Link>
@@ -363,7 +363,7 @@ export default async function HomePage() {
                     </span>
                     <span
                       aria-hidden
-                      className="text-[#00A8A8] transition-transform group-hover:translate-x-1"
+                      className="text-dsgt-teal transition-transform group-hover:translate-x-1"
                     >
                       →
                     </span>

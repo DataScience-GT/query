@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import type { RouterOutputs } from "@query/api";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnDanger,
@@ -18,7 +19,7 @@ import {
   sectionTitle,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import {
   eventClock,
   eventMoment,
@@ -309,12 +310,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
       )}
 
       {error && (
-        <p
-          role="alert"
-          className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
-        >
-          {error}
-        </p>
+        <Alert rule>{error}</Alert>
       )}
 
       <section className={sectionRule}>

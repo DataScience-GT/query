@@ -8,7 +8,7 @@ import {
   itemTitle,
   meta,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 // Longer than this, or past three lines, and the body starts collapsed behind
 // "Show more". Shorter ones have nothing to reveal.

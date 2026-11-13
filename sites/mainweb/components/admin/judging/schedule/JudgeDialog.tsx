@@ -4,7 +4,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
-import { ModalWrapper } from "@/components/portal/ModalWrapper";
+import { Modal } from "@query/ui/Modal";
 import {
   body,
   btnPrimary,
@@ -14,7 +14,7 @@ import {
   itemTitle,
   label,
   meta,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { ErrorLine, plural } from "@/components/admin/judging/shared";
 import { slotTime } from "./format";
 
@@ -61,7 +61,7 @@ export function JudgeDialog({
   const choices = data?.choices ?? [];
 
   return (
-    <ModalWrapper
+    <Modal
       onClose={() => {
         if (!save.isPending) onClose();
       }}
@@ -175,6 +175,6 @@ export function JudgeDialog({
           </button>
         </div>
       </div>
-    </ModalWrapper>
+    </Modal>
   );
 }

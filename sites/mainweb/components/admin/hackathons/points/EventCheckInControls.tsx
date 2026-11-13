@@ -6,8 +6,9 @@ import type { RouterOutputs } from "@query/api";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE } from "@/lib/use-portal-context";
-import { btnSecondary, meta, status, textLink } from "@/components/portal/ui";
-import { Toggle } from "./Toggle";
+import { Alert } from "@query/ui/Alert";
+import { btnSecondary, meta, status, textLink } from "@query/ui/classes";
+import { Checkbox } from "@query/ui/Checkbox";
 
 type AdminEvent = RouterOutputs["hackathon"]["adminGetEvents"][number];
 
@@ -45,11 +46,11 @@ export function EventCheckInControls({
   return (
     <div className="mt-3 space-y-2">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        <Toggle
+        <Checkbox
           id={`self-check-in-${event.id}`}
           checked={event.selfCheckIn}
           disabled={readOnly || pending}
-          readOnly={readOnly}
+          title={readOnly ? READ_ONLY_TITLE : undefined}
           onChange={(selfCheckIn) =>
             setSelfCheckIn.mutate({ eventId: event.id, selfCheckIn })
           }
@@ -131,12 +132,9 @@ export function EventCheckInControls({
         </p>
       )}
       {error && (
-        <p
-          role="alert"
-          className="border-l-2 border-[var(--danger)] pl-3 text-[13px] text-[var(--danger)]"
-        >
+        <Alert size={13} rule>
           {trpcErrorMessage(error, "Couldn't change self check-in.")}
-        </p>
+        </Alert>
       )}
     </div>
   );

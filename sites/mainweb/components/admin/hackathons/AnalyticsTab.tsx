@@ -9,7 +9,7 @@ import {
   meta,
   sectionRule,
   sectionTitle,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 const statValue =
   "mt-1 font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tabular-nums text-[var(--text-primary)]";

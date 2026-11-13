@@ -22,6 +22,7 @@ import {
   BOOTCAMP_ADDON_CENTS,
   formatCents,
 } from "@query/api/pricing";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnPrimary,
@@ -35,7 +36,7 @@ import {
   sectionRule,
   sectionTitle,
   status,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 /** `2026-fall` is how it is stored; nobody should have to read it that way. */
 function termLabel(term: string) {
@@ -170,15 +171,15 @@ export default function BootcampPortalPage() {
         </header>
 
         {progress.error && (
-          <p role="alert" className="mt-6 text-sm text-[var(--danger)]">
+          <Alert size={14} className="mt-6">
             {progress.error.message}
-          </p>
+          </Alert>
         )}
 
         {workshops.error && (
-          <p role="alert" className="mt-6 text-sm text-[var(--danger)]">
+          <Alert size={14} className="mt-6">
             {workshops.error.message}
-          </p>
+          </Alert>
         )}
 
         {/* Enrolled members came for the room and time; everyone else needs the offer. */}

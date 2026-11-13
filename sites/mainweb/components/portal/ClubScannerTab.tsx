@@ -12,7 +12,7 @@ import {
   label,
   meta,
   sectionRule,
-} from "./ui";
+} from "@query/ui/classes";
 
 type Outcome = {
   ok: boolean;

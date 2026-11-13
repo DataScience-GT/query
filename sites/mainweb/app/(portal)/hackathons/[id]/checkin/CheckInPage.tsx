@@ -21,7 +21,7 @@ import {
   pageTitle,
   sectionRule,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 /**
  * Where an event's poster QR lands: /hackathons/<id>/checkin?code=XXXXXX.

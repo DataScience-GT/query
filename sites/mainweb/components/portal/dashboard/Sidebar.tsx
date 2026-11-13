@@ -3,7 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { signOut } from "next-auth/react";
-import { LiquidGlass } from "../LiquidGlass";
+import { LiquidGlass } from "@query/ui/LiquidGlass";
 
 interface SidebarProps {
   user: {

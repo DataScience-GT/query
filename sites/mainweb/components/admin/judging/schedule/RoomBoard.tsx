@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { meta } from "@/components/portal/ui";
+import { meta } from "@query/ui/classes";
 import { slotTime } from "./format";
 
 export type BoardRoom = {
