@@ -1,4 +1,5 @@
 ---
+import { EVENT_THEME, EVENT_YEAR } from "@/lib/event";
 import { INTEREST_URL } from "@/lib/links";
 import { MenuBed } from "./pixel/GardenBeds";
 import ThemeToggle from "./ThemeToggle.astro";
@@ -122,7 +123,7 @@ const navItems = [
       <MenuBed client:media="(max-width: 1023px)" />
     </div>
     <div class="wrap pt-4 pb-12 flex items-center justify-between gap-4">
-      <span class="font-sans text-[13px] text-ink-3">Digital Bloom · 2027</span>
+      <span class="font-sans text-[13px] text-ink-3">{EVENT_THEME} · {EVENT_YEAR}</span>
       <div class="sm:hidden">
         <ThemeToggle />
       </div>

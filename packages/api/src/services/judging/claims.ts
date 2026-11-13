@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { siteOrigin } from "@query/db/constants";
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, eq, isNull } from "drizzle-orm";
 import {
@@ -47,11 +48,7 @@ export function claimLinkPath(hackathonId: string, token: string): string {
 
 /** The public portal origin, for links that leave the site in an email. */
 export function portalOrigin(): string {
-  const origin =
-    process.env.NEXTAUTH_URL ||
-    process.env.AUTH_URL ||
-    "https://datasciencegt.org";
-  return origin.replace(/\/+$/, "");
+  return siteOrigin().replace(/\/+$/, "");
 }
 
 export type ClaimLinkState = {

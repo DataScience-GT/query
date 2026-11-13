@@ -4,7 +4,14 @@ import "../styles/globals.css";
 import Footer from "../components/Footer.astro";
 import Navbar from "../components/Navbar.astro";
 import { FONT_PRELOADS } from "../lib/fonts.generated";
-import { INTEREST_URL } from "../lib/links";
+import {
+  EVENT_DATES_LONG,
+  EVENT_END_ISO,
+  EVENT_NAME,
+  EVENT_START_ISO,
+  EVENT_THEME,
+} from "../lib/event";
+import { INTEREST_URL, PORTAL_ORIGIN } from "../lib/links";
 import { GROUND, THEME_KEY } from "../lib/theme";
 
 // Fonts: Instrument Sans for text and UI, Silkscreen for display type (hero,
@@ -19,9 +26,9 @@ interface Props {
 const { home = false } = Astro.props;
 
 const SITE = "https://hacklytics.io";
-const title = "Hacklytics 2027: Digital Bloom · Data Science Hackathon at Georgia Tech";
+const title = `${EVENT_NAME}: ${EVENT_THEME} · Data Science Hackathon at Georgia Tech`;
 const description =
-  "Hacklytics 2027 is a free, 36-hour data science and AI hackathon run by Data Science @ GT at Georgia Tech in Atlanta, February 26–28, 2027.";
+  `${EVENT_NAME} is a free, 36-hour data science and AI hackathon run by Data Science @ GT at Georgia Tech in Atlanta, ${EVENT_DATES_LONG}.`;
 const keywords = ["hackathon", "data science", "machine learning", "AI", "Georgia Tech", "Atlanta", "coding", "competition"];
 
 // Runs before first paint so a saved light/dark choice never flashes the other
@@ -33,9 +40,9 @@ const themeScript = `try{var t=localStorage.getItem("${THEME_KEY}");if(t==="ligh
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Event",
-  name: "Hacklytics 2027: Digital Bloom",
-  startDate: "2027-02-26T17:00:00-05:00",
-  endDate: "2027-02-28T16:00:00-05:00",
+  name: `${EVENT_NAME}: ${EVENT_THEME}`,
+  startDate: EVENT_START_ISO,
+  endDate: EVENT_END_ISO,
   eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
   eventStatus: "https://schema.org/EventScheduled",
   location: {
@@ -67,7 +74,7 @@ const jsonLd = {
   organizer: {
     "@type": "Organization",
     name: "Data Science @ GT",
-    url: "https://datasciencegt.org",
+    url: PORTAL_ORIGIN,
   },
 };
 ---
@@ -88,7 +95,7 @@ const jsonLd = {
     <meta name="description" content={description} />
     <meta name="author" content="Data Science @ GT" />
     <meta name="keywords" content={keywords.join(",")} />
-    <meta property="og:title" content="Hacklytics 2027: Digital Bloom" />
+    <meta property="og:title" content={`${EVENT_NAME}: ${EVENT_THEME}`} />
     <meta property="og:description" content="A 36-hour data science and AI hackathon at Georgia Tech. Room for 1,000+ hackers in Atlanta." />
     <meta property="og:url" content={SITE} />
     <meta property="og:site_name" content="Hacklytics" />
@@ -96,11 +103,11 @@ const jsonLd = {
     <meta property="og:image" content={`${SITE}/og-image.jpg`} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Hacklytics 2027 Digital Bloom" />
+    <meta property="og:image:alt" content={`${EVENT_NAME} ${EVENT_THEME}`} />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@datasciencegt" />
-    <meta name="twitter:title" content="Hacklytics 2027: Digital Bloom" />
+    <meta name="twitter:title" content={`${EVENT_NAME}: ${EVENT_THEME}`} />
     <meta name="twitter:description" content="A 36-hour data science and AI hackathon at Georgia Tech." />
     <meta name="twitter:image" content={`${SITE}/og-image.jpg`} />
     <link rel="icon" href="/favicon.ico" sizes="64x64" type="image/x-icon" />

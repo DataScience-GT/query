@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CLAIM_TIMEOUT_MS, MAX_RECIPIENTS_PER_CALL } from "../../services/email-limits";
 import {
   emailConcurrency,
   forEachWithConcurrency,
@@ -45,14 +46,6 @@ const interestInput = z.object({
 
 const blankToNull = (value: string | undefined) =>
   value && value.length > 0 ? value : null;
-
-// Recipients per request — one SMTP round trip each, and more than this does
-// not finish inside Cloud Run's timeout. Matches announce.ts.
-const MAX_RECIPIENTS_PER_CALL = 500;
-
-// Same reasoning as announce.ts: a claim this old belonged to a batch that
-// died, and must be reclaimable or the send can never finish.
-const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
 // The edition the landing page is about. `open` and `in_progress` belong here
 // too: /hacklytics is the only public entrance, so filtering to `announced`

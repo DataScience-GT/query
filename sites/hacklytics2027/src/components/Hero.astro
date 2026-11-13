@@ -1,4 +1,5 @@
 ---
+import { EVENT_DATES_SHORT } from "@/lib/event";
 import { INTEREST_URL } from "@/lib/links";
 import { EVENT_START } from "./pixel/event";
 import MlhBadge from "./MlhBadge.astro";
@@ -15,7 +16,7 @@ const units = ["days", "hours", "minutes", "seconds"] as const;
   <div class="wrap relative z-20 flex flex-1 flex-col pt-28 md:pt-40 short:pt-24">
     <div class="text-center">
       <p class="kicker text-[17px] max-[340px]:text-[15px] md:text-[20px] leading-7 text-ink">
-        Feb 26–28, 2027 · Klaus, Georgia Tech
+        {EVENT_DATES_SHORT} · Klaus, Georgia Tech
       </p>
 
       {/* One line at every width, and only multiples of 8, so a pixel

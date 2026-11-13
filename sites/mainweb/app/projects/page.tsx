@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CONTACT_EMAIL } from "@query/db/constants";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
@@ -150,10 +151,10 @@ export default async function ProjectsPage() {
             <p className="text-gray-300">
               The roster is being updated. Check back shortly, or email{" "}
               <a
-                href="mailto:hello@datasciencegt.org"
+                href={`mailto:${CONTACT_EMAIL}`}
                 className="text-[#00A8A8] hover:text-white transition-colors"
               >
-                hello@datasciencegt.org
+                {CONTACT_EMAIL}
               </a>
               .
             </p>

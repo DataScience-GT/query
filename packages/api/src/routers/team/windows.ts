@@ -4,10 +4,9 @@ import { TRPCError } from "@trpc/server";
 import { hackathons } from "@query/db";
 import { eq } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
+import { HOUR } from "@query/db/constants";
 
 export type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
-
-export const HOUR = 60 * 60 * 1000;
 
 /** All hackathon milestones, as hour offsets from the hacking start time. */
 export const SUBMISSION_OPEN_HOURS = 12;

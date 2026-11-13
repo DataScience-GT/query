@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DAY } from "@query/db/constants";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 // membershipHistory is written by createOrUpdateMembership on a real payment,
@@ -380,7 +381,7 @@ export const memberRouter = createTRPCRouter({
     let daysRemaining: number | null = null;
     if (expiresAt) {
       daysRemaining = Math.ceil(
-        (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+        (expiresAt.getTime() - now.getTime()) / DAY,
       );
     }
 

@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
+import { JUDGING_STATES } from "../constants";
 import { hackathons, hackathonProjects } from "./hackathons";
 
 // Room-based project judging. Projects come in from a Devpost submissions
@@ -36,7 +37,7 @@ export const judgingConfigs = pgTable("judging_config", {
     .references(() => hackathons.id, { onDelete: "cascade" }),
   // draft → open → closed, and closed ↔ open. Back to draft only while no
   // evaluation exists.
-  state: text("state", { enum: ["draft", "open", "closed"] })
+  state: text("state", { enum: JUDGING_STATES })
     .notNull()
     .default("draft"),
   openedAt: timestamp("opened_at"),
