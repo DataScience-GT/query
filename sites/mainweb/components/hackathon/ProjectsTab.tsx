@@ -9,7 +9,7 @@ import {
   meta,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 export function ProjectsTab({ hackathonId }: { hackathonId: string }) {
   const {

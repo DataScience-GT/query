@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { KeyboardEvent } from "react";
-import { input, fieldHint } from "@/components/portal/ui";
+import { input, fieldHint } from "@query/ui/classes";
 
 interface SkillsInterestsInputProps {
   items: string[];

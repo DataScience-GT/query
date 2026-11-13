@@ -12,11 +12,11 @@ import {
   sectionTitle,
   status,
   textLink,
-} from "@/components/portal/ui";
-import type { Tone } from "@/components/portal/ui";
+} from "@query/ui/classes";
+import type { Tone } from "@query/ui/classes";
 import {
   ErrorLine,
-  Toggle,
+  SwitchRow,
   shortTime,
   useRefreshJudging,
 } from "@/components/admin/judging/shared";
@@ -177,7 +177,7 @@ export function LaunchSection({
       <section className={sectionRule}>
         <h3 className={label}>Judges</h3>
         <div className="mt-1 divide-y divide-[var(--border-subtle)]">
-          <Toggle
+          <SwitchRow
             id="show-all-scores"
             label="Show every project's scores to member judges"
             hint="Off: a judge sees a project's scores only after scoring it. Guest judges never see scores."
@@ -194,7 +194,7 @@ export function LaunchSection({
       <section className={sectionRule}>
         <h3 className={label}>Hackers</h3>
         <div className="mt-1 divide-y divide-[var(--border-subtle)]">
-          <Toggle
+          <SwitchRow
             id="itinerary-published"
             label="Publish the itinerary"
             hint={
@@ -209,7 +209,7 @@ export function LaunchSection({
               setLaunch.mutate({ hackathonId, itineraryPublished: next })
             }
           />
-          <Toggle
+          <SwitchRow
             id="emergency-mode"
             label="Emergency mode"
             hint={

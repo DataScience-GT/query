@@ -14,7 +14,7 @@ import {
   tab,
   tabList,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import {
   ChevronLeft,
   ChevronRight,

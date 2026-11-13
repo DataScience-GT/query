@@ -5,6 +5,7 @@ import { Copy, Mail, Search } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnInk,
@@ -15,8 +16,8 @@ import {
   sectionRule,
   sectionTitle,
   status,
-} from "@/components/portal/ui";
-import type { Tone } from "@/components/portal/ui";
+} from "@query/ui/classes";
+import type { Tone } from "@query/ui/classes";
 import { eventMoment } from "@/components/hackathon/judging/event-time";
 
 /** Delays a fast-changing value so it can drive a query without firing one per
@@ -230,12 +231,7 @@ export function ClaimsPanel({ hackathonId }: { hackathonId: string }) {
       </section>
 
       {error && (
-        <p
-          role="alert"
-          className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
-        >
-          {error}
-        </p>
+        <Alert rule>{error}</Alert>
       )}
 
       <section className={sectionRule}>

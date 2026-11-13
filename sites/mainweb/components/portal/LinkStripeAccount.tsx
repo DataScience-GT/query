@@ -12,6 +12,8 @@ import {
   formatCents,
 } from "@query/api/pricing";
 import type { MembershipPlan } from "@query/db/services/membership";
+import { Alert } from "@query/ui/Alert";
+import { Spinner } from "@query/ui/Spinner";
 import {
   body,
   btnPrimary,
@@ -21,7 +23,7 @@ import {
   meta,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 const StripePaymentModal = dynamic(
   () =>
@@ -180,10 +182,7 @@ export default function LinkStripeAccount({
   if (isChecking) {
     return (
       <div role="status" className="flex items-center gap-3 py-2">
-        <span
-          aria-hidden="true"
-          className="w-4 h-4 rounded-full border-2 border-[var(--border-medium)] border-t-accent animate-spin"
-        />
+        <Spinner tone="track" />
         <p className={body}>Checking for an existing payment…</p>
       </div>
     );
@@ -268,9 +267,9 @@ export default function LinkStripeAccount({
           </div>
 
           {error && (
-            <p role="alert" className="text-[15px] text-[var(--danger)]">
+            <Alert>
               {error}
-            </p>
+            </Alert>
           )}
 
           <button
@@ -368,10 +367,7 @@ export default function LinkStripeAccount({
           >
             {createIntentMutation.isPending ? (
               <>
-                <span
-                  aria-hidden="true"
-                  className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin"
-                />
+                <Spinner />
                 Opening…
               </>
             ) : (
@@ -389,9 +385,9 @@ export default function LinkStripeAccount({
         </div>
 
         {error && (
-          <p role="alert" className="mt-4 text-[15px] text-[var(--danger)]">
+          <Alert className="mt-4">
             {error}
-          </p>
+          </Alert>
         )}
       </div>
 

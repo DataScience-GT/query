@@ -1,4 +1,4 @@
-import type { Tone } from "@/components/portal/ui";
+import type { Tone } from "@query/ui/classes";
 
 import type { HackathonStatus } from "@query/db/constants";
 

@@ -1,7 +1,7 @@
 /**
  * Class strings for the member portal's "club newsletter" look, so every page
  * draws buttons, fields and headings the same way. Colours come from the
- * tokens in app/(portal)/liquid-glass.css; nothing here hardcodes a hue.
+ * tokens in portal.css; nothing here hardcodes a hue.
  *
  * - Headlines are Newsreader (--font-display); everything else is the UI face.
  * - One accent: the next action, and "you are here". Not decoration.

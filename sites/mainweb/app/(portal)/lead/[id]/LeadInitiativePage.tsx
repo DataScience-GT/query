@@ -21,7 +21,7 @@ import {
   pageTitle,
   sectionTitle,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutputs } from "@query/api";
 import type { ApplicationStatus } from "@query/db";

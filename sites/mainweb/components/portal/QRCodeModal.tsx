@@ -2,7 +2,7 @@
 
 import React from "react";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
-import { ModalWrapper } from "./ModalWrapper";
+import { Modal } from "@query/ui/Modal";
 import {
   btnDanger,
   btnSecondary,
@@ -10,7 +10,7 @@ import {
   label,
   meta,
   status,
-} from "./ui";
+} from "@query/ui/classes";
 
 const closeButton =
   "shrink-0 rounded-[var(--radius-sm)] px-2 py-1 text-sm font-semibold text-[var(--text-subtle)] transition-colors hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]";
@@ -61,7 +61,7 @@ export function QRCodeModal({
   };
 
   return (
-    <ModalWrapper onClose={onClose} maxWidth="lg">
+    <Modal onClose={onClose} maxWidth="lg">
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
         <div className="min-w-0">
@@ -143,6 +143,6 @@ export function QRCodeModal({
           </p>
         </div>
       </div>
-    </ModalWrapper>
+    </Modal>
   );
 }

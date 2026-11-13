@@ -11,7 +11,7 @@ import {
   meta,
   page,
   pageTitle,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { ScanAccess } from "@/components/portal/ScanAccess";
 import { ScannerTab } from "@/components/admin/hackathons/ScannerTab";
 

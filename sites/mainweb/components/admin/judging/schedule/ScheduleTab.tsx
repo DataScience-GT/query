@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
-import { body, btnSecondary, sectionTitle } from "@/components/portal/ui";
+import { body, btnSecondary, sectionTitle } from "@query/ui/classes";
 import { OFFICER_POLL_MS } from "@/components/admin/judging/shared";
 import { DEFAULT_FIELDS } from "./format";
 import type { TimingFields } from "./format";

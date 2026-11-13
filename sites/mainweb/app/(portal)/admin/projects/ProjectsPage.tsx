@@ -20,8 +20,8 @@ import {
   page,
   pageDek,
   status as statusClass,
-} from "@/components/portal/ui";
-import type { Tone } from "@/components/portal/ui";
+} from "@query/ui/classes";
+import type { Tone } from "@query/ui/classes";
 
 const adminTitle =
   "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";

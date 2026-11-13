@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ExternalLink, Eye, EyeOff } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnPrimary,
@@ -13,7 +14,7 @@ import {
   sectionRule,
   sectionTitle,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import {
   ICON_STROKE,
   clockTime,
@@ -812,9 +813,9 @@ function EvaluationForm({
             )}
           </div>
           {submitError && (
-            <p role="alert" className="mt-2 text-[13px] text-[var(--danger)]">
+            <Alert size={13} className="mt-2">
               {submitError}
-            </p>
+            </Alert>
           )}
         </div>
       </form>

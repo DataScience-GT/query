@@ -10,7 +10,7 @@ import { trpcErrorMessage } from "@/lib/trpc-error";
 import { decodeHackathonParam } from "@/lib/hackathon-slug";
 import { useIsClient } from "@/lib/use-is-client";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
-import { body, btnSecondary, status, textLink } from "@/components/portal/ui";
+import { body, btnSecondary, status, textLink } from "@query/ui/classes";
 import {
   pointsLabel,
   venueRange,

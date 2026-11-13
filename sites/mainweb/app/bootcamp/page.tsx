@@ -48,7 +48,7 @@ function SessionRow({
 
   return (
     <li className="grid grid-cols-[3.5rem_1fr] gap-x-5 py-5 first:pt-0 last:pb-0 sm:grid-cols-[4.5rem_1fr] sm:gap-x-8">
-      <div className={past ? "text-gray-500" : "text-[#00A8A8]"}>
+      <div className={past ? "text-gray-500" : "text-dsgt-teal"}>
         <p className="font-mono text-xs uppercase tracking-[0.2em]">{month}</p>
         <p className="text-3xl font-bold leading-none tabular-nums">{day}</p>
       </div>
@@ -89,7 +89,7 @@ export default async function BootcampPage() {
       <main className="pt-20">
         <Section className="py-24 sm:py-32">
           <div className="max-w-4xl mx-auto px-6">
-            <p className="font-mono text-xs uppercase tracking-[0.3em] text-[#00A8A8]">
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-dsgt-teal">
               {termLabel(term)}
             </p>
             <h1 className="mt-4 text-5xl font-bold tracking-tighter sm:text-6xl">
@@ -167,7 +167,7 @@ export default async function BootcampPage() {
                       key={item.week}
                       className="flex items-baseline gap-4 border-b border-white/5 py-3"
                     >
-                      <span className="w-6 shrink-0 font-mono text-sm tabular-nums text-[#00A8A8]">
+                      <span className="w-6 shrink-0 font-mono text-sm tabular-nums text-dsgt-teal">
                         {item.week}
                       </span>
                       <span className="text-gray-200">{item.title}</span>
@@ -191,7 +191,7 @@ export default async function BootcampPage() {
               </p>
               <Link
                 href="/club/bootcamp"
-                className="mt-8 inline-flex min-h-11 items-center rounded-sm bg-[#00A8A8] px-6 text-sm font-semibold text-black transition-colors hover:bg-white"
+                className="mt-8 inline-flex min-h-11 items-center rounded-sm bg-dsgt-teal px-6 text-sm font-semibold text-black transition-colors hover:bg-white"
               >
                 Join in the portal
               </Link>

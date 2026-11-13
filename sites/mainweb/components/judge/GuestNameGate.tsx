@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
+import { Alert } from "@query/ui/Alert";
 import {
   btnPrimary,
   fieldLabel,
@@ -12,7 +13,7 @@ import {
   pageTitle,
   sectionRule,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { deskMeta, deskPage, inOrAt } from "./desk";
 import type { DeskContext } from "./desk";
 
@@ -69,12 +70,12 @@ export function GuestNameGate({
           Organisers see it beside your scores. Teams never see judge names.
         </p>
         {setGuestName.error && (
-          <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
+          <Alert size={13} className="mt-3">
             {trpcErrorMessage(
               setGuestName.error,
               "Your name did not save. Try again.",
             )}
-          </p>
+          </Alert>
         )}
         <button
           type="submit"

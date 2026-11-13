@@ -1,6 +1,6 @@
 import React from "react";
 import { Clock, UserCheck, UserX, Users, Shield } from "lucide-react";
-import { status as statusClass } from "@/components/portal/ui";
+import { status as statusClass } from "@query/ui/classes";
 
 export type RegistrationStatus =
   | "pending"

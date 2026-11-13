@@ -13,8 +13,8 @@ import {
   status,
   tab,
   tabList,
-} from "@/components/portal/ui";
-import type { Tone } from "@/components/portal/ui";
+} from "@query/ui/classes";
+import type { Tone } from "@query/ui/classes";
 import {
   OFFICER_POLL_MS,
   SECTIONS,

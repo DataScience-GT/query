@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Spinner } from "@query/ui/Spinner";
 
 interface LoadingScreenProps {
   message?: string;
@@ -23,10 +24,7 @@ export function LoadingScreen({ message = "Loading…" }: LoadingScreenProps) {
       className="min-h-[60vh] flex items-center justify-center px-5"
     >
       <div className="flex items-center gap-3">
-        <div
-          aria-hidden="true"
-          className="w-4 h-4 rounded-full border-2 border-[var(--border-medium)] border-t-accent animate-spin"
-        />
+        <Spinner tone="track" />
         <p className="text-[15px] text-[var(--text-muted)]">{message}</p>
       </div>
     </div>

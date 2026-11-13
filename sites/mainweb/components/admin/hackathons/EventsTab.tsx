@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { Plus } from "lucide-react";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnDanger,
@@ -19,7 +20,8 @@ import {
   meta,
   sectionTitle,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormTextarea } from "@query/ui/FormTextarea";
 import {
   localTimeZone,
   toInputDate,
@@ -256,21 +258,16 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
             </div>
 
             {/* Description */}
-            <div>
-              <label htmlFor="description" className={fieldLabel}>
-                Description (optional)
-              </label>
-              <textarea
-                id="description"
-                value={form.description}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
-                placeholder="What happens, who it is for"
-                rows={2}
-                className={`${input} resize-none`}
-              />
-            </div>
+            <FormTextarea
+              label="Description (optional)"
+              id="description"
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+              placeholder="What happens, who it is for"
+              rows={2}
+            />
 
             {/* Location */}
             <div>
@@ -371,12 +368,9 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
 
             {/* Error */}
             {error && (
-              <p
-                role="alert"
-                className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
-              >
+              <Alert rule>
                 {trpcErrorMessage(error, "Could not save this event.")}
-              </p>
+              </Alert>
             )}
 
             {/* Buttons */}

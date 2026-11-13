@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { trpc } from "@/lib/trpc";
-import { btnDanger, btnSecondary, itemTitle, meta, object } from "./ui";
+import { Alert } from "@query/ui/Alert";
+import { btnDanger, btnSecondary, itemTitle, meta, object } from "@query/ui/classes";
 
 /** The member's own pass, for an officer to scan at a club event door. */
 export function MemberPassCard() {
@@ -85,9 +86,9 @@ export function MemberPassCard() {
           )}
 
           {rotate.error && (
-            <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
+            <Alert size={13} className="mt-3">
               {rotate.error.message}
-            </p>
+            </Alert>
           )}
         </>
       ) : (

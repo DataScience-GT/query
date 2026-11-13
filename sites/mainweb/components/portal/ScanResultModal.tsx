@@ -2,8 +2,8 @@
 
 import React from "react";
 import { Check, X } from "lucide-react";
-import { ModalWrapper } from "./ModalWrapper";
-import { btnPrimary, btnSecondary, itemTitle, label } from "./ui";
+import { Modal } from "@query/ui/Modal";
+import { btnPrimary, btnSecondary, itemTitle, label } from "@query/ui/classes";
 
 interface ScanResultModalProps {
   success: boolean;
@@ -23,7 +23,7 @@ export function ScanResultModal({
   onScanAgain,
 }: ScanResultModalProps) {
   return (
-    <ModalWrapper onClose={onClose} maxWidth="md">
+    <Modal onClose={onClose} maxWidth="md">
       <div className="space-y-6">
         {/* Title */}
         <div className="flex items-start gap-3">
@@ -102,6 +102,6 @@ export function ScanResultModal({
           </button>
         )}
       </div>
-    </ModalWrapper>
+    </Modal>
   );
 }

@@ -51,7 +51,7 @@ function GithubLink({ path, children }: { path: string; children: ReactNode }) {
       href={repoLink(path)}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 text-[#00A8A8] underline decoration-[#00A8A8]/40 underline-offset-4 transition-colors hover:decoration-[#00A8A8]"
+      className="inline-flex items-center gap-1.5 text-dsgt-teal underline decoration-dsgt-teal/40 underline-offset-4 transition-colors hover:decoration-dsgt-teal"
     >
       {children}
       <ExternalLink size={14} aria-hidden />
@@ -122,7 +122,7 @@ function CodeBlock({ label, code }: { label: string; code: string }) {
               })
               .catch(() => {});
           }}
-          className="inline-flex min-h-11 items-center px-3 font-mono text-[11px] tracking-[0.2em] text-gray-300 uppercase transition-colors hover:text-[#00A8A8]"
+          className="inline-flex min-h-11 items-center px-3 font-mono text-[11px] tracking-[0.2em] text-gray-300 uppercase transition-colors hover:text-dsgt-teal"
         >
           {copied ? "Copied" : "Copy"}
           <span className="sr-only"> {label}</span>
@@ -312,7 +312,7 @@ function Deployment() {
           href={REPO_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#00A8A8] underline decoration-[#00A8A8]/40 underline-offset-4 hover:decoration-[#00A8A8]"
+          className="text-dsgt-teal underline decoration-dsgt-teal/40 underline-offset-4 hover:decoration-dsgt-teal"
         >
           the repository on GitHub
           <span className="sr-only"> (opens GitHub)</span>

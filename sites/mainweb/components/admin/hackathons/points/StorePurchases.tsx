@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnDanger,
@@ -13,9 +14,9 @@ import {
   itemTitle,
   meta,
   status,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { pointsLabel } from "@/components/hackathon/points/format";
-import { Toggle } from "./Toggle";
+import { Checkbox } from "@query/ui/Checkbox";
 
 const PAGE_SIZE = 25;
 
@@ -166,7 +167,7 @@ export function StorePurchases({ hackathonId }: { hackathonId: string }) {
                     />
                   </div>
                   {sale.canRestock ? (
-                    <Toggle
+                    <Checkbox
                       id={`void-restock-${sale.id}`}
                       checked={restock}
                       disabled={voidSale.isPending}
@@ -180,9 +181,9 @@ export function StorePurchases({ hackathonId }: { hackathonId: string }) {
                     </p>
                   )}
                   {voidSale.error && (
-                    <p role="alert" className="text-[13px] text-[var(--danger)]">
+                    <Alert size={13}>
                       {trpcErrorMessage(voidSale.error, "Couldn't void this sale.")}
-                    </p>
+                    </Alert>
                   )}
                   <div className="flex flex-wrap items-center gap-2">
                     <button

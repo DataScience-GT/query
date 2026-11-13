@@ -11,7 +11,7 @@ import {
   projectSubmitted,
 } from "@/lib/hackathon-next-step";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
-import { body, btnPrimary, meta, textLink } from "@/components/portal/ui";
+import { body, btnPrimary, meta, textLink } from "@query/ui/classes";
 import { hlSectionTitle } from "./styles";
 
 type Upcoming = NonNullable<RouterOutputs["hackathon"]["getUpcoming"]>;

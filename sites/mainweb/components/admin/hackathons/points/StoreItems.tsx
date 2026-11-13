@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnDanger,
@@ -17,9 +18,11 @@ import {
   itemTitle,
   meta,
   status,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
+import { FormTextarea } from "@query/ui/FormTextarea";
 import { pointsLabel } from "@/components/hackathon/points/format";
-import { Toggle } from "./Toggle";
+import { Checkbox } from "@query/ui/Checkbox";
 
 type Item = RouterOutputs["points"]["store"]["items"][number];
 
@@ -248,67 +251,49 @@ export function StoreItems({ hackathonId }: { hackathonId: string }) {
               </div>
             </div>
 
-            <div>
-              <label htmlFor="store-item-description" className={fieldLabel}>
-                Description (optional)
-              </label>
-              <textarea
-                id="store-item-description"
-                rows={2}
-                maxLength={2000}
-                value={form.description}
+            <FormTextarea
+              label="Description (optional)"
+              id="store-item-description"
+              rows={2}
+              maxLength={2000}
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+              placeholder="Sizes S to XL, while they last"
+            />
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FormInput
+                label="Stock (optional)"
+                id="store-item-stock"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                value={form.stock}
+                onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                className="tabular-nums"
+                hint="Leave blank if nobody is counting. Counted stock goes down with each sale and sells out at zero."
+              />
+              <FormInput
+                label="Position"
+                id="store-item-order"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                value={form.displayOrder}
                 onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
+                  setForm({ ...form, displayOrder: e.target.value })
                 }
-                placeholder="Sizes S to XL, while they last"
-                className={`resize-none ${input}`}
+                className="tabular-nums"
+                hint="Lower numbers come first in the catalog."
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label htmlFor="store-item-stock" className={fieldLabel}>
-                  Stock (optional)
-                </label>
-                <input
-                  id="store-item-stock"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  step={1}
-                  value={form.stock}
-                  onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                  className={`tabular-nums ${input}`}
-                />
-                <p className={fieldHint}>
-                  Leave blank if nobody is counting. Counted stock goes down
-                  with each sale and sells out at zero.
-                </p>
-              </div>
-              <div>
-                <label htmlFor="store-item-order" className={fieldLabel}>
-                  Position
-                </label>
-                <input
-                  id="store-item-order"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  step={1}
-                  value={form.displayOrder}
-                  onChange={(e) =>
-                    setForm({ ...form, displayOrder: e.target.value })
-                  }
-                  className={`tabular-nums ${input}`}
-                />
-                <p className={fieldHint}>
-                  Lower numbers come first in the catalog.
-                </p>
-              </div>
-            </div>
-
             <div>
-              <Toggle
+              <Checkbox
                 id="store-item-sold-out"
                 checked={!counted && form.soldOut}
                 disabled={counted}
@@ -496,12 +481,9 @@ export function StoreItems({ hackathonId }: { hackathonId: string }) {
                 </div>
               </div>
               {rowError?.itemId === item.id && (
-                <p
-                  role="alert"
-                  className="mt-3 border-l-2 border-[var(--danger)] pl-3 text-[13px] text-[var(--danger)]"
-                >
+                <Alert size={13} rule className="mt-3">
                   {rowError.message}
-                </p>
+                </Alert>
               )}
             </li>
           ))}

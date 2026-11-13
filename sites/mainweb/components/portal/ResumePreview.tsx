@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { looksLikePdf } from "@/lib/resume-file";
+import { Skeleton } from "@query/ui/Skeleton";
 
 /**
  * Fetch the PDF as a blob and frame that, rather than pointing the iframe at
@@ -78,9 +79,8 @@ function ResumeFrame({ src, title }: { src: string; title: string }) {
 
   if (!blobUrl) {
     return (
-      <div
-        className="w-full h-[70vh] min-h-[420px] rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] animate-pulse"
-        aria-hidden
+      <Skeleton
+        className="w-full h-[70vh] min-h-[420px] rounded-[var(--radius-md)] border border-[var(--border-subtle)]"
       />
     );
   }

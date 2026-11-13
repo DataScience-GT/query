@@ -6,27 +6,19 @@
     "**/*.css"
   ],
   "files": [
-    "dist"
+    "src"
   ],
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/classes.ts",
+  "types": "./src/classes.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
-    },
-    "./styles": "./src/styles.css",
-    "./styles.css": "./src/styles.css",
-    "./*": "./dist/*.js"
+    "./classes": "./src/classes.ts",
+    "./theme.css": "./src/theme.css",
+    "./portal.css": "./src/portal.css",
+    "./*": "./src/*.tsx"
   },
   "license": "MIT",
   "scripts": {
-    "build:styles": "tailwindcss -i ./src/styles.css -o ./dist/index.css",
-    "build:components": "tsc",
     "typecheck": "tsrs --noEmit",
-    "dev:styles": "tailwindcss -i ./src/styles.css -o ./dist/index.css --watch",
-    "dev:components": "tsc --watch",
     "lint": "oxlint src"
   },
   "peerDependencies": {
@@ -36,10 +28,14 @@
     "@query/oxlint-config": "workspace:*",
     "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
-    "@tailwindcss/cli": "4.3.3",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
     "@types/react": "catalog:",
+    "jsdom": "31.0.0",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "tailwindcss": "catalog:",
     "tsrs": "catalog:",
     "typescript": "catalog:"

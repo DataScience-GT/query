@@ -2,8 +2,9 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
-import { ModalWrapper } from "./ModalWrapper";
-import { itemTitle, label, meta } from "./ui";
+import { Modal } from "@query/ui/Modal";
+import { Spinner } from "@query/ui/Spinner";
+import { itemTitle, label, meta } from "@query/ui/classes";
 
 const Scanner = dynamic(
   () => import("@yudiel/react-qr-scanner").then((mod) => mod.Scanner),
@@ -39,7 +40,7 @@ export function QRScannerModal({
   };
 
   return (
-    <ModalWrapper onClose={handleClose} maxWidth="md">
+    <Modal onClose={handleClose} maxWidth="md">
       {/* Header */}
       <div className="flex justify-between items-start gap-4 mb-5">
         <div>
@@ -61,7 +62,7 @@ export function QRScannerModal({
         {isProcessing && (
           <div className="absolute inset-0 bg-[var(--bg-primary)]/85 z-10 flex items-center justify-center">
             <div className="text-center">
-              <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <Spinner size={32} tone="accent" className="mx-auto mb-3" />
               <p className="text-[13px] font-semibold text-[var(--text-primary)]">
                 Checking the code…
               </p>
@@ -99,6 +100,6 @@ export function QRScannerModal({
           <li>The scan happens on its own, no button needed.</li>
         </ul>
       </div>
-    </ModalWrapper>
+    </Modal>
   );
 }
