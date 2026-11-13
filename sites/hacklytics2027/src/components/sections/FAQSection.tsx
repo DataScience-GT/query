@@ -1,11 +1,12 @@
 import React from "react";
 import {
+  EVENT_DATES_LONG,
   EVENT_END_LABEL,
   EVENT_NAME,
   EVENT_START_LABEL,
   EVENT_YEAR,
 } from "@/lib/event";
-import { INTEREST_URL } from "@/lib/links";
+import { INTEREST_URL, JUDGE_SIGNUP_URL } from "@/lib/links";
 
 const faqItems: { q: string; a: React.ReactNode }[] = [
   {
@@ -63,6 +64,34 @@ const faqItems: { q: string; a: React.ReactNode }[] = [
     ),
   },
   {
+    q: "How do I sign up to judge?",
+    a: (
+      <>
+        <a href={JUDGE_SIGNUP_URL} className="text-link">
+          Apply to judge
+        </a>{" "}
+        on the Data Science @ GT portal. You sign in, fill four short steps
+        (about five minutes), and an organizer approves your application.
+      </>
+    ),
+  },
+  {
+    q: "How much time does judging take?",
+    a: `Judging happens during the ${EVENT_DATES_LONG} weekend. Projects are due on Devpost Sunday at 9:00 AM. Exact judging times are not published yet.`,
+  },
+  {
+    q: "Who do I contact about judging?",
+    a: (
+      <>
+        Email{" "}
+        <a href="mailto:hello@hacklytics.io" className="text-link">
+          hello@hacklytics.io
+        </a>
+        .
+      </>
+    ),
+  },
+  {
     q: "What is the MLH Code of Conduct?",
     a: (
       <>
@@ -83,7 +112,7 @@ const faqItems: { q: string; a: React.ReactNode }[] = [
 
 /** Half the list, in order. Two lists, not one grid: an open answer only
  *  pushes down its own column. */
-const COLUMNS = [faqItems.slice(0, 5), faqItems.slice(5)];
+const COLUMNS = [faqItems.slice(0, 7), faqItems.slice(7)];
 
 export default function FAQSection() {
   return (
