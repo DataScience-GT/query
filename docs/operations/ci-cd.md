@@ -10,6 +10,8 @@ All workflows live in `.github/workflows/`.
 2. `preview-hacklytics` — PRs from this repo (not forks, not Dependabot): deploys that build to Firebase Hosting channel `pr-N`.
 3. `deploy-hacklytics` — push to `main` only: deploys the same build to the live `hacklytics` target.
 
+`verify` restores `.turbo/cache` with `actions/cache`, keyed by commit sha and restored from the newest run, so unchanged tasks replay from cache. Env vars hash only into `mainweb`'s `build` (`sites/mainweb/turbo.json`) and `test`, never into lint or typecheck; the rest of the list in the root `turbo.json` is `globalPassThroughEnv`.
+
 Both deploy jobs `need` `verify`, so nothing ships that failed lint, typecheck, tests, or build.
 
 ## Security
