@@ -37,15 +37,11 @@
     "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@tailwindcss/cli": "4.3.3",
-    "@types/react": "^19.3.0",
-    "oxlint": "1.90.0",
-    "oxlint-tsgolint": "7.0.2005",
-    "tailwindcss": "4.3.3",
-    "tsrs": "0.20.1-ts7.1.0-beta",
-    "typescript": "7.0.2"
-  },
-  "dependencies": {
-    "minimatch": "^11.0.3",
-    "react-dom": "19.3.1"
+    "@types/react": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "tailwindcss": "catalog:",
+    "tsrs": "catalog:",
+    "typescript": "catalog:"
   }
 }
