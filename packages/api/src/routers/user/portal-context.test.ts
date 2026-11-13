@@ -100,4 +100,58 @@ describe("user.getPortalContext", () => {
     expect(afterFirst).toBeGreaterThan(0);
     expect(mockFindFirst).toHaveBeenCalledTimes(afterFirst);
   });
+
+  it("runs the lookups once for callers that miss together", async () => {
+    mockFindFirst.mockImplementation(async (table: string) =>
+      table === "admins" ? { role: "admin", permissions: [] } : null,
+    );
+    const caller = appRouter.createCaller(ctx);
+
+    await caller.user.getPortalContext();
+    const lookupsForOne = mockFindFirst.mock.calls.length;
+    cache.clear();
+    mockFindFirst.mockClear();
+
+    const [a, b] = await Promise.all([
+      caller.user.getPortalContext(),
+      caller.user.getPortalContext(),
+    ]);
+
+    expect(b).toEqual(a);
+    expect(mockFindFirst).toHaveBeenCalledTimes(lookupsForOne);
+  });
+});
+
+describe("user.me", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    cache.clear();
+  });
+
+  it("runs the lookup once for callers that miss together", async () => {
+    const findUser = vi.mocked(db!.query.users.findFirst);
+    findUser.mockResolvedValue({
+      id: "user-1",
+      email: "a@example.test",
+      name: "Ada",
+      image: null,
+      profile: { bio: null, website: null, location: null, gtEmail: null },
+    } as never);
+    const caller = appRouter.createCaller({
+      db,
+      session: { user: { id: "user-1" } },
+      userId: "user-1",
+      cache,
+      clientIp: "127.0.0.1",
+      req: undefined,
+    });
+
+    const [a, b] = await Promise.all([caller.user.me(), caller.user.me()]);
+
+    expect(b).toEqual(a);
+    expect(a.name).toBe("Ada");
+    expect(findUser).toHaveBeenCalledTimes(1);
+    await caller.user.me();
+    expect(findUser).toHaveBeenCalledTimes(1);
+  });
 });

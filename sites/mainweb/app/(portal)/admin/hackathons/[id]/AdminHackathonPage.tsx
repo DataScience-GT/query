@@ -9,19 +9,12 @@ import {
   useReadOnly,
 } from "@/lib/use-portal-context";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { adminHackathonPath, decodeHackathonParam } from "@/lib/hackathon-slug";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
-import { EditHackathonForm } from "@/components/admin/hackathons/EditHackathonForm";
-import { ScannerTab } from "@/components/admin/hackathons/ScannerTab";
 import { AttendeesTab } from "@/components/admin/hackathons/AttendeesTab";
-import { AnalyticsTab } from "@/components/admin/hackathons/AnalyticsTab";
-import { EventsTab } from "@/components/admin/hackathons/EventsTab";
-import { JudgesTab } from "@/components/admin/hackathons/JudgesTab";
-import { AnnouncementsTab } from "@/components/admin/hackathons/AnnouncementsTab";
-import { PointsAdminTab } from "@/components/admin/hackathons/points/PointsAdminTab";
-import { StoreTab } from "@/components/admin/hackathons/points/StoreTab";
 import {
   body,
   btnPrimary,
@@ -40,6 +33,29 @@ import {
   Store,
   Users,
 } from "lucide-react";
+
+// Applications is the default tab, so it ships with the page. The rest load
+// when opened, and the browser fetches them once idle so a click finds them
+// ready.
+const loadEditForm = () => import("@/components/admin/hackathons/EditHackathonForm").then((m) => m.EditHackathonForm);
+const EditHackathonForm = dynamic(loadEditForm);
+const loadScannerTab = () => import("@/components/admin/hackathons/ScannerTab").then((m) => m.ScannerTab);
+const ScannerTab = dynamic(loadScannerTab);
+const loadAnalyticsTab = () => import("@/components/admin/hackathons/AnalyticsTab").then((m) => m.AnalyticsTab);
+const AnalyticsTab = dynamic(loadAnalyticsTab);
+const loadEventsTab = () => import("@/components/admin/hackathons/EventsTab").then((m) => m.EventsTab);
+const EventsTab = dynamic(loadEventsTab);
+const loadJudgesTab = () => import("@/components/admin/hackathons/JudgesTab").then((m) => m.JudgesTab);
+const JudgesTab = dynamic(loadJudgesTab);
+const loadAnnouncementsTab = () => import("@/components/admin/hackathons/AnnouncementsTab").then((m) => m.AnnouncementsTab);
+const AnnouncementsTab = dynamic(loadAnnouncementsTab);
+const loadPointsTab = () => import("@/components/admin/hackathons/points/PointsAdminTab").then((m) => m.PointsAdminTab);
+const PointsAdminTab = dynamic(loadPointsTab);
+const loadStoreTab = () => import("@/components/admin/hackathons/points/StoreTab").then((m) => m.StoreTab);
+const StoreTab = dynamic(loadStoreTab);
+const preloadTabs = () => {
+  for (const load of [loadEditForm, loadScannerTab, loadAnalyticsTab, loadEventsTab, loadJudgesTab, loadAnnouncementsTab, loadPointsTab, loadStoreTab]) void load();
+};
 
 const TABS = [
   "events",
@@ -83,6 +99,11 @@ export default function AdminHackathonDashboard() {
   );
   const activeTab = useTab();
   const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    const id = window.setTimeout(preloadTabs, 1000);
+    return () => window.clearTimeout(id);
+  }, []);
 
   const { data: portalContext, isLoading: portalLoading } = usePortalContext();
   const {
