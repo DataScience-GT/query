@@ -63,6 +63,7 @@ const Countdown: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
   useEffect(() => {
     const interval = setInterval(() => setTimeLeft(getTimeLeft()), 1000);
     return () => clearInterval(interval);
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function formatUnit(unit?: number) {
@@ -104,6 +105,8 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Mount gate: the page renders nothing until the client has hydrated.
+    // oxlint-disable-next-line react/set-state-in-effect
     setMounted(true);
   }, []);
 
