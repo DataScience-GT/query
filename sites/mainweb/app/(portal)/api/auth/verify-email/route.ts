@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { siteOrigin } from "@query/db/constants";
 import type { NextRequest } from "next/server";
 import {
   db,
@@ -279,10 +280,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build JSON response with Set-Cookie header
-    const baseUrl =
-      process.env.NEXTAUTH_URL ||
-      process.env.AUTH_URL ||
-      "https://datasciencegt.org";
+    const baseUrl = siteOrigin();
     const isSecure = baseUrl.startsWith("https");
     const cookieName = isSecure
       ? "__Secure-authjs.session-token"

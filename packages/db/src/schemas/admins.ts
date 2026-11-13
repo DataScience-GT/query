@@ -1,6 +1,7 @@
 import { pgTable, text, timestamp, uuid, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
+import { ADMIN_ROLES } from "../constants";
 
 export const admins = pgTable("admin", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -14,7 +15,7 @@ export const admins = pgTable("admin", {
   // "bug_tester" is read-only QA: it may run every staff query but no
   // mutation (enforced in the isAdmin / isScanner middleware).
   role: text("role", {
-    enum: ["super_admin", "admin", "moderator", "volunteer", "bug_tester"],
+    enum: ADMIN_ROLES,
   })
     .notNull()
     .default("admin"),

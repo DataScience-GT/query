@@ -1,4 +1,5 @@
 import { admins, members, judges, projectLeaders } from "@query/db";
+import { DAY } from "@query/db/constants";
 // Deep import: the one rule for "which hackathon is current", shared
 // with the sign-in hook in @query/auth.
 import {
@@ -43,7 +44,7 @@ function buildMemberContext(
   let daysRemaining: number | null = null;
   if (expiresAt) {
     daysRemaining = Math.ceil(
-      (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      (expiresAt.getTime() - now.getTime()) / DAY,
     );
   }
 

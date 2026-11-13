@@ -1,11 +1,11 @@
+import { VENUE_TZ } from "./venue-time";
+
 /**
  * Display rules shared by the public /events and /bootcamp pages. Club events
  * and bootcamp sessions are rows of one table; a session is the row with
  * `bootcamp_term` set, so /events filters on it being null and /bootcamp reads
  * one term of it.
  */
-
-const EASTERN = "America/New_York";
 
 /** `2026-fall` is how a term is stored; nobody should have to read it that way. */
 export function termLabel(term: string) {
@@ -17,7 +17,7 @@ export function termLabel(term: string) {
 /** The pieces of a date a row lays out separately, in Atlanta time. */
 export function eventDateParts(date: Date) {
   const part = (options: Intl.DateTimeFormatOptions) =>
-    date.toLocaleString("en-US", { timeZone: EASTERN, ...options });
+    date.toLocaleString("en-US", { timeZone: VENUE_TZ, ...options });
 
   return {
     month: part({ month: "short" }),
