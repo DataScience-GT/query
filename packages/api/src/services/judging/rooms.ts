@@ -7,12 +7,11 @@ import {
 } from "@query/db";
 import { lockInventory } from "./config";
 import type { JudgingDb } from "./config";
+import { SITE_ORIGIN } from "@query/db/constants";
 import { roomLinkPath } from "./room-link";
 
 // Room QR links. A room has at most one live link; issuing a new one retires
 // the old, and retiring a link signs out every guest who came in through it.
-
-const FALLBACK_ORIGIN = "https://datasciencegt.org";
 
 /**
  * Where the portal is served, for links that leave the app: printed QR codes
@@ -23,7 +22,7 @@ export function portalOrigin(req?: Request): string {
   const configured = process.env.NEXTAUTH_URL || process.env.AUTH_URL;
   if (configured) return new URL(configured).origin;
   if (req) return new URL(req.url).origin;
-  return FALLBACK_ORIGIN;
+  return SITE_ORIGIN;
 }
 
 /** The absolute URL a room's QR code encodes. */

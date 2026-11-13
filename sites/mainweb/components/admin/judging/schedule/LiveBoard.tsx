@@ -16,7 +16,7 @@ import {
   sectionRule,
   sectionTitle,
   status,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { ErrorLine, plural } from "@/components/admin/judging/shared";
 import {
   clock,

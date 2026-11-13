@@ -3,7 +3,7 @@
 import { venueFormat } from "@/lib/venue-time";
 import { ExternalLink, Pencil, Trash2 } from "lucide-react";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
-import { status } from "./ui";
+import { status } from "@query/ui/classes";
 
 export interface BootcampMaterialRow {
   id: string;

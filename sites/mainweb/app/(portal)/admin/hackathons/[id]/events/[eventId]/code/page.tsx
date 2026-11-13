@@ -4,20 +4,18 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { Printer } from "lucide-react";
+import { SELF_CHECK_IN_LEAD_MS } from "@query/db/constants";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { decodeHackathonParam } from "@/lib/hackathon-slug";
 import { useIsClient } from "@/lib/use-is-client";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
-import { body, btnSecondary, status, textLink } from "@/components/portal/ui";
+import { body, btnSecondary, status, textLink } from "@query/ui/classes";
 import {
   pointsLabel,
   venueRange,
   venueTime,
 } from "@/components/hackathon/points/format";
-
-// Self check-in opens this long before the start (services/points.ts).
-const LEAD_MS = 15 * 60 * 1000;
 
 const first = (value: string | string[] | undefined) =>
   Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
@@ -77,7 +75,7 @@ export default function EventCodeDisplayPage() {
   // The last poll's time, not the render's: it moves every 10s with the poll
   // and keeps the render pure.
   const now = display.dataUpdatedAt;
-  const opensAt = new Date(event.startTime).getTime() - LEAD_MS;
+  const opensAt = new Date(event.startTime).getTime() - SELF_CHECK_IN_LEAD_MS;
   const phase =
     now < opensAt
       ? "early"

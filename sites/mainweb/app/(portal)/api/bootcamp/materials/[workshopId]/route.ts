@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { bootcampWorkshops, db } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { eq } from "drizzle-orm";
-import { rateLimit } from "@query/api";
+import { BURST_LIMITS, rateLimit } from "@query/api";
 import { bootcampCaller } from "@/lib/bootcamp-access";
 import {
   bootcampBucketName,
@@ -34,7 +34,12 @@ export async function DELETE(
     );
   }
 
-  const limit = rateLimit(`bootcamp-delete-${caller.userId}`, 10, 10 / 3600, 1);
+  const limit = rateLimit(
+    `bootcamp-delete-${caller.userId}`,
+    BURST_LIMITS.tenPerHour.maxTokens,
+    BURST_LIMITS.tenPerHour.refillRate,
+    1,
+  );
   if (!limit.allowed) {
     return NextResponse.json({ error: "Too many deletes." }, { status: 429 });
   }

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
-import { btnSecondary, sectionRule, textLink } from "@/components/portal/ui";
+import { Alert } from "@query/ui/Alert";
+import { btnSecondary, sectionRule, textLink } from "@query/ui/classes";
 import {
   deskLabel,
   deskMeta,
@@ -82,9 +83,9 @@ export function RoomSwitcher({
       </div>
 
       {error?.from === "join" && (
-        <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
+        <Alert size={13} className="mt-3">
           {error.text}
-        </p>
+        </Alert>
       )}
 
       {rooms.isPending ? (
@@ -92,10 +93,10 @@ export function RoomSwitcher({
           Loading rooms and tables…
         </p>
       ) : rooms.error ? (
-        <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
+        <Alert size={13} className="mt-3">
           {trpcErrorMessage(rooms.error, "Rooms and tables did not load.")}{" "}
           Close this and try again.
-        </p>
+        </Alert>
       ) : rooms.data.rooms.length === 0 ? (
         <p className={`mt-3 ${deskMeta}`}>
           Organisers have not opened any rooms or tables yet. You can still
@@ -179,9 +180,9 @@ export function RoomSwitcher({
             {leave.isPending ? "Leaving…" : `Leave this ${currentKind}`}
           </button>
           {error?.from === "leave" && (
-            <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
+            <Alert size={13} className="mt-3">
               {error.text}
-            </p>
+            </Alert>
           )}
         </div>
       )}

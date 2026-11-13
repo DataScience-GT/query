@@ -1,6 +1,12 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import { preload } from "react-dom";
+import {
+  ORG_NAME,
+  ORG_NAME_SPOKEN,
+  ORG_TAGLINE,
+  SITE_ORIGIN,
+} from "@query/db/constants";
 import "./fonts.generated.css";
 import "./globals.css";
 import { FONT_PRELOADS } from "@/lib/fonts.generated";
@@ -10,22 +16,22 @@ import { FONT_PRELOADS } from "@/lib/fonts.generated";
 export const metadata: Metadata = {
   // Without this, every relative OG image resolves against nothing and social
   // cards render blank.
-  metadataBase: new URL("https://datasciencegt.org"),
+  metadataBase: new URL(SITE_ORIGIN),
   title: {
     default: "DSGT | Georgia Tech",
     // Pages set their own; this keeps the organisation attached to each.
     template: "%s | DSGT",
   },
   description:
-    "The largest student-run data science organization at Georgia Tech. Home of Hacklytics, our annual data science hackathon.",
-  applicationName: "Data Science @ Georgia Tech",
+    `${ORG_TAGLINE} Home of Hacklytics, our annual data science hackathon.`,
+  applicationName: ORG_NAME,
   keywords: [
     "Hacklytics",
     "data science hackathon",
     "Georgia Tech hackathon",
     "student hackathon",
     "DSGT",
-    "Data Science at Georgia Tech",
+    ORG_NAME_SPOKEN,
   ],
   authors: [{ name: "aamoghS" }],
   robots: {
@@ -43,18 +49,18 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    url: "https://datasciencegt.org",
-    siteName: "Data Science @ Georgia Tech",
-    title: "Data Science @ Georgia Tech",
+    url: SITE_ORIGIN,
+    siteName: ORG_NAME,
+    title: ORG_NAME,
     description:
-      "The largest student-run data science organization at Georgia Tech. Home of Hacklytics.",
+      `${ORG_TAGLINE} Home of Hacklytics.`,
     images: [{ url: "/logo512.png", width: 512, height: 512 }],
   },
   twitter: {
     card: "summary",
-    title: "Data Science @ Georgia Tech",
+    title: ORG_NAME,
     description:
-      "The largest student-run data science organization at Georgia Tech. Home of Hacklytics.",
+      `${ORG_TAGLINE} Home of Hacklytics.`,
     images: ["/logo512.png"],
   },
 };
@@ -82,12 +88,12 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              name: "Data Science @ Georgia Tech",
-              alternateName: ["DSGT", "Data Science at Georgia Tech"],
-              url: "https://datasciencegt.org",
-              logo: "https://datasciencegt.org/logo512.png",
+              name: ORG_NAME,
+              alternateName: ["DSGT", ORG_NAME_SPOKEN],
+              url: SITE_ORIGIN,
+              logo: `${SITE_ORIGIN}/logo512.png`,
               description:
-                "The largest student-run data science organization at Georgia Tech.",
+                ORG_TAGLINE,
               parentOrganization: {
                 "@type": "CollegeOrUniversity",
                 name: "Georgia Institute of Technology",

@@ -6,17 +6,17 @@ import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import { Download } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { StatTile, StatTileSkeleton } from "@query/ui/StatTile";
 import {
   body,
   btnSecondary,
   chip,
   input,
-  label,
   meta,
   sectionTitle,
   status,
   textLink,
-} from "./ui";
+} from "@query/ui/classes";
 
 const Bar = dynamic(() => import("react-chartjs-2").then((m) => m.Bar), {
   ssr: false,
@@ -37,37 +37,12 @@ const td = "px-4 py-2.5";
 const row =
   "border-b border-[var(--border-subtle)] transition-colors last:border-b-0 hover:bg-[var(--bg-secondary)]";
 
-// Five figures wrap to two rows below lg, so the divider only appears once
-// they sit on one line.
-const statCell =
-  "lg:border-l lg:border-[var(--border-subtle)] lg:pl-6 lg:first:border-l-0 lg:first:pl-0";
-
 function Skeleton({ className }: { className: string }) {
   return (
     <div
       className={`rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] ${className}`}
       aria-hidden
     />
-  );
-}
-
-function Stat({
-  title,
-  value,
-  subtitle,
-}: {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-}) {
-  return (
-    <div className={statCell}>
-      <dt className={label}>{title}</dt>
-      <dd className="mt-1 font-[family-name:var(--font-display)] text-[32px] font-semibold leading-none tabular-nums text-[var(--text-primary)]">
-        {value}
-      </dd>
-      {subtitle && <dd className={`mt-1.5 ${meta}`}>{subtitle}</dd>}
-    </div>
   );
 }
 
@@ -334,22 +309,19 @@ export function ClubAttendanceMetrics({
         <>
           <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-5">
             {loading || !summary ? (
-              [1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className={statCell} aria-hidden>
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="mt-2 h-8 w-14" />
-                </div>
-              ))
+              [1, 2, 3, 4, 5].map((i) => <StatTileSkeleton key={i} dense />)
             ) : (
               <>
-                <Stat title="Events held" value={summary.eventsHeld} />
-                <Stat title="Check-ins" value={summary.checkIns} />
-                <Stat title="Unique attendees" value={summary.uniqueAttendees} />
-                <Stat
+                <StatTile dense title="Events held" value={summary.eventsHeld} />
+                <StatTile dense title="Check-ins" value={summary.checkIns} />
+                <StatTile dense title="Unique attendees" value={summary.uniqueAttendees} />
+                <StatTile
+                  dense
                   title="Average per event"
                   value={summary.averagePerEvent.toFixed(1)}
                 />
-                <Stat
+                <StatTile
+                  dense
                   title="Members who came"
                   value={
                     summary.activeMembers

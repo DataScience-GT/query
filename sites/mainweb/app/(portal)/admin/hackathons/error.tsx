@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useChunkErrorRecovery } from "@/lib/chunk-error";
-import { body, btnPrimary, btnSecondary, sectionTitle } from "@/components/portal/ui";
+import { body, btnPrimary, btnSecondary, sectionTitle } from "@query/ui/classes";
 
 export default function AdminError({
   error,

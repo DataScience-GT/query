@@ -15,9 +15,9 @@
   "dependencies": {
     "@auth/drizzle-adapter": "1.11.3",
     "@query/db": "workspace:*",
-    "drizzle-orm": "0.45.4",
-    "next-auth": "5.0.0-beta.32",
-    "nodemailer": "^10.1.4"
+    "drizzle-orm": "catalog:",
+    "next-auth": "catalog:",
+    "nodemailer": "^10.4.0"
   },
   "peerDependencies": {
     "next": ">=15.0.0"
@@ -25,10 +25,10 @@
   "devDependencies": {
     "@query/oxlint-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
-    "@types/node": "^24.19.2",
-    "oxlint": "1.90.0",
-    "oxlint-tsgolint": "7.0.2005",
-    "tsrs": "0.20.1-ts7.1.0-beta",
-    "typescript": "^7.0.2"
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "tsrs": "catalog:",
+    "typescript": "catalog:"
   }
 }

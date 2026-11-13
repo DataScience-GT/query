@@ -1,6 +1,7 @@
 // Moving applicants between statuses: single, bulk, waves and acceptance emails.
 
 import { z } from "zod";
+import { PARTICIPANT_STATUSES, SITE_ORIGIN } from "@query/db/constants";
 import {
   emailConcurrency,
   forEachWithConcurrency,
@@ -25,13 +26,7 @@ export const statusProcedures = {
       z.object({
         hackathonId: z.string().uuid("Invalid hackathon ID"),
         participantId: z.string().uuid("Invalid participant ID"),
-        status: z.enum([
-          "pending",
-          "approved",
-          "rejected",
-          "waitlisted",
-          "checked_in",
-        ]),
+        status: z.enum(PARTICIPANT_STATUSES),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -409,7 +404,7 @@ export const statusProcedures = {
             await sendAcceptanceEmail({
               email: participant.user.email,
               hackathonName: hackathon.name,
-              host: process.env.NEXTAUTH_URL || "https://datasciencegt.org",
+              host: process.env.NEXTAUTH_URL || SITE_ORIGIN,
             });
             // Stamped one row at a time, right after the send. A batch of hundreds can
             // die partway — Cloud Run kills the request at 300s — and this marker is what
@@ -478,13 +473,7 @@ export const statusProcedures = {
         // The bound stays — unbounded is a memory ceiling, not a feature — but 500
         // silently rejected the whole selection.
         participantIds: z.array(z.string().uuid()).min(1).max(2500),
-        status: z.enum([
-          "pending",
-          "approved",
-          "rejected",
-          "waitlisted",
-          "checked_in",
-        ]),
+        status: z.enum(PARTICIPANT_STATUSES),
       }),
     )
     .mutation(async ({ ctx, input }) => {

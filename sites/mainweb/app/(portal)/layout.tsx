@@ -6,6 +6,7 @@ import { preload } from "react-dom";
 import { Providers } from "./providers";
 import { loadPortalBootstrap } from "@/lib/portal-bootstrap.server";
 import "./fonts.generated.css";
+import "@query/ui/portal.css";
 import "./liquid-glass.css";
 import PortalWrapper from "@/components/portal/PortalWrapper";
 import { FONT_PRELOADS } from "@/lib/fonts.generated";

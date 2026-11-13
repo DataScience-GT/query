@@ -1,9 +1,11 @@
+import { VENUE_TZ } from "@query/db/constants";
+
 // Portal pages render on the server and again in the browser. A date printed
 // or compared in the runtime's own zone comes out differently in the two (Cloud
 // Run is UTC), which is a hydration mismatch, and shows a remote hacker the
 // wrong day. Events run in Atlanta, so every date the portal prints and every
 // "is it today" test is on the venue's calendar, in one locale.
-export const VENUE_TZ = "America/New_York";
+export { VENUE_TZ };
 
 // Built on first use, not on import: the first Intl.DateTimeFormat with a time
 // zone costs about 25 ms in a browser, and the portal navigation imports this.

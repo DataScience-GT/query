@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import type { RouterOutputs } from "@query/api";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnPrimary,
@@ -21,7 +22,7 @@ import {
   sectionTitle,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { Itinerary, MissedBanner } from "./Itinerary";
 
 // Hackers poll every 30 seconds; the timer below covers the moment a slot ends.
@@ -355,12 +356,7 @@ function ClaimPrompt({
       </p>
 
       {error && (
-        <p
-          role="alert"
-          className="mt-4 border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
-        >
-          {error}
-        </p>
+        <Alert rule className="mt-4">{error}</Alert>
       )}
 
       <ul className="mt-5 space-y-4">

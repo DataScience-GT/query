@@ -1,6 +1,6 @@
 import type { ApplicationStatus, InitiativeStatus } from "@query/db";
-import { status as statusClass } from "@/components/portal/ui";
-import type { Tone } from "@/components/portal/ui";
+import { status as statusClass } from "@query/ui/classes";
+import type { Tone } from "@query/ui/classes";
 
 /**
  * One definition of each state, shared by the member list, the leader's queue

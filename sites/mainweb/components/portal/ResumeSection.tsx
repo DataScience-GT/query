@@ -6,6 +6,8 @@ import { FileText, Upload, Trash2, Eye, EyeOff, ExternalLink } from "lucide-reac
 import { trpc } from "@/lib/trpc";
 import { MAX_RESUME_BYTES, decodeStoredFileName } from "@/lib/resume-file";
 import { ResumePreview } from "@/components/portal/ResumePreview";
+import { Alert } from "@query/ui/Alert";
+import { Skeleton } from "@query/ui/Skeleton";
 import {
   itemTitle,
   meta,
@@ -13,7 +15,7 @@ import {
   object,
   btnSecondary,
   btnDanger,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -125,7 +127,9 @@ export function ResumeSection() {
       />
 
       {isLoading ? (
-        <div className="h-[74px] rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] animate-pulse" />
+        <Skeleton
+          className="h-[74px] rounded-[var(--radius-md)] border border-[var(--border-subtle)]"
+        />
       ) : resume ? (
         <>
           <div className={`${object} flex flex-wrap items-center justify-between gap-4 p-4`}>
@@ -218,9 +222,9 @@ export function ResumeSection() {
       )}
 
       {error && (
-        <p role="alert" className="text-[13px] text-[var(--danger)]">
+        <Alert size={13}>
           {error}
-        </p>
+        </Alert>
       )}
       {notice && (
         <p role="status" className="text-[13px] text-[var(--success)]">

@@ -8,7 +8,7 @@ import {
   itemTitle,
   meta,
   status,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 // While the event runs and nothing is published, look again at this pace.
 const POLL_MS = 30_000;

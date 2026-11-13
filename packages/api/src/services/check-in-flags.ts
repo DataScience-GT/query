@@ -1,3 +1,5 @@
+import type { CheckInMethod } from "@query/db/constants";
+
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import {
@@ -31,7 +33,7 @@ export type CheckInFlagView = {
   eventName: string;
   /** The event they were already in, worded the same way if deleted. */
   conflictEventName: string;
-  method: "scan" | "code" | "manual";
+  method: CheckInMethod;
   attempts: number;
   createdAt: Date;
   lastAttemptAt: Date;

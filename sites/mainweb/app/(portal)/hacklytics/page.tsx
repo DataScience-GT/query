@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { appRouter, createContext, resolveClientIp } from "@query/api";
 import type { RouterOutputs } from "@query/api";
 import { hackathonSlug } from "@/lib/hackathon-slug";
+import { VENUE_TZ } from "@/lib/venue-time";
 import { InterestForm } from "@/components/hackathon/InterestForm";
 import type { KnownSession } from "@/components/hackathon/InterestForm";
 import {
@@ -17,7 +18,7 @@ import {
   pageDek,
   pageTitle,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import { nextStepReads } from "@/lib/next-step-reads.server";
 import type { Prefetch } from "@/lib/portal-bootstrap.server";
@@ -51,7 +52,7 @@ const rangeFormat = new Intl.DateTimeFormat("en-US", {
   month: "long",
   day: "numeric",
   year: "numeric",
-  timeZone: "America/New_York",
+  timeZone: VENUE_TZ,
 });
 const formatRange = (start: Date, end: Date) =>
   rangeFormat.formatRange(start, end);
@@ -64,7 +65,7 @@ const formatDeadline = (deadline: Date) =>
     hour: "numeric",
     minute: "2-digit",
     timeZoneName: "short",
-    timeZone: "America/New_York",
+    timeZone: VENUE_TZ,
   });
 
 /**

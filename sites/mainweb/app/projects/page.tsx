@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CONTACT_EMAIL } from "@query/db/constants";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
@@ -29,11 +30,11 @@ function ProjectCard({ project }: { project: ClubProjectCard }) {
   return (
     <div
       className={`group bg-[#0a0a0a] border border-white/5 p-8 rounded-xl transition-colors duration-300 flex flex-col ${
-        muted ? "" : "hover:border-[#00A8A8]/30"
+        muted ? "" : "hover:border-dsgt-teal/30"
       }`}
     >
       <div className="flex justify-between items-start gap-4 mb-3">
-        <h3 className={`text-xl font-semibold tracking-tight transition-colors group-hover:text-[#00A8A8] ${muted ? "text-gray-300" : "text-white"}`}>
+        <h3 className={`text-xl font-semibold tracking-tight transition-colors group-hover:text-dsgt-teal ${muted ? "text-gray-300" : "text-white"}`}>
           {project.name}
         </h3>
         <span
@@ -72,14 +73,14 @@ function ProjectCard({ project }: { project: ClubProjectCard }) {
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.15em] hover:text-white transition-colors"
+              className="inline-flex items-center min-h-11 md:min-h-0 text-dsgt-teal font-mono text-xs uppercase tracking-[0.15em] hover:text-white transition-colors"
             >
               {joinLabel(project)} →
             </a>
           ) : (
             <Link
               href={href}
-              className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.15em] hover:text-white transition-colors"
+              className="inline-flex items-center min-h-11 md:min-h-0 text-dsgt-teal font-mono text-xs uppercase tracking-[0.15em] hover:text-white transition-colors"
             >
               {joinLabel(project)} →
             </Link>
@@ -89,7 +90,7 @@ function ProjectCard({ project }: { project: ClubProjectCard }) {
             href={project.repoUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center min-h-11 md:min-h-0 text-gray-400 font-mono text-xs uppercase tracking-[0.15em] hover:text-[#00A8A8] transition-colors"
+            className="inline-flex items-center min-h-11 md:min-h-0 text-gray-400 font-mono text-xs uppercase tracking-[0.15em] hover:text-dsgt-teal transition-colors"
           >
             Repo →
           </a>
@@ -106,14 +107,14 @@ export default async function ProjectsPage() {
   const term = current.find((project) => project.term)?.term ?? "This term";
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-[#00A8A8]/30 overflow-x-hidden">
+    <div className="relative min-h-screen bg-[#050505] text-gray-400 font-sans selection:bg-dsgt-teal/30 overflow-x-hidden">
       <Navbar
         page="other"
         className="fixed top-0 z-30 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md"
       />
       <main className="relative z-10 pt-44 pb-32 max-w-7xl mx-auto px-6 lg:px-12">
         <nav className="flex items-center gap-2 mb-8 text-xs font-mono tracking-[0.2em] uppercase">
-          <Link href="/" className="hover:text-[#00A8A8] transition-colors">
+          <Link href="/" className="hover:text-dsgt-teal transition-colors">
             Home
           </Link>
           <span className="text-gray-600">/</span>
@@ -132,7 +133,7 @@ export default async function ProjectsPage() {
             href={INTEREST_FORM_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center min-h-11 md:min-h-0 text-[#00A8A8] font-mono text-xs uppercase tracking-[0.2em] hover:text-white transition-colors"
+            className="inline-flex items-center min-h-11 md:min-h-0 text-dsgt-teal font-mono text-xs uppercase tracking-[0.2em] hover:text-white transition-colors"
           >
             Fill out the interest form →
           </a>
@@ -143,17 +144,17 @@ export default async function ProjectsPage() {
             <h2 className="text-white text-3xl font-bold tracking-tight shrink-0">
               {term}
             </h2>
-            <div className="h-px bg-gradient-to-r from-[#00A8A8]/20 to-transparent w-full" />
+            <div className="h-px bg-gradient-to-r from-dsgt-teal/20 to-transparent w-full" />
           </div>
 
           {current.length === 0 ? (
             <p className="text-gray-300">
               The roster is being updated. Check back shortly, or email{" "}
               <a
-                href="mailto:hello@datasciencegt.org"
-                className="text-[#00A8A8] hover:text-white transition-colors"
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="text-dsgt-teal hover:text-white transition-colors"
               >
-                hello@datasciencegt.org
+                {CONTACT_EMAIL}
               </a>
               .
             </p>
@@ -193,7 +194,7 @@ export default async function ProjectsPage() {
           <div className="flex flex-col sm:flex-row justify-center items-center gap-8 sm:gap-12">
             <Link
               href="/initiatives"
-              className="text-xs font-mono text-gray-300 hover:text-[#00A8A8] transition-colors uppercase tracking-[0.2em] flex items-center min-h-11 md:min-h-0 gap-4 group"
+              className="text-xs font-mono text-gray-300 hover:text-dsgt-teal transition-colors uppercase tracking-[0.2em] flex items-center min-h-11 md:min-h-0 gap-4 group"
             >
               Apply in the portal{" "}
               <span className="text-lg group-hover:translate-x-2 transition-transform">
@@ -202,7 +203,7 @@ export default async function ProjectsPage() {
             </Link>
             <Link
               href="/bootcamp"
-              className="text-xs font-mono text-gray-300 hover:text-[#00A8A8] transition-colors uppercase tracking-[0.2em] flex items-center min-h-11 md:min-h-0 gap-4 group"
+              className="text-xs font-mono text-gray-300 hover:text-dsgt-teal transition-colors uppercase tracking-[0.2em] flex items-center min-h-11 md:min-h-0 gap-4 group"
             >
               Join the bootcamp{" "}
               <span className="text-lg group-hover:translate-x-2 transition-transform">

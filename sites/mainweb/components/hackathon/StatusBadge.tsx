@@ -1,5 +1,5 @@
-import { status as statusClass } from "@/components/portal/ui";
-import type { Tone } from "@/components/portal/ui";
+import { status as statusClass } from "@query/ui/classes";
+import type { Tone } from "@query/ui/classes";
 
 const STATUSES: Record<string, { label: string; tone: Tone }> = {
   approved: { label: "Accepted", tone: "success" },

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useIsAdmin, useReadOnly } from "@/lib/use-portal-context";
 import { Check, QrCode } from "lucide-react";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnPrimary,
@@ -18,7 +19,7 @@ import {
   tab,
   tabList,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { QRScannerModal } from "@/components/portal/QRScannerModal";
 import { ScanResultModal } from "@/components/portal/ScanResultModal";
 import { ManualCheckIn } from "@/components/admin/hackathons/points/ManualCheckIn";
@@ -278,7 +279,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
           {/* A failed fetch also leaves events empty; only call it "none yet"
               when the list actually loaded. */}
           {isError && (
-            <p role="alert" className="mt-3 text-[15px] text-[var(--danger)]">
+            <Alert className="mt-3">
               Couldn&apos;t load events.{" "}
               <button
                 type="button"
@@ -287,7 +288,7 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
               >
                 Try again
               </button>
-            </p>
+            </Alert>
           )}
           {!isLoading && !isError && (events?.length ?? 0) === 0 && (
             <p className={fieldHint}>

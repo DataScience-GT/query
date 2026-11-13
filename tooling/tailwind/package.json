@@ -8,14 +8,14 @@
     "./postcss": "./postcss.config.js"
   },
   "dependencies": {
-    "@tailwindcss/postcss": "4.3.3",
-    "next": "16.4.4",
-    "postcss": "^8.5.28",
-    "react": "19.3.1",
-    "react-dom": "19.3.1",
-    "tailwindcss": "4.3.3"
+    "@tailwindcss/postcss": "catalog:",
+    "next": "catalog:",
+    "postcss": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tailwindcss": "catalog:"
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "typescript": "catalog:"
   }
 }

@@ -33,7 +33,7 @@ export default function TeamCard({
   return (
     <div
       {...rest}
-      className="group relative w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-8 pt-24 flex flex-col items-center transition-ui duration-500 hover:border-[#00A8A8]/30 hover:shadow-[0_0_30px_rgba(0,168,168,0.1)]"
+      className="group relative w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-8 pt-24 flex flex-col items-center transition-ui duration-500 hover:border-dsgt-teal/30 hover:shadow-[0_0_30px_rgba(0,168,168,0.1)]"
       style={{ minHeight: 350 }}
     >
       {/* Profile Image Container */}
@@ -57,21 +57,21 @@ export default function TeamCard({
           />
         ) : (
           <div
-            className="flex h-full w-full items-center justify-center bg-[#111] text-3xl font-black tracking-[0.2em] text-[#00A8A8]"
+            className="flex h-full w-full items-center justify-center bg-[#111] text-3xl font-black tracking-[0.2em] text-dsgt-teal"
             aria-hidden="true"
           >
             {initialsFor(name)}
           </div>
         )}
         {/* Updated overlay glow to #00A8A8 */}
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#00A8A8]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-dsgt-teal/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
 
       {/* Content */}
       <div className="flex flex-col items-center text-center w-full space-y-4">
         {/* Title Tag - Updated to #00A8A8 */}
-        <div className="px-3 py-1 rounded-full bg-[#00A8A8]/10 border border-[#00A8A8]/20 max-w-full">
-          <h2 className="text-[10px] font-mono font-bold text-[#00A8A8] uppercase tracking-[0.15em] text-center leading-relaxed">
+        <div className="px-3 py-1 rounded-full bg-dsgt-teal/10 border border-dsgt-teal/20 max-w-full">
+          <h2 className="text-[10px] font-mono font-bold text-dsgt-teal uppercase tracking-[0.15em] text-center leading-relaxed">
             {title}
           </h2>
         </div>
@@ -83,7 +83,7 @@ export default function TeamCard({
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-[#00A8A8] transition-colors"
+              className="hover:text-dsgt-teal transition-colors"
             >
               {name}
             </a>
@@ -106,7 +106,7 @@ export default function TeamCard({
 
       {/* HUD Details - Updated to #00A8A8 */}
       <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none">
-        <span className="text-[8px] font-mono text-[#00A8A8] uppercase tracking-widest">
+        <span className="text-[8px] font-mono text-dsgt-teal uppercase tracking-widest">
           SYS_LOG_ID_{name.slice(0, 3).toUpperCase()}
         </span>
       </div>

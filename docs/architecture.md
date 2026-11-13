@@ -29,7 +29,7 @@
                    └─────────────┘
 ```
 
-`@query/ui` is a small shared component library consumed by mainweb. It is not on the request path.
+`@query/ui` is the shared design system: class strings, CSS tokens and React primitives. Source-only (no build step); mainweb transpiles it. It is not on the request path.
 
 ## Monorepo map
 
@@ -189,6 +189,5 @@ The event site does not talk to the database. Interest and registration live on 
 ## What is not in this repo
 
 - `packages/consts` is mentioned in older notes and is **not** a workspace today.
-- `apps/*` is listed in `pnpm-workspace.yaml` but there is no `apps/` directory.
 - `graphify-out/` is generated graph output, not product code.
 - `trust badge/` holds MLH league badge SVGs for the event site.

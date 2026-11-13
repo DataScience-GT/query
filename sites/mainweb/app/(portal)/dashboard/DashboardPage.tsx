@@ -30,6 +30,7 @@ import {
 } from "@query/api/pricing";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { ArrowRight } from "lucide-react";
+import { Skeleton } from "@query/ui/Skeleton";
 import {
   body,
   btnPrimary,
@@ -47,7 +48,7 @@ import {
   tab,
   tabList,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -348,8 +349,8 @@ export default function Dashboard() {
                 key={i}
                 className="border-b border-[var(--border-subtle)] py-5 space-y-2"
               >
-                <div className="h-5 w-1/2 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] animate-pulse" />
-                <div className="h-3.5 w-1/3 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] animate-pulse" />
+                <Skeleton className="h-5 w-1/2 rounded-[var(--radius-sm)]" />
+                <Skeleton className="h-3.5 w-1/3 rounded-[var(--radius-sm)]" />
               </li>
             ))}
           </ul>

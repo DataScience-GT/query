@@ -4,7 +4,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
-import { btnSecondary, label, meta, body } from "@/components/portal/ui";
+import { btnSecondary, label, meta, body } from "@query/ui/classes";
 import { ErrorLine, plural } from "@/components/admin/judging/shared";
 import type { SolvedPreview } from "./format";
 

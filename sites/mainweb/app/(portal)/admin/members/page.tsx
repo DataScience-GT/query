@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   btnDanger,
   btnPrimary,
   btnSecondary,
-  fieldHint,
   fieldLabel,
   input,
   itemTitle,
@@ -15,7 +15,8 @@ import {
   meta,
   page,
   pageDek,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
 
 const adminTitle =
   "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
@@ -172,24 +173,17 @@ export default function AdminMembersPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="grant-months" className={fieldLabel}>
-                Months
-              </label>
-              <input
-                id="grant-months"
-                type="number"
-                min={-24}
-                max={24}
-                value={months}
-                onChange={(e) => setMonths(Number(e.target.value))}
-                className={`${input} tabular-nums`}
-              />
-              <p className={fieldHint}>
-                Added to whatever term is left. A negative number takes time
-                away.
-              </p>
-            </div>
+            <FormInput
+              label="Months"
+              id="grant-months"
+              type="number"
+              min={-24}
+              max={24}
+              value={months}
+              onChange={(e) => setMonths(Number(e.target.value))}
+              className="tabular-nums"
+              hint="Added to whatever term is left. A negative number takes time away."
+            />
             <div className="sm:col-span-2">
               <label htmlFor="grant-note" className={fieldLabel}>
                 Reason (recorded)
@@ -247,9 +241,9 @@ export default function AdminMembersPage() {
           </div>
 
           {error && (
-            <p role="alert" className="text-[13px] text-[var(--danger)]">
+            <Alert size={13}>
               {error}
-            </p>
+            </Alert>
           )}
           {notice && (
             <p role="status" className="text-[13px] text-[var(--success)]">

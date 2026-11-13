@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
-import { ModalWrapper } from "./ModalWrapper";
+import { Modal } from "@query/ui/Modal";
 import {
   btnPrimary,
   fieldHint,
@@ -12,7 +12,7 @@ import {
   itemTitle,
   label,
   meta,
-} from "./ui";
+} from "@query/ui/classes";
 
 const removeButton =
   "shrink-0 rounded-[var(--radius-sm)] px-2 py-1 text-[13px] font-semibold text-[var(--danger)] transition-colors hover:bg-[var(--danger-glow)] disabled:opacity-50";
@@ -82,7 +82,7 @@ export function EventAttendanceModal({
   const attendees = roster.data?.attendees ?? [];
 
   return (
-    <ModalWrapper onClose={onClose} maxWidth="2xl">
+    <Modal onClose={onClose} maxWidth="2xl">
       <div className="space-y-6">
         <div>
           <p className={label}>Attendance</p>
@@ -184,6 +184,6 @@ export function EventAttendanceModal({
           )}
         </div>
       </div>
-    </ModalWrapper>
+    </Modal>
   );
 }

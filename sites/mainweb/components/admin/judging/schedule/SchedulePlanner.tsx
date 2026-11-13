@@ -19,7 +19,7 @@ import {
   sectionRule,
   sectionTitle,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import {
   ErrorLine,
   plural,

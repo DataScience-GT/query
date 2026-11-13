@@ -1,6 +1,6 @@
 "use client";
 
-import { input } from "@/components/portal/ui";
+import { input } from "@query/ui/classes";
 
 /**
  * The initiative fields, shared by the leader's create/edit form and the
