@@ -1,7 +1,7 @@
 import { venueFormat } from "@/lib/venue-time";
 import type { SubteamApplicationStatus } from "@query/db";
-import { status as statusClass } from "@/components/portal/ui";
-import type { Tone } from "@/components/portal/ui";
+import { status as statusClass } from "@query/ui/classes";
+import type { Tone } from "@query/ui/classes";
 
 /**
  * One definition of each subteam state, shared by the member page and the

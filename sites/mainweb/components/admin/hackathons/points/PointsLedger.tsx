@@ -5,17 +5,17 @@ import type { RouterOutputs } from "@query/api";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnInk,
   btnSecondary,
   fieldHint,
-  fieldLabel,
-  input,
   itemTitle,
   label,
   meta,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { pointsLabel, signedPoints } from "@/components/hackathon/points/format";
 import { ParticipantSearch } from "./ParticipantSearch";
@@ -239,46 +239,38 @@ function ParticipantLedger({
           Adjust points
         </p>
         <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3">
-          <div>
-            <label htmlFor={`adjust-delta-${participantId}`} className={fieldLabel}>
-              Points
-            </label>
-            <input
-              id={`adjust-delta-${participantId}`}
-              type="number"
-              inputMode="numeric"
-              step={1}
-              min={-1000}
-              max={1000}
-              value={delta}
-              onChange={(e) => setDelta(e.target.value)}
-              placeholder="50"
-              className={`min-h-11 tabular-nums ${input}`}
-            />
-          </div>
-          <div>
-            <label htmlFor={`adjust-reason-${participantId}`} className={fieldLabel}>
-              Reason
-            </label>
-            <input
-              id={`adjust-reason-${participantId}`}
-              type="text"
-              maxLength={300}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Helped run the closing ceremony"
-              className={`min-h-11 ${input}`}
-            />
-          </div>
+          <FormInput
+            label="Points"
+            id={`adjust-delta-${participantId}`}
+            type="number"
+            inputMode="numeric"
+            step={1}
+            min={-1000}
+            max={1000}
+            value={delta}
+            onChange={(e) => setDelta(e.target.value)}
+            placeholder="50"
+            className="min-h-11 tabular-nums"
+          />
+          <FormInput
+            label="Reason"
+            id={`adjust-reason-${participantId}`}
+            type="text"
+            maxLength={300}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Helped run the closing ceremony"
+            className="min-h-11"
+          />
         </div>
         <p className={fieldHint}>
           Negative to take points away, up to 1,000 either way. The hacker sees
           the reason on their history.
         </p>
         {adjust.error && (
-          <p role="alert" className="text-[13px] text-[var(--danger)]">
+          <Alert size={13}>
             {trpcErrorMessage(adjust.error, "Couldn't adjust their points.")}
-          </p>
+          </Alert>
         )}
         {done && (
           <p role="status" className="text-[13px] text-[var(--success)]">

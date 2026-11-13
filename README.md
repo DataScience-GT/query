@@ -21,7 +21,7 @@ Member-facing overview — what it is, what members use, current status, and how
 | `packages/api` | `@query/api` | tRPC routers, middleware, pricing |
 | `packages/auth` | `@query/auth` | NextAuth (Google, GitHub, email codes) |
 | `packages/db` | `@query/db` | Drizzle schema, client, membership rules |
-| `packages/ui` | `@query/ui` | Shared React components |
+| `packages/ui` | `@query/ui` | Design system: tokens, classes, primitives |
 | `tooling/*` | `@query/oxlint-config`, `@query/prettier-config`, `@query/tailwind-config`, `@query/tsconfig` | Shared configs |
 
 ## How it fits together

@@ -1,5 +1,5 @@
 import { hackathonPathSegment } from "./hackathon-slug";
-import { venueDayNumber } from "./venue-time";
+import { VENUE_TZ, venueDayNumber } from "./venue-time";
 import { eventDay, eventMoment } from "../components/hackathon/judging/event-time";
 
 /**
@@ -72,17 +72,13 @@ export type NextStepInput = {
   resultsPublished?: boolean;
 };
 
-// Deadlines and slots are the venue's clock, never the viewer's: half the
-// field is remote, and a deadline in the wrong zone costs somebody their entry.
-const EVENT_TZ = "America/New_York";
-
 // Same fields as the submit page prints its deadlines with. Built on first
 // use: the portal navigation imports this file for isWithinEditionDates, and a
 // formatter built on import cost every portal page about 25 ms of script.
 let deadlineFmt: Intl.DateTimeFormat | undefined;
 const formatDeadline = (at: Date) => {
   deadlineFmt ??= new Intl.DateTimeFormat("en-US", {
-    timeZone: EVENT_TZ,
+    timeZone: VENUE_TZ,
     weekday: "short",
     month: "short",
     day: "numeric",

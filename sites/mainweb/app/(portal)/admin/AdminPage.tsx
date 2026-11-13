@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useEventQR } from "@/components/portal/EventQR";
 import { EventFormModal } from "@/components/portal/EventFormModal";
 import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
+import { Skeleton } from "@query/ui/Skeleton";
 import {
   body,
   btnDanger,
@@ -28,7 +29,7 @@ import {
   sectionRule,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 const adminTitle =
   "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
@@ -247,10 +248,7 @@ export default function AdminPage() {
           {eventsLoading ? (
             <div className="space-y-4" aria-hidden="true">
               {[1, 2, 3].map((n) => (
-                <div
-                  key={n}
-                  className="h-28 animate-pulse rounded-[var(--radius-md)] bg-[var(--bg-secondary)]"
-                />
+                <Skeleton key={n} className="h-28 rounded-[var(--radius-md)]" />
               ))}
             </div>
           ) : !events || events.length === 0 ? (

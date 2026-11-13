@@ -8,7 +8,12 @@ export type RouterInputs = inferRouterInputs<AppRouterType>;
 export type RouterOutputs = inferRouterOutputs<AppRouterType>;
 export { createContext, type Context } from "./context";
 export { createTRPCRouter, publicProcedure, protectedProcedure } from "./trpc";
-export { rateLimit, RATE_LIMITS, resolveClientIp } from "./middleware/security";
+export {
+  rateLimit,
+  RATE_LIMITS,
+  BURST_LIMITS,
+  resolveClientIp,
+} from "./middleware/security";
 export {
   cache,
   CacheKeys,
@@ -27,3 +32,4 @@ export {
 export type { PurchasedEntitlement } from "./services/pricing";
 export { MASS_EMAIL_BATCH } from "./services/email-limits";
 export type { PortalContext, MemberContext } from "./types/portal-context";
+export { isMockMode } from "./routers/stripe/client";

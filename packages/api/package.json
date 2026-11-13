@@ -29,28 +29,28 @@
   "dependencies": {
     "@query/auth": "workspace:*",
     "@query/db": "workspace:*",
-    "@tanstack/react-query": "5.105.0",
-    "@trpc/client": "11.19.0",
-    "@trpc/next": "11.19.0",
-    "@trpc/react-query": "11.19.0",
-    "@trpc/server": "11.19.0",
-    "drizzle-orm": "0.45.4",
+    "@tanstack/react-query": "catalog:",
+    "@trpc/client": "catalog:",
+    "@trpc/next": "11.26.0",
+    "@trpc/react-query": "catalog:",
+    "@trpc/server": "catalog:",
+    "drizzle-orm": "catalog:",
     "image-size": "2.0.4",
     "prom-client": "15.1.3",
-    "sanitize-html": "2.18.1",
-    "stripe": "^23.1.0",
-    "superjson": "2.2.6",
-    "zod": "4.6.6"
+    "sanitize-html": "catalog:",
+    "stripe": "catalog:",
+    "superjson": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@query/oxlint-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@types/sanitize-html": "^2.16.2",
-    "oxlint": "1.90.0",
-    "oxlint-tsgolint": "7.0.2005",
-    "tsrs": "0.20.1-ts7.1.0-beta",
-    "typescript": "7.0.2",
-    "vite": "^7.3.5",
-    "vitest": "^5.0.3"
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "tsrs": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }

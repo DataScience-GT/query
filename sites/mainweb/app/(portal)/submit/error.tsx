@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
-import { LiquidGlass } from "@/components/portal/LiquidGlass";
+import { LiquidGlass } from "@query/ui/LiquidGlass";
 import { useChunkErrorRecovery } from "@/lib/chunk-error";
 
 export default function SubmitError({

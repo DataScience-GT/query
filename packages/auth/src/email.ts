@@ -1,5 +1,10 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
+import {
+  NOREPLY_EMAIL,
+  ORG_NAME_SPOKEN,
+  SITE_ORIGIN,
+} from "@query/db/constants";
 
 // Owns the pooled SMTP connection for the process. `pool: true` only does
 // anything if the transporter outlives the message — built per call, every
@@ -60,7 +65,7 @@ export class Mailer {
       .join("\n\n");
 
     await this.connection().sendMail({
-      from: process.env.EMAIL_FROM || "noreply@datasciencegt.org",
+      from: process.env.EMAIL_FROM || NOREPLY_EMAIL,
       to: email,
       subject,
       text,
@@ -120,7 +125,7 @@ const renderShell = ({
     </tr>
     <tr>
       <td style="text-align: center; padding: 20px; background: #020617; color: #475569; font-size: 11px;">
-        &copy; ${new Date().getFullYear()} Data Science at Georgia Tech
+        &copy; ${new Date().getFullYear()} ${ORG_NAME_SPOKEN}
       </td>
     </tr>
   </table>
@@ -128,7 +133,7 @@ const renderShell = ({
   `;
 };
 
-const DEFAULT_HOST = "https://datasciencegt.org";
+const DEFAULT_HOST = SITE_ORIGIN;
 
 // Every message this product sends, in one shape. `paragraphs` is plain text
 // — always. Each is escaped and wrapped, so no template can turn a name or an

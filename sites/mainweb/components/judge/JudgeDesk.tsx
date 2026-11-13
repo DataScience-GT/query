@@ -17,7 +17,7 @@ import {
   tab,
   tabList,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { DeskAnnouncements } from "./DeskAnnouncements";
 import { EvaluationSheet } from "./EvaluationSheet";
 import { GuestNameGate } from "./GuestNameGate";

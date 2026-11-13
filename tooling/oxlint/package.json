@@ -11,7 +11,7 @@
   "devDependencies": {
     "@query/prettier-config": "workspace:*",
     "eslint-plugin-turbo": "2.11.10",
-    "prettier": "3.9.10"
+    "prettier": "catalog:"
   },
   "prettier": "@query/prettier-config"
 }

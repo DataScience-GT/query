@@ -3,10 +3,12 @@
 import { useSession } from "next-auth/react";
 import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
+import { VENUE_TZ } from "@/lib/venue-time";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnDanger,
@@ -20,7 +22,8 @@ import {
   page,
   pageTitle,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
 
 /**
  * Deadlines are rendered in the event's own time zone, not the viewer's. Half
@@ -35,7 +38,7 @@ const formatMoment = (moment: Date) =>
     hour: "numeric",
     minute: "2-digit",
     timeZoneName: "short",
-    timeZone: "America/New_York",
+    timeZone: VENUE_TZ,
   });
 
 /** A deadline that never breaks across lines: "EST." alone on a line is unreadable. */
@@ -594,48 +597,36 @@ function SubmitPortalContent() {
                 <h3 className={itemTitle}>Links</h3>
 
                 <div className="mt-4 space-y-5">
-                  <div>
-                    <label htmlFor="github-url" className={fieldLabel}>
-                      GitHub repository
-                    </label>
-                    <input
-                      id="github-url"
-                      type="url"
-                      readOnly={readOnly}
-                      value={githubUrl}
-                      onChange={(e) => setGithubUrl(e.target.value)}
-                      placeholder="https://github.com/…"
-                      className={`${input} ${readOnlyField}`}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="video-url" className={fieldLabel}>
-                      Demo video
-                    </label>
-                    <input
-                      id="video-url"
-                      type="url"
-                      readOnly={readOnly}
-                      value={videoUrl}
-                      onChange={(e) => setVideoUrl(e.target.value)}
-                      placeholder="https://youtube.com/…"
-                      className={`${input} ${readOnlyField}`}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="demo-url" className={fieldLabel}>
-                      Live demo URL
-                    </label>
-                    <input
-                      id="demo-url"
-                      type="url"
-                      readOnly={readOnly}
-                      value={demoUrl}
-                      onChange={(e) => setDemoUrl(e.target.value)}
-                      placeholder="https://…"
-                      className={`${input} ${readOnlyField}`}
-                    />
-                  </div>
+                  <FormInput
+                    label="GitHub repository"
+                    id="github-url"
+                    type="url"
+                    readOnly={readOnly}
+                    value={githubUrl}
+                    onChange={(e) => setGithubUrl(e.target.value)}
+                    placeholder="https://github.com/…"
+                    className={readOnlyField}
+                  />
+                  <FormInput
+                    label="Demo video"
+                    id="video-url"
+                    type="url"
+                    readOnly={readOnly}
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    placeholder="https://youtube.com/…"
+                    className={readOnlyField}
+                  />
+                  <FormInput
+                    label="Live demo URL"
+                    id="demo-url"
+                    type="url"
+                    readOnly={readOnly}
+                    value={demoUrl}
+                    onChange={(e) => setDemoUrl(e.target.value)}
+                    placeholder="https://…"
+                    className={readOnlyField}
+                  />
                 </div>
               </div>
 
@@ -643,12 +634,7 @@ function SubmitPortalContent() {
                 {/* Feedback lands beside the button that was tapped, not in
                     the notices above the form. */}
                 {error && (
-                  <p
-                    role="alert"
-                    className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
-                  >
-                    {error}
-                  </p>
+                  <Alert rule>{error}</Alert>
                 )}
 
                 {successMessage && (

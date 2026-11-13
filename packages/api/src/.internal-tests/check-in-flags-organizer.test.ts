@@ -461,6 +461,57 @@ describe("judging.admin.overview", () => {
 
     expect(result.counts.checkInFlags).toEqual({ open: 0 });
   });
+
+  it("answers a repeat read from the cache without touching the database", async () => {
+    mockOpenCount.mockResolvedValue(2);
+    await overview();
+    const readsAfterFirst = selects.length;
+
+    const again = await overview();
+
+    expect(again.counts.checkInFlags).toEqual({ open: 2 });
+    expect(selects).toHaveLength(readsAfterFirst);
+    expect(mockOpenCount).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs one read for tabs that poll together", async () => {
+    await Promise.all([overview(), overview(), overview()]);
+
+    expect(mockOpenCount).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps editions apart", async () => {
+    await overview();
+    await admin().judging.admin.overview({ hackathonId: HACK_B });
+
+    expect(mockOpenCount).toHaveBeenCalledTimes(2);
+  });
+
+  it("reads fresh after an organiser's own judging change", async () => {
+    mockOpenCount.mockResolvedValue(1);
+    await overview();
+
+    await admin().judging.admin.dismissCheckInFlag({
+      hackathonId: HACK_A,
+      flagId: FLAG_1,
+      dismissed: true,
+    });
+    mockOpenCount.mockResolvedValue(0);
+
+    const result = await overview();
+
+    expect(result.counts.checkInFlags).toEqual({ open: 0 });
+    expect(mockOpenCount).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not cache a failure", async () => {
+    await expect(
+      admin().judging.admin.overview({ hackathonId: NO_SUCH }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(
+      admin().judging.admin.overview({ hackathonId: NO_SUCH }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -8,6 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { loginHref } from "@/lib/safe-callback";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnPrimary,
@@ -21,7 +22,7 @@ import {
   pageTitle,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 /**
  * Where a claim email lands. Shows which project and which name on its team
@@ -171,12 +172,7 @@ function ClaimContent() {
         ) : (
           <div className="mt-6">
             {error && (
-              <p
-                role="alert"
-                className="mb-4 border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
-              >
-                {error}
-              </p>
+              <Alert rule className="mb-4">{error}</Alert>
             )}
             <button
               type="button"

@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { Readable } from "node:stream";
 import { ZipArchive } from "archiver";
 import { db } from "@query/db";
-import { rateLimit } from "@query/api";
+import { BURST_LIMITS, rateLimit } from "@query/api";
 import { listResumes, parseResumeBookIds } from "@query/api/resume-list";
 import type { DrizzleDB } from "@query/db";
 import { resumeCaller } from "@/lib/resume-access";
@@ -73,7 +73,12 @@ export async function GET(request: NextRequest) {
   }
 
   // The most expensive endpoint here: thousands of reads, gigabytes of egress.
-  const limit = rateLimit(`resume-book-${caller.userId}`, 10, 10 / 3600, 1);
+  const limit = rateLimit(
+    `resume-book-${caller.userId}`,
+    BURST_LIMITS.tenPerHour.maxTokens,
+    BURST_LIMITS.tenPerHour.refillRate,
+    1,
+  );
   if (!limit.allowed) {
     return NextResponse.json(
       {

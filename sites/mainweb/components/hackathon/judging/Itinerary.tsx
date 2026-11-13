@@ -2,8 +2,8 @@
 
 import { Footprints, MapPin } from "lucide-react";
 import type { RouterOutputs } from "@query/api";
-import { body, itemTitle, label, meta, status } from "@/components/portal/ui";
-import type { Tone } from "@/components/portal/ui";
+import { body, itemTitle, label, meta, status } from "@query/ui/classes";
+import type { Tone } from "@query/ui/classes";
 import { useServerNow } from "@/components/judge/use-server-now";
 import { eventClock, eventDay } from "./event-time";
 

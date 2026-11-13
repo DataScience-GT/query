@@ -8,7 +8,7 @@ import {
   pageDek,
   pageTitle,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { useChunkErrorRecovery } from "@/lib/chunk-error";
 
 export default function Error({

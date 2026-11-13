@@ -1,13 +1,8 @@
-import type { Tone } from "@/components/portal/ui";
+import type { Tone } from "@query/ui/classes";
 
-export type HackathonStatus =
-  | "draft"
-  | "announced"
-  | "open"
-  | "closed"
-  | "in_progress"
-  | "completed"
-  | "cancelled";
+import type { HackathonStatus } from "@query/db/constants";
+
+export type { HackathonStatus };
 
 export const STATUSES: {
   value: HackathonStatus;

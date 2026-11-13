@@ -1,16 +1,11 @@
 // The attendee filter shared by the roster and the CSV export.
 
 import { z } from "zod";
+import { PARTICIPANT_STATUSES as PARTICIPANT_STATUS_VALUES } from "@query/db/constants";
 import { hackathonParticipants, users } from "@query/db";
 import { eq, and, isNull, sql } from "drizzle-orm";
 
-export const PARTICIPANT_STATUSES = z.enum([
-  "pending",
-  "approved",
-  "rejected",
-  "waitlisted",
-  "checked_in",
-]);
+export const PARTICIPANT_STATUSES = z.enum(PARTICIPANT_STATUS_VALUES);
 
 // The WHERE shared by the paged roster and the CSV export, so the downloaded
 // file matches the list on screen. ILIKE rather than lower(...) LIKE because

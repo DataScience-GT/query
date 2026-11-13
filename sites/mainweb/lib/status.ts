@@ -6,9 +6,11 @@
 // Uptime % = up minutes / minutes with data. A bucket nobody sent a request
 // into does not exist, and counts as neither up nor down.
 
-export const BUCKET_MIN = 5;
-export const BUCKET_MS = BUCKET_MIN * 60 * 1000;
-export const DAY_MS = 24 * 60 * 60 * 1000;
+import { DAY, STATUS_BUCKET_MINUTES, STATUS_BUCKET_MS } from "@query/db/constants";
+
+export const BUCKET_MIN = STATUS_BUCKET_MINUTES;
+export const BUCKET_MS = STATUS_BUCKET_MS;
+export const DAY_MS = DAY;
 export const ERROR_RATE_LIMIT = 0.05;
 /** A live ping slower than this is Degraded, not Operational. */
 export const SLOW_PING_MS = 1000;

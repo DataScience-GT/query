@@ -1,3 +1,4 @@
+import { EVENT_START_LABEL } from "@/lib/event";
 import { BED_SIZE, bloomSet, plantBed, withBlooms } from "./beds";
 import { PixelBed } from "./PixelBed";
 import { useInBloom } from "./season";
@@ -32,7 +33,7 @@ export function HeroBed() {
       heading={<Heading />}
       caption={
         inBloom
-          ? `${inBloom} of ${BED_SIZE} in bloom · fills in as Feb 26 gets closer`
+          ? `${inBloom} of ${BED_SIZE} in bloom · fills in as ${EVENT_START_LABEL} gets closer`
           : NO_CAPTION
       }
     />

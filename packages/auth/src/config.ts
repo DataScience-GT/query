@@ -3,6 +3,11 @@ import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import EmailProvider from "next-auth/providers/nodemailer";
 import { db } from "@query/db";
+import {
+  NOREPLY_EMAIL,
+  ORG_NAME_SPOKEN,
+  siteOrigin,
+} from "@query/db/constants";
 import { linkPaidPaymentByVerifiedEmail } from "@query/db/services/membership";
 import { sql } from "drizzle-orm";
 import { randomInt } from "node:crypto";
@@ -62,7 +67,7 @@ function html(params: { code: string; host: string }) {
     <!-- Footer -->
     <tr>
       <td style="text-align: center; padding: 20px; background: #020617; color: #475569; font-size: 11px;">
-        &copy; ${new Date().getFullYear()} Data Science at Georgia Tech
+        &copy; ${new Date().getFullYear()} ${ORG_NAME_SPOKEN}
       </td>
     </tr>
   </table>
@@ -141,7 +146,7 @@ export const authConfig: NextAuthConfig = {
         },
         pool: true,
       },
-      from: process.env.EMAIL_FROM || "noreply@datasciencegt.org",
+      from: process.env.EMAIL_FROM || NOREPLY_EMAIL,
       // 6-digit code flow — no magic link, user types the code.
       sendVerificationRequest: async ({ identifier, provider }) => {
         // This 6-digit code is the sole factor for email sign-in, so it must come
@@ -195,10 +200,7 @@ export const authConfig: NextAuthConfig = {
         const { createTransport } = await import("nodemailer");
         const transport = createTransport(provider.server);
 
-        const baseUrl =
-          process.env.NEXTAUTH_URL ||
-          process.env.AUTH_URL ||
-          "https://datasciencegt.org";
+        const baseUrl = siteOrigin();
         const host = new URL(baseUrl).host;
 
         try {

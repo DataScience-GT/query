@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession, signIn, getProviders } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnPrimary,
   btnSecondary,
   fieldLabel,
   input,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 /**
  * The sign-in buttons and the email-code form, the only part of the login page
@@ -163,9 +164,9 @@ export default function LoginActions({
         </button>
       </div>
       {emailError && (
-        <p role="alert" className="mt-2 text-[13px] text-[var(--danger)]">
+        <Alert size={13} className="mt-2">
           {emailError}
-        </p>
+        </Alert>
       )}
     </div>
   );

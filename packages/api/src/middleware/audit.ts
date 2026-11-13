@@ -1,4 +1,5 @@
 import { auditLogs } from "@query/db";
+import { DAY, HOUR } from "@query/db/constants";
 import { and, lt, ne } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 
@@ -13,10 +14,10 @@ const RETAIN_DAYS = 90;
 const RETAIN_CRITICAL_DAYS = 365;
 
 /** At most one prune per process per interval, however many rows are written. */
-const PRUNE_INTERVAL_MS = 60 * 60 * 1000;
+const PRUNE_INTERVAL_MS = HOUR;
 
 const cutoff = (days: number) =>
-  new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  new Date(Date.now() - days * DAY);
 
 // Holds the "have we pruned recently" state that decides whether a write also
 // triggers retention. Two loose module flags could be touched by any code in

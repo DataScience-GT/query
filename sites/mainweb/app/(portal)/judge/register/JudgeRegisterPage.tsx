@@ -5,12 +5,11 @@ import { loginHref } from "@/lib/safe-callback";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
+import { FormChipSelect, FormMultiChipSelect } from "@query/ui/FormChipSelect";
+import { FormInput } from "@query/ui/FormInput";
+import { FormTextarea } from "@query/ui/FormTextarea";
+import { StepProgress } from "@query/ui/StepProgress";
 import {
-  FormInput,
-  FormTextarea,
-  FormChipSelect,
-  FormMultiChipSelect,
-  StepProgress,
   StepContainer,
   FormErrorAlert,
   FormNavigation,
@@ -27,7 +26,7 @@ import {
   page,
   pageDek,
   pageTitle,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 const JUDGE_REGISTRATION_STEPS = [
   "Event",

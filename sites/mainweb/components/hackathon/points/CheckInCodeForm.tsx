@@ -4,7 +4,7 @@ import React, { useId, useState } from "react";
 import type { RouterOutputs } from "@query/api";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
-import { btnPrimary, fieldHint, fieldLabel, input } from "@/components/portal/ui";
+import { btnPrimary, fieldHint, fieldLabel, input } from "@query/ui/classes";
 import { pointsLabel } from "./format";
 
 // 20px so iOS does not zoom the page on focus, and so O-less, I-less codes

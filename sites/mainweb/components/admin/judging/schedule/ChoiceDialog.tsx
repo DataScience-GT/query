@@ -5,7 +5,7 @@ import { skipToken } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
-import { ModalWrapper } from "@/components/portal/ModalWrapper";
+import { Modal } from "@query/ui/Modal";
 import {
   body,
   btnPrimary,
@@ -15,7 +15,7 @@ import {
   meta,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { ErrorLine, plural } from "@/components/admin/judging/shared";
 import { clock, slotTime } from "./format";
 
@@ -137,7 +137,7 @@ export function ChoiceDialog({
   }
 
   return (
-    <ModalWrapper
+    <Modal
       onClose={() => {
         if (!pending) onClose();
       }}
@@ -289,6 +289,6 @@ export function ChoiceDialog({
           </button>
         </div>
       </div>
-    </ModalWrapper>
+    </Modal>
   );
 }

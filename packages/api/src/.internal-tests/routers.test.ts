@@ -1204,6 +1204,47 @@ describe("Router Integration and Access Control Verification Suite", () => {
       expect(res[0].id).toBe("participant_1");
     });
 
+    it("reads myRegistrations once for callers that miss together", async () => {
+      const ctx = createMockCtx("user_cold");
+      mockFindMany.mockReturnValue([
+        { id: "participant_1", hackathonId, userId: "user_cold" },
+      ]);
+
+      const caller = appRouter.createCaller(ctx);
+      await Promise.all([
+        caller.hackathon.myRegistrations(),
+        caller.hackathon.myRegistrations(),
+      ]);
+
+      expect(mockFindMany).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the application answers out of myRegistrations", async () => {
+      const ctx = createMockCtx("user_cols");
+      mockFindMany.mockReturnValue([]);
+
+      await appRouter.createCaller(ctx).hackathon.myRegistrations();
+
+      const config = mockFindMany.mock.calls[0]![1];
+      const shipped = Object.keys(config.columns).filter(
+        (key) => config.columns[key],
+      );
+      expect(shipped).toEqual(
+        expect.arrayContaining(["id", "hackathonId", "registrationStatus"]),
+      );
+      for (const private_ of [
+        "phone",
+        "whyAttend",
+        "emergencyContact",
+        "race",
+        "resumeUrl",
+      ]) {
+        expect(shipped).not.toContain(private_);
+      }
+      expect(config.with.hackathon.columns).not.toHaveProperty("rules");
+      expect(config.with.team).not.toHaveProperty("with");
+    });
+
     it("should return public participant list for a hackathon", async () => {
       const ctx = createMockCtx();
       mockFindFirst.mockImplementation((table: string) =>

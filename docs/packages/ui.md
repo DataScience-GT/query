@@ -1,35 +1,29 @@
 # `@query/ui`
 
-Shared React components and CSS for the main website. Package: `packages/ui`.
+The design system for the main website. Package: `packages/ui`. Source-only: `exports` point at `src/`, there is no build, and mainweb compiles it through `transpilePackages`.
 
-This is a small library, not a full design system. Mainweb also uses `@mawtech/glass-ui`, local `components/`, and Tailwind 4.
+Hacklytics has its own theme and does not use it. Mainweb also uses local `components/` and Tailwind 4.
 
-## Exports
+## Layout
 
-`package.json` points `main` / `types` at `dist/` after `tsc`. Source:
+| Path | Import | What |
+| --- | --- | --- |
+| `src/classes.ts` | `@query/ui/classes` | Tailwind class strings for the portal look: headings, buttons, fields, tabs, chips, status |
+| `src/theme.css` | `@query/ui/theme.css` | `@theme inline` colour mapping, `--ui-*` neutral ramp (dark and `.light`), `--color-dsgt-teal`, and `@source` so Tailwind scans the package |
+| `src/portal.css` | `@query/ui/portal.css` | Portal tokens (`:root`/`.dark`/`.light` variables), token utilities such as `.text-accent`, `.liquid-glass` surfaces |
+| `src/<Name>.tsx` | `@query/ui/<Name>` | One primitive per file, no barrel |
 
-| File | Export |
-| --- | --- |
-| `src/glass.tsx` | Glass-style primitives (re-exported from `src/index.ts`) |
-| `src/card.tsx` / `card.jsx` | Card |
-| `src/gradient.tsx` / `gradient.jsx` | Gradient |
-| `src/turborepo-logo.tsx` | Logo leftover from the Turbo starter |
-| `src/styles.css` | Shared styles; also exported as `@query/ui/styles` |
+Primitives: `Alert`, `Checkbox`, `FormChipSelect`, `FormInput`, `FormTextarea`, `LiquidGlass`, `Modal`, `SearchableSelect`, `Skeleton`, `Spinner`, `StatTile`, `StepProgress`, `Switch`.
 
-Peer dependency: React 18 or 19.
+Mainweb imports `theme.css` from `app/globals.css` and `portal.css` from `app/(portal)/layout.tsx`. What stays in mainweb is the site-specific CSS (`app/(portal)/liquid-glass.css`: reset, scrollbars, light overrides, the `/hacklytics` theme) and domain wrappers that map `@query/db` types to labels.
+
+## Adding a primitive
+
+Add `src/<Name>.tsx`, take icons and copy as props (the package has no icon dependency), add `"use client"` only for hooks, and use the strings from `classes.ts` so rendered CSS stays the same. A test goes beside it as `<Name>.test.tsx`; the root `pnpm test` runs `packages/ui`.
 
 ## Scripts
 
 ```bash
-pnpm --filter @query/ui build:components   # tsc → dist/
-pnpm --filter @query/ui build:styles       # tailwindcss CLI in → dist/index.css
-pnpm --filter @query/ui dev:components
-pnpm --filter @query/ui dev:styles
+pnpm --filter @query/ui typecheck
 pnpm --filter @query/ui lint
 ```
-
-Mainweb `transpilePackages` includes `@query/ui`, so the site can import source during Next builds even when `dist/` is stale. Prefer building the package when changing public exports.
-
-## Tooling
-
-oxlint: `@query/oxlint-config`. Tailwind: `@query/tailwind-config`. TSConfig: `@query/tsconfig`.

@@ -6,6 +6,7 @@ import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import type { RouterOutputs } from "@query/api";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnDanger,
@@ -19,7 +20,7 @@ import {
   page,
   pageDek,
   sectionTitle,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 const adminTitle =
   "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
@@ -137,9 +138,9 @@ function ProposalRow({
       )}
 
       {review.error && (
-        <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
+        <Alert size={13} className="mt-3">
           {review.error.message}
-        </p>
+        </Alert>
       )}
     </div>
   );
@@ -171,9 +172,9 @@ export default function AdminInitiativesPage() {
     return (
       <div className={page}>
         <h1 className={adminTitle}>Project leaders</h1>
-        <p role="alert" className="mt-3 text-[15px] text-[var(--danger)]">
+        <Alert className="mt-3">
           {leaders.error.message}
-        </p>
+        </Alert>
       </div>
     );
   }
@@ -198,9 +199,9 @@ export default function AdminInitiativesPage() {
           ) : null}
         </h2>
         {proposals.error ? (
-          <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
+          <Alert size={13} className="mt-3">
             {proposals.error.message}
-          </p>
+          </Alert>
         ) : (proposals.data ?? []).length > 0 ? (
           <div className="mt-2 divide-y divide-[var(--border-subtle)]">
             {(proposals.data ?? []).map((proposal) => (
@@ -249,9 +250,9 @@ export default function AdminInitiativesPage() {
         </form>
 
         {setLeader.error && (
-          <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
+          <Alert size={13} className="mt-3">
             {setLeader.error.message}
-          </p>
+          </Alert>
         )}
 
         {rows.length > 0 ? (

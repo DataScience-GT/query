@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { SITE_ORIGIN } from "@query/db/constants";
 
-const SITE = "https://datasciencegt.org";
+const SITE = SITE_ORIGIN;
 
 // Public pages only. /hacklytics is the funnel and carries the highest priority
 // while the edition is announced; the rest are the standing marketing pages.

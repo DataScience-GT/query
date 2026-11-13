@@ -57,7 +57,7 @@ Room-based judging, from setup to results.
 | [API](./packages/api.md) | `@query/api` | tRPC routers, middleware, pricing |
 | [Auth](./packages/auth.md) | `@query/auth` | NextAuth, providers, mailer |
 | [Database](./packages/db.md) | `@query/db` | Drizzle schema, client, membership rules |
-| [UI](./packages/ui.md) | `@query/ui` | Shared React components and styles |
+| [UI](./packages/ui.md) | `@query/ui` | Design tokens, class strings and React primitives |
 
 ## Sites
 

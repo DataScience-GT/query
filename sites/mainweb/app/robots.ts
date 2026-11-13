@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { SITE_ORIGIN } from "@query/db/constants";
 
-const SITE = "https://datasciencegt.org";
+const SITE = SITE_ORIGIN;
 
 // Everything behind sign-in is disallowed — not as a security control, which it
 // is not, but so crawlers spend their budget on the pages that are meant to be

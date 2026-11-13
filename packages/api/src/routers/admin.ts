@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ADMIN_ROLES } from "@query/db/constants";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import {
@@ -365,13 +366,7 @@ export const adminRouter = createTRPCRouter({
         // deliberately rejects, so it grants badge scanning and nothing else. Without
         // it the only way to staff a scan station is a hand-written INSERT.
         // "bug_tester" is read-only QA: every staff query, no mutation.
-        role: z.enum([
-          "super_admin",
-          "admin",
-          "moderator",
-          "volunteer",
-          "bug_tester",
-        ]),
+        role: z.enum(ADMIN_ROLES),
         permissions: z.array(z.string().max(100)).max(50).optional(),
         // Fixed-term appointment. Omitted means standing, which is what the people
         // who run the club hold.

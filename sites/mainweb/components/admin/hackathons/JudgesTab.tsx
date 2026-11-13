@@ -11,20 +11,20 @@ import {
   useReadOnly,
 } from "@/lib/use-portal-context";
 import { UserPlus, Copy } from "lucide-react";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnDanger,
   btnInk,
   btnSecondary,
-  fieldLabel,
-  input,
   itemTitle,
   meta,
   sectionRule,
   sectionTitle,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
 
 /**
  * The judge roster for one edition: who applied, who is approved, adding a
@@ -135,12 +135,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
       </section>
 
       {error && (
-        <p
-          role="alert"
-          className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
-        >
-          {error}
-        </p>
+        <Alert rule>{error}</Alert>
       )}
 
       {showAddForm && (
@@ -154,21 +149,16 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
               createJudge.mutate({ email: newJudgeEmail.trim(), hackathonId });
             }}
           >
-            <div>
-              <label htmlFor="new-judge-email" className={fieldLabel}>
-                Email
-              </label>
-              <input
-                id="new-judge-email"
-                type="email"
-                autoComplete="off"
-                spellCheck={false}
-                value={newJudgeEmail}
-                onChange={(e) => setNewJudgeEmail(e.target.value)}
-                placeholder="judge@company.com"
-                className={input}
-              />
-            </div>
+            <FormInput
+              label="Email"
+              id="new-judge-email"
+              type="email"
+              autoComplete="off"
+              spellCheck={false}
+              value={newJudgeEmail}
+              onChange={(e) => setNewJudgeEmail(e.target.value)}
+              placeholder="judge@company.com"
+            />
             <button
               type="submit"
               disabled={readOnly || !newJudgeEmail.trim() || createJudge.isPending}

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CLAIM_TIMEOUT_MS, MAX_RECIPIENTS_PER_CALL } from "../../services/email-limits";
 import {
   emailConcurrency,
   forEachWithConcurrency,
@@ -35,15 +36,6 @@ import { rateLimit } from "../../middleware/security";
 // the person. Composing and sending are two steps: createAnnouncement freezes
 // the message and audience, sendBatch walks the un-sent rows. That split is
 // what makes a send resumable when an organiser's tab closes.
-
-// Recipients per request. See MASS_EMAIL_BATCH on the client: each is an SMTP
-// round trip, and more does not finish inside Cloud Run's timeout.
-const MAX_RECIPIENTS_PER_CALL = 500;
-
-// How long a claimed-but-unsent recipient stays claimed. Long enough that a
-// batch working through 500 round trips is never reclaimed underneath itself,
-// short enough that a request killed by a deploy does not strand rows.
-const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
 // `not_accepted`, `waitlisted` and `rejected` are their own audiences and
 // deliberately last. Rejected and waitlisted applicants are excluded everywhere

@@ -1,10 +1,10 @@
-import React from "react";
+import type { ElementType, ReactNode } from "react";
 
 interface LiquidGlassProps {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   variant?: "medium" | "large";
-  as?: React.ElementType;
+  as?: ElementType;
   holographic?: boolean;
   printed?: boolean;
 }

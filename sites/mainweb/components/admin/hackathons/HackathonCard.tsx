@@ -22,7 +22,7 @@ import {
   sectionTitle,
   status as statusPill,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { adminHackathonPath } from "@/lib/hackathon-slug";
 import {
   STATUS_TONE,

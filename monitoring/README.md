@@ -68,12 +68,22 @@ failure count is still worth acting on, the exact total is not.
 
 ## Scraping production
 
-1. Set `METRICS_TOKEN` on the deployment. Without it the route returns 404 in
-   production — it fails closed rather than serving counts to anyone who asks.
-2. Write the same value to `monitoring/secrets/metrics-token` (gitignored, no
-   trailing newline).
-3. Uncomment the `mainweb-prod` job in `prometheus.yml` and set the hostname.
-4. `docker compose --profile monitoring restart prometheus`.
+The `mainweb-prod` job in `prometheus.yml` targets `datasciencegt.org` and is
+always on. It needs two things before the target turns green:
+
+1. A rollout that includes `METRICS_TOKEN` (wired in `apphosting.yaml`). Without
+   it the route returns 404 in production — it fails closed rather than
+   serving counts to anyone who asks.
+2. The same value in `monitoring/secrets/metrics-token` (gitignored, no
+   trailing newline):
+
+   ```
+   printf '%s' "$(gcloud secrets versions access latest --secret=METRICS_TOKEN --project=dsgt-website)" > monitoring/secrets/metrics-token
+   ```
+
+Then `docker compose --profile monitoring restart prometheus`. Until the file
+exists the target shows as down on http://localhost:9090/targets and nothing
+else is affected.
 
 Your laptop has to be running for prod scrapes to land. If you want history that
 survives closing it, point the same job at a hosted Prometheus (Grafana Cloud's

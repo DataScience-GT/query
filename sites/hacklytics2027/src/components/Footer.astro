@@ -1,5 +1,6 @@
 ---
 import { FooterBed } from "./pixel/GardenBeds";
+import { EVENT_YEAR } from "@/lib/event";
 import { INTEREST_URL, JUDGE_URL, PORTAL_HACKATHON_URL, PORTAL_ORIGIN } from "@/lib/links";
 
 interface Props {
@@ -93,7 +94,7 @@ const navIds = ["about", "tracks", "prizes", "schedule", "sponsors", "faqs"];
     </div>
 
     <div class="pt-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-      <p class="font-sans text-[13px] text-ink-3">© 2027 Data Science @ GT</p>
+      <p class="font-sans text-[13px] text-ink-3">© {EVENT_YEAR} Data Science @ GT</p>
       <div class="flex items-center gap-5">
         <a
           href="https://instagram.com/dsgt"

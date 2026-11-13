@@ -1,7 +1,7 @@
 // Registration form constants — nationwide hackathon application
 
-export const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
-export type ShirtSize = (typeof SHIRT_SIZES)[number];
+export { SHIRT_SIZES, LEVELS_OF_STUDY } from "@query/db/constants";
+export type { ShirtSize, LevelOfStudy } from "@query/db/constants";
 
 export const DIETARY_OPTIONS = [
   "Vegetarian",
@@ -13,17 +13,6 @@ export const DIETARY_OPTIONS = [
   "Nut-Free",
   "None",
 ] as const;
-
-export const LEVELS_OF_STUDY = [
-  "Freshman",
-  "Sophomore",
-  "Junior",
-  "Senior",
-  "Graduate",
-  "PhD",
-  "Other",
-] as const;
-export type LevelOfStudy = (typeof LEVELS_OF_STUDY)[number];
 
 export const GENDERS = [
   "Male",

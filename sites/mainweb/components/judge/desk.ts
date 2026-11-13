@@ -1,5 +1,5 @@
 import type { RouterOutputs } from "@query/api";
-import type { Tone } from "@/components/portal/ui";
+import type { Tone } from "@query/ui/classes";
 
 type Desk = RouterOutputs["judging"]["desk"];
 export type DeskContext = Desk["context"];

@@ -3,6 +3,7 @@
 import React from "react";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnDanger,
@@ -14,7 +15,7 @@ import {
   meta,
   sectionTitle,
   status as statusClass,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import {
   localTimeZone,
   toInputDate,
@@ -297,14 +298,11 @@ export function RegistrationControls({
       </div>
 
       {(updateHackathon.isError || saveDeadline.isError) && (
-        <p
-          role="alert"
-          className="mt-4 border-l-2 border-[var(--danger)] pl-3 text-[13px] text-[var(--danger)]"
-        >
+        <Alert size={13} rule className="mt-4">
           {updateHackathon.isError
             ? updateHackathon.error.message
             : `The deadline was not saved: ${saveDeadline.error?.message}`}
-        </p>
+        </Alert>
       )}
 
       {editionStatus === "announced" && (
@@ -360,12 +358,7 @@ export function RegistrationControls({
       )}
 
       {notifyError && (
-        <p
-          role="alert"
-          className="mt-4 border-l-2 border-[var(--danger)] pl-3 text-[13px] text-[var(--danger)]"
-        >
-          {notifyError}
-        </p>
+        <Alert size={13} rule className="mt-4">{notifyError}</Alert>
       )}
     </section>
   );

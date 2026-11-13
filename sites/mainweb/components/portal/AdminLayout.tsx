@@ -5,6 +5,7 @@ import { loginHref } from "@/lib/safe-callback";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { canViewAdmin, usePortalContext } from "@/lib/use-portal-context";
+import { Spinner } from "@query/ui/Spinner";
 
 export default function AdminLayout({
   children,
@@ -36,7 +37,7 @@ export default function AdminLayout({
     return (
       <div className="relative min-h-screen bg-[var(--bg-primary)]">
         <div className="flex items-center justify-center h-screen">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <Spinner size={32} tone="accent" />
         </div>
       </div>
     );

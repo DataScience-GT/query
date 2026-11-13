@@ -3,7 +3,9 @@
 import { venueFormat } from "@/lib/venue-time";
 import type { RouterOutputs } from "@query/api";
 import { trpc } from "@/lib/trpc";
-import { fieldHint, fieldLabel, input } from "@/components/portal/ui";
+import { Alert } from "@query/ui/Alert";
+import { fieldHint, fieldLabel, input } from "@query/ui/classes";
+import { Switch } from "@query/ui/Switch";
 
 // Pieces every section of the judging console shares.
 
@@ -80,14 +82,7 @@ export function useRefreshJudging() {
 }
 
 export function ErrorLine({ children }: { children: React.ReactNode }) {
-  return (
-    <p
-      role="alert"
-      className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
-    >
-      {children}
-    </p>
-  );
+  return <Alert rule>{children}</Alert>;
 }
 
 export function NoticeLine({ children }: { children: React.ReactNode }) {
@@ -102,7 +97,7 @@ export function NoticeLine({ children }: { children: React.ReactNode }) {
 }
 
 /** A labelled on/off switch with a line saying what it does. */
-export function Toggle({
+export function SwitchRow({
   id,
   label,
   hint,
@@ -132,32 +127,13 @@ export function Toggle({
           {hint}
         </div>
       </div>
-      <button
+      <Switch
         id={id}
-        type="button"
-        role="switch"
-        aria-checked={checked}
+        checked={checked}
         disabled={disabled}
         title={title}
-        onClick={() => onChange(!checked)}
-        className="group flex min-h-11 shrink-0 items-center disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-      >
-        <span
-          className={`relative h-6 w-11 rounded-full border transition-colors ${
-            checked
-              ? "border-accent bg-accent"
-              : "border-[var(--border-medium)] bg-[var(--bg-input)]"
-          }`}
-        >
-          <span
-            className={`absolute top-0.5 h-[18px] w-[18px] rounded-full transition-[left] ${
-              checked
-                ? "left-[22px] bg-[var(--text-on-accent)]"
-                : "left-0.5 bg-[var(--text-subtle)]"
-            }`}
-          />
-        </span>
-      </button>
+        onChange={onChange}
+      />
     </div>
   );
 }

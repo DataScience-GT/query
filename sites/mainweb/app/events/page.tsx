@@ -102,7 +102,7 @@ function EventRow({ event, past }: { event: ListedEvent; past?: boolean }) {
 
   return (
     <li className="grid grid-cols-[3.5rem_1fr] gap-x-5 py-6 first:pt-0 last:pb-0 sm:grid-cols-[4.5rem_1fr] sm:gap-x-8">
-      <div className={past ? "text-gray-500" : "text-[#00A8A8]"}>
+      <div className={past ? "text-gray-500" : "text-dsgt-teal"}>
         <p className="font-mono text-xs uppercase tracking-[0.2em]">{month}</p>
         <p className="text-3xl font-bold leading-none tabular-nums sm:text-4xl">
           {day}
@@ -157,7 +157,7 @@ export default async function EventsPage() {
               bootcamp sessions are on the{" "}
               <Link
                 href="/bootcamp"
-                className="text-[#00A8A8] underline-offset-4 hover:underline"
+                className="text-dsgt-teal underline-offset-4 hover:underline"
               >
                 bootcamp page
               </Link>
@@ -176,7 +176,7 @@ export default async function EventsPage() {
                   Nothing is scheduled right now. The{" "}
                   <Link
                     href="/bootcamp"
-                    className="text-[#00A8A8] underline-offset-4 hover:underline"
+                    className="text-dsgt-teal underline-offset-4 hover:underline"
                   >
                     bootcamp
                   </Link>{" "}

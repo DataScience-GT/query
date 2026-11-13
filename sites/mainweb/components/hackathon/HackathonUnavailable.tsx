@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { page, pageDek, pageTitle, textLink } from "@/components/portal/ui";
+import { page, pageDek, pageTitle, textLink } from "@query/ui/classes";
 
 interface HackathonUnavailableProps {
   message?: string;

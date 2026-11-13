@@ -39,7 +39,7 @@ export default function HistoryPage() {
                   key={year}
                   className="grid gap-x-12 gap-y-1 border-b border-white/10 py-8 sm:grid-cols-[11rem_1fr] sm:items-baseline"
                 >
-                  <h2 className="font-mono text-sm uppercase tracking-[0.2em] text-[#00A8A8]">
+                  <h2 className="font-mono text-sm uppercase tracking-[0.2em] text-dsgt-teal">
                     {year}
                   </h2>
                   <p className="text-xl leading-snug text-gray-200">{note}</p>
