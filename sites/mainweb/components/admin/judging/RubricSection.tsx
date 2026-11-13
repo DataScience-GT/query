@@ -17,7 +17,7 @@ import {
   sectionTitle,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import {
   ErrorLine,
   NoticeLine,

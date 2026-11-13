@@ -8,7 +8,9 @@ import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { adminHackathonPath } from "@/lib/hackathon-slug";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { body, btnPrimary, btnSecondary, pageDek } from "@/components/portal/ui";
+import { Alert } from "@query/ui/Alert";
+import { Skeleton } from "@query/ui/Skeleton";
+import { body, btnPrimary, btnSecondary, pageDek } from "@query/ui/classes";
 
 // Extracted Components
 
@@ -100,9 +102,9 @@ export default function AdminHackathonsPage() {
               undefined, which used to hold the skeleton up forever. */}
           {isError ? (
             <div className="flex flex-col items-start gap-4 border-t border-[var(--border-subtle)] pt-6">
-              <p role="alert" className="text-[15px] text-[var(--danger)]">
+              <Alert>
                 Couldn&apos;t load hackathons. {error.message}
-              </p>
+              </Alert>
               <button
                 type="button"
                 onClick={() => refetch()}
@@ -114,10 +116,7 @@ export default function AdminHackathonsPage() {
           ) : isLoading || hackathons === undefined ? (
             <div className="space-y-6">
               {[1, 2, 3].map((n) => (
-                <div
-                  key={n}
-                  className="h-36 animate-pulse rounded-[var(--radius-md)] bg-[var(--bg-secondary)]"
-                />
+                <Skeleton key={n} className="h-36 rounded-[var(--radius-md)]" />
               ))}
             </div>
           ) : hackathons.length === 0 ? (

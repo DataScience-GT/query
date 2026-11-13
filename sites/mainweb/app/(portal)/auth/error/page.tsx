@@ -3,7 +3,7 @@
 import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { btnPrimary, kicker, pageDek, pageTitle } from "@/components/portal/ui";
+import { btnPrimary, kicker, pageDek, pageTitle } from "@query/ui/classes";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 
 function AuthErrorContent() {

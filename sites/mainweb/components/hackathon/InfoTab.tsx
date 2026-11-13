@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { formatPhoneAsTyped, normalizePhone, phoneDigits } from "@/lib/phone";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnDanger,
@@ -16,14 +17,13 @@ import {
   sectionTitle,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormChipSelect, FormMultiChipSelect } from "@query/ui/FormChipSelect";
+import { FormInput } from "@query/ui/FormInput";
+import { FormTextarea } from "@query/ui/FormTextarea";
+import { SearchableSelect } from "@query/ui/SearchableSelect";
+import { StepProgress } from "@query/ui/StepProgress";
 import {
-  FormInput,
-  FormTextarea,
-  FormChipSelect,
-  FormMultiChipSelect,
-  SearchableSelect,
-  StepProgress,
   StepContainer,
   FormErrorAlert,
   FormNavigation,
@@ -659,9 +659,9 @@ export function InfoTab({
                     </button>
                     <p className={meta}>Let organisers know you&apos;ll be there.</p>
                     {confirmMutation.isError && (
-                      <p role="alert" className="text-[15px] text-[var(--danger)]">
+                      <Alert>
                         {confirmMutation.error.message}
-                      </p>
+                      </Alert>
                     )}
                   </div>
                 ))}
@@ -679,9 +679,9 @@ export function InfoTab({
                     Fix a typo or add a link until an organiser reviews it.
                   </p>
                   {editError && (
-                    <p role="alert" className="text-[15px] text-[var(--danger)]">
+                    <Alert>
                       {editError}
-                    </p>
+                    </Alert>
                   )}
                 </div>
               )}
@@ -880,9 +880,9 @@ export function InfoTab({
                   </button>
                 )}
                 {withdrawError && (
-                  <p role="alert" className="text-[15px] text-[var(--danger)]">
+                  <Alert>
                     {withdrawError}
-                  </p>
+                  </Alert>
                 )}
               </div>
             </section>

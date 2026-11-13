@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
-import { body, sectionTitle, textLink } from "@/components/portal/ui";
+import { body, sectionTitle, textLink } from "@query/ui/classes";
 
 /**
  * Volunteers are not admins, so both check-in desks live outside /admin.

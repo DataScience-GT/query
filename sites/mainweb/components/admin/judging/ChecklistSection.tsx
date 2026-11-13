@@ -12,7 +12,7 @@ import {
   sectionTitle,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import {
   OFFICER_POLL_MS,
   SECTIONS,

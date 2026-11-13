@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   btnPrimary,
   btnSecondary,
@@ -11,7 +12,9 @@ import {
   input,
   itemTitle,
   sectionTitle,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
+import { FormTextarea } from "@query/ui/FormTextarea";
 import { localTimeZone } from "@/components/admin/hackathons/constants";
 
 /**
@@ -99,128 +102,69 @@ export function CreateHackathonForm({
       </div>
 
       <div className="space-y-5">
-        <div>
-          <label
-            htmlFor="create-name"
-            className={fieldLabel}
-          >
-            Name *
-          </label>
-          <input
-            id="create-name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Hacklytics 2026"
-            className={input}
-          />
-        </div>
+        <FormInput
+          label="Name *"
+          id="create-name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Hacklytics 2026"
+        />
 
-        <div>
-          <label
-            htmlFor="create-description"
-            className={fieldLabel}
-          >
-            Description
-          </label>
-          <textarea
-            id="create-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What's this hackathon about?"
-            rows={3}
-            className={`resize-none ${input}`}
-          />
-        </div>
+        <FormTextarea
+          label="Description"
+          id="create-description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="What's this hackathon about?"
+          rows={3}
+        />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div>
-            <label
-              htmlFor="create-location"
-              className={fieldLabel}
-            >
-              Location
-            </label>
-            <input
-              id="create-location"
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Klaus 1443"
-              className={input}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="create-theme"
-              className={fieldLabel}
-            >
-              Theme
-            </label>
-            <input
-              id="create-theme"
-              type="text"
-              value={theme}
-              onChange={(e) => setTheme(e.target.value)}
-              placeholder="Data for Good"
-              className={input}
-            />
-          </div>
+          <FormInput
+            label="Location"
+            id="create-location"
+            type="text"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="Klaus 1443"
+          />
+          <FormInput
+            label="Theme"
+            id="create-theme"
+            type="text"
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+            placeholder="Data for Good"
+          />
 
-          <div>
-            <label
-              htmlFor="create-tracks"
-              className={fieldLabel}
-            >
-              Tracks
-            </label>
-            <input
-              id="create-tracks"
-              type="text"
-              value={tracks}
-              onChange={(e) => setTracks(e.target.value)}
-              placeholder="AI, Healthcare, Finance"
-              className={input}
-            />
-            <p className={fieldHint}>
-              Comma separated. Teams pick from these when they submit, and
-              judges are matched on them.
-            </p>
-          </div>
+          <FormInput
+            label="Tracks"
+            id="create-tracks"
+            type="text"
+            value={tracks}
+            onChange={(e) => setTracks(e.target.value)}
+            placeholder="AI, Healthcare, Finance"
+            hint="Comma separated. Teams pick from these when they submit, and judges are matched on them."
+          />
 
-          <div>
-            <label
-              htmlFor="create-challenges"
-              className={fieldLabel}
-            >
-              Sponsor challenges
-            </label>
-            <input
-              id="create-challenges"
-              type="text"
-              value={challenges}
-              onChange={(e) => setChallenges(e.target.value)}
-              placeholder="AWS, MongoDB, Capital One"
-              className={input}
-            />
-          </div>
+          <FormInput
+            label="Sponsor challenges"
+            id="create-challenges"
+            type="text"
+            value={challenges}
+            onChange={(e) => setChallenges(e.target.value)}
+            placeholder="AWS, MongoDB, Capital One"
+          />
 
-          <div>
-            <label
-              htmlFor="create-website"
-              className={fieldLabel}
-            >
-              Website
-            </label>
-            <input
-              id="create-website"
-              type="url"
-              value={websiteUrl}
-              onChange={(e) => setWebsiteUrl(e.target.value)}
-              placeholder="https://hacklytics.io"
-              className={input}
-            />
-          </div>
+          <FormInput
+            label="Website"
+            id="create-website"
+            type="url"
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            placeholder="https://hacklytics.io"
+          />
 
           <div>
             <label
@@ -257,81 +201,41 @@ export function CreateHackathonForm({
             Times are entered in your local time zone ({localTimeZone()}).
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
-            <div>
-              <label
-                htmlFor="create-start-date"
-                className={fieldLabel}
-              >
-                Start date *
-              </label>
-              <input
-                id="create-start-date"
-                type="datetime-local"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className={input}
-              />
-              <p className={fieldHint}>
-                When doors open and the schedule begins.
-              </p>
-            </div>
-            <div>
-              <label
-                htmlFor="create-end-date"
-                className={fieldLabel}
-              >
-                End date *
-              </label>
-              <input
-                id="create-end-date"
-                type="datetime-local"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className={input}
-              />
-              <p className={fieldHint}>
-                When the event closes.
-              </p>
-            </div>
+            <FormInput
+              label="Start date *"
+              id="create-start-date"
+              type="datetime-local"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              hint="When doors open and the schedule begins."
+            />
+            <FormInput
+              label="End date *"
+              id="create-end-date"
+              type="datetime-local"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              hint="When the event closes."
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <label
-                htmlFor="create-hacking-start-time"
-                className={fieldLabel}
-              >
-                Hacking start time
-              </label>
-              <input
-                id="create-hacking-start-time"
-                type="datetime-local"
-                value={hackingStartTime}
-                onChange={(e) => setHackingStartTime(e.target.value)}
-                className={input}
-              />
-              <p className={fieldHint}>
-                Defaults to the start date; must fall within the event.
-              </p>
-            </div>
-            <div>
-              <label
-                htmlFor="create-registration-deadline"
-                className={fieldLabel}
-              >
-                Registration deadline
-              </label>
-              <input
-                id="create-registration-deadline"
-                type="datetime-local"
-                value={regDeadline}
-                onChange={(e) => setRegDeadline(e.target.value)}
-                className={input}
-              />
-              <p className={fieldHint}>
-                Last chance for participants to sign up.
-              </p>
-            </div>
+            <FormInput
+              label="Hacking start time"
+              id="create-hacking-start-time"
+              type="datetime-local"
+              value={hackingStartTime}
+              onChange={(e) => setHackingStartTime(e.target.value)}
+              hint="Defaults to the start date; must fall within the event."
+            />
+            <FormInput
+              label="Registration deadline"
+              id="create-registration-deadline"
+              type="datetime-local"
+              value={regDeadline}
+              onChange={(e) => setRegDeadline(e.target.value)}
+              hint="Last chance for participants to sign up."
+            />
           </div>
         </div>
 
@@ -364,7 +268,7 @@ export function CreateHackathonForm({
 
         {error && (
           <div>
-            <p role="alert" className="text-[15px] text-[var(--danger)]">{error}</p>
+            <Alert>{error}</Alert>
           </div>
         )}
 

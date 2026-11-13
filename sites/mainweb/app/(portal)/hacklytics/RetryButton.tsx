@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { btnSecondary } from "@/components/portal/ui";
+import { btnSecondary } from "@query/ui/classes";
 
 /** Asks the server for the page again after the edition failed to load. */
 export function RetryButton() {

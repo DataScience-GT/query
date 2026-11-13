@@ -13,6 +13,8 @@ import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
 import { useEventQR } from "@/components/portal/EventQR";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
+import { StatTile } from "@query/ui/StatTile";
 import {
   body,
   btnPrimary,
@@ -27,7 +29,7 @@ import {
   sectionTitle,
   status as statusDot,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 /** Admin pages carry a smaller headline than member pages. */
 const adminTitle =
@@ -115,23 +117,6 @@ function CohortEmails({ emails }: { emails: string[] }) {
         </p>
       )}
     </section>
-  );
-}
-
-function Stat({
-  label: text,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="sm:border-l sm:border-[var(--border-subtle)] sm:pl-6 sm:first:border-l-0 sm:first:pl-0">
-      <dt className={label}>{text}</dt>
-      <dd className="mt-1 font-[family-name:var(--font-display)] text-[32px] font-semibold leading-none tabular-nums text-[var(--text-primary)] md:text-[36px]">
-        {value}
-      </dd>
-    </div>
   );
 }
 
@@ -372,11 +357,11 @@ export default function AdminBootcampPage() {
   if (attendance.error || workshops.error) {
     return (
       <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8">
-        <p role="alert" className="text-[15px] text-[var(--danger)]">
+        <Alert>
           The bootcamp did not load:{" "}
           {attendance.error?.message ?? workshops.error?.message} Reload the
           page to try again.
-        </p>
+        </Alert>
       </div>
     );
   }
@@ -419,14 +404,14 @@ export default function AdminBootcampPage() {
         </header>
 
         <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-6 border-t border-[var(--border-subtle)] pt-6 sm:grid-cols-4">
-          <Stat label="Enrolled" value={stats.enrolled} />
-          <Stat
-            label="Sessions held"
+          <StatTile title="Enrolled" value={stats.enrolled} />
+          <StatTile
+            title="Sessions held"
             value={`${stats.sessionsHeld}/${stats.sessionsPlanned}`}
           />
-          <Stat label="Average attendance" value={stats.averageAttendance} />
-          <Stat
-            label="Turnout"
+          <StatTile title="Average attendance" value={stats.averageAttendance} />
+          <StatTile
+            title="Turnout"
             value={
               stats.enrolled && stats.sessionsHeld
                 ? `${Math.round((stats.averageAttendance / stats.enrolled) * 100)}%`
@@ -459,9 +444,9 @@ export default function AdminBootcampPage() {
           </div>
 
           {error && !modalOpen && (
-            <p role="alert" className="mb-4 text-sm text-[var(--danger)]">
+            <Alert size={14} className="mb-4">
               {error}
-            </p>
+            </Alert>
           )}
           {notice && (
             <p className={`mb-4 ${statusDot("success")}`} role="status">

@@ -9,7 +9,7 @@ import {
   btnSecondary,
   meta,
   sectionTitle,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import {
   ErrorLine,
   NoticeLine,

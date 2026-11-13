@@ -6,6 +6,7 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { QRCodeSVG } from "qrcode.react";
 import { Lock } from "lucide-react";
+import { Skeleton } from "@query/ui/Skeleton";
 import {
   body,
   btnSecondary,
@@ -14,7 +15,7 @@ import {
   object,
   sectionTitle,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import {
   pointsLabel,
   venueDayTime,
@@ -162,9 +163,8 @@ export function ScheduleTab({
           {isRegistered && recordLoading ? (
             // Same box as the QR, so the pass does not flash "Waiting on
             // review" before the record arrives.
-            <div
-              aria-hidden="true"
-              className="mx-auto mt-5 aspect-square w-full max-w-[272px] rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] animate-pulse"
+            <Skeleton
+              className="mx-auto mt-5 aspect-square w-full max-w-[272px] rounded-[var(--radius-sm)]"
             />
           ) : isRegistered && qrData ? (
             /* literal white: must match the QR bgColor below in both themes */

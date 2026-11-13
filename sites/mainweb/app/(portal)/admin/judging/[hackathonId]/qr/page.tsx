@@ -16,7 +16,7 @@ import {
   meta,
   object,
   pageDek,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 type Room = RouterOutputs["judging"]["admin"]["listRooms"]["rooms"][number];
 

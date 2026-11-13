@@ -27,7 +27,7 @@ import {
   tab as tabClass,
   tabList,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 type Tab = "general" | "history" | "status";
 

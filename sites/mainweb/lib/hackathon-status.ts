@@ -1,4 +1,4 @@
-import type { Tone } from "@/components/portal/ui";
+import type { Tone } from "@query/ui/classes";
 
 /**
  * A hackathon's lifecycle status as members read it. The list and detail

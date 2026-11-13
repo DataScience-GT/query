@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@query/auth";
 import { appRouter, createContext } from "@query/api";
 import { safeCallback } from "@/lib/safe-callback";
-import { mastRule, pageDek, pageTitle } from "@/components/portal/ui";
+import { mastRule, pageDek, pageTitle } from "@query/ui/classes";
 import LoginActions from "./LoginActions";
 
 /**

@@ -20,7 +20,7 @@ const Footer = ({ className = "" }: FooterProps) => {
               <Image
                 src={logo}
                 alt="DSGT Logo"
-                className="h-8 w-8 rounded shadow-lg shadow-[#00A8A8]/10 transition-transform group-hover:rotate-12"
+                className="h-8 w-8 rounded shadow-lg shadow-dsgt-teal/10 transition-transform group-hover:rotate-12"
               />
               <span className="text-white text-xl font-bold tracking-tighter uppercase">
                 DSGT
@@ -39,37 +39,37 @@ const Footer = ({ className = "" }: FooterProps) => {
             <nav className="flex flex-col space-y-2 text-sm font-medium">
               <Link
                 href="/team"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
               >
                 Meet the Team
               </Link>
               <Link
                 href="mailto:hello@datasciencegt.org"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
               >
                 Contact
               </Link>
               <Link
                 href="/bootcamp"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
               >
                 Bootcamp
               </Link>
               <Link
                 href="/events"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
               >
                 Events
               </Link>
               <Link
                 href="/history"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
               >
                 History
               </Link>
               <Link
                 href="/status"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
               >
                 Status
               </Link>
@@ -86,7 +86,7 @@ const Footer = ({ className = "" }: FooterProps) => {
                 href="https://github.com/DataScience-GT"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
               >
                 Github
               </a>
@@ -94,7 +94,7 @@ const Footer = ({ className = "" }: FooterProps) => {
                 href="https://www.linkedin.com/company/dsgt/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
               >
                 LinkedIn
               </a>
@@ -102,13 +102,13 @@ const Footer = ({ className = "" }: FooterProps) => {
                 href="https://www.instagram.com/datasciencegt/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
               >
                 Instagram
               </a>
               <a
                 href="mailto:hello@datasciencegt.org"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-[#00A8A8] transition-colors"
+                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
               >
                 Email List
               </a>

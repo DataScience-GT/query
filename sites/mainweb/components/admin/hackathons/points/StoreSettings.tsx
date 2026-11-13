@@ -4,14 +4,14 @@ import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   btnSecondary,
   fieldHint,
-  fieldLabel,
-  input,
   meta,
-} from "@/components/portal/ui";
-import { Toggle } from "./Toggle";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
+import { Checkbox } from "@query/ui/Checkbox";
 
 /**
  * Whether hackers can see the catalog, whether the table is open, and where
@@ -51,21 +51,21 @@ export function StoreSettings({ hackathonId }: { hackathonId: string }) {
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:gap-x-8">
-        <Toggle
+        <Checkbox
           id={`store-visible-${hackathonId}`}
           checked={saved.catalogVisible}
           disabled={readOnly || update.isPending}
-          readOnly={readOnly}
+          title={readOnly ? READ_ONLY_TITLE : undefined}
           onChange={(catalogVisible) =>
             update.mutate({ hackathonId, catalogVisible })
           }
           label="Show the catalog to hackers"
         />
-        <Toggle
+        <Checkbox
           id={`store-open-${hackathonId}`}
           checked={saved.open}
           disabled={readOnly || update.isPending}
-          readOnly={readOnly}
+          title={readOnly ? READ_ONLY_TITLE : undefined}
           onChange={(open) => update.mutate({ hackathonId, open })}
           label="Store is open"
         />
@@ -79,21 +79,17 @@ export function StoreSettings({ hackathonId }: { hackathonId: string }) {
           update.mutate({ hackathonId, location: locationValue });
         }}
       >
-        <div>
-          <label htmlFor={`store-location-${hackathonId}`} className={fieldLabel}>
-            Pickup location
-          </label>
-          <input
-            id={`store-location-${hackathonId}`}
-            type="text"
-            maxLength={240}
-            value={locationValue}
-            onChange={(e) => setLocation(e.target.value)}
-            disabled={readOnly}
-            placeholder="Main hall, table 3"
-            className={`min-h-11 ${input}`}
-          />
-        </div>
+        <FormInput
+          label="Pickup location"
+          id={`store-location-${hackathonId}`}
+          type="text"
+          maxLength={240}
+          value={locationValue}
+          onChange={(e) => setLocation(e.target.value)}
+          disabled={readOnly}
+          placeholder="Main hall, table 3"
+          className="min-h-11"
+        />
         <button
           type="submit"
           disabled={readOnly || !locationChanged || update.isPending}
@@ -109,12 +105,9 @@ export function StoreSettings({ hackathonId }: { hackathonId: string }) {
       </form>
 
       {update.error && (
-        <p
-          role="alert"
-          className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--danger)]"
-        >
+        <Alert rule>
           {trpcErrorMessage(update.error, "Couldn't save store settings.")}
-        </p>
+        </Alert>
       )}
     </div>
   );

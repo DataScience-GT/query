@@ -2,8 +2,8 @@
 
 import React from "react";
 import type { RegistrationStatus } from "./attendee-status";
-import { sectionRule, status } from "@/components/portal/ui";
-import type { Tone } from "@/components/portal/ui";
+import { sectionRule, status } from "@query/ui/classes";
+import type { Tone } from "@query/ui/classes";
 
 export interface AttendeeStatsData {
   total: number;

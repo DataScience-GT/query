@@ -14,8 +14,8 @@ import {
   itemTitle,
   object,
   textLink,
-} from "@/components/portal/ui";
-import type { Tone } from "@/components/portal/ui";
+} from "@query/ui/classes";
+import type { Tone } from "@query/ui/classes";
 import {
   ICON_STROKE,
   addSkip,

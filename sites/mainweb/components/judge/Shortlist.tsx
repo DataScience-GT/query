@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowDown, ArrowUp, Pencil, Trash2, X } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnDanger,
@@ -13,7 +14,7 @@ import {
   itemTitle,
   sectionRule,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import {
   ICON_STROKE,
   deskLabel,
@@ -170,9 +171,9 @@ export function Shortlist({
         </p>
       )}
       {error && (
-        <p role="alert" className="mt-3 text-[13px] text-[var(--danger)]">
+        <Alert size={13} className="mt-3">
           {error}
-        </p>
+        </Alert>
       )}
 
       {list.isPending ? (

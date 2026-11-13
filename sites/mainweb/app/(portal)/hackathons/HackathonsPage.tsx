@@ -27,7 +27,7 @@ import {
   tab,
   tabList,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 type Tab = "browse" | "registrations" | "projects";
 

@@ -33,7 +33,7 @@ function NoSession() {
       Bootcamp meets weekly during the semester.{" "}
       <Link
         href="/bootcamp"
-        className="whitespace-nowrap text-[#00A8A8] transition-colors hover:text-white"
+        className="whitespace-nowrap text-dsgt-teal transition-colors hover:text-white"
       >
         See the schedule →
       </Link>
@@ -87,7 +87,7 @@ const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
             </Mini>
           </div>
 
-          <dl className="grid w-full max-w-xl grid-cols-1 gap-6 border-t-2 border-[#00A8A8] pt-5 sm:grid-cols-[auto_1fr] sm:gap-10">
+          <dl className="grid w-full max-w-xl grid-cols-1 gap-6 border-t-2 border-dsgt-teal pt-5 sm:grid-cols-[auto_1fr] sm:gap-10">
             <div>
               <dt className="font-mono text-[11px] uppercase tracking-[0.2em] text-gray-400">
                 Verified members

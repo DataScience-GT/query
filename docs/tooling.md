@@ -9,7 +9,7 @@ Shared configs under `tooling/`. Each is a workspace package consumed via `works
 | `tooling/tailwind` | `@query/tailwind-config` | `.` (`shared-styles.css`), `./postcss` |
 | `tooling/typescript` | `@query/tsconfig` | `./base.json`, `./nextjs.json`, `./internal-package.json` |
 
-Each linted package has a `.oxlintrc.json`, and warnings fail the run. `base.json` also turns on type-aware rules, which need `oxlint-tsgolint`. `pnpm typecheck` runs `tsrs`, a Rust port of TypeScript 7, pinned exactly while it is in beta. `typescript` stays in place for `next build` and for emitting `@query/ui`.
+Each linted package has a `.oxlintrc.json`, and warnings fail the run. `base.json` also turns on type-aware rules, which need `oxlint-tsgolint`. `pnpm typecheck` runs `tsrs`, a Rust port of TypeScript 7, pinned exactly while it is in beta. `typescript` stays in place for `next build`.
 
 ## Turbo
 
