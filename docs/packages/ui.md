@@ -2,7 +2,7 @@
 
 Shared React components and CSS for the main website. Package: `packages/ui`.
 
-This is a small library, not a full design system. Mainweb also uses `@mawtech/glass-ui`, local `components/`, and Tailwind 4.
+This is a small library, not a full design system. Mainweb also uses local `components/` and Tailwind 4.
 
 ## Exports
 

@@ -14,14 +14,13 @@
   },
   "dependencies": {
     "@ianvs/prettier-plugin-sort-imports": "^4.3.1",
-    "minimatch": "^11.0.3",
-    "prettier": "^3.9.10",
+    "prettier": "catalog:",
     "prettier-plugin-tailwindcss": "^0.8.1"
   },
   "devDependencies": {
     "@query/tsconfig": "workspace:*",
-    "tsrs": "0.20.1-ts7.1.0-beta",
-    "typescript": "^7.0.2"
+    "tsrs": "catalog:",
+    "typescript": "catalog:"
   },
   "prettier": "@query/prettier-config"
 }
