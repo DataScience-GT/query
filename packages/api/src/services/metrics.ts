@@ -537,8 +537,14 @@ export async function refreshDbGauges(db: DrizzleDB | null | undefined) {
           );
         }
       }
-    } catch {
-      // Stale gauges beat a 500 on the scrape endpoint.
+    } catch (error) {
+      // Stale gauges beat a 500 on the scrape endpoint. The counter says it
+      // failed; the log says why.
+      // oxlint-disable-next-line no-console
+      console.warn(
+        "[metrics] gauge refresh failed:",
+        error instanceof Error ? error.message : error,
+      );
       gaugeRefreshFailures.inc();
     }
   });
