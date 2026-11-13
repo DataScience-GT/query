@@ -13,7 +13,7 @@ import {
   sectionRule,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 // Judging is run per edition. AdminLayout gates this page to staff.
 export default function AdminJudgingPage() {

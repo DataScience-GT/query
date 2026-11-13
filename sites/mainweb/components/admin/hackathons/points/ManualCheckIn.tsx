@@ -8,12 +8,10 @@ import { READ_ONLY_TITLE } from "@/lib/use-portal-context";
 import {
   body,
   btnSecondary,
-  fieldHint,
-  fieldLabel,
-  input,
   meta,
   status,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
 import { pointsLabel } from "@/components/hackathon/points/format";
 import { useDebounced } from "./use-debounced";
 
@@ -102,31 +100,28 @@ export function ManualCheckIn({
 
   return (
     <div className="space-y-3">
-      <div>
-        <label htmlFor="manual-check-in-search" className={fieldLabel}>
-          Name or email
-        </label>
-        <input
-          id="manual-check-in-search"
-          type="search"
-          autoComplete="off"
-          spellCheck={false}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Ada or ada@gatech.edu"
-          // Clears the fixed top bar on a phone, so the field rises above the
-          // keyboard with the first results beneath it. Touch only: with a
-          // mouse there is no keyboard to clear, and the page would jump.
-          onFocus={(e) => {
-            if (window.matchMedia("(pointer: coarse)").matches)
-              e.currentTarget.scrollIntoView({ block: "start", behavior: "smooth" });
-          }}
-          className={`scroll-mt-20 min-h-11 ${input}`}
-        />
-        <p className={fieldHint}>
-          Tap a name to check them in. Check photo ID before Admit.
-        </p>
-      </div>
+      <FormInput
+        label="Name or email"
+        id="manual-check-in-search"
+        type="search"
+        autoComplete="off"
+        spellCheck={false}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Ada or ada@gatech.edu"
+        // Clears the fixed top bar on a phone, so the field rises above the
+        // keyboard with the first results beneath it. Touch only: with a
+        // mouse there is no keyboard to clear, and the page would jump.
+        onFocus={(e) => {
+          if (window.matchMedia("(pointer: coarse)").matches)
+            e.currentTarget.scrollIntoView({
+              block: "start",
+              behavior: "smooth",
+            });
+        }}
+        className="scroll-mt-20 min-h-11"
+        hint="Tap a name to check them in. Check photo ID before Admit."
+      />
 
       {outcome && (
         <p

@@ -29,7 +29,7 @@ import {
   pageDek,
   pageTitle,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { trpc } from "@/lib/trpc";
 import { loginHref } from "@/lib/safe-callback";
 import type { RouterOutputs } from "@query/api";

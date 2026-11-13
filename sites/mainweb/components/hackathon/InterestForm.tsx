@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnPrimary,
@@ -12,7 +13,7 @@ import {
   fieldLabel,
   input,
   sectionTitle,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 const EXPERIENCE_OPTIONS = [
   { value: "first", label: "This would be my first" },
@@ -236,9 +237,9 @@ export function InterestForm({
           </Field>
 
           {error ? (
-            <p role="alert" className="text-[15px] text-[var(--danger)]">
+            <Alert>
               {error}
-            </p>
+            </Alert>
           ) : null}
 
           <div className="flex flex-wrap gap-3 pt-1">
@@ -285,9 +286,9 @@ export function InterestForm({
       )}
 
       {error && !showForm ? (
-        <p role="alert" className="text-[15px] text-[var(--danger)]">
+        <Alert>
           {error}
-        </p>
+        </Alert>
       ) : null}
     </div>
   );

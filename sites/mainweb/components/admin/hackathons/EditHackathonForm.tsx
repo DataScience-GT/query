@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   btnPrimary,
   btnSecondary,
@@ -13,7 +14,9 @@ import {
   meta,
   object,
   sectionTitle,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
+import { FormTextarea } from "@query/ui/FormTextarea";
 import {
   localTimeZone,
   toInputDate,
@@ -216,124 +219,65 @@ export function EditHackathonForm({
               )}
             </div>
 
-            <div>
-              <label
-                htmlFor="edit-name"
-                className={fieldLabel}
-              >
-                Name
-              </label>
-              <input
-                id="edit-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className={input}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="edit-description"
-                className={fieldLabel}
-              >
-                Description
-              </label>
-              <textarea
-                id="edit-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className={`resize-none ${input}`}
-              />
-            </div>
+            <FormInput
+              label="Name"
+              id="edit-name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <FormTextarea
+              label="Description"
+              id="edit-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+            />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label
-                  htmlFor="edit-location"
-                  className={fieldLabel}
-                >
-                  Location
-                </label>
-                <input
-                  id="edit-location"
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className={input}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="edit-theme"
-                  className={fieldLabel}
-                >
-                  Theme
-                </label>
-                <input
-                  id="edit-theme"
-                  type="text"
-                  value={theme}
-                  onChange={(e) => setTheme(e.target.value)}
-                  className={input}
-                />
-              </div>
+              <FormInput
+                label="Location"
+                id="edit-location"
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+              <FormInput
+                label="Theme"
+                id="edit-theme"
+                type="text"
+                value={theme}
+                onChange={(e) => setTheme(e.target.value)}
+              />
             </div>
 
             <div className="border-t border-[var(--border-subtle)] pt-5">
               <h4 className={`mb-4 ${itemTitle}`}>Judging and info</h4>
               <div className="space-y-5">
-                <div>
-                  <label
-                    htmlFor="edit-tracks"
-                    className={fieldLabel}
-                  >
-                    Tracks
-                  </label>
-                  <input
-                    id="edit-tracks"
-                    type="text"
-                    value={tracks}
-                    onChange={(e) => setTracks(e.target.value)}
-                    placeholder="AI, Healthcare, Finance"
-                    className={input}
-                  />
-                  <p className={fieldHint}>
-                    Comma separated. Teams pick from these when they submit, and
-                    judges are matched on them.
-                  </p>
-                </div>
-                <div>
-                  <label
-                    htmlFor="edit-challenges"
-                    className={fieldLabel}
-                  >
-                    Sponsor challenges
-                  </label>
-                  <input
-                    id="edit-challenges"
-                    type="text"
-                    value={challenges}
-                    onChange={(e) => setChallenges(e.target.value)}
-                    placeholder="AWS, MongoDB, Capital One"
-                    className={input}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="edit-website"
-                    className={fieldLabel}
-                  >
-                    Website
-                  </label>
-                  <input
-                    id="edit-website"
-                    type="url"
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
-                    placeholder="https://hacklytics.io"
-                    className={input}
-                  />
-                </div>
+                <FormInput
+                  label="Tracks"
+                  id="edit-tracks"
+                  type="text"
+                  value={tracks}
+                  onChange={(e) => setTracks(e.target.value)}
+                  placeholder="AI, Healthcare, Finance"
+                  hint="Comma separated. Teams pick from these when they submit, and judges are matched on them."
+                />
+                <FormInput
+                  label="Sponsor challenges"
+                  id="edit-challenges"
+                  type="text"
+                  value={challenges}
+                  onChange={(e) => setChallenges(e.target.value)}
+                  placeholder="AWS, MongoDB, Capital One"
+                />
+                <FormInput
+                  label="Website"
+                  id="edit-website"
+                  type="url"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  placeholder="https://hacklytics.io"
+                />
                 <div>
                   <label
                     htmlFor="edit-rules"
@@ -359,81 +303,40 @@ export function EditHackathonForm({
                 Times are entered in your local time zone ({localTimeZone()}).
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
-                <div>
-                  <label
-                    htmlFor="edit-start-date"
-                    className={fieldLabel}
-                  >
-                    Start date
-                  </label>
-                  <input
-                    id="edit-start-date"
-                    type="datetime-local"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className={input}
-                  />
-                  <p className={fieldHint}>
-                    When doors open and the schedule begins.
-                  </p>
-                </div>
-                <div>
-                  <label
-                    htmlFor="edit-end-date"
-                    className={fieldLabel}
-                  >
-                    End date
-                  </label>
-                  <input
-                    id="edit-end-date"
-                    type="datetime-local"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className={input}
-                  />
-                  <p className={fieldHint}>
-                    When the event closes.
-                  </p>
-                </div>
+                <FormInput
+                  label="Start date"
+                  id="edit-start-date"
+                  type="datetime-local"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  hint="When doors open and the schedule begins."
+                />
+                <FormInput
+                  label="End date"
+                  id="edit-end-date"
+                  type="datetime-local"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  hint="When the event closes."
+                />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <label
-                    htmlFor="edit-hacking-start-time"
-                    className={fieldLabel}
-                  >
-                    Hacking start time
-                  </label>
-                  <input
-                    id="edit-hacking-start-time"
-                    type="datetime-local"
-                    value={hackingStartTime}
-                    onChange={(e) => setHackingStartTime(e.target.value)}
-                    className={input}
-                  />
-                  <p className={fieldHint}>
-                    Defaults to the start date; must fall within the event. Clear
-                    to reset.
-                  </p>
-                </div>
-                <div>
-                  <label
-                    htmlFor="edit-registration-deadline"
-                    className={fieldLabel}
-                  >
-                    Registration deadline
-                  </label>
-                  <input
-                    id="edit-registration-deadline"
-                    type="datetime-local"
-                    value={regDeadline}
-                    onChange={(e) => setRegDeadline(e.target.value)}
-                    className={input}
-                  />
-                  <p className={fieldHint}>
-                    Last chance for participants to sign up.
-                  </p>
-                </div>
+                <FormInput
+                  label="Hacking start time"
+                  id="edit-hacking-start-time"
+                  type="datetime-local"
+                  value={hackingStartTime}
+                  onChange={(e) => setHackingStartTime(e.target.value)}
+                  hint="Defaults to the start date; must fall within the event. Clear to reset."
+                />
+                <FormInput
+                  label="Registration deadline"
+                  id="edit-registration-deadline"
+                  type="datetime-local"
+                  value={regDeadline}
+                  onChange={(e) => setRegDeadline(e.target.value)}
+                  hint="Last chance for participants to sign up."
+                />
               </div>
             </div>
 
@@ -464,7 +367,7 @@ export function EditHackathonForm({
 
             {error && (
               <div>
-                <p role="alert" className="text-[15px] text-[var(--danger)]">{error}</p>
+                <Alert>{error}</Alert>
               </div>
             )}
 

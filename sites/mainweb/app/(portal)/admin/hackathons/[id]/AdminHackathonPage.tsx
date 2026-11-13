@@ -29,7 +29,7 @@ import {
   sectionTitle,
   tab as tabClass,
   tabList,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import {
   BarChart3,
   Calendar,

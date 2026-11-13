@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc";
-import { itemTitle, object, textLink } from "@/components/portal/ui";
+import { itemTitle, object, textLink } from "@query/ui/classes";
 import {
   clockTime,
   deskLabel,

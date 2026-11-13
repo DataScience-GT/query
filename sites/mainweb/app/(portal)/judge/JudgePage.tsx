@@ -22,7 +22,7 @@ import {
   sectionRule,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 // Statuses that take judge applications; judge.register enforces the same.
 const APPLYING = new Set(["announced", "open", "closed", "in_progress"]);

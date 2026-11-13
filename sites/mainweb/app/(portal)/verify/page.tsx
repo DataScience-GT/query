@@ -5,13 +5,14 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import { Alert } from "@query/ui/Alert";
 import {
   btnPrimary,
   mastRule,
   pageDek,
   pageTitle,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { safeCallback } from "@/lib/safe-callback";
 
 /**
@@ -265,9 +266,9 @@ function VerifyContent() {
         </div>
 
         {error && (
-          <p role="alert" className="mt-4 text-[15px] text-[var(--danger)]">
+          <Alert className="mt-4">
             {error}
-          </p>
+          </Alert>
         )}
 
         {/* Stays enabled: on an incomplete code it moves to the first empty box

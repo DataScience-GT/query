@@ -20,13 +20,14 @@ import {
   sectionTitle,
   status,
   textLink,
-} from "@/components/portal/ui";
-import type { Tone } from "@/components/portal/ui";
+} from "@query/ui/classes";
+import type { Tone } from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
 import {
   ErrorLine,
   OFFICER_POLL_MS,
   NoticeLine,
-  Toggle,
+  SwitchRow,
   plural,
   useRefreshJudging,
 } from "@/components/admin/judging/shared";
@@ -116,7 +117,7 @@ export function RepoCheckSection({ hackathonId }: { hackathonId: string }) {
           )}
           <section>
             <div className="border-y border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
-              <Toggle
+              <SwitchRow
                 id="repo-check-enabled"
                 label="Check repos while judging is open"
                 hint={
@@ -158,25 +159,17 @@ export function RepoCheckSection({ hackathonId }: { hackathonId: string }) {
                 Submissions close {eventMoment(new Date(data.deadline))}{" "}
                 (Eastern).
               </p>
-              <div>
-                <label htmlFor="repo-check-grace" className={fieldLabel}>
-                  Grace in minutes
-                </label>
-                <input
-                  id="repo-check-grace"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={1440}
-                  value={graceText}
-                  onChange={(e) => setGrace(e.target.value)}
-                  className={input}
-                />
-                <p className={fieldHint}>
-                  Only pushes after the deadline plus this many minutes are
-                  flagged.
-                </p>
-              </div>
+              <FormInput
+                label="Grace in minutes"
+                id="repo-check-grace"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={1440}
+                value={graceText}
+                onChange={(e) => setGrace(e.target.value)}
+                hint="Only pushes after the deadline plus this many minutes are flagged."
+              />
               <button
                 type="submit"
                 disabled={

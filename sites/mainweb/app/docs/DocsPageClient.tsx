@@ -41,7 +41,7 @@ export default function DocsPageClient() {
   if (status === "loading" || status === "unauthenticated") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#050505] font-mono text-gray-400">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#00A8A8] border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-dsgt-teal border-t-transparent" />
         <p className="text-xs tracking-[0.3em] uppercase">Checking sign-in</p>
       </div>
     );
@@ -107,7 +107,7 @@ export default function DocsPageClient() {
       <main className="mx-auto max-w-7xl px-6 pt-12 pb-24 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-16 lg:px-12 lg:pt-16">
         <aside className="hidden lg:block">
           <nav aria-label="Documentation sections" className="sticky top-32">
-            <p className="font-mono text-[11px] tracking-[0.3em] text-[#00A8A8] uppercase">
+            <p className="font-mono text-[11px] tracking-[0.3em] text-dsgt-teal uppercase">
               Documentation
             </p>
             <ul className="mt-4 border-l border-white/10">
@@ -121,7 +121,7 @@ export default function DocsPageClient() {
                       aria-current={on ? "page" : undefined}
                       className={`-ml-px flex min-h-11 items-center border-l-2 pl-4 text-sm transition-colors ${
                         on
-                          ? "border-[#00A8A8] font-semibold text-white"
+                          ? "border-dsgt-teal font-semibold text-white"
                           : "border-transparent text-gray-400 hover:text-white"
                       }`}
                     >
@@ -139,7 +139,7 @@ export default function DocsPageClient() {
           tabIndex={-1}
           className="min-w-0 max-w-3xl outline-none"
         >
-          <p className="font-mono text-xs tracking-[0.3em] text-[#00A8A8] uppercase">
+          <p className="font-mono text-xs tracking-[0.3em] text-dsgt-teal uppercase">
             Developer docs
           </p>
           <h1 className="mt-4 text-5xl font-bold tracking-tighter sm:text-6xl">

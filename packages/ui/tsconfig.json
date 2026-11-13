@@ -1,15 +1,9 @@
 {
-  "extends": "@query/tsconfig/internal-package.json",
+  "extends": "../../tooling/typescript/base.json",
   "compilerOptions": {
-    "lib": ["ESNext", "dom", "dom.iterable"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "rootDir": "src",
-    "types": ["react"],
-    "skipLibCheck": true,
-    "emitDeclarationOnly": false,
-    "module": "ESNext",
-    "outDir": "dist"
+    "types": ["react"]
   },
-  "include": ["src"],
-  "exclude": ["node_modules"]
+  "include": ["src"]
 }

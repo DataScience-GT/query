@@ -2,15 +2,14 @@
 
 import React, { useState } from "react";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
-import { ModalWrapper } from "./ModalWrapper";
+import { Modal } from "@query/ui/Modal";
 import {
   btnPrimary,
-  fieldHint,
-  fieldLabel,
-  input,
   itemTitle,
   meta,
-} from "./ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
+import { FormTextarea } from "@query/ui/FormTextarea";
 
 const closeButton =
   "shrink-0 rounded-[var(--radius-sm)] px-2 py-1 text-sm font-semibold text-[var(--text-subtle)] transition-colors hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]";
@@ -68,7 +67,7 @@ export function EventFormModal({
   const isValid = form.title.trim() && form.eventDate;
 
   return (
-    <ModalWrapper onClose={onClose} maxWidth="2xl">
+    <Modal onClose={onClose} maxWidth="2xl">
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
         <div>
@@ -86,85 +85,59 @@ export function EventFormModal({
 
       <div className="space-y-5">
         {/* Title */}
-        <div>
-          <label htmlFor="event-title-identifier" className={fieldLabel}>
-            Title
-          </label>
-          <input
-            id="event-title-identifier"
-            type="text"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className={input}
-            placeholder="e.g., Weekly workshop 1"
-          />
-        </div>
+        <FormInput
+          label="Title"
+          id="event-title-identifier"
+          type="text"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          placeholder="e.g., Weekly workshop 1"
+        />
 
         {/* Description */}
-        <div>
-          <label htmlFor="data-description" className={fieldLabel}>
-            Description
-          </label>
-          <textarea
-            id="data-description"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className={`${input} resize-none`}
-            rows={3}
-            placeholder="What members should know before they come"
-          />
-        </div>
+        <FormTextarea
+          label="Description"
+          id="data-description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          rows={3}
+          placeholder="What members should know before they come"
+        />
 
         {/* Location and Date */}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div>
-            <label htmlFor="location-node" className={fieldLabel}>
-              Location
-            </label>
-            <input
-              id="location-node"
-              type="text"
-              value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
-              className={input}
-              placeholder="e.g., Klaus 2443"
-            />
-          </div>
+          <FormInput
+            label="Location"
+            id="location-node"
+            type="text"
+            value={form.location}
+            onChange={(e) => setForm({ ...form, location: e.target.value })}
+            placeholder="e.g., Klaus 2443"
+          />
 
-          <div>
-            <label htmlFor="temporal-stamp" className={fieldLabel}>
-              Date and time
-            </label>
-            <input
-              id="temporal-stamp"
-              type="datetime-local"
-              value={form.eventDate}
-              onChange={(e) => setForm({ ...form, eventDate: e.target.value })}
-              className={input}
-            />
-          </div>
+          <FormInput
+            label="Date and time"
+            id="temporal-stamp"
+            type="datetime-local"
+            value={form.eventDate}
+            onChange={(e) => setForm({ ...form, eventDate: e.target.value })}
+          />
         </div>
 
         {/* Capacity. The column and the door gate have always existed; the form
             hardcoded undefined, so the row lock, the "Event is full" refusal
             and the counter re-test never ran for anybody. */}
-        <div>
-          <label htmlFor="capacity-limit" className={fieldLabel}>
-            Capacity (optional)
-          </label>
-          <input
-            id="capacity-limit"
-            type="number"
-            min={1}
-            value={form.maxCheckIns}
-            onChange={(e) => setForm({ ...form, maxCheckIns: e.target.value })}
-            className={`${input} tabular-nums`}
-            placeholder="Leave empty for no limit"
-          />
-          <p className={fieldHint}>
-            Check-in turns people away once this many have checked in.
-          </p>
-        </div>
+        <FormInput
+          label="Capacity (optional)"
+          id="capacity-limit"
+          type="number"
+          min={1}
+          value={form.maxCheckIns}
+          onChange={(e) => setForm({ ...form, maxCheckIns: e.target.value })}
+          className="tabular-nums"
+          placeholder="Leave empty for no limit"
+          hint="Check-in turns people away once this many have checked in."
+        />
 
         {error && (
           <p
@@ -192,6 +165,6 @@ export function EventFormModal({
               : "Create event"}
         </button>
       </div>
-    </ModalWrapper>
+    </Modal>
   );
 }

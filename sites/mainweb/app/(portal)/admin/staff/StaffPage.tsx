@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { isStaffRole } from "@query/api/portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnDanger,
@@ -19,7 +20,7 @@ import {
   pageDek,
   sectionTitle,
   status,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 const adminTitle =
   "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
@@ -271,9 +272,9 @@ export default function StaffPage() {
         )}
 
         {error && (
-          <p role="alert" className="text-[13px] text-[var(--danger)]">
+          <Alert size={13}>
             {error}
-          </p>
+          </Alert>
         )}
         {notice && (
           <p role="status" className="text-[13px] text-[var(--success)]">

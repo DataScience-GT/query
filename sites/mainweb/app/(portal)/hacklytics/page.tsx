@@ -18,7 +18,7 @@ import {
   pageDek,
   pageTitle,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import { nextStepReads } from "@/lib/next-step-reads.server";
 import type { Prefetch } from "@/lib/portal-bootstrap.server";

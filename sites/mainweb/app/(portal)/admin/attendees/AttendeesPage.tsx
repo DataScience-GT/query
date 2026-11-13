@@ -17,7 +17,7 @@ import {
   pageDek,
   sectionRule,
   status as statusText,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { EventOptions } from "@/components/portal/EventOptions";
 
 const adminTitle =

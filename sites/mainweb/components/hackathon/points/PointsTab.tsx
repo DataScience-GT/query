@@ -14,7 +14,7 @@ import {
   meta,
   sectionRule,
   status,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { CheckInCodeForm } from "./CheckInCodeForm";
 import {
   attendanceMethodLabel,

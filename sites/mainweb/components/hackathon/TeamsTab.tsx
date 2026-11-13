@@ -22,7 +22,9 @@ import {
   sectionRule,
   sectionTitle,
   status,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
+import { FormTextarea } from "@query/ui/FormTextarea";
 
 type TeamMember = {
   userId: string;
@@ -447,34 +449,24 @@ export function TeamsTab({
             <div className="max-w-xl space-y-5">
               <h3 className={itemTitle}>New team</h3>
 
-              <div>
-                <label htmlFor="team-name" className={fieldLabel}>
-                  Team name
-                </label>
-                <input
-                  id="team-name"
-                  type="text"
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                  maxLength={100}
-                  className={input}
-                />
-              </div>
+              <FormInput
+                label="Team name"
+                id="team-name"
+                type="text"
+                value={teamName}
+                onChange={(e) => setTeamName(e.target.value)}
+                maxLength={100}
+              />
 
-              <div>
-                <label htmlFor="team-description" className={fieldLabel}>
-                  Description
-                </label>
-                <textarea
-                  id="team-description"
-                  value={teamDesc}
-                  onChange={(e) => setTeamDesc(e.target.value)}
-                  placeholder="What are you building, and who do you need?"
-                  maxLength={1000}
-                  rows={4}
-                  className={`${input} resize-none`}
-                />
-              </div>
+              <FormTextarea
+                label="Description"
+                id="team-description"
+                value={teamDesc}
+                onChange={(e) => setTeamDesc(e.target.value)}
+                placeholder="What are you building, and who do you need?"
+                maxLength={1000}
+                rows={4}
+              />
 
               <div>
                 <span id="team-capacity-label" className={fieldLabel}>

@@ -11,7 +11,7 @@ import {
   meta,
   page,
   pageDek,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { ScanAccess } from "@/components/portal/ScanAccess";
 import { ClubScannerTab } from "@/components/portal/ClubScannerTab";
 import { ClubAttendanceMetrics } from "@/components/portal/ClubAttendanceMetrics";

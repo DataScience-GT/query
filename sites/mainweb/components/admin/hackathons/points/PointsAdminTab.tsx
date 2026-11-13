@@ -11,7 +11,7 @@ import {
   sectionRule,
   sectionTitle,
   status,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { PointsLedger } from "./PointsLedger";
 
 // Officer screens poll every 10s.

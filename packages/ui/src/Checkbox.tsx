@@ -1,29 +1,28 @@
 "use client";
 
-import React from "react";
-import { READ_ONLY_TITLE } from "@/lib/use-portal-context";
+interface CheckboxProps {
+  id: string;
+  checked: boolean;
+  disabled?: boolean;
+  title?: string;
+  onChange: (checked: boolean) => void;
+  label: string;
+}
 
-/** A labelled checkbox that saves as soon as it changes. 44px tall so it
- *  works as a tap target on the phone an organiser carries. */
-export function Toggle({
+/** A labelled checkbox that applies as soon as it changes. 44px tall so it
+ *  works as a tap target on a phone. */
+export function Checkbox({
   id,
   checked,
   disabled,
-  readOnly = false,
+  title,
   onChange,
   label,
-}: {
-  id: string;
-  checked: boolean;
-  disabled: boolean;
-  readOnly?: boolean;
-  onChange: (checked: boolean) => void;
-  label: string;
-}) {
+}: CheckboxProps) {
   return (
     <label
       htmlFor={id}
-      title={readOnly ? READ_ONLY_TITLE : undefined}
+      title={title}
       className="inline-flex min-h-11 cursor-pointer items-center gap-2.5 text-[15px] text-[var(--text-primary)]"
     >
       <input

@@ -12,6 +12,7 @@ import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import type { RouterOutputs } from "@query/api";
 import type { SubteamApplicationStatus } from "@query/db";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnDanger,
@@ -27,7 +28,8 @@ import {
   page,
   pageDek,
   sectionTitle,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
 
 type SubteamRow = RouterOutputs["subteam"]["adminList"][number];
 type Applicant = RouterOutputs["subteam"]["applicants"]["applicants"][number];
@@ -35,7 +37,6 @@ type RosterMember = RouterOutputs["subteam"]["roster"][number];
 
 const adminTitle =
   "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
-const errorText = "mt-3 text-[13px] text-[var(--danger)]";
 const quietAction =
   "text-sm font-semibold text-[var(--text-subtle)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-50 disabled:cursor-not-allowed";
 const backLink =
@@ -140,21 +141,16 @@ function SubteamForm({
           className={input}
         />
       </div>
-      <div>
-        <label htmlFor="subteam-summary" className={fieldLabel}>
-          Short description
-        </label>
-        <input
-          id="subteam-summary"
-          maxLength={300}
-          value={draft.summary}
-          onChange={(event) =>
-            setDraft({ ...draft, summary: event.target.value })
-          }
-          placeholder="One line a member reads before opening it"
-          className={input}
-        />
-      </div>
+      <FormInput
+        label="Short description"
+        id="subteam-summary"
+        maxLength={300}
+        value={draft.summary}
+        onChange={(event) =>
+          setDraft({ ...draft, summary: event.target.value })
+        }
+        placeholder="One line a member reads before opening it"
+      />
       <div>
         <label htmlFor="subteam-description" className={fieldLabel}>
           What you would do
@@ -281,9 +277,9 @@ function SubteamForm({
       </div>
 
       {save.error && (
-        <p role="alert" className={errorText}>
+        <Alert size={13} className="mt-3">
           {save.error.message}
-        </p>
+        </Alert>
       )}
     </form>
   );
@@ -363,9 +359,9 @@ function SubteamListRow({
       </div>
 
       {setArchived.error && (
-        <p role="alert" className={errorText}>
+        <Alert size={13} className="mt-3">
           {setArchived.error.message}
-        </p>
+        </Alert>
       )}
     </div>
   );
@@ -481,9 +477,9 @@ function ApplicantRow({
       )}
 
       {decide.error && (
-        <p role="alert" className={errorText}>
+        <Alert size={13} className="mt-3">
           {decide.error.message}
-        </p>
+        </Alert>
       )}
     </li>
   );
@@ -513,9 +509,9 @@ function RosterRow({
           {member.decidedAt ? ` · since ${shortDate(member.decidedAt)}` : ""}
         </p>
         {remove.error && (
-          <p role="alert" className={errorText}>
+          <Alert size={13} className="mt-3">
             {remove.error.message}
-          </p>
+          </Alert>
         )}
       </div>
 
@@ -638,9 +634,9 @@ function SubteamReview({
           <span className={`${meta} tabular-nums`}>{members.length}</span>
         </div>
         {roster.error ? (
-          <p role="alert" className={errorText}>
+          <Alert size={13} className="mt-3">
             {roster.error.message}
-          </p>
+          </Alert>
         ) : members.length > 0 ? (
           <ul className="mt-4 border-t border-[var(--border-subtle)]">
             {members.map((member) => (
@@ -697,9 +693,9 @@ function SubteamReview({
         />
 
         {applicants.error ? (
-          <p role="alert" className={errorText}>
+          <Alert size={13} className="mt-3">
             {applicants.error.message}
-          </p>
+          </Alert>
         ) : applicants.isPending ? (
           <p className={`${body} mt-6`}>Loading…</p>
         ) : rows.length > 0 ? (
@@ -741,9 +737,9 @@ export default function AdminSubteamsPage() {
     return (
       <div className={page}>
         <h1 className={adminTitle}>Subteams</h1>
-        <p role="alert" className="mt-3 text-[15px] text-[var(--danger)]">
+        <Alert className="mt-3">
           {list.error.message} Refresh the page to try again.
-        </p>
+        </Alert>
       </div>
     );
   }

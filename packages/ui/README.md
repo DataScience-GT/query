@@ -1,11 +1,5 @@
 # `@query/ui`
 
-Small shared React + CSS package used by `sites/mainweb`.
+Design system for `sites/mainweb`: CSS tokens, class strings and small React primitives.
 
 **Full reference:** [docs/packages/ui.md](../../docs/packages/ui.md)
-
-```bash
-pnpm --filter @query/ui build:components
-pnpm --filter @query/ui build:styles
-pnpm --filter @query/ui lint
-```

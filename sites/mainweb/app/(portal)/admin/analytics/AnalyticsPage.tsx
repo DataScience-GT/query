@@ -7,15 +7,15 @@ import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { trpc } from "@/lib/trpc";
 import { useRouter } from "next/navigation";
+import { StatTile, StatTileSkeleton } from "@query/ui/StatTile";
 import {
   btnSecondary,
   itemTitle,
-  label,
   meta,
   body,
   pageDek,
   sectionTitle,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 
 const Line = dynamic(() => import("react-chartjs-2").then((m) => m.Line), {
   ssr: false,
@@ -93,36 +93,6 @@ function monthLabel(month: string) {
     timeZone: "UTC",
   });
   return `${name} ${year?.slice(2)}`;
-}
-
-const statCell =
-  "sm:border-l sm:border-[var(--border-subtle)] sm:pl-6 sm:first:border-l-0 sm:first:pl-0";
-
-interface StatProps {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-}
-
-function Stat({ title, value, subtitle }: StatProps) {
-  return (
-    <div className={statCell}>
-      <dt className={label}>{title}</dt>
-      <dd className="mt-1 font-[family-name:var(--font-display)] text-[32px] font-semibold leading-none tabular-nums text-[var(--text-primary)] md:text-[36px]">
-        {value}
-      </dd>
-      {subtitle && <dd className={`mt-1.5 ${meta}`}>{subtitle}</dd>}
-    </div>
-  );
-}
-
-function StatSkeleton() {
-  return (
-    <div className={statCell} aria-hidden>
-      <div className="h-4 w-24 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)]" />
-      <div className="mt-2 h-9 w-16 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)]" />
-    </div>
-  );
 }
 
 /** A short line in the series colour, dashed for the dashed series. */
@@ -322,25 +292,25 @@ export default function AnalyticsPage() {
         <h2 className={sectionTitle}>Membership</h2>
         <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
           {growth.isPending ? (
-            [1, 2, 3, 4].map((i) => <StatSkeleton key={i} />)
+            [1, 2, 3, 4].map((i) => <StatTileSkeleton key={i} />)
           ) : (
             <>
-              <Stat
+              <StatTile
                 title="Members"
                 value={totals?.members ?? 0}
                 subtitle="All time"
               />
-              <Stat
+              <StatTile
                 title="Active now"
                 value={totals?.activeMembers ?? 0}
                 subtitle="Memberships not ended"
               />
-              <Stat
+              <StatTile
                 title="Bootcamp this term"
                 value={totals?.bootcampThisTerm ?? 0}
                 subtitle={totals ? termLabel(totals.currentTerm) : undefined}
               />
-              <Stat
+              <StatTile
                 title="Bootcamp all time"
                 value={totals?.bootcampAllTime ?? 0}
                 subtitle={
@@ -490,30 +460,30 @@ export default function AnalyticsPage() {
         <h2 className={sectionTitle}>Events and hackathons</h2>
         <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
           {isLoading ? (
-            [1, 2, 3, 4, 5].map((i) => <StatSkeleton key={i} />)
+            [1, 2, 3, 4, 5].map((i) => <StatTileSkeleton key={i} />)
           ) : (
             <>
-              <Stat
+              <StatTile
                 title="Participants"
                 value={stats?.totalParticipants || 0}
                 subtitle="Registered for a hackathon"
               />
-              <Stat
+              <StatTile
                 title="Events hosted"
                 value={stats?.totalEvents || 0}
                 subtitle="Competitions and gatherings"
               />
-              <Stat
+              <StatTile
                 title="Hackathons"
                 value={stats?.totalHackathons || 0}
                 subtitle="Active and upcoming"
               />
-              <Stat
+              <StatTile
                 title="Badge scans today"
                 value={stats?.badgeScansToday || 0}
                 subtitle="Hackathon QR scans"
               />
-              <Stat
+              <StatTile
                 title="Door check-ins today"
                 value={stats?.doorCheckinsToday || 0}
                 subtitle="Club event QR scans"
@@ -532,7 +502,7 @@ export default function AnalyticsPage() {
         {live.isPending ? (
           <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
-              <StatSkeleton key={i} />
+              <StatTileSkeleton key={i} />
             ))}
           </dl>
         ) : !live.data?.length ? (
@@ -555,30 +525,30 @@ export default function AnalyticsPage() {
                   </p>
                 )}
                 <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
-                  <Stat
+                  <StatTile
                     title="Checked in"
                     value={edition.participants.checked_in}
                   />
-                  <Stat
+                  <StatTile
                     title="Approved"
                     value={edition.participants.approved}
                     subtitle="Not checked in yet"
                   />
-                  <Stat
+                  <StatTile
                     title="Pending"
                     value={edition.participants.pending}
                   />
-                  <Stat title="Projects submitted" value={edition.projects} />
-                  <Stat
+                  <StatTile title="Projects submitted" value={edition.projects} />
+                  <StatTile
                     title="Badge scans today"
                     value={edition.checkinsToday}
                     subtitle="Since midnight Eastern"
                   />
-                  <Stat
+                  <StatTile
                     title="Judging tables"
                     value={edition.judgingProjects}
                   />
-                  <Stat title="Judge scores" value={edition.votes} />
+                  <StatTile title="Judge scores" value={edition.votes} />
                 </dl>
                 <p className={`mt-4 ${meta}`}>
                   Waitlisted {edition.participants.waitlisted} · Rejected{" "}

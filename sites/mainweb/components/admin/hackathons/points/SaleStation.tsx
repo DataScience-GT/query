@@ -5,6 +5,7 @@ import { Minus, Plus, QrCode } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
+import { Alert } from "@query/ui/Alert";
 import {
   body,
   btnPrimary,
@@ -14,7 +15,7 @@ import {
   label,
   meta,
   status,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
 import { QRScannerModal } from "@/components/portal/QRScannerModal";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { pointsLabel } from "@/components/hackathon/points/format";
@@ -215,9 +216,9 @@ export function SaleStation({ hackathonId }: { hackathonId: string }) {
               Scan their pass
             </button>
             {scanError && (
-              <p role="alert" className="text-[15px] text-[var(--danger)]">
+              <Alert>
                 {scanError}
-              </p>
+              </Alert>
             )}
             <ParticipantSearch
               hackathonId={hackathonId}

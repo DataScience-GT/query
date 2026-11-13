@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@query/ui/theme.css";
 
 /* The site is dark by default. This `body` rule is unlayered, so it outranks
    every Tailwind utility regardless of specificity — the `bg-[#050505]` class
@@ -14,52 +15,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-accent: var(--accent);
-
-  /* Neutrals point at variables instead of literals so Tailwind emits
-     color-mix(..., var(--ui-*), ...) for every opacity variant. That makes the
-     `bg-white/5`, `border-white/10`, `text-white` and `text-gray-*` utilities
-     already spread across the portal follow the active theme instead of
-     staying hardcoded dark. */
-  --color-white: var(--ui-white);
-  --color-black: var(--ui-black);
-  --color-gray-200: var(--ui-gray-200);
-  --color-gray-300: var(--ui-gray-300);
-  --color-gray-400: var(--ui-gray-400);
-  --color-gray-500: var(--ui-gray-500);
-  --color-gray-600: var(--ui-gray-600);
-  --color-gray-700: var(--ui-gray-700);
-}
-
-/* Dark is the default everywhere, including the marketing pages, which never
-   receive the `light` class (next-themes only mounts inside the portal). */
-:root {
-  --ui-white: #ffffff;
-  --ui-black: #000000;
-  --ui-gray-200: #e5e7eb;
-  --ui-gray-300: #d1d5db;
-  --ui-gray-400: #9ca3af;
-  --ui-gray-500: #6b7280;
-  --ui-gray-600: #4b5563;
-  --ui-gray-700: #374151;
-  --ui-scrim: rgba(0, 0, 0, 0.6);
-}
-
-/* The ramp inverts rather than shifting: in dark mode a higher gray number
-   means dimmer, in light mode it means lighter, so the visual hierarchy each
-   utility was picked for is preserved. */
-.light {
-  /* Tinted toward the portal's bone paper (liquid-glass.css) so old
-     white/gray utilities do not read as cold Tailwind grey on it. */
-  --ui-white: #15191a;
-  --ui-black: #f6f7f4;
-  --ui-gray-200: #1e2423;
-  --ui-gray-300: #3a4341;
-  --ui-gray-400: #4c5553;
-  --ui-gray-500: #5c6664;
-  --ui-gray-600: #66706e;
-  --ui-gray-700: #87908d;
-  --ui-scrim: rgba(21, 25, 26, 0.45);
 }
 
 body {

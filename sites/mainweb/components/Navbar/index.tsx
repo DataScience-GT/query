@@ -74,7 +74,7 @@ export default function Navbar({ page, className = "" }: NavbarProps) {
     const baseClass = `inline-flex items-center min-h-11 text-[11px] font-mono uppercase whitespace-nowrap transition-ui duration-300 cursor-pointer ${
       isMobile
         ? "tracking-[0.2em] text-gray-300 hover:text-white text-xl font-bold"
-        : "tracking-[0.14em] min-[1200px]:tracking-[0.2em] text-gray-400 hover:text-[#00A8A8]"
+        : "tracking-[0.14em] min-[1200px]:tracking-[0.2em] text-gray-400 hover:text-dsgt-teal"
     }`;
 
     if (item.link) {
@@ -134,7 +134,7 @@ export default function Navbar({ page, className = "" }: NavbarProps) {
             <Link
               href="/login"
               rel="noopener noreferrer"
-              className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-[#00A8A8] hover:text-white transition-ui duration-300"
+              className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-dsgt-teal hover:text-white transition-ui duration-300"
               onClick={() => setMenuOpen(false)}
             >
               Portal

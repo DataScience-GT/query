@@ -2,16 +2,16 @@
 
 import { useState } from "react";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
-import { ModalWrapper } from "./ModalWrapper";
+import { Modal } from "@query/ui/Modal";
+import { Alert } from "@query/ui/Alert";
 import {
   btnPrimary,
-  fieldHint,
   fieldLabel,
-  input,
   itemTitle,
   meta,
   textLink,
-} from "./ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
 
 export interface BootcampWorkshopFormData {
   week: string;
@@ -63,7 +63,7 @@ export function BootcampWorkshopModal({
     Number(form.week) <= 52;
 
   return (
-    <ModalWrapper onClose={onClose} maxWidth="2xl">
+    <Modal onClose={onClose} maxWidth="2xl">
       <div className="mb-6 flex items-start justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
         <div>
           <h3 className={itemTitle}>
@@ -80,85 +80,60 @@ export function BootcampWorkshopModal({
 
       <div className="space-y-6">
         <div className="grid gap-5 sm:grid-cols-[8rem_1fr]">
-          <div>
-            <label htmlFor="workshop-week" className={fieldLabel}>
-              Week
-            </label>
-            <input
-              id="workshop-week"
-              type="number"
-              min={1}
-              max={52}
-              value={form.week}
-              // The session joins on the week, so it is fixed once created.
-              disabled={mode === "edit"}
-              onChange={(event) => setForm({ ...form, week: event.target.value })}
-              className={`${input} tabular-nums`}
-            />
-          </div>
-          <div>
-            <label htmlFor="workshop-title" className={fieldLabel}>
-              Workshop title
-            </label>
-            <input
-              id="workshop-title"
-              value={form.title}
-              onChange={(event) => setForm({ ...form, title: event.target.value })}
-              className={input}
-            />
-          </div>
+          <FormInput
+            label="Week"
+            id="workshop-week"
+            type="number"
+            min={1}
+            max={52}
+            value={form.week}
+            // The session joins on the week, so it is fixed once created.
+            disabled={mode === "edit"}
+            onChange={(event) => setForm({ ...form, week: event.target.value })}
+            className="tabular-nums"
+          />
+          <FormInput
+            label="Workshop title"
+            id="workshop-title"
+            value={form.title}
+            onChange={(event) =>
+              setForm({ ...form, title: event.target.value })
+            }
+          />
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label htmlFor="workshop-session-date" className={fieldLabel}>
-              Session date
-            </label>
-            <input
-              id="workshop-session-date"
-              type="datetime-local"
-              value={form.sessionDate}
-              onChange={(event) =>
-                setForm({ ...form, sessionDate: event.target.value })
-              }
-              className={input}
-            />
-            <p className={fieldHint}>
-              Leave blank for TBA. Clearing a saved date keeps its event, QR
-              code and attendance, but detaches it from this workshop.
-            </p>
-          </div>
-          <div>
-            <label htmlFor="workshop-location" className={fieldLabel}>
-              Location (optional)
-            </label>
-            <input
-              id="workshop-location"
-              value={form.location}
-              onChange={(event) =>
-                setForm({ ...form, location: event.target.value })
-              }
-              placeholder="e.g., Klaus 2443"
-              className={input}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="workshop-recording" className={fieldLabel}>
-            Recording URL
-          </label>
-          <input
-            id="workshop-recording"
-            type="url"
-            value={form.recordingUrl}
+          <FormInput
+            label="Session date"
+            id="workshop-session-date"
+            type="datetime-local"
+            value={form.sessionDate}
             onChange={(event) =>
-              setForm({ ...form, recordingUrl: event.target.value })
+              setForm({ ...form, sessionDate: event.target.value })
             }
-            placeholder="https://…"
-            className={input}
+            hint="Leave blank for TBA. Clearing a saved date keeps its event, QR code and attendance, but detaches it from this workshop."
+          />
+          <FormInput
+            label="Location (optional)"
+            id="workshop-location"
+            value={form.location}
+            onChange={(event) =>
+              setForm({ ...form, location: event.target.value })
+            }
+            placeholder="e.g., Klaus 2443"
           />
         </div>
+
+        <FormInput
+          label="Recording URL"
+          id="workshop-recording"
+          type="url"
+          value={form.recordingUrl}
+          onChange={(event) =>
+            setForm({ ...form, recordingUrl: event.target.value })
+          }
+          placeholder="https://…"
+        />
 
         {(["materials", "solution"] as const).map((kind) => {
           const existing =
@@ -206,9 +181,9 @@ export function BootcampWorkshopModal({
         })}
 
         {error && (
-          <p role="alert" className="text-sm text-[var(--danger)]">
+          <Alert size={14}>
             {error}
-          </p>
+          </Alert>
         )}
 
         <div className="border-t border-[var(--border-subtle)] pt-5">
@@ -227,6 +202,6 @@ export function BootcampWorkshopModal({
           </button>
         </div>
       </div>
-    </ModalWrapper>
+    </Modal>
   );
 }

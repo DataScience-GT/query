@@ -21,7 +21,8 @@ import {
   sectionTitle,
   status,
   textLink,
-} from "@/components/portal/ui";
+} from "@query/ui/classes";
+import { FormInput } from "@query/ui/FormInput";
 import {
   ErrorLine,
   MODE_HINT,
@@ -488,24 +489,16 @@ function ChallengeForm({
       )}
 
       {draft.isGroup && (
-        <div>
-          <label htmlFor={`challenge-match-${id}`} className={fieldLabel}>
-            Collect imported labels containing (optional)
-          </label>
-          <input
-            id={`challenge-match-${id}`}
-            type="text"
-            maxLength={100}
-            value={draft.importLabelMatch}
-            onChange={(e) => set({ importLabelMatch: e.target.value })}
-            placeholder="MLH"
-            className={input}
-          />
-          <p className={fieldHint}>
-            A new label from an import goes into the first group whose text it
-            contains, ignoring case.
-          </p>
-        </div>
+        <FormInput
+          label="Collect imported labels containing (optional)"
+          id={`challenge-match-${id}`}
+          type="text"
+          maxLength={100}
+          value={draft.importLabelMatch}
+          onChange={(e) => set({ importLabelMatch: e.target.value })}
+          placeholder="MLH"
+          hint="A new label from an import goes into the first group whose text it contains, ignoring case."
+        />
       )}
 
       {(draft.isGroup || !draft.parentId) && (

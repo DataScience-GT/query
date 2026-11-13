@@ -1,5 +1,5 @@
 import type { RouterInputs, RouterOutputs } from "@query/api";
-import type { Tone } from "@/components/portal/ui";
+import type { Tone } from "@query/ui/classes";
 import { toInputDate } from "@/components/admin/hackathons/constants";
 
 export type Timing = RouterInputs["judging"]["schedule"]["preview"]["timing"];
