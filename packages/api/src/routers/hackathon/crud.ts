@@ -15,6 +15,11 @@ import {
 import { recordAdminAction } from "../../middleware/audit";
 import { CacheKeys, VOLATILE_TTL } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
+import { withSeatedCounts } from "../../services/derived-counts";
+
+// Every hackathon read below returns currentParticipants counted from the
+// participant rows (one grouped query per call). The stored column is retired:
+// it drifted whenever a deleted user cascaded their registration away.
 
 // A draft has not been announced, so it does not belong in a participant's
 // browse list. "cancelled" is deliberately NOT hidden: both detail pages ship
@@ -134,7 +139,7 @@ export const hackathonCrudRouter = createTRPCRouter({
         async () => {
           const now = new Date();
 
-          return await (ctx.db as DrizzleDB).query.hackathons.findMany({
+          const rows = await (ctx.db as DrizzleDB).query.hackathons.findMany({
             where: and(
               // Hidden means hidden from the public funnel, not from the people running the
               // event. Filtering it for staff too emptied the judging dashboard, which
@@ -150,6 +155,7 @@ export const hackathonCrudRouter = createTRPCRouter({
             offset: input.offset,
             orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
           });
+          return await withSeatedCounts(ctx.db as DrizzleDB, rows);
         },
         VOLATILE_TTL,
       );
@@ -160,9 +166,10 @@ export const hackathonCrudRouter = createTRPCRouter({
     const cacheKey = "hackathons:list:all";
 
     const fetchAll = async () => {
-      return await (ctx.db as DrizzleDB).query.hackathons.findMany({
+      const rows = await (ctx.db as DrizzleDB).query.hackathons.findMany({
         orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
       });
+      return await withSeatedCounts(ctx.db as DrizzleDB, rows);
     };
 
     // Five-second TTL on a key the whole instance shares, so every expiry
@@ -218,12 +225,20 @@ export const hackathonCrudRouter = createTRPCRouter({
         }
       }
 
-      const hackathon = isUuid
+      const found = isUuid
         ? await (ctx.db as DrizzleDB).query.hackathons.findFirst({
             where: eq(hackathons.id, input.id),
           })
         : await findByNameOrSlug(ctx.db as DrizzleDB, input.id);
 
+      if (!found) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Hackathon not found",
+        });
+      }
+
+      const [hackathon] = await withSeatedCounts(ctx.db as DrizzleDB, [found]);
       if (!hackathon) {
         throw new TRPCError({
           code: "NOT_FOUND",

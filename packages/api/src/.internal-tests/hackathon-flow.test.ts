@@ -665,7 +665,28 @@ describe("Hackathon end-to-end flow", () => {
       );
     });
 
+    // The stored counter reads 0 here on purpose: capacity is the count of
+    // participant rows pointing at the team, whatever the column holds.
     it("refuses to overfill a team at capacity", async () => {
+      const caller = joinCaller({
+        team: {
+          id: "team_1",
+          hackathonId: HACK_A,
+          isOpen: true,
+          currentMembers: 0,
+          maxMembers: 4,
+        },
+      });
+      mockWhereRows.mockImplementation(() => [{ n: 4 }]);
+
+      try {
+        await expect(caller.team.joinTeam(join)).rejects.toThrow(/full/);
+      } finally {
+        mockWhereRows.mockImplementation(() => [{ n: 1 }]);
+      }
+    });
+
+    it("lets a join through when the rows leave room even though the stored counter reads full", async () => {
       const caller = joinCaller({
         team: {
           id: "team_1",
@@ -675,8 +696,15 @@ describe("Hackathon end-to-end flow", () => {
           maxMembers: 4,
         },
       });
+      mockWhereRows.mockImplementation(() => [{ n: 2 }]);
 
-      await expect(caller.team.joinTeam(join)).rejects.toThrow(/full/);
+      try {
+        await expect(caller.team.joinTeam(join)).resolves.toMatchObject({
+          success: true,
+        });
+      } finally {
+        mockWhereRows.mockImplementation(() => [{ n: 1 }]);
+      }
     });
 
     it("refuses to join a closed team", async () => {

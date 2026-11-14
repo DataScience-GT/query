@@ -11,29 +11,6 @@ import type { DrizzleDB } from "@query/db";
 // than seats and fill them in waves.
 export const SEATED_STATUSES = ["approved", "checked_in"] as const;
 
-// Re-derives currentParticipants from the rows that actually hold a seat. The
-// hackathon row is locked first: `SET x = (subquery)` plans the subquery once
-// per statement, so a register() committing mid-wait would be overwritten and
-// the seat total would drift low enough to admit people past maxParticipants.
-export const syncCurrentParticipants = (
-  db: DrizzleDB,
-  hackathonId: string,
-) =>
-  db.transaction(async (tx) => {
-    await tx
-      .select({ id: hackathons.id })
-      .from(hackathons)
-      .where(eq(hackathons.id, hackathonId))
-      .for("update");
-
-    await tx
-      .update(hackathons)
-      .set({
-        currentParticipants: sql`(select count(*)::int from ${hackathonParticipants} where ${hackathonParticipants.hackathonId} = ${hackathonId} and ${hackathonParticipants.registrationStatus} in ('approved', 'checked_in'))`,
-      })
-      .where(eq(hackathons.id, hackathonId));
-  });
-
 /**
  * Refuses an acceptance that would pass maxParticipants. Call inside the
  * transaction that writes the new statuses: it locks the hackathon row, so two
@@ -88,8 +65,8 @@ export async function assertSeats(
 // wiped every attendee's cached registrations and the venue-wide events list.
 // Each affected user's own registration list goes too, or an acceptance lands
 // in their inbox while their dashboard still says pending. The hackathon row
-// goes as well: every caller has just synced currentParticipants, and getById
-// serves the public "spots taken" line from that cached row.
+// goes as well: getById serves the public "spots taken" line, counted from the
+// participant rows, from that cached row.
 export const evictParticipantCaches = (
   cache: { delete: (key: string) => boolean },
   hackathonId: string,

@@ -157,6 +157,7 @@ vi.mock("@query/db", async () => {
           where: vi.fn().mockImplementation(() =>
             Object.assign(Promise.resolve([{ count: 0 }]), {
               for: vi.fn().mockResolvedValue([{ count: 0 }]),
+              groupBy: vi.fn().mockResolvedValue([]),
             }),
           ),
         })),
@@ -623,12 +624,12 @@ describe("QR check-in", () => {
           return io(checkIns.find((c) => c.userId === "member_user"));
         return io(undefined);
       });
-      // Stands in for `select ... for update`: the locked read sees the row as
-      // it stands now, not the snapshot the caller opened with.
+      // Stands in for `select ... for update` and for the row count taken under
+      // it: capacity is the rows themselves, read as they stand now.
       mockSelect.mockImplementation((_op, _sel, fromArgs) =>
-        fromArgs[0] === events
-          ? [{ currentCheckIns: row.currentCheckIns }]
-          : [{ count: 0 }],
+        fromArgs[0] === eventCheckIns
+          ? [{ n: checkIns.length }]
+          : [{ id: CLUB_EVENT }],
       );
       mockInsert.mockImplementation((_op, insertArgs, valArgs) => {
         if (insertArgs[0] === eventCheckIns) {
@@ -652,16 +653,6 @@ describe("QR check-in", () => {
         }
         return [{ id: `checkin_${checkIns.length}` }];
       });
-      mockUpdate.mockImplementation((_op, updateArgs, setArgs) => {
-        if (updateArgs[0] === events && setArgs[0].currentCheckIns) {
-          row.currentCheckIns += 1;
-          __onRollback(() => {
-            row.currentCheckIns -= 1;
-          });
-          return [{ id: CLUB_EVENT }];
-        }
-        return [];
-      });
 
       const caller = appRouter.createCaller(createMockCtx("member_user"));
       const outcomes = await Promise.allSettled([
@@ -670,7 +661,7 @@ describe("QR check-in", () => {
       ]);
 
       expect(checkIns).toHaveLength(1);
-      expect(row.currentCheckIns).toBe(1);
+      expect(mockUpdate).not.toHaveBeenCalled();
       const rejected = outcomes.filter((o) => o.status === "rejected");
       expect(rejected).toHaveLength(1);
       expect((rejected[0] as PromiseRejectedResult).reason.code).toBe(
@@ -678,12 +669,12 @@ describe("QR check-in", () => {
       );
     });
 
-    // The count the caller opened with is a snapshot; capacity holds because
-    // the locked re-read and the `currentCheckIns < maxCheckIns` on the
-    // increment both re-test it, so the second scanner is turned away rather
-    // than pushing the event one over.
+    // Capacity holds because the event row lock serialises the two scanners and
+    // the count of rows is taken under it, so the second scanner sees the first
+    // one's row and is turned away rather than pushing the event one over.
     it("never admits more people than maxCheckIns", async () => {
       const row = clubEvent({ maxCheckIns: 1 });
+      const checkIns: any[] = [];
       mockFindFirst.mockImplementation((table: string) => {
         if (table === "events") return io({ ...row });
         if (table === "hackathons") return { id: HACK_A };
@@ -691,24 +682,19 @@ describe("QR check-in", () => {
         return io(undefined);
       });
       mockSelect.mockImplementation((_op, _sel, fromArgs) =>
-        fromArgs[0] === events
-          ? [{ currentCheckIns: row.currentCheckIns }]
-          : [{ count: 0 }],
+        fromArgs[0] === eventCheckIns
+          ? [{ n: checkIns.length }]
+          : [{ id: CLUB_EVENT }],
       );
-      mockInsert.mockReturnValue([{ id: "checkin" }]);
-      mockUpdate.mockImplementation((_op, updateArgs, setArgs) => {
-        if (updateArgs[0] === events && setArgs[0].currentCheckIns) {
-          // `where currentCheckIns < maxCheckIns` — the statement matches no
-          // row once the event is full, and RETURNING says so.
-          if (row.maxCheckIns && row.currentCheckIns >= row.maxCheckIns)
-            return [];
-          row.currentCheckIns += 1;
+      mockInsert.mockImplementation((_op, insertArgs, valArgs) => {
+        if (insertArgs[0] === eventCheckIns) {
+          const added = valArgs[0];
+          checkIns.push(added);
           __onRollback(() => {
-            row.currentCheckIns -= 1;
+            checkIns.splice(checkIns.indexOf(added), 1);
           });
-          return [{ id: CLUB_EVENT }];
         }
-        return [];
+        return [{ id: "checkin" }];
       });
 
       const first = appRouter.createCaller(createMockCtx("member_one"));
@@ -718,12 +704,57 @@ describe("QR check-in", () => {
         second.events.checkIn({ qrCode: QR_OLD }),
       ]);
 
-      expect(row.currentCheckIns).toBe(1);
+      expect(checkIns).toHaveLength(1);
+      expect(mockUpdate).not.toHaveBeenCalled();
       expect(outcomes.filter((o) => o.status === "fulfilled")).toHaveLength(1);
       const rejected = outcomes.find((o) => o.status === "rejected");
       expect((rejected as PromiseRejectedResult).reason.message).toMatch(
         /Event is full/,
       );
+    });
+
+    // events.current_check_ins is retired: a user deletion cascades their
+    // check-ins away and the stored number never moved. Capacity must follow
+    // the rows whatever that column holds.
+    it("refuses when the rows fill the event even though the stored counter reads low", async () => {
+      const row = clubEvent({ maxCheckIns: 2, currentCheckIns: 0 });
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "events") return io({ ...row });
+        if (table === "members") return io(activeMember);
+        return io(undefined);
+      });
+      mockSelect.mockImplementation((_op, _sel, fromArgs) =>
+        fromArgs[0] === eventCheckIns ? [{ n: 2 }] : [{ id: CLUB_EVENT }],
+      );
+
+      await expect(
+        appRouter
+          .createCaller(createMockCtx("member_user"))
+          .events.checkIn({ qrCode: QR_OLD }),
+      ).rejects.toMatchObject({ message: "Event is full" });
+      expect(mockInsert).not.toHaveBeenCalled();
+    });
+
+    it("admits when the rows leave room even though the stored counter reads full", async () => {
+      const row = clubEvent({ maxCheckIns: 2, currentCheckIns: 2 });
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "events") return io({ ...row });
+        if (table === "members") return io(activeMember);
+        return io(undefined);
+      });
+      mockSelect.mockImplementation((_op, _sel, fromArgs) =>
+        fromArgs[0] === eventCheckIns ? [{ n: 1 }] : [{ id: CLUB_EVENT }],
+      );
+      mockInsert.mockReturnValue([{ id: "checkin" }]);
+
+      await expect(
+        appRouter
+          .createCaller(createMockCtx("member_user"))
+          .events.checkIn({ qrCode: QR_OLD }),
+      ).resolves.toMatchObject({ success: true });
+      expect(mockInsert).toHaveBeenCalledTimes(1);
+      // The counter is never written, so there is nothing to drift.
+      expect(mockUpdate).not.toHaveBeenCalled();
     });
 
     // BUG: checkIn's only temporal gate is checkInEnabled (events.ts:220); it
@@ -1312,7 +1343,11 @@ describe("QR check-in", () => {
      * forever, and the counter read as over-full with nothing explaining it.
      */
     it("refuses a capacity below the people already checked in", async () => {
-      asAdmin(clubEvent({ currentCheckIns: 40 }));
+      asAdmin(clubEvent());
+      // The rows are what is counted; the stored counter is not consulted.
+      (db as any).select.mockImplementationOnce(() => ({
+        from: () => ({ where: () => Promise.resolve([{ n: 40 }]) }),
+      }));
 
       await expect(
         appRouter

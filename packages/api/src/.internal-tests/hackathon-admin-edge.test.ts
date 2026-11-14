@@ -1003,9 +1003,10 @@ describe("Hackathon admin management edge cases", () => {
       ).resolves.toMatchObject({ success: true });
     });
 
-    // BUG: hackathons.currentParticipants is incremented on register and never
-    // decremented, so rejected applicants permanently consume capacity.
-    it("frees a seat when an admin rejects a registration", async () => {
+    // Seats are counted from the participant rows, so rejecting one frees the
+    // seat by changing that row alone; no stored counter on the hackathon is
+    // written.
+    it("frees a seat when an admin rejects a registration without writing a counter", async () => {
       const caller = adminCaller({
         hackathonParticipants: {
           id: PART_A1,
@@ -1024,7 +1025,10 @@ describe("Hackathon admin management edge cases", () => {
       const capacityWrite = mockUpdate.mock.calls.find(
         (c) => c[1][0] === hackathons,
       );
-      expect(capacityWrite).toBeDefined();
+      expect(capacityWrite).toBeUndefined();
+      expect(
+        mockUpdate.mock.calls.some((c) => c[1][0] === hackathonParticipants),
+      ).toBe(true);
     });
   });
 
