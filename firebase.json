@@ -74,6 +74,60 @@
           ]
         }
       ]
+    },
+    {
+      "target": "hacklytics2026",
+      "public": "sites/hacklytics2026/out",
+      "headers": [
+        {
+          "source": "/_next/static/**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            }
+          ]
+        },
+        {
+          "source": "**/*.@(jpg|jpeg|png|gif|webp|avif|ico|svg|woff|woff2|ttf|eot|otf)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400, stale-while-revalidate=604800"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            }
+          ]
+        },
+        {
+          "source": "**/*.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=0, must-revalidate"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            }
+          ]
+        },
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

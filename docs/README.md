@@ -65,6 +65,7 @@ Room-based judging, from setup to results.
 | --- | --- | --- |
 | [Main website](./sites/mainweb.md) | `web` | Public club site plus the authenticated portal |
 | [Hacklytics 2027](./sites/hacklytics2027.md) | `hacklytics2027` | Static event marketing site |
+| [Hacklytics 2026](./sites/hacklytics2026.md) | `hacklytics2026` | Archived 2026 event site, Next.js static export |
 
 ## Tooling
 
