@@ -1,6 +1,7 @@
+import { VENUE_TZ } from "@query/db/constants";
+
 // Times on the venue's clock, as the schedule shows them: "2:00 PM" should be
 // the time on the wall at the event, whatever zone the phone is set to.
-const VENUE_TZ = "America/New_York";
 
 const dayTimeFmt = new Intl.DateTimeFormat("en-US", {
   timeZone: VENUE_TZ,
