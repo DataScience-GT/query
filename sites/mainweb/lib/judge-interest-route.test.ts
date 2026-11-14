@@ -187,6 +187,22 @@ describe("POST /api/judge-interest", () => {
       },
     );
 
+    it("refuses the local dev servers once deployed", async () => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.resetModules();
+      try {
+        const { isAllowedJudgeInterestOrigin } = await import(
+          "@query/api/judge-interest"
+        );
+        expect(isAllowedJudgeInterestOrigin("https://hacklytics.io")).toBe(true);
+        expect(isAllowedJudgeInterestOrigin("http://localhost:4321")).toBe(false);
+        expect(isAllowedJudgeInterestOrigin("http://127.0.0.1:3000")).toBe(false);
+      } finally {
+        vi.unstubAllEnvs();
+        vi.resetModules();
+      }
+    });
+
     it("refuses a POST from another origin without saving", async () => {
       const res = await post(valid, { origin: "https://evil.example" });
       expect(res.status).toBe(403);
