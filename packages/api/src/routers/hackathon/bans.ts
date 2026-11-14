@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { desc, eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
 import { hackathonBans, users } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter } from "../../trpc";
@@ -30,7 +30,8 @@ export const hackathonBansRouter = createTRPCRouter({
     const [accounts, staff] = await Promise.all([
       emails.length
         ? db.query.users.findMany({
-            where: inArray(users.email, emails),
+            // Ban emails are lowercased; some older user rows are not.
+            where: inArray(sql`lower(${users.email})`, emails),
             columns: { email: true, name: true },
           })
         : [],

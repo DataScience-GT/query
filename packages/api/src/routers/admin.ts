@@ -12,7 +12,7 @@ import {
   hackathonEventAttendees,
   members,
 } from "@query/db";
-import { eq, and, count, gte, inArray } from "drizzle-orm";
+import { eq, and, count, gte, inArray, sql } from "drizzle-orm";
 import { CacheKeys, invalidatePortalContext } from "../middleware/cache";
 import { isAdmin } from "../middleware/procedures";
 import { recordAdminAction } from "../middleware/audit";
@@ -343,8 +343,9 @@ export const adminRouter = createTRPCRouter({
       }
 
       const user = await (ctx.db as DrizzleDB).query.users.findFirst({
-        // Stored lowercased by every writer.
-        where: eq(users.email, input.email.toLowerCase()),
+        // lower() on both sides: some older rows kept the casing they were typed
+        // in. Served by user_email_lower_unique_idx.
+        where: sql`lower(${users.email}) = ${input.email.toLowerCase()}`,
         columns: { id: true, name: true, email: true, image: true },
       });
 
