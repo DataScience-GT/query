@@ -57,3 +57,18 @@ export const JUDGE_URL = `${PORTAL_ORIGIN}/login?callbackUrl=${encodeURIComponen
 export const JUDGE_SIGNUP_URL = `${PORTAL_ORIGIN}/login?callbackUrl=${encodeURIComponent(
   "/judge/register",
 )}`;
+
+/**
+ * Where the judge interest form posts. A public, rate-limited endpoint on the
+ * portal that accepts this site's origins. On a loopback host it talks to a
+ * local portal (port 3001) so the form can be tried without touching the real
+ * list. A function because it reads the page's hostname, which the build cannot.
+ */
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+export const judgeInterestUrl = () =>
+  `${
+    typeof window !== "undefined" && LOOPBACK_HOSTS.has(window.location.hostname)
+      ? "http://localhost:3001"
+      : PORTAL_ORIGIN
+  }/api/judge-interest`;

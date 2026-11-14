@@ -5,10 +5,11 @@ import {
   judges,
   judgeAssignments,
   judgeVotes,
+  judgeInterest,
   hackathons,
   users,
 } from "@query/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { isAdmin, isSuperAdmin } from "../../middleware/procedures";
 import { CacheKeys, invalidatePortalContext } from "../../middleware/cache";
 import { portalOrigin } from "../../services/judging/claims";
@@ -262,4 +263,20 @@ export const judgeAdminRouter = createTRPCRouter({
       }
       return { success: true };
     }),
+
+  // The public "I might judge" leads from the Hacklytics site, newest first.
+  // Nobody here has an account: this is the list to invite to the full judge
+  // application from. `total` is the real count, `rows` is capped.
+  interestList: isAdmin.query(async ({ ctx }) => {
+    const db = ctx.db as DrizzleDB;
+    const [rows, [{ total }]] = await Promise.all([
+      db
+        .select()
+        .from(judgeInterest)
+        .orderBy(desc(judgeInterest.createdAt))
+        .limit(2000),
+      db.select({ total: sql<number>`count(*)::int` }).from(judgeInterest),
+    ]);
+    return { total, rows };
+  }),
 });
