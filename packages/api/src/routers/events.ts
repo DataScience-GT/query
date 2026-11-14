@@ -99,7 +99,8 @@ export const eventRouter = createTRPCRouter({
       // Invalidate all event-related cache entries after creation
       ctx.cache.deletePattern("event*");
 
-      return newEvent;
+      // A new event has nobody checked in, and the QR modal shows the count.
+      return newEvent && { ...newEvent, currentCheckIns: 0 };
     }),
 
   // Corrects a club event in place. Without it the only way to fix a typo was

@@ -82,7 +82,7 @@ Roles come from `packages/api/src/middleware/procedures.ts`. `isAdmin` is full s
 | `sendMassAcceptanceEmails` | Mails accepted people in batches. Resumable per person through `acceptance_email_sent_at`. |
 | `analytics` | Counts for the dashboard. |
 
-`max_participants` caps acceptances, not applications. Seats taken are counted from `approved` plus `checked_in` rows on every read (`currentParticipants` in hackathon reads) and under the hackathon row lock in `assertSeats`. The `current_participants` and team `current_members` columns are no longer read or written and will be dropped in a later change.
+`max_participants` caps acceptances, not applications. Seats taken are counted from `approved` plus `checked_in` rows on every read (`currentParticipants` in hackathon reads) and under the hackathon row lock in `assertSeats`. A team's `currentMembers` is its participant rows the same way. Neither is a stored column.
 
 ### Interest list (`interest.ts`)
 

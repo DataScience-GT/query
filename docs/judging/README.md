@@ -87,7 +87,7 @@ The order is a checklist, not a hard gate. `judging.admin.checklist` reports sev
 | `judging_repo_check` | Per project: GitHub last-push check against the submission deadline and the organiser decision, see [repo check](./repo-check.md) |
 | `judging_announcement` | The pinned message for all judges or one room |
 
-The older `judging_project`, `judge_vote`, `judge_queue` and `hackathon_result` tables are retired and kept for past editions. `hackathon.getResults` still merges their published rows with new placements.
+The older `judging_project`, `judge_vote` and `hackathon_result` tables are retired and kept for past editions. `hackathon.getResults` still merges their published rows with new placements.
 
 ## Where the code lives
 
