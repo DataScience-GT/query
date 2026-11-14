@@ -876,7 +876,7 @@ export const judgingPlacements = pgTable(
     computedAt: timestamp("computed_at").defaultNow().notNull(),
   },
   (table) => [
-    index("judging_placement_hackathon_idx").on(table.hackathonId),
+    // Leads with hackathon_id, so it also serves the by-edition reads.
     uniqueIndex("judging_placement_unique_idx").on(
       table.hackathonId,
       table.scope,

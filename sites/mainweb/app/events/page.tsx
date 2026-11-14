@@ -5,6 +5,7 @@ import Section from "@/components/Section";
 import { db, events } from "@query/db";
 import { and, eq, gte, lt } from "drizzle-orm";
 import { startOfEasternDay } from "@query/api/eastern-time";
+import { withCheckInCounts } from "@query/api/derived-counts";
 import Link from "next/link";
 import { eventDateParts, eventWhenWhere } from "@/lib/public-events";
 
@@ -39,7 +40,6 @@ const listedColumns = {
   location: true,
   eventDate: true,
   maxCheckIns: true,
-  currentCheckIns: true,
 } as const;
 
 // From the start of today, so an event running this afternoon counts as
@@ -54,7 +54,8 @@ async function loadUpcoming() {
   // Same as /projects: a database that is asleep or unreachable renders an
   // empty list instead of failing the build or the revalidation.
   try {
-    return await db.query.events.findMany({
+    // Counted from the rows: events.current_check_ins is a retired counter.
+    const rows = await db.query.events.findMany({
       where: and(
         eq(events.kind, "club"),
         gte(events.eventDate, startOfToday()),
@@ -63,6 +64,7 @@ async function loadUpcoming() {
       limit: 20,
       columns: listedColumns,
     });
+    return await withCheckInCounts(db, rows);
   } catch (error) {
     console.error("Failed to load upcoming events", error);
     return [];
@@ -78,7 +80,7 @@ async function loadPast() {
   if (!db) return [];
 
   try {
-    return await db.query.events.findMany({
+    const rows = await db.query.events.findMany({
       where: and(
         eq(events.kind, "club"),
         lt(events.eventDate, startOfToday()),
@@ -87,6 +89,7 @@ async function loadPast() {
       limit: 20,
       columns: listedColumns,
     });
+    return await withCheckInCounts(db, rows);
   } catch (error) {
     console.error("Failed to load past events", error);
     return [];
