@@ -5,6 +5,7 @@ import {
   primaryKey,
   integer,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccount } from "next-auth/adapters";
 
@@ -18,7 +19,10 @@ export const users = pgTable(
     image: text("image"),
   },
   (table) => [
-    index("user_email_idx").on(table.email),
+    // One account per address: the auth adapter looks users up by email and
+    // assumes one row comes back. A unique index rather than a constraint, for
+    // the column-order reason in events.ts.
+    uniqueIndex("user_email_unique_idx").on(table.email),
     index("user_name_idx").on(table.name),
   ],
 );

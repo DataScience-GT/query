@@ -7,6 +7,7 @@ import {
   integer,
   index,
   uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
@@ -64,6 +65,7 @@ export const events = pgTable(
     ),
     // Both bootcamp pages read every session of one term.
     index("event_bootcamp_term_idx").on(table.bootcampTerm),
+    check("event_max_check_ins_check", sql`${table.maxCheckIns} > 0`),
   ],
 );
 

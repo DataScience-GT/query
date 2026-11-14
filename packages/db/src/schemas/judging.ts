@@ -11,6 +11,7 @@ import {
   uniqueIndex,
   primaryKey,
   foreignKey,
+  check,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
@@ -26,8 +27,9 @@ import { hackathons, hackathonProjects } from "./hackathons";
 // (judge.ts) and the retired panel's tables share this database: `project`,
 // `track`, `vote`, `judging_project` and `judge` are all taken.
 //
-// No CHECK constraints, matching the rest of the schema: ranges are enforced
-// by the API, which is the only writer.
+// The API enforces every range. The CHECK constraints below repeat the ones
+// a wrong number would corrupt (ratings, schedule arithmetic), so a bug or a
+// hand-written UPDATE fails loudly instead of skewing results.
 
 // One row per edition: the state machine and the switches organisers flip on
 // judging day.
@@ -529,7 +531,14 @@ export const judgingSchedules = pgTable(
     }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [uniqueIndex("judging_schedule_hackathon_idx").on(table.hackathonId)],
+  (table) => [
+    uniqueIndex("judging_schedule_hackathon_idx").on(table.hackathonId),
+    check("judging_schedule_window_check", sql`${table.windowEnd} > ${table.windowStart}`),
+    check(
+      "judging_schedule_minutes_check",
+      sql`least(${table.setupMinutes}, ${table.judgingMinutes}, ${table.teardownMinutes}, ${table.sameBuildingBreakMinutes}, ${table.crossBuildingBreakMinutes}) >= 0`,
+    ),
+  ],
 );
 
 // One presentation: a project, for one challenge, in one room, at one time.
@@ -576,6 +585,10 @@ export const judgingAppointments = pgTable(
     ),
     index("judging_appointment_entry_idx").on(table.entryId),
     index("judging_appointment_judge_idx").on(table.assignedJudgeId),
+    check(
+      "judging_appointment_times_check",
+      sql`${table.startsAt} <= ${table.deadlineAt} and ${table.deadlineAt} <= ${table.endsAt}`,
+    ),
     foreignKey({
       name: "judging_appointment_challenge_fk",
       columns: [table.challengeId],
@@ -748,6 +761,7 @@ export const judgingEvaluationRatings = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.evaluationId, table.itemId] }),
+    check("judging_eval_rating_value_check", sql`${table.value} between 1 and 5`),
     foreignKey({
       name: "judging_eval_rating_evaluation_fk",
       columns: [table.evaluationId],
