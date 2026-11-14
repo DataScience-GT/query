@@ -516,9 +516,10 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          // Stored lowercased by every writer.
+          // lower() on both sides: some older rows kept the casing they were
+          // typed in. Served by user_email_lower_unique_idx.
           const user = await tx.query.users.findFirst({
-            where: eq(users.email, input.email.toLowerCase()),
+            where: sql`lower(${users.email}) = ${input.email.toLowerCase()}`,
             columns: { id: true, name: true, email: true },
           });
 
