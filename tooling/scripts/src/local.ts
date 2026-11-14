@@ -2,6 +2,7 @@
  * One entry point for the local test environment.
  *
  *   pnpm local:up       env files, containers, schema, seed data
+ *   pnpm local:up db    same, but start only the named compose services
  *   pnpm local:down     stop the containers, keep the data
  *   pnpm local:reset    stop them and delete the data (next local:up starts clean)
  *
@@ -13,7 +14,16 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const compose = ["docker", "compose", "-f", "docker-compose.local.yml"];
+// CI adds a faster, non-durable Postgres (docker-compose.ci.yml). Every compose
+// call must use the same files, or compose sees a config change and recreates
+// the container.
+const compose = [
+  "docker",
+  "compose",
+  "-f",
+  "docker-compose.local.yml",
+  ...(process.env.CI ? ["-f", "docker-compose.ci.yml"] : []),
+];
 
 function run(command: string[]) {
   // One command string: passing args alongside shell: true is deprecated, and
@@ -38,13 +48,13 @@ function ensureEnvFiles() {
   }
 }
 
-const command = process.argv[2];
+const [command, ...services] = process.argv.slice(2);
 
 if (command === "up") {
   ensureEnvFiles();
   // Before anything starts: a .env that points at a hosted database stops here.
   run(["node", "tooling/scripts/src/guard-local.ts"]);
-  run([...compose, "up", "-d", "--wait"]);
+  run([...compose, "up", "-d", "--wait", ...services]);
   run(["pnpm", "--filter", "@query/db", "migrate:push"]);
   run(["pnpm", "--filter", "@query/db", "db:seed"]);
   console.log(`
@@ -56,6 +66,6 @@ Local environment is up.
 } else if (command === "down" || command === "reset") {
   run([...compose, "down", ...(command === "reset" ? ["--volumes"] : [])]);
 } else {
-  console.error("Usage: node tooling/scripts/src/local.ts up|down|reset");
+  console.error("Usage: node tooling/scripts/src/local.ts up [service...]|down|reset");
   process.exit(1);
 }

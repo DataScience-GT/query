@@ -1,5 +1,6 @@
 "use client";
 
+import { VENUE_TZ } from "@query/db/constants";
 import { venueDayNumber } from "@/lib/venue-time";
 import React from "react";
 import Link from "next/link";
@@ -23,7 +24,7 @@ import {
 
 // The event runs in Atlanta; pinning the zone keeps every viewer, and the
 // server render, on the venue's clock rather than the browser's.
-const EVENT_TZ = "America/New_York";
+const EVENT_TZ = VENUE_TZ;
 
 const dayFmt = new Intl.DateTimeFormat("en-US", {
   timeZone: EVENT_TZ,
