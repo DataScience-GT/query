@@ -4,6 +4,15 @@
 @import "tailwindcss";
 
 /*
+  The FAQ, speaker and track cards build their accent classes from a color
+  prop at runtime (`border-${...}`), which Tailwind's scan cannot see. These
+  lines generate them. Keep them in step with the colors those sections pass.
+*/
+@source inline("group-hover:text-{purple,pink,emerald,orange,blue,yellow,rose,cyan}-400");
+@source inline("border-{purple,pink,emerald,orange}-400");
+@source inline("{bg,border}-{emerald-400,orange-400,pink-400,purple-400,blue-500}{,/10,/20}");
+
+/*
   Define all CSS variables in a single :root block for clarity.
 */
 :root {

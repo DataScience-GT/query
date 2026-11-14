@@ -73,12 +73,15 @@ export default function Navbar() {
   }, [open]); // Re-run this effect when the 'open' state changes
 
   const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    e.preventDefault();
+    // A modified or middle click opens a new tab, and a page without the
+    // section (the 404) follows the link to the homepage: leave both to the browser.
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     setOpen(false);
     const id = href.replace('/#', '');
     const el = document.getElementById(id);
 
     if (el) {
+      e.preventDefault();
       isClickScrolling.current = true;
       setNavVisible(true);
       
