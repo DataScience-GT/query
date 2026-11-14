@@ -11,17 +11,23 @@ export const JUDGE_INTEREST_EDITION = "hacklytics-2027";
 
 /**
  * Origins allowed to post. The production site and Firebase's default hosts for
- * the same site, plus the local dev servers (Astro dev 3000, preview 4321).
+ * the same site. A local portal also accepts the local dev servers (Astro dev
+ * 3000, preview 4321); the deployed one does not, so a local page cannot write
+ * to the real list.
  */
 const ALLOWED_ORIGINS = new Set([
   "https://hacklytics.io",
   "https://www.hacklytics.io",
   "https://hacklytics2027.web.app",
   "https://hacklytics2027.firebaseapp.com",
-  "http://localhost:3000",
-  "http://localhost:4321",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:4321",
+  ...(process.env.NODE_ENV === "production"
+    ? []
+    : [
+        "http://localhost:3000",
+        "http://localhost:4321",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:4321",
+      ]),
 ]);
 
 export const isAllowedJudgeInterestOrigin = (origin: string | null) =>
