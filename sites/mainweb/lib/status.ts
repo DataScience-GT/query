@@ -6,7 +6,7 @@
 // Uptime % = up minutes / minutes with data. A bucket nobody sent a request
 // into does not exist, and counts as neither up nor down.
 
-import { DAY, STATUS_BUCKET_MINUTES, STATUS_BUCKET_MS } from "@query/db/constants";
+import { DAY, MINUTE, STATUS_BUCKET_MINUTES, STATUS_BUCKET_MS } from "@query/db/constants";
 
 export const BUCKET_MIN = STATUS_BUCKET_MINUTES;
 export const BUCKET_MS = STATUS_BUCKET_MS;
@@ -138,7 +138,7 @@ export function deriveStatus(
     };
   }
 
-  const window = recent.filter((bucket) => bucket.t >= now - 15 * 60 * 1000);
+  const window = recent.filter((bucket) => bucket.t >= now - 15 * MINUTE);
   const requests = window.reduce((sum, b) => sum + b.requests, 0);
   const errors = window.reduce((sum, b) => sum + b.errors, 0);
   if (requests > 0 && errors / requests >= 0.5) {

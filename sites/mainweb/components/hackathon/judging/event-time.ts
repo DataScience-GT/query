@@ -1,7 +1,9 @@
+import { VENUE_TZ } from "@query/db/constants";
+
 // Judging happens in the building, so every time on these screens is the
 // venue's clock, never the phone's: a hacker whose phone is still on west
 // coast time has to be in the room at the venue's 2:10.
-const EVENT_TZ = "America/New_York";
+const EVENT_TZ = VENUE_TZ;
 
 // Built on first use, not on import. The first Intl.DateTimeFormat with a time
 // zone costs about 25 ms in a browser, and the portal navigation imports this
