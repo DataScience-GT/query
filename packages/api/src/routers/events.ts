@@ -6,7 +6,6 @@ import { events, eventCheckIns, members, users } from "@query/db";
 import {
   eq,
   and,
-  lt,
   gt,
   gte,
   lte,
@@ -18,6 +17,8 @@ import {
 import { randomUUID } from "crypto";
 import { currentTerm } from "@query/db/services/membership";
 import { isAdmin, isScanner } from "../middleware/procedures";
+import { withCheckInCounts } from "../services/derived-counts";
+import type { DrizzleDB } from "@query/db";
 
 // Postgres unique_violation. Drizzle wraps every driver error in a
 // DrizzleQueryError, which carries no `code` — the pg error holding the
@@ -40,6 +41,17 @@ const termStart = (now: Date) => {
   return season === "spring"
     ? new Date(`${year}-01-01T00:00:00-05:00`)
     : new Date(`${year}-06-01T00:00:00-04:00`);
+};
+
+// The capacity is the rows themselves, counted under the event row lock the
+// callers hold. events.currentCheckIns is a retired counter that drifted when a
+// user's deletion cascaded their check-ins away.
+const countCheckIns = async (tx: Pick<DrizzleDB, "select">, eventId: string) => {
+  const [row] = await tx
+    .select({ n: count() })
+    .from(eventCheckIns)
+    .where(eq(eventCheckIns.eventId, eventId));
+  return row?.n ?? 0;
 };
 
 const ATTENDANCE_RANGES = ["term", "90d", "all"] as const;
@@ -115,23 +127,26 @@ export const eventRouter = createTRPCRouter({
         ctx.db as NonNullable<typeof ctx.db>
       ).query.events.findFirst({
         where: eq(events.id, eventId),
-        columns: { currentCheckIns: true, bootcampTerm: true },
+        columns: { bootcampTerm: true },
       });
 
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
       }
 
-      // A cap below the number already scanned would make the counter read
-      // over-full forever and refuse everyone at the door, with nothing saying why.
-      if (
-        typeof fields.maxCheckIns === "number" &&
-        fields.maxCheckIns < existing.currentCheckIns
-      ) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: `${existing.currentCheckIns} people have already checked in, so the cap cannot be lower than that.`,
-        });
+      // A cap below the number already scanned would read over-full forever and
+      // refuse everyone at the door, with nothing saying why.
+      if (typeof fields.maxCheckIns === "number") {
+        const checkedIn = await countCheckIns(
+          ctx.db as NonNullable<typeof ctx.db>,
+          eventId,
+        );
+        if (fields.maxCheckIns < checkedIn) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `${checkedIn} people have already checked in, so the cap cannot be lower than that.`,
+          });
+        }
       }
 
       // Term follows the week, or an event moved out of the bootcamp keeps holding
@@ -193,12 +208,19 @@ export const eventRouter = createTRPCRouter({
       ctx.cache.deletePattern(`event:${input.eventId}`);
       ctx.cache.deletePattern("event*");
 
-      return updatedEvent;
+      // The modal replaces its event with this result, so it carries the
+      // derived count rather than the retired stored one.
+      const [withCount] = await withCheckInCounts(
+        ctx.db as NonNullable<typeof ctx.db>,
+        [updatedEvent],
+      );
+      return withCount;
     }),
 
   listAll: isAdmin.query(async ({ ctx }) => {
-    const fetchEvents = () =>
-      (ctx.db as NonNullable<typeof ctx.db>).query.events.findMany({
+    const fetchEvents = async () => {
+      const db = ctx.db as NonNullable<typeof ctx.db>;
+      const rows = await db.query.events.findMany({
         orderBy: (events, { desc }) => [desc(events.eventDate)],
         with: {
           createdBy: {
@@ -207,6 +229,8 @@ export const eventRouter = createTRPCRouter({
         },
         limit: 100,
       });
+      return withCheckInCounts(db, rows);
+    };
 
     const cacheKey = `events:list:all`;
     // Same shared-key stampede as `list` below, minus the public filter.
@@ -218,11 +242,14 @@ export const eventRouter = createTRPCRouter({
   }),
 
   list: publicProcedure.query(async ({ ctx }) => {
-    const fetchEvents = () =>
-      (ctx.db as NonNullable<typeof ctx.db>).query.events.findMany({
+    const fetchEvents = async () => {
+      const db = ctx.db as NonNullable<typeof ctx.db>;
+      const rows = await db.query.events.findMany({
         orderBy: (events, { desc }) => [desc(events.eventDate)],
         limit: 50,
       });
+      return withCheckInCounts(db, rows);
+    };
 
     const cacheKey = `events:list:public`;
     // One key for every visitor, 30 seconds long: on a plain miss the whole
@@ -285,7 +312,8 @@ export const eventRouter = createTRPCRouter({
         });
       }
 
-      return event;
+      // Every check-in row is loaded above, so that is the count.
+      return { ...event, currentCheckIns: event.checkIns.length };
     }),
 
   toggleCheckIn: isAdmin
@@ -416,13 +444,13 @@ export const eventRouter = createTRPCRouter({
           // Held from the top it covered the two lookups above, serialising the
           // whole queue; a double tap is settled by unique(event_id, user_id).
           if (event.maxCheckIns) {
-            const [locked] = await tx
-              .select({ currentCheckIns: events.currentCheckIns })
+            await tx
+              .select({ id: events.id })
               .from(events)
               .where(eq(events.id, event.id))
               .for("update");
 
-            if (locked && locked.currentCheckIns >= event.maxCheckIns) {
+            if ((await countCheckIns(tx, event.id)) >= event.maxCheckIns) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: "Event is full",
@@ -448,31 +476,6 @@ export const eventRouter = createTRPCRouter({
               });
             }
             throw error;
-          }
-
-          // The counter is the capacity, so the increment re-tests it in the same
-          // statement. A scanner past the gate on a stale count finds no row left to
-          // claim, and throwing takes the attendance row down with the transaction.
-          const claimed = await tx
-            .update(events)
-            .set({
-              currentCheckIns: sql`${events.currentCheckIns} + 1`,
-            })
-            .where(
-              event.maxCheckIns
-                ? and(
-                    eq(events.id, event.id),
-                    lt(events.currentCheckIns, event.maxCheckIns),
-                  )
-                : eq(events.id, event.id),
-            )
-            .returning({ id: events.id });
-
-          if (event.maxCheckIns && claimed.length === 0) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Event is full",
-            });
           }
 
           // Invalidate event and related caches after successful check-in
@@ -535,16 +538,16 @@ export const eventRouter = createTRPCRouter({
             columns: { id: true },
           });
 
-          // Only a capped event has a count worth locking; the guarded increment
-          // below and unique(event_id, user_id) carry the rest.
+          // only a capped event has a count worth locking; unique(event_id, user_id)
+          // carries the rest.
           if (event.maxCheckIns) {
-            const [locked] = await tx
-              .select({ currentCheckIns: events.currentCheckIns })
+            await tx
+              .select({ id: events.id })
               .from(events)
               .where(eq(events.id, event.id))
               .for("update");
 
-            if (locked && locked.currentCheckIns >= event.maxCheckIns) {
+            if ((await countCheckIns(tx, event.id)) >= event.maxCheckIns) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: "Event is full",
@@ -567,26 +570,6 @@ export const eventRouter = createTRPCRouter({
               });
             }
             throw error;
-          }
-
-          const claimed = await tx
-            .update(events)
-            .set({ currentCheckIns: sql`${events.currentCheckIns} + 1` })
-            .where(
-              event.maxCheckIns
-                ? and(
-                    eq(events.id, event.id),
-                    lt(events.currentCheckIns, event.maxCheckIns),
-                  )
-                : eq(events.id, event.id),
-            )
-            .returning({ id: events.id });
-
-          if (event.maxCheckIns && claimed.length === 0) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Event is full",
-            });
           }
 
           ctx.cache.deletePattern(`event:${event.id}`);
@@ -647,13 +630,13 @@ export const eventRouter = createTRPCRouter({
 
           // Same rule as the other two doors, and this one is the burst path.
           if (event.maxCheckIns) {
-            const [locked] = await tx
-              .select({ currentCheckIns: events.currentCheckIns })
+            await tx
+              .select({ id: events.id })
               .from(events)
               .where(eq(events.id, event.id))
               .for("update");
 
-            if (locked && locked.currentCheckIns >= event.maxCheckIns) {
+            if ((await countCheckIns(tx, event.id)) >= event.maxCheckIns) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: "Event is full",
@@ -678,26 +661,6 @@ export const eventRouter = createTRPCRouter({
               });
             }
             throw error;
-          }
-
-          const claimed = await tx
-            .update(events)
-            .set({ currentCheckIns: sql`${events.currentCheckIns} + 1` })
-            .where(
-              event.maxCheckIns
-                ? and(
-                    eq(events.id, event.id),
-                    lt(events.currentCheckIns, event.maxCheckIns),
-                  )
-                : eq(events.id, event.id),
-            )
-            .returning({ id: events.id });
-
-          if (event.maxCheckIns && claimed.length === 0) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Event is full",
-            });
           }
 
           ctx.cache.deletePattern(`event:${event.id}`);
@@ -745,7 +708,7 @@ export const eventRouter = createTRPCRouter({
       return { attendees: rows, matching: totals?.count ?? 0 };
     }),
 
-  /** Undoes one check-in. The counter is the capacity, so it moves with it. */
+  /** Undoes one check-in. Capacity is counted from the rows, so nothing else moves. */
   removeAttendance: isScanner
     .input(
       z.object({
@@ -772,18 +735,6 @@ export const eventRouter = createTRPCRouter({
               message: "That person is not checked in to this event.",
             });
           }
-
-          // Guarded so a double undo cannot drive the counter negative and hand out
-          // capacity the room does not have.
-          await tx
-            .update(events)
-            .set({ currentCheckIns: sql`${events.currentCheckIns} - 1` })
-            .where(
-              and(
-                eq(events.id, input.eventId),
-                lt(sql`0`, events.currentCheckIns),
-              ),
-            );
 
           ctx.cache.deletePattern(`event:${input.eventId}`);
           ctx.cache.deletePattern("event*");

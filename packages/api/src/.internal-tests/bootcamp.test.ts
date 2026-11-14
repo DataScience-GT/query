@@ -54,6 +54,7 @@ vi.mock("@query/db", async () => {
       leftJoin: () => node,
       where: () => node,
       orderBy: () => node,
+      groupBy: () => node,
       limit: () => rows(),
       then: (ok: any, err: any) => rows().then(ok, err),
     };

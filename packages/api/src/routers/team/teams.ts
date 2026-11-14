@@ -9,10 +9,24 @@ import {
   hackathonParticipants,
   hackathonProjects,
 } from "@query/db";
-import { eq, and, isNull, lt, sql } from "drizzle-orm";
+import { eq, and, isNull, count } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { checkTeamEditWindow } from "./windows";
 import { checkAdmitted, assertNoLiveSoloSubmission } from "./guards";
+
+// Roster size is the participant rows pointing at the team. hackathonTeams.currentMembers
+// is a retired counter that drifted when a user or team deletion nulled or cascaded
+// rows around it. Callers hold the team row lock, so the count cannot move under them.
+const countMembers = async (
+  tx: Pick<DrizzleDB, "select">,
+  teamId: string,
+) => {
+  const [row] = await tx
+    .select({ n: count() })
+    .from(hackathonParticipants)
+    .where(eq(hackathonParticipants.teamId, teamId));
+  return row?.n ?? 0;
+};
 
 export const teamProcedures = {
   createTeam: notHackathonBanned
@@ -70,7 +84,6 @@ export const teamProcedures = {
                 name: input.name,
                 description: input.description,
                 captainId: ctx.userId as string,
-                currentMembers: 1, // The captain is the first member
                 maxMembers: input.maxMembers,
               })
               .returning();
@@ -176,7 +189,14 @@ export const teamProcedures = {
               });
             }
 
-            if (team.currentMembers >= team.maxMembers) {
+            // Locked so two joiners cannot both count the last seat as free.
+            await tx
+              .select({ id: hackathonTeams.id })
+              .from(hackathonTeams)
+              .where(eq(hackathonTeams.id, team.id))
+              .for("update");
+
+            if ((await countMembers(tx, team.id)) >= team.maxMembers) {
               throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "This team is full.",
@@ -199,27 +219,6 @@ export const teamProcedures = {
               throw new TRPCError({
                 code: "CONFLICT",
                 message: "You are already in a team.",
-              });
-            }
-
-            // 5. Take the seat. The count above is a snapshot, so the increment carries
-            // the capacity test: whoever loses the last seat updates no row.
-            const seated = await tx
-              .update(hackathonTeams)
-              .set({
-                currentMembers: sql`${hackathonTeams.currentMembers} + 1`,
-              })
-              .where(
-                and(
-                  eq(hackathonTeams.id, team.id),
-                  lt(hackathonTeams.currentMembers, hackathonTeams.maxMembers),
-                ),
-              );
-
-            if (seated.rowCount === 0) {
-              throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "This team is full.",
               });
             }
 
@@ -292,7 +291,7 @@ export const teamProcedures = {
 
             // If captain is the only one left, they can "leave" which deletes the team
             if (team.captainId === (ctx.userId as string)) {
-              if (team.currentMembers <= 1) {
+              if ((await countMembers(tx, team.id)) <= 1) {
                 const project = await tx.query.hackathonProjects.findFirst({
                   where: eq(hackathonProjects.teamId, team.id),
                 });
@@ -332,9 +331,8 @@ export const teamProcedures = {
               });
             }
 
-            // 1. Give up the seat. `teamId = team.id` makes a second Leave match no row
-            // instead of decrementing twice.
-            const left = await tx
+            // Give up the seat. A second Leave matches no row and is a no-op.
+            await tx
               .update(hackathonParticipants)
               .set({ teamId: null })
               .where(
@@ -343,21 +341,6 @@ export const teamProcedures = {
                   eq(hackathonParticipants.teamId, team.id),
                 ),
               );
-
-            // Already out; idempotent for the caller, but must not decrement.
-            if (left.rowCount === 0) {
-              return { success: true };
-            }
-
-            // 2. Decrement in the database so a concurrent join is not overwritten.
-            // Drifting low to 1 makes the captain branch above delete the team and its
-            // project with members still on it.
-            await tx
-              .update(hackathonTeams)
-              .set({
-                currentMembers: sql`greatest(${hackathonTeams.currentMembers} - 1, 0)`,
-              })
-              .where(eq(hackathonTeams.id, team.id));
 
             return { success: true };
           },

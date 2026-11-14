@@ -82,6 +82,9 @@ jobs:
         run: pnpm test
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
+          # Opts in the tests that write to a real database. Only the throwaway
+          # CI database is ever set here.
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
 
       - name: Stop test database
         if: always()

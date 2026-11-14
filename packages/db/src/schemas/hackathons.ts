@@ -35,6 +35,7 @@ export const hackathons = pgTable(
     registrationDeadline: timestamp("registration_deadline"),
     hackingStartTime: timestamp("hacking_start_time"),
     maxParticipants: integer("max_participants"),
+    // No longer read or written: derived from rows (see services/derived-counts.ts). Dropped in a later change.
     currentParticipants: integer("current_participants").notNull().default(0),
     // `announced` is the gap between hidden and open: the edition is public and
     // collects interest, but takes no registrations and is NOT the edition
@@ -91,6 +92,7 @@ export const hackathonTeams = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     maxMembers: integer("max_members").notNull().default(4),
+    // No longer read or written: derived from rows (see services/derived-counts.ts). Dropped in a later change.
     currentMembers: integer("current_members").notNull().default(0),
     captainId: text("captain_id")
       .notNull()
@@ -197,8 +199,8 @@ export const hackathonParticipants = pgTable(
     // to choose from. A third only made every insert write another entry.
     index("participant_user_id_idx").on(table.userId),
     index("participant_team_id_idx").on(table.teamId),
-    // syncCurrentParticipants filters on the first two columns after every
-    // approve and check-in. registered_at is here for ordering, not filtering:
+    // The seat counts (assertSeats, seatedCounts) filter on the first two
+    // columns. registered_at is here for ordering, not filtering:
     // acceptWave takes the oldest pending and the attendee list pages
     // newest-first, so without it both read every matching row and sort.
     index("participant_hackathon_status_idx").on(
@@ -451,9 +453,9 @@ export const hackathonEventAttendees = pgTable(
     checkedInById: text("checked_in_by_id"),
   },
   (table) => [
-    index("event_attendee_event_id_idx").on(table.eventId),
     index("event_attendee_participant_id_idx").on(table.participantId),
-    // Prevent duplicate check-ins
+    // Prevent duplicate check-ins. Leads with event_id, so it also serves the
+    // by-event reads.
     uniqueIndex("event_attendee_event_participant_idx").on(table.eventId, table.participantId),
     // Named explicitly: the generated name is 67 chars, Postgres truncates to 63,
     // and drizzle then sees a diff on every push and re-creates it forever.

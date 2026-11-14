@@ -31,7 +31,7 @@ export const userProfiles = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => [index("profile_user_id_idx").on(table.userId)],
+  // No user_id index: the unique constraint on it is one.
 );
 
 export const members = pgTable(

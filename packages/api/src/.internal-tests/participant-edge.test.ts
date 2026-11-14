@@ -776,18 +776,20 @@ describe("Participant edge cases", () => {
 
   // =====================================================================
   describe("5. Concurrent team mutations", () => {
-    // The seat is taken by `update ... where currentMembers < maxMembers`, so
-    // the count each caller read is only a hint; the UPDATE re-tests it. A
-    // plain `team.currentMembers + 1` written from the snapshot would be a lost
-    // update and would seat five people in a team of four.
-    it("admits only one of two racing joins into the last free seat", async () => {
-      // A team with 3 of 4 seats taken. findFirst hands out snapshots, exactly
-      // as an unlocked SELECT inside a transaction would.
+    // The seat count is count(*) of participant rows taken under the team row
+    // lock (select ... for update), so the second joiner waits for the first to
+    // commit and then counts the first one's row. This file's transaction
+    // stand-in does not model that select lock, so the joins run one after the
+    // other, which is the order the lock enforces, and the lock is asserted.
+    it("admits only one of two joins into the last free seat", async () => {
+      // 3 of 4 seats held by rows. The stored counter is stale on purpose: it
+      // must play no part.
+      let seatedRows = 3;
       const teamRow = {
         id: TEAM_A,
         hackathonId: HACK_A,
         captainId: "captain_user",
-        currentMembers: 3,
+        currentMembers: 0,
         maxMembers: 4,
         isOpen: true,
       };
@@ -807,36 +809,35 @@ describe("Participant edge cases", () => {
         if (table === "hackathonTeams") return { ...teamRow };
         return undefined;
       });
+      mockSelect.mockImplementation((_trace: any, selectArgs: any[]) =>
+        Object.keys(selectArgs?.[0] ?? {}).includes("n")
+          ? [{ n: seatedRows }]
+          : [{ id: TEAM_A }],
+      );
       mockUpdate.mockImplementation((_op, updateArgs) => {
-        // `where currentMembers < maxMembers` is re-evaluated against the row
-        // as it stands when the statement runs — not against the snapshot the
-        // caller read — and rowCount reports whether it matched. That is the
-        // whole reason the capacity test lives in the UPDATE, so the stand-in
-        // has to re-check it too rather than blindly applying the write.
-        if (updateArgs[0] === hackathonTeams) {
-          if (teamRow.currentMembers >= teamRow.maxMembers)
-            return { rowCount: 0 };
-          teamRow.currentMembers += 1;
-          return { rowCount: 1 };
-        }
-        // Each caller claims their own participant row, and both start with
-        // teamId null, so `where teamId is null` matches for both.
+        // Claiming the participant row seats them: the next count sees it.
+        if (updateArgs[0] === hackathonParticipants) seatedRows += 1;
         return { rowCount: 1 };
       });
 
-      const results = await Promise.allSettled([
-        callerFor("user_a").team.joinTeam({ hackathonId: HACK_A, teamId: TEAM_A }),
-        callerFor("user_b").team.joinTeam({ hackathonId: HACK_A, teamId: TEAM_A }),
-      ]);
+      const first = await callerFor("user_a").team.joinTeam({
+        hackathonId: HACK_A,
+        teamId: TEAM_A,
+      });
+      const second = callerFor("user_b").team.joinTeam({
+        hackathonId: HACK_A,
+        teamId: TEAM_A,
+      });
 
-      const rejected = results.filter((r) => r.status === "rejected");
-      expect(rejected).toHaveLength(1);
-      expect(String((rejected[0] as PromiseRejectedResult)?.reason)).toMatch(
-        /full/,
+      expect(first).toMatchObject({ success: true });
+      await expect(second).rejects.toThrow(/full/);
+      expect(seatedRows).toBe(4);
+      // The retired counter is never written.
+      expect(updatedTables()).not.toContain(hackathonTeams);
+      const lockedForUpdate = mockSelect.mock.calls.some((call) =>
+        (call[0] as [string, unknown[]][]).some(([method]) => method === "for"),
       );
-      // Both writers computed 3 + 1, so the counter reads 4 while five people
-      // actually hold teamId = TEAM_A.
-      expect(teamRow.currentMembers).toBe(4);
+      expect(lockedForUpdate).toBe(true);
     });
 
     // Both clicks read teamId = null and both insert a team; what stops the
@@ -1300,10 +1301,10 @@ describe("Participant edge cases", () => {
       expect(cache.get("hackathon:registrations:other_user")).not.toBeNull();
     });
 
-    // BUG: currentParticipants is only ever incremented (one write in the whole
-    // router tree, registration.ts:173). Rejected applicants hold a seat forever
-    // and there is no withdraw/cancelRegistration procedure at all.
-    it("frees a seat when an admin rejects a participant", async () => {
+    // Seats are counted from the participant rows (approved and checked_in), so
+    // rejecting one frees the seat by changing that row alone. There is no stored
+    // counter on the hackathon left to forget to decrement.
+    it("frees a seat when an admin rejects a participant without writing a counter", async () => {
       mockFindFirst.mockImplementation((table) => {
         if (table === "admins")
           return { userId: "admin_user_id", isActive: true, role: "admin" };
@@ -1323,7 +1324,8 @@ describe("Participant edge cases", () => {
         status: "rejected",
       });
 
-      expect(updatedTables()).toContain(hackathons);
+      expect(updatedTables()).toContain(hackathonParticipants);
+      expect(updatedTables()).not.toContain(hackathons);
     });
 
     it("refuses a check-in when a concurrent change unseated the participant", async () => {
