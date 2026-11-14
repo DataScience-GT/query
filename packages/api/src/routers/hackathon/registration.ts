@@ -13,7 +13,8 @@ import {
 import { eq, and, inArray, isNull, ne } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { assertHackathonVisible } from "./visibility";
-import { evictParticipantCaches, syncCurrentParticipants } from "./admin";
+import { evictParticipantCaches } from "./admin";
+import { teamMemberCounts } from "../../services/derived-counts";
 
 // Postgres unique_violation on hackathon_participant_hackathon_user_idx — a second
 // submission of the same form. Drizzle wraps every driver error in a
@@ -317,9 +318,6 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         });
       }
 
-      // An accepted withdrawal frees a seat for the next wave.
-      await syncCurrentParticipants(db, input.hackathonId);
-
       evictParticipantCaches(ctx.cache, input.hackathonId, [
         ctx.userId as string,
       ]);
@@ -521,8 +519,8 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     // key two reads were in flight at once and each ran the query.
     return ctx.cache.getOrSet(
       `hackathon:registrations:${userId}`,
-      () =>
-        (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
+      async () => {
+        const rows = await (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
           // What the portal reads from a registration: the sidebar, dashboard,
           // event pages and submit page. The rest of the application (phone,
           // demographics, emergency contact, essay) is the viewer's own data but
@@ -555,7 +553,6 @@ export const hackathonRegistrationRouter = createTRPCRouter({
                 id: true,
                 name: true,
                 captainId: true,
-                currentMembers: true,
                 maxMembers: true,
               },
             },
@@ -563,7 +560,19 @@ export const hackathonRegistrationRouter = createTRPCRouter({
           orderBy: (hackathonParticipants, { desc }) => [
             desc(hackathonParticipants.registeredAt),
           ],
-        }),
+        });
+        // Counted from the participant rows; the stored counter is retired.
+        const counts = await teamMemberCounts(
+          ctx.db as DrizzleDB,
+          rows.map((row) => row.team?.id),
+        );
+        return rows.map((row) => ({
+          ...row,
+          team: row.team
+            ? { ...row.team, currentMembers: counts.get(row.team.id) ?? 0 }
+            : row.team,
+        }));
+      },
       30,
     );
   }),

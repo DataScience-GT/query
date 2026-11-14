@@ -356,7 +356,7 @@ export function EditHackathonForm({
                 className={input}
               />
               {/* The cap counts SEATS: approved and checked-in people only
-                  (syncCurrentParticipants). Pending applications do not use one. */}
+                  (assertSeats). Pending applications do not use one. */}
               <p className={fieldHint}>
                 Caps accepted people, not applications. Pending applications do
                 not count, so you can take more applications than seats and

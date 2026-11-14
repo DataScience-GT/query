@@ -145,8 +145,8 @@ export const initiativeApplications = pgTable(
     }),
   },
   (table) => [
-    index("initiative_application_initiative_idx").on(table.initiativeId),
     index("initiative_application_user_idx").on(table.userId),
+    // Leads with initiative_id, so it also serves the by-initiative reads.
     uniqueIndex("initiative_application_initiative_user_idx").on(
       table.initiativeId,
       table.userId,

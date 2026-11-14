@@ -35,7 +35,6 @@ sequenceDiagram
   API->>API: enabled? within 24h of start? bootcamp seat?
   API->>DB: lock event row if capped, insert event_check_in
   DB-->>API: unique violation means already checked in
-  API->>DB: current_check_ins + 1
   API-->>Door: success with event title
 ```
 
@@ -48,7 +47,7 @@ sequenceDiagram
 | Event started more than 24 hours ago | `BAD_REQUEST` "Check-in for this event has closed" |
 | `bootcampOnly` and the caller's `bootcampTerm` is not the session's term | `FORBIDDEN` |
 | Already has a row for this event | `CONFLICT` "Already checked in" |
-| `currentCheckIns >= maxCheckIns` (row locked `FOR UPDATE`, only when capped) | `BAD_REQUEST` "Event is full" |
+| Count of `event_check_in` rows `>= maxCheckIns` (event row locked `FOR UPDATE`, only when capped) | `BAD_REQUEST` "Event is full" |
 
 There is no earliest time: a scan is accepted before the event starts. Membership is not checked. The member row is looked up only so a member's check-in carries `member_id`. The `events.membersOnly` column is no longer read.
 
@@ -63,7 +62,7 @@ Officers need the scanner gate (`isScanner`: any active, unexpired admin row, vo
 | Scan a member's pass | `scanMemberPass` | Looks up `member.pass_code`. `NOT_FOUND` "Unrecognised pass. It may have been rotated." Returns whether the membership is active. Does not check `checkInEnabled` or the 24 hour limit |
 | Check in by email | `manualCheckIn` | The person must already have an account. Method is stored as `manual` |
 | See the roster | `attendees` | 50 per page by default, max 200, newest first |
-| Undo | `removeAttendance` | Deletes the row and decrements `current_check_ins` (never below zero) |
+| Undo | `removeAttendance` | Deletes the row; the next capacity check counts one fewer |
 
 The three check-in writes (`checkIn`, `manualCheckIn`, `scanMemberPass`) share the capacity lock and the unique `(event_id, user_id)` index, so a double tap or two stations scanning the same person produce one row. A member's pass is a UUID rotated with `member.rotatePass`; see [Membership](./membership.md).
 
@@ -117,10 +116,10 @@ The scanner hook (`components/portal/EventCheckIn.tsx`) also recognises a hackat
 
 | Table | Key columns |
 | --- | --- |
-| `event` | `title`, `event_date`, `qr_code` (unique), `check_in_enabled`, `max_check_ins`, `current_check_ins`, `bootcamp_week`, `bootcamp_term`, `bootcamp_only`, `kind` (generated), `created_by_id` |
+| `event` | `title`, `event_date`, `qr_code` (unique), `check_in_enabled`, `max_check_ins`, `bootcamp_week`, `bootcamp_term`, `bootcamp_only`, `kind` (generated), `created_by_id` |
 | `event_check_in` | `event_id`, `user_id`, `member_id` (null for non-members), `check_in_method` (`qr_code` or `manual`), `checked_in_at`. Unique on `(event_id, user_id)` |
 
-`current_check_ins` is a counter kept in step with the rows. It is the capacity check, so every insert and delete moves it in the same transaction.
+The check-in count is `count(*)` of `event_check_in` rows, taken under the event row lock for the capacity check and as a subquery for `currentCheckIns` in event reads. The old `current_check_ins` column is no longer read or written and will be dropped in a later change.
 
 ## Code and tests
 

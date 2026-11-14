@@ -47,6 +47,7 @@ export const events = pgTable(
       sql`case when bootcamp_term is null then 'club' else 'bootcamp' end`,
     ),
     maxCheckIns: integer("max_check_ins"),
+    // No longer read or written: derived from rows (see services/derived-counts.ts). Dropped in a later change.
     currentCheckIns: integer("current_check_ins").notNull().default(0),
     createdById: text("created_by_id")
       .notNull()

@@ -14,6 +14,7 @@ import { compareTerms, currentTerm } from "@query/db/services/membership";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { isAdmin } from "../middleware/procedures";
 import { isUniqueViolation } from "../middleware/db-errors";
+import { withCheckInCounts } from "../services/derived-counts";
 
 // Sessions remain events and attendance remains `event_check_in`. Workshop
 // rows hold only the material officers publish beside those sessions.
@@ -143,16 +144,16 @@ async function sessionsForTerm(db: DrizzleDB, term: string): Promise<Session[]> 
 // Staff only. Carries the door QR, which must never reach a member-facing
 // read: holding the code is enough to check in from anywhere.
 async function adminSessionsForTerm(db: DrizzleDB, term: string) {
-  return db
+  const rows = await db
     .select({
       ...sessionColumns,
       qrCode: events.qrCode,
-      currentCheckIns: events.currentCheckIns,
       maxCheckIns: events.maxCheckIns,
     })
     .from(events)
     .where(scheduledIn(term))
     .orderBy(asc(events.bootcampWeek));
+  return withCheckInCounts(db, rows);
 }
 
 export const bootcampRouter = createTRPCRouter({

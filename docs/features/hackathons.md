@@ -82,7 +82,7 @@ Roles come from `packages/api/src/middleware/procedures.ts`. `isAdmin` is full s
 | `sendMassAcceptanceEmails` | Mails accepted people in batches. Resumable per person through `acceptance_email_sent_at`. |
 | `analytics` | Counts for the dashboard. |
 
-`max_participants` caps acceptances, not applications. `current_participants` is re-derived from `approved` plus `checked_in` rows by `syncCurrentParticipants`, which locks the hackathon row first.
+`max_participants` caps acceptances, not applications. Seats taken are counted from `approved` plus `checked_in` rows on every read (`currentParticipants` in hackathon reads) and under the hackathon row lock in `assertSeats`. The `current_participants` and team `current_members` columns are no longer read or written and will be dropped in a later change.
 
 ### Interest list (`interest.ts`)
 
@@ -127,7 +127,7 @@ Schema: `packages/db/src/schemas/hackathons.ts`.
 
 | Table | Holds |
 | --- | --- |
-| `hackathon` | Edition: dates, deadline, status, `max_participants`, `current_participants`, prizes, tracks, challenges, `is_public`, `judging_active`. |
+| `hackathon` | Edition: dates, deadline, status, `max_participants`, prizes, tracks, challenges, `is_public`, `judging_active`. |
 | `hackathon_participant` | One per user per edition: status, form answers, consent, `acceptance_wave`, `attendance_confirmed_at`, `checked_in_at`, team link. |
 | `hackathon_interest` | Interest list, with per-recipient email sent and failed stamps. |
 | `hackathon_team`, `hackathon_project` | Teams (max 4 by default) and submissions (`draft`, `submitted`, `judging`, `winner`). |
