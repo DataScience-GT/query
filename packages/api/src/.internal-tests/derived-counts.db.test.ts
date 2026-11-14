@@ -15,8 +15,7 @@ import type * as CountHelpers from "../services/derived-counts";
  *
  * Needs TEST_DATABASE_URL (a local, disposable database; never Neon or
  * production) and skips without it. It inserts its own rows under a random
- * suffix and removes them afterwards. The stored counters are set to wrong
- * numbers on purpose, so a read that still used them would fail.
+ * suffix and removes them afterwards.
  */
 const URL = process.env.TEST_DATABASE_URL;
 
@@ -58,7 +57,7 @@ describe.skipIf(!URL)("derived counts against a real database", () => {
       userIds.map((id) => ({ id, email: `${id}@example.test`, name: id })),
     );
 
-    // Event with 3 check-ins and a stored counter of 99.
+    // Event with 3 check-ins.
     const [event] = await db
       .insert(S.events)
       .values({
@@ -66,7 +65,6 @@ describe.skipIf(!URL)("derived counts against a real database", () => {
         eventDate: new Date(),
         qrCode: crypto.randomUUID(),
         createdById: userIds[0]!,
-        currentCheckIns: 99,
       })
       .returning({ id: S.events.id });
     eventId = event!.id;
@@ -74,7 +72,7 @@ describe.skipIf(!URL)("derived counts against a real database", () => {
       userIds.slice(0, 3).map((userId) => ({ eventId, userId })),
     );
 
-    // Capped event: cap 2, two real rows, stored counter 0.
+    // Capped event: cap 2, two real rows.
     cappedQr = crypto.randomUUID();
     const [capped] = await db
       .insert(S.events)
@@ -84,7 +82,6 @@ describe.skipIf(!URL)("derived counts against a real database", () => {
         qrCode: cappedQr,
         createdById: userIds[0]!,
         maxCheckIns: 2,
-        currentCheckIns: 0,
       })
       .returning({ id: S.events.id });
     cappedEventId = capped!.id;
@@ -92,8 +89,7 @@ describe.skipIf(!URL)("derived counts against a real database", () => {
       userIds.slice(0, 2).map((userId) => ({ eventId: cappedEventId, userId })),
     );
 
-    // Hackathon: 2 approved + 1 checked_in + 2 pending/rejected = 3 seats,
-    // stored counter 42.
+    // Hackathon: 2 approved + 1 checked_in + 2 pending/rejected = 3 seats.
     const [hackathon] = await db
       .insert(S.hackathons)
       .values({
@@ -102,7 +98,6 @@ describe.skipIf(!URL)("derived counts against a real database", () => {
         endDate: new Date(Date.now() + 2 * 86_400_000),
         status: "open",
         maxParticipants: 10,
-        currentParticipants: 42,
       })
       .returning({ id: S.hackathons.id });
     hackathonId = hackathon!.id;
@@ -114,13 +109,11 @@ describe.skipIf(!URL)("derived counts against a real database", () => {
           hackathonId,
           name: `dc team ${suffix}`,
           captainId: userIds[0]!,
-          currentMembers: 7,
         },
         {
           hackathonId,
           name: `dc empty ${suffix}`,
           captainId: userIds[5]!,
-          currentMembers: 3,
         },
       ])
       .returning({ id: S.hackathonTeams.id });
@@ -194,7 +187,7 @@ describe.skipIf(!URL)("derived counts against a real database", () => {
     expect(counts.size).toBe(0);
   });
 
-  it("events.list returns the row count, not the stored counter", async () => {
+  it("events.list returns the row count", async () => {
     const { cache } = await import("../middleware/cache");
     cache.clear();
     const list = await appRouter.createCaller(ctx()).events.list();
@@ -205,7 +198,7 @@ describe.skipIf(!URL)("derived counts against a real database", () => {
     );
   });
 
-  it("hackathon.getById returns the seats held by rows, not the stored counter", async () => {
+  it("hackathon.getById returns the seats held by rows", async () => {
     const { cache } = await import("../middleware/cache");
     cache.clear();
     const row = await appRouter
@@ -223,7 +216,7 @@ describe.skipIf(!URL)("derived counts against a real database", () => {
     ).toBe(3);
   });
 
-  it("team.list returns the roster size, not the stored counter", async () => {
+  it("team.list returns the roster size", async () => {
     const { cache } = await import("../middleware/cache");
     cache.clear();
     const teams = await appRouter
@@ -235,7 +228,7 @@ describe.skipIf(!URL)("derived counts against a real database", () => {
     );
   });
 
-  it("refuses a check-in when rows fill the event although the stored counter reads 0", async () => {
+  it("refuses a check-in when the rows fill the event", async () => {
     await expect(
       appRouter
         .createCaller(ctx(userIds[4]))
@@ -243,10 +236,10 @@ describe.skipIf(!URL)("derived counts against a real database", () => {
     ).rejects.toMatchObject({ message: "Event is full" });
   });
 
-  it("admits a check-in once the rows leave room although the stored counter reads full", async () => {
+  it("admits a check-in once a row leaves room", async () => {
     const db = S.db!;
     const { and, eq } = drizzleOps;
-    // Free a seat by deleting a row, and set the counter to read full.
+    // Free a seat by deleting a row.
     await db
       .delete(S.eventCheckIns)
       .where(
@@ -255,11 +248,6 @@ describe.skipIf(!URL)("derived counts against a real database", () => {
           eq(S.eventCheckIns.userId, userIds[1]!),
         ),
       );
-    await db
-      .update(S.events)
-      .set({ currentCheckIns: 2 })
-      .where(eq(S.events.id, cappedEventId));
-
     await expect(
       appRouter
         .createCaller(ctx(userIds[4]))

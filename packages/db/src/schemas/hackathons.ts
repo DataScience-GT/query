@@ -34,9 +34,9 @@ export const hackathons = pgTable(
     endDate: timestamp("end_date").notNull(),
     registrationDeadline: timestamp("registration_deadline"),
     hackingStartTime: timestamp("hacking_start_time"),
+    // Seats taken are the approved and checked-in participant rows
+    // (services/derived-counts.ts in the api), not a stored column.
     maxParticipants: integer("max_participants"),
-    // No longer read or written: derived from rows (see services/derived-counts.ts). Dropped in a later change.
-    currentParticipants: integer("current_participants").notNull().default(0),
     // `announced` is the gap between hidden and open: the edition is public and
     // collects interest, but takes no registrations and is NOT the edition
     // memberships attach to. See PRE_CURRENT_STATUSES below.
@@ -56,12 +56,6 @@ export const hackathons = pgTable(
     websiteUrl: text("website_url"),
     isPublic: boolean("is_public").notNull().default(true),
     judgingActive: boolean("judging_active").notNull().default(false),
-    // Retired with the panel judging service; nothing reads it. Still declared
-    // because a database that already has the column would otherwise see push
-    // propose dropping it, which stops every deploy at a TTY prompt.
-    judgingBackend: text("judging_backend", { enum: ["legacy", "panel"] })
-      .notNull()
-      .default("legacy"),
     // Point store. Hidden and closed until an organiser opens it; the location
     // is where hackers pick up what they bought.
     storeCatalogVisible: boolean("store_catalog_visible")
@@ -91,9 +85,8 @@ export const hackathonTeams = pgTable(
       .references(() => hackathons.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
+    // The roster is the participant rows with this team_id, not a stored count.
     maxMembers: integer("max_members").notNull().default(4),
-    // No longer read or written: derived from rows (see services/derived-counts.ts). Dropped in a later change.
-    currentMembers: integer("current_members").notNull().default(0),
     captainId: text("captain_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
