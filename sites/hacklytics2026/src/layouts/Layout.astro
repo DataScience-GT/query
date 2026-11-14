@@ -1,0 +1,23 @@
+---
+import Navbar from "../components/Navbar";
+import "../styles/fonts.css";
+import "../styles/globals.css";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hacklytics 2026: Golden Byte</title>
+    <meta name="description" content="Data Science @ GT" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" type="image/x-icon" />
+    <link rel="preload" href="/fonts/truculenta-var-latin.woff2" as="font" crossorigin="" type="font/woff2" />
+    <link rel="preload" href="/fonts/truculenta-800-latin.woff2" as="font" crossorigin="" type="font/woff2" />
+    <link rel="preload" href="/fonts/truculenta-900-latin.woff2" as="font" crossorigin="" type="font/woff2" />
+  </head>
+  <body class="font-sans">
+    <Navbar client:load />
+    <slot />
+  </body>
+</html>
