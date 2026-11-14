@@ -110,9 +110,9 @@ export const hackathonCrudRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       type DB = DrizzleDB;
-      type HackathonList = Awaited<
+      type HackathonList = (Awaited<
         ReturnType<DB["query"]["hackathons"]["findMany"]>
-      >;
+      >[number] & { currentParticipants: number })[];
 
       // Staff-only statuses stay listable by admins (the setup and judging pages
       // pick a hackathon off this endpoint), so both the rows and the cache entry
@@ -187,9 +187,11 @@ export const hackathonCrudRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       type DB = DrizzleDB;
-      type HackathonItem = Awaited<
-        ReturnType<DB["query"]["hackathons"]["findFirst"]>
-      >;
+      type HackathonItem =
+        | (NonNullable<
+            Awaited<ReturnType<DB["query"]["hackathons"]["findFirst"]>>
+          > & { currentParticipants: number })
+        | undefined;
       // list() hides staff-only statuses, but this endpoint is reachable by id or
       // name, so a draft stays fetchable by anyone who guesses either. The cache
       // entry is shared, so visibility is enforced on the way out — otherwise one

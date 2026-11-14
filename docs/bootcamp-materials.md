@@ -50,4 +50,4 @@ An upload and a removal of the same file can race, because the object write and 
 
 ## Legacy table
 
-`bootcamp_material` (#390's per-event handouts) is still declared in the schema, but nothing reads or writes it. Deploys run `drizzle-kit push`, and removing the declaration would make push stop at a DROP TABLE prompt. Drop the table in a separate change.
+`bootcamp_material` (#390's per-event handouts) was dropped in November 2026 (`packages/db/sql/2026-11-drop-retired.sql`); nothing had read or written it since `bootcamp_workshop` replaced it.
