@@ -10,6 +10,7 @@ import {
   unique,
   uniqueIndex,
   foreignKey,
+  check,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
@@ -72,6 +73,8 @@ export const hackathons = pgTable(
     // non-uuid argument on this column — two editions sharing a name make one
     // permanently unreachable through the admin UI, with no error.
     unique("unique_hackathon_name").on(table.name),
+    check("hackathon_dates_check", sql`${table.endDate} >= ${table.startDate}`),
+    check("hackathon_max_participants_check", sql`${table.maxParticipants} > 0`),
   ],
 );
 
@@ -97,6 +100,7 @@ export const hackathonTeams = pgTable(
   (table) => [
     index("team_hackathon_id_idx").on(table.hackathonId),
     index("team_captain_id_idx").on(table.captainId),
+    check("team_max_members_check", sql`${table.maxMembers} > 0`),
   ],
 );
 
@@ -423,6 +427,8 @@ export const hackathonEvents = pgTable(
     uniqueIndex("event_check_in_code_idx")
       .on(table.hackathonId, table.checkInCode)
       .where(sql`${table.checkInCode} is not null`),
+    check("hackathon_event_times_check", sql`${table.endTime} >= ${table.startTime}`),
+    check("hackathon_event_points_check", sql`${table.points} >= 0`),
   ],
 );
 
