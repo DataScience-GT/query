@@ -5,7 +5,9 @@ import {
   primaryKey,
   integer,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type { AdapterAccount } from "next-auth/adapters";
 
 export const users = pgTable(
@@ -18,7 +20,12 @@ export const users = pgTable(
     image: text("image"),
   },
   (table) => [
+    // For the exact-match lookups (admin grant, manual check-in, bans).
     index("user_email_idx").on(table.email),
+    // One account per address, case-insensitive: the auth adapter looks users
+    // up by lower(email) and assumes one row comes back, while providers keep
+    // whatever casing the address was typed in.
+    uniqueIndex("user_email_lower_unique_idx").on(sql`lower(${table.email})`),
     index("user_name_idx").on(table.name),
   ],
 );
