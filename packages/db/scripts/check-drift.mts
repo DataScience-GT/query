@@ -5,7 +5,9 @@
  * because the code leans on them for idempotency (23505 handling, "safe to
  * re-run"), and `drizzle-kit push < /dev/null` skips one that needs
  * confirmation — duplicates already in the table — while still exiting 0.
- * Types and plain indexes are not checked.
+ * Timestamp columns are checked for their time zone: a type change push did
+ * not apply leaves the old type behind with every column still present.
+ * Other types and plain indexes are not checked.
  */
 import * as dotenv from "dotenv";
 import path from "path";
@@ -48,8 +50,9 @@ await client.connect();
 const { rows } = await client.query<{
   table_name: string;
   column_name: string;
+  data_type: string;
 }>(
-  `select table_name, column_name
+  `select table_name, column_name, data_type
    from information_schema.columns
    where table_schema = 'public'`,
 );
@@ -62,9 +65,11 @@ const { rows: indexRows } = await client.query<{ indexname: string }>(
 const liveIndexes = new Set(indexRows.map((row) => row.indexname));
 
 const live = new Map<string, Set<string>>();
+const liveTypes = new Map<string, string>();
 for (const row of rows) {
   if (!live.has(row.table_name)) live.set(row.table_name, new Set());
   live.get(row.table_name)!.add(row.column_name);
+  liveTypes.set(`${row.table_name}.${row.column_name}`, row.data_type);
 }
 
 const problems: string[] = [];
@@ -90,6 +95,19 @@ for (const exported of Object.values(schema)) {
 
   if (missing.length > 0) {
     problems.push(`table "${table.name}" is missing: ${missing.join(", ")}`);
+  }
+
+  const wrongZone = table.columns.flatMap((column) => {
+    const declared = column.getSQLType();
+    if (!declared.startsWith("timestamp")) return [];
+    const expected = declared.includes("with time zone")
+      ? "timestamp with time zone"
+      : "timestamp without time zone";
+    const actual = liveTypes.get(`${table.name}.${column.name}`);
+    return actual && actual !== expected ? [`${column.name} is ${actual}`] : [];
+  });
+  if (wrongZone.length > 0) {
+    problems.push(`table "${table.name}" has the wrong timestamp type: ${wrongZone.join(", ")}`);
   }
 
   const uniques = [
@@ -120,5 +138,5 @@ if (problems.length > 0) {
 }
 
 console.log(
-  "Schema check passed: every declared table, column and unique constraint exists.",
+  "Schema check passed: every declared table, column and unique constraint exists, and timestamps carry the declared time zone.",
 );
