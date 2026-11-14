@@ -8,8 +8,9 @@ import {
   index,
   unique,
   uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
 
 // Club initiatives: things a project leader runs year-round that members
@@ -99,6 +100,7 @@ export const initiatives = pgTable(
   (table) => [
     index("initiative_leader_idx").on(table.leaderUserId),
     index("initiative_status_idx").on(table.status),
+    check("initiative_max_members_check", sql`${table.maxMembers} > 0`),
   ],
 );
 
