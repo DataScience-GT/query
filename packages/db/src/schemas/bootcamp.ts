@@ -41,8 +41,8 @@ export const bootcampWorkshops = pgTable(
     recordingUrl: text("recording_url"),
     // Draft by default so saving metadata cannot expose a half-uploaded week.
     isPublished: boolean("is_published").notNull().default(false),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // A unique index, not a constraint: drizzle-kit reads constraint columns

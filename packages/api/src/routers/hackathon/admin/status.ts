@@ -488,12 +488,12 @@ export const statusProcedures = {
             registrationStatus: status,
             updatedAt: new Date(),
             // coalesce so re-checking in someone who already arrived keeps their original
-            // time. `at time zone 'utc'` because the column is timestamp-without-tz: a
-            // bare now() goes through the session TimeZone and would disagree with the
-            // `new Date()` updateParticipantStatus writes for the same event.
+            // time. The column stores a time zone, so now() is the same instant the
+            // `new Date()` in updateParticipantStatus writes, whatever the session's
+            // TimeZone.
             ...(status === "checked_in"
               ? {
-                  checkedInAt: sql`coalesce(${hackathonParticipants.checkedInAt}, now() at time zone 'utc')`,
+                  checkedInAt: sql`coalesce(${hackathonParticipants.checkedInAt}, now())`,
                 }
               : {}),
           })

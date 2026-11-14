@@ -31,10 +31,10 @@ export const hackathons = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     location: text("location"),
-    startDate: timestamp("start_date").notNull(),
-    endDate: timestamp("end_date").notNull(),
-    registrationDeadline: timestamp("registration_deadline"),
-    hackingStartTime: timestamp("hacking_start_time"),
+    startDate: timestamp("start_date", { withTimezone: true }).notNull(),
+    endDate: timestamp("end_date", { withTimezone: true }).notNull(),
+    registrationDeadline: timestamp("registration_deadline", { withTimezone: true }),
+    hackingStartTime: timestamp("hacking_start_time", { withTimezone: true }),
     // Seats taken are the approved and checked-in participant rows
     // (services/derived-counts.ts in the api), not a stored column.
     maxParticipants: integer("max_participants"),
@@ -64,8 +64,8 @@ export const hackathons = pgTable(
       .default(false),
     storeOpen: boolean("store_open").notNull().default(false),
     storeLocation: text("store_location"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("hackathon_status_idx").on(table.status),
@@ -94,8 +94,8 @@ export const hackathonTeams = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     isOpen: boolean("is_open").notNull().default(true),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("team_hackathon_id_idx").on(table.hackathonId),
@@ -172,23 +172,23 @@ export const hackathonParticipants = pgTable(
     mlhInformationalEmails: boolean("mlh_informational_emails").default(false),
 
     // Participation tracking
-    checkedInAt: timestamp("checked_in_at"),
+    checkedInAt: timestamp("checked_in_at", { withTimezone: true }),
     // Set when an accepted hacker says they are coming. Null means no answer,
     // which is what organisers chase to free seats before the event.
-    attendanceConfirmedAt: timestamp("attendance_confirmed_at"),
+    attendanceConfirmedAt: timestamp("attendance_confirmed_at", { withTimezone: true }),
     hasSubmittedProject: boolean("has_submitted_project")
       .notNull()
       .default(false),
     // Stamped per participant as their acceptance mail leaves. A mass send is
     // thousands of round trips and can die halfway; without a per-row marker the
     // only safe retry is none, and the unsafe one mails everybody twice.
-    acceptanceEmailSentAt: timestamp("acceptance_email_sent_at"),
+    acceptanceEmailSentAt: timestamp("acceptance_email_sent_at", { withTimezone: true }),
     // Which acceptance wave took this applicant, 1-based. Null while pending, and
     // null forever for anyone accepted one at a time from the table.
     acceptanceWave: integer("acceptance_wave"),
 
-    registeredAt: timestamp("registered_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    registeredAt: timestamp("registered_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // No standalone hackathon_id index: it leads both the composite below and
@@ -249,12 +249,12 @@ export const hackathonProjects = pgTable(
       .default("draft"),
     score: integer("score"),
     ranking: integer("ranking"),
-    submittedAt: timestamp("submitted_at"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
     // Set when an organiser pulls the project. A team's own withdrawal leaves
     // it null, which is how submitProject tells the two drafts apart.
-    withdrawnByAdminAt: timestamp("withdrawn_by_admin_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    withdrawnByAdminAt: timestamp("withdrawn_by_admin_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("project_hackathon_id_idx").on(table.hackathonId),
@@ -306,19 +306,19 @@ export const hackathonInterest = pgTable(
     // whole reason the list exists, and a send of thousands runs in batches from
     // an admin's browser — so it has to be resumable per recipient, exactly like
     // acceptanceEmailSentAt.
-    registrationOpenEmailSentAt: timestamp("registration_open_email_sent_at"),
+    registrationOpenEmailSentAt: timestamp("registration_open_email_sent_at", { withTimezone: true }),
     /** Same claim mechanism as the announcement recipients above. */
-    registrationOpenEmailClaimedAt: timestamp(
-      "registration_open_email_claimed_at",
-    ),
+    registrationOpenEmailClaimedAt: timestamp("registration_open_email_claimed_at", {
+      withTimezone: true,
+    }),
     // Set when the provider rejected this address, so a retry can tell a
     // never-attempted recipient from a failed one, and a permanently bad address
     // cannot keep the send reporting itself unfinished.
-    registrationOpenEmailFailedAt: timestamp(
-      "registration_open_email_failed_at",
-    ),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    registrationOpenEmailFailedAt: timestamp("registration_open_email_failed_at", {
+      withTimezone: true,
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // hackathon_id alone leads hackathon_interest_hackathon_user_idx below, which already
@@ -407,8 +407,8 @@ export const hackathonEvents = pgTable(
       enum: ["workshop", "meal", "ceremony", "activity", "sponsor_session"],
     }).notNull(),
     location: text("location").notNull(),
-    startTime: timestamp("start_time").notNull(),
-    endTime: timestamp("end_time").notNull(),
+    startTime: timestamp("start_time", { withTimezone: true }).notNull(),
+    endTime: timestamp("end_time", { withTimezone: true }).notNull(),
     // What attending is worth. Copied onto each attendance row at check-in, so
     // editing it later never changes what anyone already earned.
     points: integer("points").notNull().default(0),
@@ -418,8 +418,8 @@ export const hackathonEvents = pgTable(
     // event is running.
     checkInCode: text("check_in_code"),
     selfCheckIn: boolean("self_check_in").notNull().default(false),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("event_hackathon_id_idx").on(table.hackathonId),
@@ -441,7 +441,7 @@ export const hackathonEventAttendees = pgTable(
       .notNull()
       .references(() => hackathonEvents.id, { onDelete: "cascade" }),
     participantId: uuid("participant_id").notNull(),
-    checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
+    checkedInAt: timestamp("checked_in_at", { withTimezone: true }).defaultNow().notNull(),
     // The event's points at the moment of check-in. Null on rows from before
     // points existed, which count as zero. No default on purpose: every writer
     // must copy the event's value, or the number is invented.
@@ -530,12 +530,12 @@ export const hackathonCheckInFlags = pgTable(
       onDelete: "set null",
     }),
     attempts: integer("attempts").notNull().default(1),
-    // Written from the app clock, like checked_in_at: the rule compares against
-    // it, and the database's now() follows the session's TimeZone.
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    lastAttemptAt: timestamp("last_attempt_at").defaultNow().notNull(),
+    // Written from the app clock, like checked_in_at, which the rule compares
+    // against.
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }).defaultNow().notNull(),
     // An organiser reviewed the flag and cleared it. It stays on record.
-    dismissedAt: timestamp("dismissed_at"),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
     dismissedById: text("dismissed_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -615,7 +615,7 @@ export const hackathonAnnouncements = pgTable(
     createdById: text("created_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("hackathon_announcement_hackathon_id_idx").on(table.hackathonId),
@@ -643,11 +643,11 @@ export const hackathonAnnouncementRecipients = pgTable(
     // overlapping requests both select the same `sent_at IS NULL` rows and both
     // send. The claim is an atomic UPDATE, so exactly one wins each row, and a
     // claim older than CLAIM_TIMEOUT is reclaimable so a dead batch resumes.
-    claimedAt: timestamp("claimed_at"),
-    sentAt: timestamp("sent_at"),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
     // Set when the provider rejected this address, so a retry can tell a
     // never-attempted recipient from a failed one.
-    failedAt: timestamp("failed_at"),
+    failedAt: timestamp("failed_at", { withTimezone: true }),
   },
   (table) => [
     index("hackathon_announcement_recipient_pending_idx").on(
@@ -707,7 +707,7 @@ export const hackathonBans = pgTable(
     bannedBy: text("banned_by").references(() => users.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [uniqueIndex("hackathon_ban_email_idx").on(table.email)],
 );

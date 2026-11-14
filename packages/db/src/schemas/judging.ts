@@ -42,24 +42,24 @@ export const judgingConfigs = pgTable("judging_config", {
   state: text("state", { enum: JUDGING_STATES })
     .notNull()
     .default("draft"),
-  openedAt: timestamp("opened_at"),
-  closedAt: timestamp("closed_at"),
+  openedAt: timestamp("opened_at", { withTimezone: true }),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
   // Member judges see every scoped score, not only projects they judged.
   // Guests never do.
   showAllScores: boolean("show_all_scores").notNull().default(false),
   // Set by the first room link or the first claim. After it, a Devpost import
   // only adds projects; replacing the inventory needs typed confirmation.
-  inventoryLockedAt: timestamp("inventory_locked_at"),
+  inventoryLockedAt: timestamp("inventory_locked_at", { withTimezone: true }),
   inventoryLockedById: text("inventory_locked_by_id").references(
     () => users.id,
     { onDelete: "set null" },
   ),
-  groupsInitializedAt: timestamp("groups_initialized_at"),
+  groupsInitializedAt: timestamp("groups_initialized_at", { withTimezone: true }),
   // Hackers see their times and rooms only once this is on.
   itineraryPublished: boolean("itinerary_published").notNull().default(false),
   // Schedule fell over: hackers get project search, roster and feedback hide.
   emergencyMode: boolean("emergency_mode").notNull().default(false),
-  claimsStartedAt: timestamp("claims_started_at"),
+  claimsStartedAt: timestamp("claims_started_at", { withTimezone: true }),
   // While judging runs, presentations of a judge who left or went quiet move
   // to judges who are here.
   autoRebalance: boolean("auto_rebalance").notNull().default(true),
@@ -70,9 +70,9 @@ export const judgingConfigs = pgTable("judging_config", {
   repoCheckGraceMinutes: integer("repo_check_grace_minutes")
     .notNull()
     .default(0),
-  repoCheckLastRunAt: timestamp("repo_check_last_run_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  repoCheckLastRunAt: timestamp("repo_check_last_run_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // A judged project. `source` says where it came from: a Devpost export row
@@ -97,23 +97,23 @@ export const judgingEntries = pgTable(
     universities: text("universities").array().notNull(),
     prizeCategories: text("prize_categories").array().notNull(),
     participantCount: integer("participant_count").notNull().default(1),
-    projectCreatedAt: timestamp("project_created_at"),
-    submittedAt: timestamp("submitted_at"),
+    projectCreatedAt: timestamp("project_created_at", { withTimezone: true }),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
     // Soft delete: evaluations and deliberation notes keep pointing at it.
-    deletedAt: timestamp("deleted_at"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedById: text("deleted_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
     // An organiser pulled this entry from prizes, usually after a check-in rule
     // break. Judges still score it, so nothing about the room schedule changes;
     // only placements and results leave it out.
-    prizeIneligibleAt: timestamp("prize_ineligible_at"),
+    prizeIneligibleAt: timestamp("prize_ineligible_at", { withTimezone: true }),
     prizeIneligibleById: text("prize_ineligible_by_id").references(
       () => users.id,
       { onDelete: "set null" },
     ),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("judging_entry_hackathon_idx").on(table.hackathonId),
@@ -151,12 +151,12 @@ export const judgingEntryMembers = pgTable(
     userId: text("user_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    claimedAt: timestamp("claimed_at"),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
     // Set when a claimed teammate added this person, rather than Devpost.
     invitedById: text("invited_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("judging_entry_member_entry_idx").on(table.entryId),
@@ -188,7 +188,7 @@ export const judgingRepoChecks = pgTable(
       enum: ["ok", "late", "no_repo", "unreadable", "error"],
     }).notNull(),
     // GitHub's own clock for the last push to any branch.
-    pushedAt: timestamp("pushed_at"),
+    pushedAt: timestamp("pushed_at", { withTimezone: true }),
     // At most 20 commits and 20 pushes; shown for context, never decided on.
     evidence: jsonb("evidence").$type<{
       commits: {
@@ -200,7 +200,7 @@ export const judgingRepoChecks = pgTable(
       }[];
       pushes: { at: string; ref: string | null; pusher: string | null }[];
     }>(),
-    checkedAt: timestamp("checked_at").notNull(),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull(),
     decision: text("decision", {
       enum: ["pending", "disqualified", "cleared"],
     })
@@ -209,12 +209,12 @@ export const judgingRepoChecks = pgTable(
     decidedById: text("decided_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    decidedAt: timestamp("decided_at"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
     note: text("note"),
     removedEntry: boolean("removed_entry").notNull().default(false),
     // The `deletedAt` the disqualification set, so reinstating undoes only
     // that removal and not a later manual one.
-    removedDeletedAt: timestamp("removed_deleted_at"),
+    removedDeletedAt: timestamp("removed_deleted_at", { withTimezone: true }),
     // Every repo checked for the entry (at most 3); the columns above describe
     // the one that decided the outcome.
     repos: jsonb("repos").$type<
@@ -258,13 +258,13 @@ export const judgingClaimLinks = pgTable(
       .notNull()
       .references(() => hackathons.id, { onDelete: "cascade" }),
     token: text("token"),
-    sentAt: timestamp("sent_at"),
-    expiresAt: timestamp("expires_at").notNull(),
-    consumedAt: timestamp("consumed_at"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
     consumedById: text("consumed_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("judging_claim_link_member_idx").on(table.memberId),
@@ -297,7 +297,7 @@ export const judgingChallenges = pgTable(
       .notNull()
       .default("scheduled"),
     displayOrder: integer("display_order").notNull().default(0),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("judging_challenge_hackathon_idx").on(table.hackathonId),
@@ -356,7 +356,7 @@ export const judgingBuildings = pgTable(
       .notNull()
       .references(() => hackathons.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("judging_building_name_idx").on(table.hackathonId, table.name),
@@ -386,8 +386,8 @@ export const judgingRooms = pgTable(
     name: text("name").notNull(),
     kind: text("kind", { enum: judgingRoomKinds }).notNull().default("room"),
     displayOrder: integer("display_order").notNull().default(0),
-    archivedAt: timestamp("archived_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("judging_room_hackathon_idx").on(table.hackathonId),
@@ -413,8 +413,8 @@ export const judgingRoomLinks = pgTable(
     createdById: text("created_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    revokedAt: timestamp("revoked_at"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
     revokedById: text("revoked_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -438,7 +438,7 @@ export const judgingJudges = pgTable(
     kind: text("kind", { enum: ["member", "guest"] }).notNull(),
     userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
     displayName: text("display_name").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("judging_judge_hackathon_idx").on(table.hackathonId),
@@ -467,10 +467,10 @@ export const judgingGuestSessions = pgTable(
     judgeId: uuid("judge_id").references(() => judgingJudges.id, {
       onDelete: "set null",
     }),
-    expiresAt: timestamp("expires_at").notNull(),
-    completedAt: timestamp("completed_at"),
-    revokedAt: timestamp("revoked_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("judging_guest_session_token_idx").on(table.tokenHash),
@@ -492,9 +492,9 @@ export const judgingPresence = pgTable(
     hackathonId: uuid("hackathon_id")
       .notNull()
       .references(() => hackathons.id, { onDelete: "cascade" }),
-    joinedAt: timestamp("joined_at").defaultNow().notNull(),
-    lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
-    leftAt: timestamp("left_at"),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow().notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).defaultNow().notNull(),
+    leftAt: timestamp("left_at", { withTimezone: true }),
   },
   (table) => [
     uniqueIndex("judging_presence_open_idx")
@@ -513,8 +513,8 @@ export const judgingSchedules = pgTable(
     hackathonId: uuid("hackathon_id")
       .notNull()
       .references(() => hackathons.id, { onDelete: "cascade" }),
-    windowStart: timestamp("window_start").notNull(),
-    windowEnd: timestamp("window_end").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    windowEnd: timestamp("window_end", { withTimezone: true }).notNull(),
     setupMinutes: integer("setup_minutes").notNull().default(2),
     judgingMinutes: integer("judging_minutes").notNull().default(6),
     teardownMinutes: integer("teardown_minutes").notNull().default(2),
@@ -526,17 +526,17 @@ export const judgingSchedules = pgTable(
       .default(20),
     // Saved from a relaxed solve, where cross-building walks got only the
     // same-building break. An organiser had to say yes to that.
-    reducedBreaksAcknowledgedAt: timestamp("reduced_breaks_acknowledged_at"),
+    reducedBreaksAcknowledgedAt: timestamp("reduced_breaks_acknowledged_at", { withTimezone: true }),
     // The first submitted evaluation. After it the schedule cannot be dropped.
-    firstResultAt: timestamp("first_result_at"),
+    firstResultAt: timestamp("first_result_at", { withTimezone: true }),
     // The last time judges were re-balanced on their own, and how many
     // presentations that moved.
-    lastRebalancedAt: timestamp("last_rebalanced_at"),
+    lastRebalancedAt: timestamp("last_rebalanced_at", { withTimezone: true }),
     lastRebalanceChanged: integer("last_rebalance_changed").notNull().default(0),
     createdById: text("created_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("judging_schedule_hackathon_idx").on(table.hackathonId),
@@ -567,9 +567,9 @@ export const judgingAppointments = pgTable(
     roomId: uuid("room_id")
       .notNull()
       .references(() => judgingRooms.id, { onDelete: "cascade" }),
-    startsAt: timestamp("starts_at").notNull(),
-    deadlineAt: timestamp("deadline_at").notNull(),
-    endsAt: timestamp("ends_at").notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    deadlineAt: timestamp("deadline_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
     // Compare-and-swap for moves made from two organiser screens at once.
     revision: integer("revision").notNull().default(0),
     // The one judge who grades this presentation. Null until judges are
@@ -622,8 +622,8 @@ export const judgingAnnouncements = pgTable(
     createdById: text("created_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    clearedAt: timestamp("cleared_at"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    clearedAt: timestamp("cleared_at", { withTimezone: true }),
   },
   (table) => [
     uniqueIndex("judging_announcement_global_idx")
@@ -656,7 +656,7 @@ export const judgingRubricItems = pgTable(
     guestVisibility: text("guest_visibility", {
       enum: ["public", "optional", "private"],
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("judging_rubric_item_hackathon_idx").on(table.hackathonId)],
 );
@@ -680,11 +680,11 @@ export const judgingEvaluations = pgTable(
     appointmentId: uuid("appointment_id"),
     isComplete: boolean("is_complete").notNull().default(false),
     revision: integer("revision").notNull().default(1),
-    submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }).defaultNow().notNull(),
     // Set when a draft ran past its deadline and was submitted for the judge.
-    autoSubmittedAt: timestamp("auto_submitted_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    autoSubmittedAt: timestamp("auto_submitted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("judging_evaluation_task_idx").on(
@@ -732,9 +732,9 @@ export const judgingEvaluationDrafts = pgTable(
     appointmentId: uuid("appointment_id"),
     ratings: jsonb("ratings").$type<JudgingDraftRatings>().notNull(),
     responses: jsonb("responses").$type<JudgingDraftResponses>().notNull(),
-    deadlineAt: timestamp("deadline_at"),
+    deadlineAt: timestamp("deadline_at", { withTimezone: true }),
     revision: integer("revision").notNull().default(0),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("judging_evaluation_draft_task_idx").on(
@@ -820,7 +820,7 @@ export const judgingEvaluationRevisions = pgTable(
     evaluationId: uuid("evaluation_id").notNull(),
     revision: integer("revision").notNull(),
     snapshot: jsonb("snapshot").$type<JudgingEvaluationSnapshot>().notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("judging_evaluation_revision_eval_idx").on(table.evaluationId),
@@ -842,7 +842,7 @@ export const judgingDeliberationSections = pgTable(
       .references(() => judgingJudges.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     displayOrder: integer("display_order").notNull().default(0),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("judging_deliberation_section_judge_idx").on(table.judgeId)],
 );
@@ -893,8 +893,8 @@ export const judgingPlacements = pgTable(
     // calibration existed.
     rawScore: numeric("raw_score", { precision: 4, scale: 2 }),
     evaluationCount: integer("evaluation_count").notNull().default(0),
-    publishedAt: timestamp("published_at"),
-    computedAt: timestamp("computed_at").defaultNow().notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // Leads with hackathon_id, so it also serves the by-edition reads.

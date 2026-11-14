@@ -23,9 +23,9 @@ export const admins = pgTable("admin", {
   isActive: boolean("is_active").notNull().default(true),
   // End of a fixed-term appointment. NULL is a standing appointment, which is
   // what the founding super admins hold, so the column revokes nothing alone.
-  expiresAt: timestamp("expires_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const adminsRelations = relations(admins, ({ one }) => ({
