@@ -7,7 +7,6 @@ import {
   integer,
   index,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 import { initiatives } from "./initiatives";
 
 // The public roster on `/` and `/projects`. Separate from `initiative`, which
@@ -35,10 +34,9 @@ export const clubProjects = pgTable(
     // they ever sign in, and past leads have graduated.
     leadName: text("lead_name"),
     summary: text("summary").notNull(),
-    tech: text("tech")
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
+    // No array default: drizzle-kit reads it back in a different spelling and
+    // re-applied it on every push. The seed, the only writer, always sets it.
+    tech: text("tech").array().notNull(),
     repoUrl: text("repo_url"),
     joinUrl: text("join_url"),
     capacityNote: text("capacity_note"),
