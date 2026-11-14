@@ -37,8 +37,10 @@ export const teamReadProcedures = {
 
       const cacheKey = `hackathon:${input.hackathonId}:teams`;
 
-      const fetchTeams = () =>
-        (ctx.db as NonNullable<typeof ctx.db>).query.hackathonTeams.findMany({
+      const fetchTeams = async () => {
+        const rows = await (
+          ctx.db as NonNullable<typeof ctx.db>
+        ).query.hackathonTeams.findMany({
           where: eq(hackathonTeams.hackathonId, input.hackathonId),
           with: {
             captain: {
@@ -63,6 +65,13 @@ export const teamReadProcedures = {
             desc(hackathonTeams.createdAt),
           ],
         });
+        // Every participant row of each team is loaded above, so that is the
+        // roster size; the stored counter is retired.
+        return rows.map((team) => ({
+          ...team,
+          currentMembers: team.participants.length,
+        }));
+      };
 
       const cached =
         ctx.cache.get<Awaited<ReturnType<typeof fetchTeams>>>(cacheKey);

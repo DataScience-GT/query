@@ -77,10 +77,10 @@ export const judgeAssignments = pgTable(
     track: text("track"),
   },
   (table) => [
-    index("assignment_judge_id_idx").on(table.judgeId),
     index("assignment_hackathon_id_idx").on(table.hackathonId),
     // judge.register enforces one assignment per judge per hackathon with a
-    // read before the insert.
+    // read before the insert. Leads with judge_id, so it also serves the
+    // by-judge reads.
     uniqueIndex("assignment_judge_hackathon_idx").on(
       table.judgeId,
       table.hackathonId,
@@ -172,9 +172,9 @@ export const judgeVotes = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    index("vote_judge_id_idx").on(table.judgeId),
     index("vote_project_id_idx").on(table.projectId),
-    // Unique constraint: one vote per judge per project (enforced at DB level)
+    // One vote per judge per project. Leads with judge_id, so it also serves
+    // the by-judge reads.
     uniqueIndex("vote_unique_idx").on(table.judgeId, table.projectId),
   ],
 );
@@ -217,9 +217,9 @@ export const hackathonResults = pgTable(
     computedAt: timestamp("computed_at").defaultNow().notNull(),
   },
   (table) => [
-    index("result_hackathon_idx").on(table.hackathonId),
     // One placing per project per prize. Recomputing upserts onto this rather
-    // than appending a second, contradictory ordering.
+    // than appending a second, contradictory ordering. Leads with hackathon_id,
+    // so it also serves the by-edition reads.
     uniqueIndex("result_unique_placing").on(
       table.hackathonId,
       table.projectId,
@@ -256,7 +256,7 @@ export const judgeQueue = pgTable(
     arrivedAt: timestamp("arrived_at"),
   },
   (table) => [
-    index("queue_judge_id_idx").on(table.judgeId),
+    // No judge_id index: queue_todo_idx leads with it.
     index("queue_hackathon_id_idx").on(table.hackathonId),
     // Critical for "next table" logic
     index("queue_todo_idx").on(

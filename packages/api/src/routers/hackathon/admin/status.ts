@@ -15,7 +15,6 @@ import { eq, and, inArray, ne, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import {
   SEATED_STATUSES,
-  syncCurrentParticipants,
   assertSeats,
   evictParticipantCaches,
 } from "./seats";
@@ -101,8 +100,6 @@ export const statusProcedures = {
           });
         }
       });
-
-      await syncCurrentParticipants(ctx.db as DrizzleDB, input.hackathonId);
 
       evictParticipantCaches(ctx.cache, input.hackathonId, [
         participant.userId,
@@ -261,8 +258,6 @@ export const statusProcedures = {
         };
       }
 
-      await syncCurrentParticipants(db, input.hackathonId);
-
       await recordAdminAction(db, {
         userId: ctx.userId,
         action: "hackathon.acceptWave",
@@ -374,9 +369,6 @@ export const statusProcedures = {
             ),
           );
       });
-
-      // Approving a rejected or waitlisted applicant hands a seat back out.
-      await syncCurrentParticipants(db, hackathonId);
 
       const { sendAcceptanceEmail } = await import("@query/auth/email");
 
@@ -526,8 +518,6 @@ export const statusProcedures = {
             userId: hackathonParticipants.userId,
           });
       });
-
-      await syncCurrentParticipants(ctx.db as DrizzleDB, hackathonId);
 
       evictParticipantCaches(
         ctx.cache,
