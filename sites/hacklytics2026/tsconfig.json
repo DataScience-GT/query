@@ -1,19 +1,17 @@
 {
-  "extends": "../../tooling/typescript/base.json",
+  "extends": "astro/tsconfigs/base",
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "jsx": "react-jsx",
-    "types": ["react", "node"],
-    "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./*"] }
+    "jsxImportSource": "react",
+    "types": ["astro/client"],
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "strict": false,
+    "verbatimModuleSyntax": false
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": ["node_modules", "out", ".next"]
+  "include": [".astro/types.d.ts", "src/**/*", "astro.config.mjs"],
+  "exclude": ["node_modules", "out"]
 }
