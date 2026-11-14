@@ -8,6 +8,13 @@
  * found and edited by hand every time the destination moved.
  */
 
+/** Organisation social profiles. Mirrors SOCIAL_LINKS in @query/db/constants; this site does not depend on that package. */
+export const SOCIAL_LINKS = {
+  github: "https://github.com/DataScience-GT",
+  linkedin: "https://www.linkedin.com/company/dsgt/",
+  instagram: "https://www.instagram.com/datasciencegt/",
+} as const;
+
 /** The portal origin. Matches BASE_URL / NEXTAUTH_URL in apphosting.yaml. */
 export const PORTAL_ORIGIN = "https://datasciencegt.org";
 

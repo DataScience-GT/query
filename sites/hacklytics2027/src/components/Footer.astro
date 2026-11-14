@@ -1,7 +1,7 @@
 ---
 import { FooterBed } from "./pixel/GardenBeds";
 import { EVENT_YEAR } from "@/lib/event";
-import { INTEREST_URL, JUDGE_URL, PORTAL_HACKATHON_URL, PORTAL_ORIGIN } from "@/lib/links";
+import { INTEREST_URL, JUDGE_URL, PORTAL_HACKATHON_URL, PORTAL_ORIGIN, SOCIAL_LINKS } from "@/lib/links";
 
 interface Props {
   /** The 404's bare soil is the point of that page, so it gets no bed in bloom under it. */
@@ -97,7 +97,7 @@ const navIds = ["about", "tracks", "prizes", "schedule", "sponsors", "faqs"];
       <p class="font-sans text-[13px] text-ink-3">© {EVENT_YEAR} Data Science @ GT</p>
       <div class="flex items-center gap-5">
         <a
-          href="https://instagram.com/dsgt"
+          href={SOCIAL_LINKS.instagram}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Instagram"
@@ -106,7 +106,7 @@ const navIds = ["about", "tracks", "prizes", "schedule", "sponsors", "faqs"];
           Instagram
         </a>
         <a
-          href="https://linkedin.com/company/dsgt"
+          href={SOCIAL_LINKS.linkedin}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="LinkedIn"
