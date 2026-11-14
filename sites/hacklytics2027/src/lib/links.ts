@@ -52,3 +52,8 @@ export const JUDGE_URL = `${PORTAL_ORIGIN}/login?callbackUrl=${encodeURIComponen
   "/judge",
 )}`;
 
+
+/** The judge application form, entered through sign-in like the rest of the portal. */
+export const JUDGE_SIGNUP_URL = `${PORTAL_ORIGIN}/login?callbackUrl=${encodeURIComponent(
+  "/judge/register",
+)}`;
