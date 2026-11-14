@@ -80,7 +80,7 @@
       "public": "sites/hacklytics2026/out",
       "headers": [
         {
-          "source": "/_next/static/**",
+          "source": "/_astro/**",
           "headers": [
             {
               "key": "Cache-Control",

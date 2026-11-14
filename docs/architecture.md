@@ -183,7 +183,7 @@ The webhook is `sites/mainweb/app/(portal)/api/webhooks/stripe/route.ts`. Linkin
 | --- | --- | --- |
 | `sites/mainweb` | Firebase App Hosting / Cloud Run (`apphosting.yaml`) | Next `standalone` |
 | `sites/hacklytics2027` | Firebase Hosting target `hacklytics` | Astro static build (`astro build` writes `out/`) |
-| `sites/hacklytics2026` | Firebase Hosting target `hacklytics2026` | Next.js static export (`next build` writes `out/`) |
+| `sites/hacklytics2026` | Firebase Hosting target `hacklytics2026` | Astro static output (`astro build` writes `out/`) |
 
 The event site does not talk to the database. Interest and registration live on the portal; the marketing site links to `/login?callbackUrl=/hacklytics`.
 
