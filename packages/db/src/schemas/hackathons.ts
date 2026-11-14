@@ -451,9 +451,9 @@ export const hackathonEventAttendees = pgTable(
     checkedInById: text("checked_in_by_id"),
   },
   (table) => [
-    index("event_attendee_event_id_idx").on(table.eventId),
     index("event_attendee_participant_id_idx").on(table.participantId),
-    // Prevent duplicate check-ins
+    // Prevent duplicate check-ins. Leads with event_id, so it also serves the
+    // by-event reads.
     uniqueIndex("event_attendee_event_participant_idx").on(table.eventId, table.participantId),
     // Named explicitly: the generated name is 67 chars, Postgres truncates to 63,
     // and drizzle then sees a diff on every push and re-creates it forever.
