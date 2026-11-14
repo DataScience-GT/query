@@ -29,7 +29,12 @@ export default function AdminJudgingPage() {
         <p className={pageDek}>
           Pick an edition to open its judging console: projects, challenges,
           rooms, the schedule, launch and results. Each edition&apos;s judge
-          roster is on its hackathon page, under Judges.
+          roster is on its hackathon page, under Judges. People who only left
+          their details on the Hacklytics site are under{" "}
+          <Link href="/admin/judging/interest" className={textLink}>
+            Judge interest
+          </Link>
+          .
         </p>
       </header>
 
