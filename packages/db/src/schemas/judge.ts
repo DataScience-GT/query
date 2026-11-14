@@ -16,10 +16,10 @@ import { hackathons, hackathonProjects } from "./hackathons";
 // The judge roster is live: `judge` (one row per person per edition) and
 // `judge_assignment` (their application, with the track they would like).
 //
-// judging_project, judge_vote, hackathon_result and judge_queue belong to the
-// retired pool-dispatch judging. Nothing writes them any more. They stay
-// declared for past editions' data: hackathon.getResults still reads
-// hackathon_result. Room judging is in judging.ts.
+// judging_project, judge_vote and hackathon_result belong to the retired
+// pool-dispatch judging. Nothing writes them any more. They stay declared for
+// past editions' data: hackathon.getResults still reads hackathon_result.
+// Room judging is in judging.ts.
 
 export const judges = pgTable(
   "judge",
@@ -228,51 +228,6 @@ export const hackathonResults = pgTable(
   ],
 );
 
-// Retired (see the top of this file). One row per visit: written when the
-// judging pool handed a judge a table.
-export const judgeQueue = pgTable(
-  "judge_queue",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    judgeId: uuid("judge_id")
-      .notNull()
-      .references(() => judges.id, { onDelete: "cascade" }),
-    hackathonId: uuid("hackathon_id")
-      .notNull()
-      .references(() => hackathons.id, { onDelete: "cascade" }),
-    projectId: uuid("project_id")
-      .notNull()
-      .references(() => judgingProjects.id, { onDelete: "cascade" }),
-    order: integer("order").notNull(), // nth table this judge was handed
-    isCompleted: boolean("is_completed").notNull().default(false),
-    completedAt: timestamp("completed_at"),
-    // Stamped when the pool hands this table to the judge. Holds the table
-    // while they walk over (JUDGE_WALK_LIMIT_SECONDS); a judge who never
-    // arrives releases it rather than blocking it until an admin steps in.
-    startedAt: timestamp("started_at"),
-    // When the judge tapped the table's NFC tag or scanned its card and
-    // actually began. The judging clock and the hard cutoff run from here;
-    // the gap from startedAt is walking, none of which is judging.
-    arrivedAt: timestamp("arrived_at"),
-  },
-  (table) => [
-    // No judge_id index: queue_todo_idx leads with it.
-    index("queue_hackathon_id_idx").on(table.hackathonId),
-    // Critical for "next table" logic
-    index("queue_todo_idx").on(
-      table.judgeId,
-      table.hackathonId,
-      table.isCompleted,
-    ),
-    // Answers "is anyone else at this table right now" for the claim check.
-    index("queue_project_active_idx").on(
-      table.projectId,
-      table.isCompleted,
-      table.startedAt,
-    ),
-  ],
-);
-
 // Relations
 export const judgesRelations = relations(judges, ({ one, many }) => ({
   user: one(users, {
@@ -285,7 +240,6 @@ export const judgesRelations = relations(judges, ({ one, many }) => ({
   }),
   assignments: many(judgeAssignments),
   votes: many(judgeVotes),
-  queue: many(judgeQueue),
 }));
 
 export const judgeAssignmentsRelations = relations(
@@ -310,7 +264,6 @@ export const judgingProjectsRelations = relations(
       references: [hackathons.id],
     }),
     votes: many(judgeVotes),
-    queueEntries: many(judgeQueue),
   }),
 );
 
@@ -343,20 +296,6 @@ export const hackathonResultsRelations = relations(
   }),
 );
 
-export const judgeQueueRelations = relations(judgeQueue, ({ one }) => ({
-  judge: one(judges, {
-    fields: [judgeQueue.judgeId],
-    references: [judges.id],
-  }),
-  hackathon: one(hackathons, {
-    fields: [judgeQueue.hackathonId],
-    references: [hackathons.id],
-  }),
-  project: one(judgingProjects, {
-    fields: [judgeQueue.projectId],
-    references: [judgingProjects.id],
-  }),
-}));
 
 // "I might judge." A short public form on the Hacklytics site, no account. It
 // is a lead list, not an application: nobody here has a user row, so it is

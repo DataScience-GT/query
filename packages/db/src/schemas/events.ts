@@ -26,9 +26,6 @@ export const events = pgTable(
     eventDate: timestamp("event_date").notNull(),
     qrCode: text("qr_code").notNull().unique(),
     checkInEnabled: boolean("check_in_enabled").notNull().default(true),
-    // No longer read: check-in is open to everyone signed in. Kept because
-    // schema changes here are additive only; drop it in a later change.
-    membersOnly: boolean("members_only").notNull().default(true),
     /**
      * Week N of the bootcamp. Null on every event that is not a scheduled
      * session, which includes a session whose date was cleared.
@@ -46,9 +43,9 @@ export const events = pgTable(
     kind: text("kind", { enum: ["club", "bootcamp"] }).generatedAlwaysAs(
       sql`case when bootcamp_term is null then 'club' else 'bootcamp' end`,
     ),
+    // How many check-ins the event takes. The count is the event_check_in rows
+    // (services/derived-counts.ts in the api), not a stored column.
     maxCheckIns: integer("max_check_ins"),
-    // No longer read or written: derived from rows (see services/derived-counts.ts). Dropped in a later change.
-    currentCheckIns: integer("current_check_ins").notNull().default(0),
     createdById: text("created_by_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
