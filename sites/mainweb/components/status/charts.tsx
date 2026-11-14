@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { VENUE_TZ } from "@query/db/constants";
 import { uptimePercent } from "@/lib/status";
 import type { Bucket, Day } from "@/lib/status";
 
@@ -19,7 +20,7 @@ export const COLORS = {
   text: "#9ca3af",
 } as const;
 
-const TIME_ZONE = "America/New_York";
+const TIME_ZONE = VENUE_TZ;
 
 const hourLabel = (t: number) =>
   new Date(t).toLocaleString("en-US", {

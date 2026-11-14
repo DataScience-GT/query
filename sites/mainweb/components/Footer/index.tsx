@@ -1,4 +1,5 @@
 // components/Footer/Footer.tsx
+import { SOCIAL_LINKS } from "@query/db/constants";
 import Image from "next/image";
 import Link from "next/link";
 import logo from "@/assets/images/dsgt/apple-touch-icon.png";
@@ -83,7 +84,7 @@ const Footer = ({ className = "" }: FooterProps) => {
             </h2>
             <nav className="flex flex-col space-y-2 text-sm font-medium">
               <a
-                href="https://github.com/DataScience-GT"
+                href={SOCIAL_LINKS.github}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
@@ -91,7 +92,7 @@ const Footer = ({ className = "" }: FooterProps) => {
                 Github
               </a>
               <a
-                href="https://www.linkedin.com/company/dsgt/"
+                href={SOCIAL_LINKS.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
@@ -99,7 +100,7 @@ const Footer = ({ className = "" }: FooterProps) => {
                 LinkedIn
               </a>
               <a
-                href="https://www.instagram.com/datasciencegt/"
+                href={SOCIAL_LINKS.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"

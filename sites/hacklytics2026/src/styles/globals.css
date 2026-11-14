@@ -1,0 +1,205 @@
+/* app/globals.css */
+
+/* This must be the first line. It imports all of Tailwind's styles. */
+@import "tailwindcss";
+
+/*
+  The FAQ, speaker and track cards build their accent classes from a color
+  prop at runtime (`border-${...}`), which Tailwind's scan cannot see. These
+  lines generate them. Keep them in step with the colors those sections pass.
+*/
+@source inline("group-hover:text-{purple,pink,emerald,orange,blue,yellow,rose,cyan}-400");
+@source inline("border-{purple,pink,emerald,orange}-400");
+@source inline("{bg,border}-{emerald-400,orange-400,pink-400,purple-400,blue-500}{,/10,/20}");
+
+/*
+  Define all CSS variables in a single :root block for clarity.
+*/
+:root {
+  /* Brand Colors */
+  --color-sky: #A4C7FF;
+  --color-wonka-yellow: #FFBC0A;
+;
+  --color-wonka-red: #ef4444;
+
+  /* Custom Fonts */
+  --font-family-willywonka: 'Willywonka', cursive;
+
+  /* Navbar Configuration */
+  --navbar-height: 64px;
+  --navbar-bg-top: #A4C7FF; /* Initial background color at the top of the page */
+  --navbar-bg-scrolled: rgba(164, 199, 255, 0.84); /* Background when scrolled */
+  --navbar-blur: 6px;
+  --navbar-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+.justify-between {
+    justify-content: space-between;
+}
+
+/* Minimal utility classes to match app usage */
+.bg-sky { background-color: var(--color-sky); }
+.text-wonka-yellow { color: var(--color-wonka-yellow); }
+.bg-wonka-red { background-color: var(--color-wonka-red); }
+.text-wonka-red { color: var(--color-wonka-red); }
+
+/* Helper class for smooth navbar transitions */
+.navbar-transition {
+  transition: background-color 220ms ease, box-shadow 220ms ease, backdrop-filter 220ms ease, height 220ms ease;
+}
+
+/* Ensure anchors scroll into view below the sticky navbar */
+.section-anchor {
+  scroll-margin-top: calc(var(--navbar-height) + 12px);
+}
+
+/*
+  This @font-face rule tells the browser where to find the font file
+  when the 'Willywonka' font-family is used.
+*/
+@font-face {
+  font-family: 'Willywonka';
+  src: url('/fonts/Willywonka.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Utility class for the Willy Wonka font */
+.font-willywonka {
+  font-family: var(--font-family-willywonka);
+}
+
+/* Truculenta faces are declared in fonts.css. */
+.truculenta {
+  font-family: Truculenta, 'Truculenta Fallback';
+  font-style: normal;
+}
+.truculenta-800 {
+  font-family: Truculenta, 'Truculenta Fallback';
+  font-style: normal;
+  font-weight: 800;
+}
+.truculenta-900 {
+  font-family: Truculenta, 'Truculenta Fallback';
+  font-style: normal;
+  font-weight: 900;
+}
+
+/* Hero animations */
+@keyframes float {
+  0% { transform: translateX(0px); }
+  50% { transform: translateX(20px); }
+  100% { transform: translateX(0px); }
+}
+
+@keyframes float-slow {
+  0% { transform: translateX(0px); }
+  50% { transform: translateX(-20px); }
+  100% { transform: translateX(0px); }
+}
+
+@keyframes float-fast {
+  0% { transform: translateX(0px); }
+  50% { transform: translateX(15px); }
+  100% { transform: translateX(0px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.3),
+                0 0 40px rgba(220, 38, 38, 0.2),
+                0 0 60px rgba(220, 38, 38, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(220, 38, 38, 0.5),
+                0 0 60px rgba(220, 38, 38, 0.4),
+                0 0 90px rgba(220, 38, 38, 0.3);
+  }
+}
+
+@keyframes shine {
+  100% { transform: translateX(100%); }
+}
+
+.animate-shine {
+  animation: shine 1.5s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-float {
+  animation: float 8s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 12s ease-in-out infinite;
+}
+
+.animate-float-fast {
+  animation: float-fast 6s ease-in-out infinite;
+}
+
+.button-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/*
+  Section animations. These were styled-jsx blocks scoped to each section; the
+  sj- classes mark the elements those blocks applied to; elements inside helper components never got the scope, so they keep the hero rules above.
+*/
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes drift {
+  0%, 100% { transform: translateX(0px) translateY(0px); }
+  50% { transform: translateX(20px) translateY(-10px); }
+}
+
+@keyframes section-float {
+  0%, 100% { transform: translateY(0) rotate(var(--tw-rotate)); }
+  50% { transform: translateY(-20px) rotate(calc(var(--tw-rotate) + 5deg)); }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+section .perspective-1000 {
+  perspective: 1000px;
+}
+
+.sj-animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+.sj-animate-drift {
+  animation: drift 10s ease-in-out infinite;
+}
+
+.sj-animate-float {
+  animation: section-float 6s ease-in-out infinite;
+}
+
+.sj-animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes sponsor-drift {
+  0%, 100% { transform: translateX(0px); }
+  50% { transform: translateX(30px); }
+}
+
+#sponsors .sj-animate-drift {
+  animation: sponsor-drift 10s ease-in-out infinite;
+}

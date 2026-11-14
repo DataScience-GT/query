@@ -5,6 +5,7 @@
 // shared state and are the ones worth alerting on. Nothing here writes to
 // Postgres: the database is a 0.5 GB Neon instance, and the collectors are
 // count(*) reads behind a 60-second cache.
+import { VENUE_TZ } from "@query/db/constants";
 import {
   Registry,
   Counter,
@@ -421,7 +422,7 @@ function planFromMetadata(metadata: string | null) {
 
 const currentTermLabel = (now = new Date()) => {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
+    timeZone: VENUE_TZ,
     year: "numeric",
     month: "numeric",
   }).formatToParts(now);

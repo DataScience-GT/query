@@ -357,3 +357,36 @@ export const judgeQueueRelations = relations(judgeQueue, ({ one }) => ({
     references: [judgingProjects.id],
   }),
 }));
+
+// "I might judge." A short public form on the Hacklytics site, no account. It
+// is a lead list, not an application: nobody here has a user row, so it is
+// separate from `judge`, and `edition` is a slug rather than a hackathon FK
+// because the edition's row may not exist yet when the form goes up. One row
+// per (edition, email): resubmitting updates it.
+export const judgeInterest = pgTable(
+  "judge_interest",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    edition: text("edition").notNull(),
+    name: text("name").notNull(),
+    /** Trimmed and lowercased before it is written. */
+    email: text("email").notNull(),
+    company: text("company").notNull(),
+    title: text("title"),
+    expertise: text("expertise"),
+    linkedinUrl: text("linkedin_url"),
+    message: text("message"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    // The conflict target for the upsert, so a double submit is one row.
+    uniqueIndex("judge_interest_edition_email_idx").on(
+      table.edition,
+      table.email,
+    ),
+  ],
+);
+
+export type JudgeInterest = typeof judgeInterest.$inferSelect;
+export type NewJudgeInterest = typeof judgeInterest.$inferInsert;

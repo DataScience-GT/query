@@ -8,6 +8,13 @@
  * found and edited by hand every time the destination moved.
  */
 
+/** Organisation social profiles. Mirrors SOCIAL_LINKS in @query/db/constants; this site does not depend on that package. */
+export const SOCIAL_LINKS = {
+  github: "https://github.com/DataScience-GT",
+  linkedin: "https://www.linkedin.com/company/dsgt/",
+  instagram: "https://www.instagram.com/datasciencegt/",
+} as const;
+
 /** The portal origin. Matches BASE_URL / NEXTAUTH_URL in apphosting.yaml. */
 export const PORTAL_ORIGIN = "https://datasciencegt.org";
 
@@ -45,3 +52,21 @@ export const JUDGE_URL = `${PORTAL_ORIGIN}/login?callbackUrl=${encodeURIComponen
   "/judge",
 )}`;
 
+
+/** The judge application form, entered through sign-in like the rest of the portal. */
+export const JUDGE_SIGNUP_URL = `${PORTAL_ORIGIN}/login?callbackUrl=${encodeURIComponent(
+  "/judge/register",
+)}`;
+
+/**
+ * Where the judge interest form posts. A public, rate-limited endpoint on the
+ * portal that accepts this site's origins. On localhost it talks to a local
+ * portal (port 3001) so the form can be tried without touching the real list.
+ * A function because it reads the page's hostname, which the build cannot.
+ */
+export const judgeInterestUrl = () =>
+  `${
+    typeof window !== "undefined" && window.location.hostname === "localhost"
+      ? "http://localhost:3001"
+      : PORTAL_ORIGIN
+  }/api/judge-interest`;
