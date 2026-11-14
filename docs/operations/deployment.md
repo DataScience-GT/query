@@ -38,8 +38,11 @@ Config: [`firebase.json`](../../firebase.json), [`.firebaserc`](../../.firebaser
 | --- | --- |
 | `dsgt-website` | `sites/mainweb/out` (legacy static path; **production mainweb is App Hosting**, not this) |
 | target `hacklytics` | `sites/hacklytics2027/out` |
+| target `hacklytics2026` (site `hacklyticss2026`, double s) | `sites/hacklytics2026/out` |
 
 Live deploys of Hacklytics: push to `main` runs `pnpm turbo run build --filter=hacklytics2027` then `FirebaseExtended/action-hosting-deploy` with `channelId: live` and `target: hacklytics`. Pull requests get preview channels `pr-<number>`.
+
+Hacklytics 2026 deploys the same way from the `hacklytics2026-out` artifact (jobs `preview-hacklytics2026` and `deploy-hacklytics2026`, target `hacklytics2026`, project `dsgt-website`). Manual deploy from the repo root: `pnpm turbo run build --filter=hacklytics2026`, then `firebase deploy --only hosting:hacklytics2026`.
 
 Service account secret: `FIREBASE_SERVICE_ACCOUNT_DSGT_WEBSITE`.
 

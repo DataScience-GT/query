@@ -6,11 +6,14 @@ All workflows live in `.github/workflows/`.
 
 `ci.yml` is the one CI/CD pipeline, on every PR and every push to `main`/`dev`:
 
-1. `verify` — `pnpm install --frozen-lockfile`, then `turbo run lint typecheck`, `pnpm test`, `turbo run build` (Node from `.nvmrc`; pnpm from `packageManager`, unpinned in the workflow so it cannot drift). Uploads `sites/hacklytics2027/out`.
+1. `verify` — `pnpm install --frozen-lockfile`, then `turbo run lint typecheck`, `pnpm test`, `turbo run build` (Node from `.nvmrc`; pnpm from `packageManager`, unpinned in the workflow so it cannot drift). Uploads `sites/hacklytics2027/out` (artifact `hacklytics-out`) and `sites/hacklytics2026/out` (artifact `hacklytics2026-out`).
 2. `preview-hacklytics` — PRs from this repo (not forks, not Dependabot): deploys that build to Firebase Hosting channel `pr-N`.
 3. `deploy-hacklytics` — push to `main` only: deploys the same build to the live `hacklytics` target.
+4. `preview-hacklytics2026` and `deploy-hacklytics2026` — the same two jobs for the 2026 site, target `hacklytics2026` (Hosting site `hacklyticss2026`).
 
 `verify` restores `.turbo/cache` with `actions/cache`, keyed by commit sha and restored from the newest run, so unchanged tasks replay from cache. Env vars hash only into `mainweb`'s `build` (`sites/mainweb/turbo.json`) and `test`, never into lint or typecheck; the rest of the list in the root `turbo.json` is `globalPassThroughEnv`.
+
+`verify` starts the test database right after checkout, in the background, with only the `db` service (Mailpit is not used by tests). The image pull and boot then overlap install and lint/typecheck instead of adding about 30 seconds in front of the tests. The "Start test database" step waits for that start, then runs `pnpm local:up db` to push the schema and seed. In CI, `tooling/scripts/src/local.ts` also layers `docker-compose.ci.yml` on the compose file (fsync off, data on tmpfs); every compose call must use the same files or compose recreates the container.
 
 Both deploy jobs `need` `verify`, so nothing ships that failed lint, typecheck, tests, or build.
 

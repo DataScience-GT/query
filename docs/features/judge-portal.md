@@ -53,6 +53,16 @@ The roster is what judging reads: `judge.is_active` gates the judging procedures
 
 Guest judges (invite links) are a judging feature, not part of `routers/judge`. `/judge/guest/[hackathonId]` renders JudgeDesk (`trpc.judging.desk.*`); the route handler `/judge/activate/[linkId]` activates the room link and sets the guest cookie. Another page, `/hackathons/[id]/claim`, also uses `trpc.judging.hacker`.
 
+## Judge interest leads
+
+A short public form on the Hacklytics site collects people who might judge before they make an account. It is a lead list, separate from the roster above: nothing here gates judging.
+
+- **Endpoint.** `POST /api/judge-interest` (`sites/mainweb/app/(portal)/api/judge-interest/route.ts`), JSON body `name`, `email`, `company` (required), `title`, `expertise`, `linkedinUrl`, `message` (optional), `website` (honeypot). Validation, the upsert and the origin list are in `packages/api/src/services/judge-interest.ts`. Responses: `200 {ok:true}`, `400 {error, fields}`, `403` wrong origin, `413` body over 8 KB, `429` with `Retry-After`, `500`.
+- **Protection.** CORS allows `hacklytics.io`, `www.hacklytics.io`, `hacklytics2027.web.app`, `hacklytics2027.firebaseapp.com` and the local dev ports; any other origin gets `403`. Rate limit is `BURST_LIMITS.tenPerHour` per client IP (the in-process limiter in `middleware/security.ts`, so per instance). A filled honeypot gets `200` and stores nothing. Nothing from the body is logged.
+- **Table.** `judge_interest`, unique on `(edition, email)` with the email lowercased, so resubmitting updates the row. `edition` is a slug (`hacklytics-2027`), not a foreign key, because the edition row may not exist yet.
+- **Admin.** `judge.interestList` (admin) powers `/admin/judging/interest`: newest first, total count, Export CSV (cells that start with `=`, `+`, `-` or `@` are prefixed with `'`). It is linked from the Judging page. To bring someone in, send them the portal judge application.
+- **Tests.** `sites/mainweb/lib/judge-interest-route.test.ts`, `packages/api/src/.internal-tests/judge-interest.test.ts`.
+
 ## Data
 
 Schema: `packages/db/src/schemas/judge.ts`.
@@ -61,6 +71,7 @@ Schema: `packages/db/src/schemas/judge.ts`.
 | --- | --- |
 | `judge` | One row per person per edition: contact and background fields, `is_active`. |
 | `judge_assignment` | The application: edition, `track`, `status` (`pending`, `approved`, `rejected`), `is_lead`. |
+| `judge_interest` | Public interest leads from the Hacklytics site (above). |
 
 The same file also declares `judging_project`, `judge_vote`, `hackathon_result` and `judge_queue` from the retired pool-dispatch judging. Nothing writes them now, but past editions' data stays, and `hackathon.getResults` still reads `hackathon_result`.
 

@@ -1,0 +1,17 @@
+{
+  "extends": "astro/tsconfigs/base",
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "types": ["astro/client"],
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "strict": false,
+    "verbatimModuleSyntax": false
+  },
+  "include": [".astro/types.d.ts", "src/**/*", "astro.config.mjs"],
+  "exclude": ["node_modules", "out"]
+}

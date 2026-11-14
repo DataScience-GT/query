@@ -7,6 +7,7 @@
 // probes in a row; a result older than 30 minutes says nothing about now, so
 // it is reported as stale instead.
 
+import { MINUTE } from "@query/db/constants";
 import { DAY_MS } from "./status";
 import type { Day, StatusSummary } from "./status";
 
@@ -31,7 +32,7 @@ export type UptimeData = {
 };
 
 /** A probe older than this no longer says whether the site is up. */
-export const STALE_MS = 30 * 60 * 1000;
+export const STALE_MS = 30 * MINUTE;
 
 /** Accepts the file as fetched; null when it is not the shape we wrote. */
 export function parseUptime(raw: unknown): UptimeData | null {
