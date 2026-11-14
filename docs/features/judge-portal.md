@@ -73,7 +73,7 @@ Schema: `packages/db/src/schemas/judge.ts`.
 | `judge_assignment` | The application: edition, `track`, `status` (`pending`, `approved`, `rejected`), `is_lead`. |
 | `judge_interest` | Public interest leads from the Hacklytics site (above). |
 
-The same file also declares `judging_project`, `judge_vote`, `hackathon_result` and `judge_queue` from the retired pool-dispatch judging. Nothing writes them now, but past editions' data stays, and `hackathon.getResults` still reads `hackathon_result`.
+The same file also declares `judging_project`, `judge_vote` and `hackathon_result` from the retired pool-dispatch judging. Nothing writes them now, but past editions' data stays, and `hackathon.getResults` still reads `hackathon_result`.
 
 ## Code and tests
 

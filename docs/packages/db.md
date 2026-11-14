@@ -28,13 +28,13 @@ Files in `src/schemas/`, re-exported from `schemas/index.ts`. `drizzle.config.ts
 | `members.ts` | `user_profile`, `member`, `membership_history` |
 | `admins.ts` | `admin` |
 | `hackathons.ts` | `hackathon`, `hackathon_team`, `hackathon_participant`, `hackathon_project`, `hackathon_interest`, `hackathon_event`, `hackathon_event_attendee`, `hackathon_check_in_flag`, `hackathon_announcement`, `hackathon_announcement_recipient` |
-| `judge.ts` | `judge`, `judge_assignment` (live roster); `judging_project`, `judge_vote`, `judge_queue`, `hackathon_result` (retired, kept for past editions) |
+| `judge.ts` | `judge`, `judge_assignment` (live roster); `judging_project`, `judge_vote`, `hackathon_result` (retired, kept for past editions) |
 | `judging.ts` | `judging_*`: config, entries and members, challenges, buildings, rooms and room links, judges, guest sessions, presence, schedule and appointments, rubric, evaluations, deliberation, placements, repo checks |
 | `points.ts` | `hackathon_point_adjustment`, `hackathon_store_item`, `hackathon_store_purchase` |
 | `retired.ts` | Enum types the retired panel judging service left in the database, declared so push does not try to drop them |
 | `initiatives.ts` | `project_leader`, `initiative`, `initiative_application` |
 | `events.ts` | `event`, `event_check_in` |
-| `bootcamp.ts` | `bootcamp_workshop` (metadata; the ZIPs are in Cloud Storage). `bootcamp_material` is legacy and unused |
+| `bootcamp.ts` | `bootcamp_workshop` (metadata; the ZIPs are in Cloud Storage) |
 | `stripe.ts` | `stripe_payment`, `user_account_link` |
 | `security.ts` | `audit_logs` (+ `security_severity` enum) |
 | `settings.ts` | `system_settings` (single row, `id = 'default'`) |
@@ -122,7 +122,7 @@ erDiagram
   judging_entry ||--o{ judging_placement : "final placement"
 ```
 
-Other tables include: `user_profile`, `club_project`, `subteam` and `subteam_application`, `member_resume`, `bootcamp_workshop` and `bootcamp_material`, `hackathon_announcement` and recipients, `hackathon_ban`, `hackathon_check_in_flag`, point adjustments, store items and purchases, `audit_logs`, `system_settings`, `admin`, `project_leader`, `user_account_link`, `verificationToken`, `judging_announcement`, `judging_rubric_item`, `judging_evaluation_draft` and `judging_evaluation_response`. The older `judging_project`, `judge_vote`, `judge_queue` and `hackathon_result` tables are retired and kept for past editions.
+Other tables include: `user_profile`, `club_project`, `subteam` and `subteam_application`, `member_resume`, `bootcamp_workshop`, `hackathon_announcement` and recipients, `hackathon_ban`, `hackathon_check_in_flag`, point adjustments, store items and purchases, `audit_logs`, `system_settings`, `admin`, `project_leader`, `user_account_link`, `verificationToken`, `judging_announcement`, `judging_rubric_item`, `judging_evaluation_draft` and `judging_evaluation_response`. The older `judging_project`, `judge_vote` and `hackathon_result` tables are retired and kept for past editions.
 
 ## Membership service
 
@@ -147,6 +147,16 @@ pnpm --filter @query/db db:seed           # scripts/seed.ts
 ```
 
 The repo is **push-based**: `packages/db/drizzle/meta/_journal.json` has no migration entries. App Hosting runs `drizzle-kit push --verbose < /dev/null` then `db:check`. Destructive prompts cannot be confirmed, so the push aborts rather than dropping columns; `db:check` is the real gate (push can still exit 0).
+
+### Dropping a column or table
+
+Push never drops anything in a deploy, so a drop ships as two things in one change: the schema stops declaring it, and a file in `packages/db/sql/` drops it. Run that file against production **before** the change deploys:
+
+```bash
+psql "$PROD_DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/sql/<file>.sql
+```
+
+The other order is the dangerous one. If the schema stops declaring a column production still has, every later push stops at the data-loss prompt and applies nothing, so new columns stop reaching production too. Each file runs in one transaction and uses `IF EXISTS`, so a failure changes nothing and a second run is a no-op. Rehearse it on a PGX clone first: run the file, then `migrate:push` should report no drops, and `db:check` should pass.
 
 `scripts/link-payments.ts` is a one-off to attach historical paid Stripe rows to matching user emails:
 
