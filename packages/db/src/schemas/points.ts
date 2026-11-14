@@ -7,8 +7,9 @@ import {
   integer,
   index,
   foreignKey,
+  check,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
 import { hackathons, hackathonParticipants } from "./hackathons";
 
@@ -32,7 +33,7 @@ export const hackathonPointAdjustments = pgTable(
       .notNull()
       .references(() => hackathons.id, { onDelete: "cascade" }),
     participantId: uuid("participant_id").notNull(),
-    // Non-zero, -1000 to 1000. Checked by the API.
+    // Non-zero, -1000 to 1000. Checked by the API and by the constraint below.
     delta: integer("delta").notNull(),
     reason: text("reason").notNull(),
     actorId: text("actor_id").references(() => users.id, {
@@ -50,6 +51,10 @@ export const hackathonPointAdjustments = pgTable(
       columns: [table.participantId],
       foreignColumns: [hackathonParticipants.id],
     }).onDelete("cascade"),
+    check(
+      "point_adjustment_delta_check",
+      sql`${table.delta} <> 0 and ${table.delta} between -1000 and 1000`,
+    ),
   ],
 );
 
@@ -74,7 +79,10 @@ export const hackathonStoreItems = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => [index("store_item_hackathon_idx").on(table.hackathonId)],
+  (table) => [
+    index("store_item_hackathon_idx").on(table.hackathonId),
+    check("store_item_price_check", sql`${table.price} >= 0 and ${table.stock} >= 0`),
+  ],
 );
 
 // An organiser handing something over at the store table. The id comes from
@@ -94,7 +102,7 @@ export const hackathonStorePurchases = pgTable(
     itemName: text("item_name").notNull(),
     unitPrice: integer("unit_price").notNull(),
     quantity: integer("quantity").notNull(),
-    // unitPrice * quantity, written by the API.
+    // unitPrice * quantity, written by the API and held by the constraint below.
     total: integer("total").notNull(),
     stockTracked: boolean("stock_tracked").notNull(),
     actorId: text("actor_id").references(() => users.id, {
@@ -124,6 +132,10 @@ export const hackathonStorePurchases = pgTable(
       columns: [table.itemId],
       foreignColumns: [hackathonStoreItems.id],
     }).onDelete("set null"),
+    check(
+      "store_purchase_amount_check",
+      sql`${table.quantity} > 0 and ${table.unitPrice} >= 0 and ${table.total} = ${table.unitPrice} * ${table.quantity}`,
+    ),
   ],
 );
 
