@@ -1,0 +1,21 @@
+# CI-only override, layered on docker-compose.local.yml by tooling/scripts/src/local.ts
+# and .github/workflows/ci.yml. The database is throwaway there, so skip
+# durability: no fsync, and keep the data in memory. Local dev does not use this
+# file and keeps its persistent volume.
+#
+# postgres:18 keeps PGDATA under /var/lib/postgresql/18/docker, so the tmpfs
+# replaces the pgdata volume at the same mount point, /var/lib/postgresql.
+
+services:
+  db:
+    command:
+      - postgres
+      - -c
+      - fsync=off
+      - -c
+      - synchronous_commit=off
+      - -c
+      - full_page_writes=off
+    volumes:
+      - type: tmpfs
+        target: /var/lib/postgresql
