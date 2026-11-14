@@ -1,0 +1,29 @@
+{
+  "name": "hacklytics2026",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "lint": "oxlint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@astrojs/react": "7.1.1",
+    "@tailwindcss/vite": "4.3.3",
+    "astro": "7.4.7",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@query/oxlint-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
+  }
+}

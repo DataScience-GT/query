@@ -104,6 +104,12 @@ Once registration opens on the portal, swap `INTEREST_URL` back to `PORTAL_INTER
 
 The footer also links to the portal for the two audiences that are not waiting on the list: **Hacker portal** (`PORTAL_HACKATHON_URL`, `{PORTAL_ORIGIN}/hacklytics`) and **Judge Hacklytics** (`JUDGE_URL`, sign-in with `callbackUrl=/judge`).
 
+## Judge interest form
+
+Below the Judges section, `components/sections/JudgeInterestForm.tsx` (a React island, `client:visible`) collects name, email, company, title, expertise, LinkedIn and a note, with no account. It posts JSON to `{PORTAL_ORIGIN}/api/judge-interest` (`judgeInterestUrl()` in `lib/links.ts`; on `localhost` it posts to `http://localhost:3001` so dev never touches the real list). The "Apply to judge" button above stays the full application.
+
+The endpoint is a portal route handler, so the portal must be deployed for the form to work. It allows only this site's origins, rate limits per IP and has a hidden honeypot field; see [Judge portal](../features/judge-portal.md#judge-interest-leads). Organizers read the list at `/admin/judging/interest`.
+
 ## Deploy
 
 Firebase Hosting target `hacklytics`, public dir `sites/hacklytics2027/out` (`firebase.json`).

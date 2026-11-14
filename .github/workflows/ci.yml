@@ -23,10 +23,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # Start only the database now, in the background, so the image pull and
+      # boot overlap install and lint/typecheck. Mailpit is not used by tests.
+      # The marker file tells the next database step when this has finished.
+      - name: Start test database in the background
+        run: |
+          nohup setsid bash -c '
+            docker compose -f docker-compose.local.yml -f docker-compose.ci.yml up -d db
+            echo $? > "$RUNNER_TEMP/db-up.exit"
+          ' > "$RUNNER_TEMP/db-up.log" 2>&1 &
+
       # No version pin: the one in packageManager is the one that reads
       # overrides and allowBuilds from pnpm-workspace.yaml. Pinning here
       # silently installed an older pnpm that ignores both.
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -51,8 +61,20 @@ jobs:
 
       # The compose database with its schema and fake data. DATABASE_URL stays
       # on these steps: the build must not look for a database that is gone.
+      # Waits for the background start, then local:up db is a no-op for the
+      # container (already healthy) and pushes the schema and seeds.
       - name: Start test database
-        run: pnpm local:up
+        run: |
+          for _ in $(seq 120); do
+            [ -f "$RUNNER_TEMP/db-up.exit" ] && break
+            sleep 1
+          done
+          if [ "$(cat "$RUNNER_TEMP/db-up.exit" 2>/dev/null)" != "0" ]; then
+            echo "Background database start did not succeed:"
+            cat "$RUNNER_TEMP/db-up.log"
+            exit 1
+          fi
+          pnpm local:up db
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
 
@@ -73,6 +95,13 @@ jobs:
         with:
           name: hacklytics-out
           path: sites/hacklytics2027/out
+          retention-days: 3
+
+      - name: Upload Hacklytics 2026 build
+        uses: actions/upload-artifact@v7
+        with:
+          name: hacklytics2026-out
+          path: sites/hacklytics2026/out
           retention-days: 3
 
   preview-hacklytics:
@@ -129,6 +158,66 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DSGT_WEBSITE }}
           target: hacklytics
+          projectId: dsgt-website
+          channelId: live
+          entryPoint: "."
+          # 15.34.1 checks the Service Usage API, which is disabled on dsgt-website.
+          firebaseToolsVersion: "15.34.0"
+
+  preview-hacklytics2026:
+    name: Preview Hacklytics 2026
+    needs: verify
+    # Forks and Dependabot get no repo secrets, so the deploy would fail on a
+    # missing service account. The verify job above still checks their build.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: hacklytics2026-out
+          path: sites/hacklytics2026/out
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DSGT_WEBSITE }}
+          target: hacklytics2026
+          projectId: dsgt-website
+          channelId: pr-${{ github.event.pull_request.number }}
+          entryPoint: "."
+          # 15.34.1 checks the Service Usage API, which is disabled on dsgt-website.
+          firebaseToolsVersion: "15.34.0"
+
+  deploy-hacklytics2026:
+    name: Deploy Hacklytics 2026
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: hacklytics2026-out
+          path: sites/hacklytics2026/out
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DSGT_WEBSITE }}
+          target: hacklytics2026
           projectId: dsgt-website
           channelId: live
           entryPoint: "."

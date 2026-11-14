@@ -54,3 +54,10 @@ autoInstallPeers: false
 publicHoistPattern:
   - "*prettier*"
 frozenLockfile: false
+
+# pnpm 11+ fails the install on any dependency with an unreviewed build
+# script. Both were already skipped under pnpm 10; false keeps that, as an
+# explicit decision.
+allowBuilds:
+  "@parcel/watcher": false
+  esbuild: false
