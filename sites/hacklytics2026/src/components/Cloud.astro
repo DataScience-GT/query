@@ -1,0 +1,18 @@
+---
+import Img from "./Img.tsx";
+
+interface Props {
+  src: string;
+  class?: string;
+  animationDelay?: string;
+  speed?: "slow" | "normal" | "fast";
+}
+
+const { src, class: className, animationDelay = "0s", speed = "normal" } = Astro.props;
+const speedClass =
+  speed === "slow" ? "animate-float-slow" : speed === "fast" ? "animate-float-fast" : "animate-float";
+---
+
+<div class={`absolute pointer-events-none ${className} ${speedClass}`} style={`animation-delay:${animationDelay}`}>
+  <Img src={src} alt="Decorative cloud" fill className="object-contain" />
+</div>
