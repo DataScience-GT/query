@@ -49,7 +49,7 @@ sequenceDiagram
 | Already has a row for this event | `CONFLICT` "Already checked in" |
 | Count of `event_check_in` rows `>= maxCheckIns` (event row locked `FOR UPDATE`, only when capped) | `BAD_REQUEST` "Event is full" |
 
-There is no earliest time: a scan is accepted before the event starts. Membership is not checked. The member row is looked up only so a member's check-in carries `member_id`. The `events.membersOnly` column is no longer read.
+There is no earliest time: a scan is accepted before the event starts. Membership is not checked. The member row is looked up only so a member's check-in carries `member_id`.
 
 The 24 hour limit matches the public list, which stops marking an event open after the same cutoff, so a photographed QR cannot keep admitting people.
 
@@ -119,7 +119,7 @@ The scanner hook (`components/portal/EventCheckIn.tsx`) also recognises a hackat
 | `event` | `title`, `event_date`, `qr_code` (unique), `check_in_enabled`, `max_check_ins`, `bootcamp_week`, `bootcamp_term`, `bootcamp_only`, `kind` (generated), `created_by_id` |
 | `event_check_in` | `event_id`, `user_id`, `member_id` (null for non-members), `check_in_method` (`qr_code` or `manual`), `checked_in_at`. Unique on `(event_id, user_id)` |
 
-The check-in count is `count(*)` of `event_check_in` rows, taken under the event row lock for the capacity check and as a subquery for `currentCheckIns` in event reads. The old `current_check_ins` column is no longer read or written and will be dropped in a later change.
+The check-in count is `count(*)` of `event_check_in` rows, taken under the event row lock for the capacity check, and by one grouped query per list for `currentCheckIns` in event reads (`services/derived-counts.ts`). There is no stored counter.
 
 ## Code and tests
 
