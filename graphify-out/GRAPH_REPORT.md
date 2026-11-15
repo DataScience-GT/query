@@ -1,7 +1,7 @@
-# Graph Report - graph  (2026-11-14)
+# Graph Report - jcheck  (2026-11-14)
 
 ## Corpus Check
-- 778 files · ~1,093,999 words
+- 778 files · ~1,094,120 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e25ddb4b`
+- Built from commit: `ed59738a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -326,7 +326,7 @@ Nodes (32): dependencies, archiver, babel-plugin-react-compiler, chart.js, drizz
 
 ### Community 2 - "Community 2"
 Cohesion: 0.05
-Nodes (50): adminsRelations, accounts, sessions, users, verificationTokens, BootcampWorkshop, bootcampWorkshops, eventCheckIns (+42 more)
+Nodes (53): adminsRelations, accounts, sessions, users, verificationTokens, BootcampWorkshop, bootcampWorkshops, ClubProject (+45 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.11
@@ -342,7 +342,7 @@ Nodes (26): dependencies, astro, @astrojs/react, react, react-dom, @tailwindcss/
 
 ### Community 6 - "Community 6"
 Cohesion: 0.17
-Nodes (12): cache, cache, dependsOn, persistent, cache, interactive, tasks, clean (+4 more)
+Nodes (12): cache, cache, dependsOn, persistent, dependsOn, outputs, tasks, clean (+4 more)
 
 ### Community 7 - "Community 7"
 Cohesion: 0.31
@@ -353,8 +353,8 @@ Cohesion: 0.06
 Nodes (32): devDependencies, jsdom, oxlint, oxlint-tsgolint, @query/oxlint-config, @query/tailwind-config, @query/tsconfig, react (+24 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.13
-Nodes (21): DIETARY_OPTIONS, GENDERS, MAJORS, REGISTRATION_STEPS, SCHOOLS, FormErrorAlert(), FormNavigation(), FormNavigationProps (+13 more)
+Cohesion: 0.09
+Nodes (26): DIETARY_OPTIONS, GENDERS, MAJORS, REGISTRATION_STEPS, SCHOOLS, FormErrorAlert(), FormNavigation(), FormNavigationProps (+18 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.25
@@ -365,12 +365,12 @@ Cohesion: 0.07
 Nodes (26): dependencies, @auth/drizzle-adapter, drizzle-orm, next-auth, nodemailer, @query/db, devDependencies, oxlint (+18 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.10
-Nodes (32): logSecurityEvent(), stripeRouter, stripePayments, membershipGrantFailures, membershipGrants, paymentIntents, paymentsRecovered, entitlementForCents() (+24 more)
+Cohesion: 0.04
+Nodes (64): authorized(), GET(), logSecurityEvent(), stripeRouter, stripePayments, easternDate, easternHour, startOfEasternDay() (+56 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.05
-Nodes (41): Assertion, mockDelete, mockFindFirst, mockFindMany, mockInsert, mockUpdate, DDOS_CONFIG, ddosProtection() (+33 more)
+Nodes (47): mockCount, mockDelete, mockEarlierAttendance, mockFindFirst, mockFindMany, mockInsert, mockMaxParticipants, mockSendAcceptanceEmail (+39 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.09
@@ -389,8 +389,8 @@ Cohesion: 0.14
 Nodes (15): AdminPage(), AdminBootcampPage(), termLabel(), toLocalInput(), BootcampPortalPage(), NotEnrolled(), termLabel(), BootcampMaterialRow (+7 more)
 
 ### Community 18 - "Community 18"
-Cohesion: 0.04
-Nodes (81): Dashboard(), Announcement(), HackerAnnouncements(), safeHref(), NextStepStrip(), ProjectsTab(), ResultsTab(), StatusBadge() (+73 more)
+Cohesion: 0.05
+Nodes (50): Announcement(), HackerAnnouncements(), safeHref(), ProjectsTab(), ResultsTab(), StatusBadge(), STATUSES, TeamMember (+42 more)
 
 ### Community 19 - "Community 19"
 Cohesion: 0.07
@@ -401,8 +401,8 @@ Cohesion: 0.06
 Nodes (25): AttendeesPage(), CheckInPage(), ClubPage(), eventWhen(), Tab, APPLYING, loginHref(), trpc (+17 more)
 
 ### Community 21 - "Community 21"
-Cohesion: 0.14
-Nodes (26): loadResume(), resumeCaller(), decodeHeader(), decodeStoredFileName(), displayResumeFileName, looksLikePdf(), resumeContentDisposition(), resumeFileName() (+18 more)
+Cohesion: 0.21
+Nodes (18): resumeCaller(), looksLikePdf(), uploadedResumeFileName(), bucket(), client(), deleteResume(), putResume(), readResume() (+10 more)
 
 ### Community 22 - "Community 22"
 Cohesion: 0.10
@@ -453,8 +453,8 @@ Cohesion: 0.12
 Nodes (15): dependencies, next, postcss, react, react-dom, tailwindcss, @tailwindcss/postcss, devDependencies (+7 more)
 
 ### Community 34 - "Community 34"
-Cohesion: 0.06
-Nodes (23): activeMember, mockFindFirst, mockInsert, mockSend, mockUpdate, onSelectRef, isUniqueViolation(), requireActiveMember() (+15 more)
+Cohesion: 0.05
+Nodes (29): activeMember, mockFindFirst, mockInsert, mockSend, mockUpdate, onSelectRef, isProjectLeader, initiativeInput (+21 more)
 
 ### Community 36 - "Community 36"
 Cohesion: 0.13
@@ -469,16 +469,16 @@ Cohesion: 0.06
 Nodes (37): AnswerCheck, Answers, checkAnswers(), CheckedAnswers, isPublicResponse(), isRating(), JudgeKind, mismatch() (+29 more)
 
 ### Community 39 - "Community 39"
-Cohesion: 0.06
-Nodes (27): activeMember, mockDelete, mockFindFirst, mockInsert, mockUpdate, onSelectRef, isProjectLeader, initiativeInput (+19 more)
+Cohesion: 0.29
+Nodes (8): loadResume(), decodeHeader(), decodeStoredFileName(), displayResumeFileName, resumeContentDisposition(), resumeFileName(), uniqueZipName(), GET()
 
 ### Community 40 - "Community 40"
 Cohesion: 0.11
 Nodes (23): adapter, { handlers, auth, signIn, signOut }, authConfig, escapeHtml(), Mailer, renderShell(), sendAcceptanceEmail(), sendAnnouncementEmail() (+15 more)
 
 ### Community 41 - "Community 41"
-Cohesion: 0.07
-Nodes (36): decodeHackathonParam(), findByNameOrSlug(), hackathonCrudRouter, STAFF_ONLY_STATUSES, uniqueStrings(), hasSqlState(), isForeignKeyViolation(), isUniqueViolation() (+28 more)
+Cohesion: 0.08
+Nodes (32): decodeHackathonParam(), findByNameOrSlug(), STAFF_ONLY_STATUSES, uniqueStrings(), hasSqlState(), isForeignKeyViolation(), isUniqueViolation(), adminSessionsForTerm() (+24 more)
 
 ### Community 42 - "Community 42"
 Cohesion: 0.29
@@ -506,7 +506,7 @@ Nodes (20): BOOTCAMP_ARC, HomePage(), metadata, PROJECT_LOGOS, Card(), CardProps
 
 ### Community 48 - "Community 48"
 Cohesion: 0.06
-Nodes (25): hackathonAdminRouter, Audience, AUDIENCES, hackathonAnnounceRouter, messageInput, hackathonBansRouter, hackathonEventsRouter, hackathonRouter (+17 more)
+Nodes (26): hackathonAdminRouter, Audience, AUDIENCES, hackathonAnnounceRouter, messageInput, hackathonBansRouter, hackathonCrudRouter, hackathonEventsRouter (+18 more)
 
 ### Community 49 - "Community 49"
 Cohesion: 0.28
@@ -549,8 +549,8 @@ Cohesion: 0.33
 Nodes (6): config, getCacheControl(), PRIVATE_PREFIXES, proxy(), securityHeaders, STATIC_PAGES
 
 ### Community 59 - "Community 59"
-Cohesion: 0.06
-Nodes (33): Experience, EXPERIENCE_OPTIONS, InterestForm(), KnownSession, mocks, BED, BLOOM, CallToAction() (+25 more)
+Cohesion: 0.05
+Nodes (61): Dashboard(), NextStepStrip(), MyRegistration(), Upcoming, BED, BLOOM, CallToAction(), DAISY (+53 more)
 
 ### Community 60 - "Community 60"
 Cohesion: 0.09
@@ -577,8 +577,8 @@ Cohesion: 0.10
 Nodes (42): ErrorLine(), ChoiceDialog(), ChoiceTarget, Candidate, CpsatResult(), judgesLine(), SECONDS, AppointmentStatus (+34 more)
 
 ### Community 66 - "Community 66"
-Cohesion: 0.06
-Nodes (32): authorized(), GET(), easternDate, easternHour, startOfEasternDay(), GaugeReading, rules, blankParticipants() (+24 more)
+Cohesion: 0.33
+Nodes (3): createAppQueryClient(), portalContextQueryOptions, Providers()
 
 ### Community 67 - "Community 67"
 Cohesion: 0.15
@@ -601,8 +601,8 @@ Cohesion: 0.25
 Nodes (7): outputs, extends, $schema, tasks, build, typecheck, outputs
 
 ### Community 73 - "Community 73"
-Cohesion: 0.08
-Nodes (40): judgeAdminRouter, judgeRouter, judgePortalRouter, CacheEntry, CacheKeys, CacheStats, clearMembershipCaches(), clearProjectLeaderCaches() (+32 more)
+Cohesion: 0.07
+Nodes (46): ADMIN_ROW, JUDGE_ROW, mockDelete, mockFindFirst, mockFindMany, mockInsert, mockSelect, mockUpdate (+38 more)
 
 ### Community 74 - "Community 74"
 Cohesion: 0.08
@@ -622,7 +622,7 @@ Nodes (70): ChallengeRow, inJudgeScope(), Judge, adviceOf(), assertAssignable(),
 
 ### Community 78 - "Community 78"
 Cohesion: 0.03
-Nodes (63): compose, mockFindFirst, mockFindMany, mockInsert, mockSelectConditions, mockSelectRows, mockSendAnnouncement, mockUpdate (+55 more)
+Nodes (60): compose, mockFindFirst, mockFindMany, mockInsert, mockSelectConditions, mockSelectRows, mockSendAnnouncement, mockUpdate (+52 more)
 
 ### Community 79 - "Community 79"
 Cohesion: 0.13
@@ -674,7 +674,7 @@ Nodes (4): TEAL_OPACITY, classYears, majors, Share
 
 ### Community 94 - "Community 94"
 Cohesion: 0.04
-Nodes (87): analyticsProcedures, buildAttendeeWhere(), PARTICIPANT_STATUSES, checkInProcedures, checkInParticipant(), rosterProcedures, assertSeats(), evictParticipantCaches() (+79 more)
+Nodes (93): analyticsProcedures, buildAttendeeWhere(), PARTICIPANT_STATUSES, checkInProcedures, checkInParticipant(), rosterProcedures, assertSeats(), evictParticipantCaches() (+85 more)
 
 ### Community 95 - "Community 95"
 Cohesion: 0.17
@@ -1130,7 +1130,7 @@ Nodes (7): outputs, extends, $schema, tasks, build, typecheck, outputs
 
 ### Community 234 - "Community 234"
 Cohesion: 0.29
-Nodes (5): loadHackerJudgingTab(), HackerJudgingTab(), MyClaim, ProjectLookup(), useDebounced()
+Nodes (6): retiredComparisonOutcome, retiredDispatchStrategy, retiredEventPhase, retiredJudgeStatus, retiredMembershipRole, retiredTrackKind
 
 ### Community 235 - "Community 235"
 Cohesion: 0.29
@@ -1214,7 +1214,7 @@ Nodes (3): outputLogs, outputs, format
 
 ### Community 268 - "Community 268"
 Cohesion: 0.67
-Nodes (3): dependsOn, outputs, lint
+Nodes (3): cache, interactive, push
 
 ### Community 269 - "Community 269"
 Cohesion: 0.67
@@ -1236,9 +1236,9 @@ Nodes (3): ui-add, cache, interactive
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `AppRouter` connect `Community 78` to `Community 34`, `Community 67`, `Community 195`, `Community 39`, `Community 105`, `Community 73`, `Community 76`, `Community 109`, `Community 13`, `Community 48`, `Community 113`, `Community 178`, `Community 20`, `Community 90`, `Community 59`, `Community 60`, `Community 29`?**
+- **Why does `AppRouter` connect `Community 78` to `Community 34`, `Community 67`, `Community 195`, `Community 73`, `Community 105`, `Community 76`, `Community 109`, `Community 13`, `Community 48`, `Community 113`, `Community 178`, `Community 20`, `Community 90`, `Community 59`, `Community 60`, `Community 29`?**
   _High betweenness centrality (0.110) - this node is a cross-community bridge._
-- **Why does `DrizzleDB` connect `Community 94` to `Community 2`, `Community 12`, `Community 21`, `Community 150`, `Community 25`, `Community 26`, `Community 34`, `Community 37`, `Community 39`, `Community 41`, `Community 48`, `Community 183`, `Community 187`, `Community 66`, `Community 70`, `Community 73`, `Community 201`, `Community 76`, `Community 77`, `Community 78`, `Community 85`, `Community 106`, `Community 238`, `Community 112`, `Community 117`, `Community 122`?**
+- **Why does `DrizzleDB` connect `Community 94` to `Community 2`, `Community 12`, `Community 21`, `Community 150`, `Community 25`, `Community 26`, `Community 34`, `Community 37`, `Community 39`, `Community 41`, `Community 48`, `Community 183`, `Community 187`, `Community 70`, `Community 73`, `Community 201`, `Community 76`, `Community 77`, `Community 78`, `Community 85`, `Community 106`, `Community 238`, `Community 112`, `Community 117`, `Community 122`?**
   _High betweenness centrality (0.061) - this node is a cross-community bridge._
 - **Why does `pick()` connect `Community 82` to `Community 94`, `Community 190`?**
   _High betweenness centrality (0.032) - this node is a cross-community bridge._
@@ -1249,4 +1249,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.0625 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.05223880597014925 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05070422535211268 - nodes in this community are weakly interconnected._

@@ -82,12 +82,12 @@ describe("buildChecklist", () => {
       itineraryPublished: false,
     };
     const items = buildChecklist(fresh);
-    expect(items.filter((i) => i.done).map((i) => i.key)).toEqual([
-      // Nothing scheduled has projects, and no Devpost projects need claiming.
-      "rooms",
-      "claims",
-    ]);
+    // Rooms and claims are vacuously satisfied with no projects, but an empty
+    // edition is not partly ready: they wait for projects like everything else.
+    expect(items.filter((i) => i.done)).toEqual([]);
     expect(item(fresh, "rubric").hint).toMatch(/starter groups/);
+    expect(item(fresh, "rooms").hint).toMatch(/^Waits for projects/);
+    expect(item(fresh, "claims").hint).toMatch(/^Waits for projects/);
   });
 
   it("asks for a rating once the groups exist", () => {
@@ -161,6 +161,11 @@ describe("buildChecklist", () => {
       claimsStarted: false,
     };
     expect(item(portalOnly, "claims").done).toBe(true);
+    // With projects but none scheduled yet, rooms are genuinely not needed.
+    expect(item({ ...portalOnly, scheduledRoots: [] }, "rooms")).toMatchObject({
+      done: true,
+      hint: expect.stringMatching(/no room or table is needed/),
+    });
     expect(
       item({ ...ready, claimsStarted: false }, "claims"),
     ).toMatchObject({ done: false, hint: expect.stringMatching(/claim links/) });
