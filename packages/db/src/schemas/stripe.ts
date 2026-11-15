@@ -37,12 +37,12 @@ export const stripePayments = pgTable(
     linkedUserId: text("linked_user_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    linkedAt: timestamp("linked_at"),
+    linkedAt: timestamp("linked_at", { withTimezone: true }),
 
     // Metadata
     metadata: text("metadata"), // JSON string for any extra Stripe metadata
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("stripe_payment_customer_email_idx").on(table.customerEmail),
@@ -79,7 +79,7 @@ export const userAccountLinks = pgTable(
     // Status
     isVerified: boolean("is_verified").notNull().default(true),
 
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // linkAccount and attemptAutoLink both assume one link per user and one per

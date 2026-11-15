@@ -16,7 +16,7 @@ export const users = pgTable(
     id: text("id").notNull().primaryKey(),
     name: text("name"),
     email: text("email").notNull(),
-    emailVerified: timestamp("emailVerified", { mode: "date" }),
+    emailVerified: timestamp("emailVerified", { mode: "date", withTimezone: true }),
     image: text("image"),
   },
   (table) => [
@@ -62,7 +62,7 @@ export const sessions = pgTable(
     userId: text("userId")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    expires: timestamp("expires", { mode: "date" }).notNull(),
+    expires: timestamp("expires", { mode: "date", withTimezone: true }).notNull(),
   },
   (table) => [index("session_user_id_idx").on(table.userId)],
 );
@@ -72,7 +72,7 @@ export const verificationTokens = pgTable(
   {
     identifier: text("identifier").notNull(),
     token: text("token").notNull(),
-    expires: timestamp("expires", { mode: "date" }).notNull(),
+    expires: timestamp("expires", { mode: "date", withTimezone: true }).notNull(),
     // Wrong guesses against this identifier's sign-in code. Counted here, not
     // in the per-instance rate limiter, so every instance sees the same total
     // and a code dies after MAX_CODE_ATTEMPTS misses however requests spread.

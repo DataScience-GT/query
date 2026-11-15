@@ -44,8 +44,8 @@ export const judges = pgTable(
     shirtSize: text("shirt_size"),
     whyJudge: text("why_judge"),
     isActive: boolean("is_active").notNull().default(false),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // user_id alone leads the unique index below, which is what the portal's
@@ -69,7 +69,7 @@ export const judgeAssignments = pgTable(
     hackathonId: uuid("hackathon_id")
       .notNull()
       .references(() => hackathons.id, { onDelete: "cascade" }),
-    assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+    assignedAt: timestamp("assigned_at", { withTimezone: true }).defaultNow().notNull(),
     status: text("status", { enum: ["pending", "approved", "rejected"] })
       .notNull()
       .default("pending"),
@@ -126,8 +126,8 @@ export const judgingProjects = pgTable(
     // Set when an organiser pulls the submission out of the event. A flag rather
     // than a delete: judge_vote cascades off this row, so deleting would erase
     // real scores and shift the z-score normalisation for every other project.
-    withdrawnAt: timestamp("withdrawn_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("judging_project_hackathon_id_idx").on(table.hackathonId),
@@ -168,8 +168,8 @@ export const judgeVotes = pgTable(
     scoreSoundness: integer("score_soundness"), // Soundness & Accuracy
     comment: text("comment"),
     durationSeconds: integer("duration_seconds"), // how long the judge spent on this project
-    votedAt: timestamp("voted_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    votedAt: timestamp("voted_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("vote_project_id_idx").on(table.projectId),
@@ -213,8 +213,8 @@ export const hackathonResults = pgTable(
     voteCount: integer("vote_count").notNull().default(0),
     // Null while the snapshot is a draft. Set on publish, cleared on unpublish,
     // which is what makes publishing reversible.
-    publishedAt: timestamp("published_at"),
-    computedAt: timestamp("computed_at").defaultNow().notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // One placing per project per prize. Recomputing upserts onto this rather
@@ -315,8 +315,8 @@ export const judgeInterest = pgTable(
     expertise: text("expertise"),
     linkedinUrl: text("linkedin_url"),
     message: text("message"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // The conflict target for the upsert, so a double submit is one row.

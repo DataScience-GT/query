@@ -28,8 +28,8 @@ export const userProfiles = pgTable(
     // accounts cannot claim the same one; Postgres treats NULLs as distinct, so
     // everyone else can still leave it empty.
     gtEmail: text("gt_email").unique(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   // No user_id index: the unique constraint on it is one.
 );
@@ -61,17 +61,17 @@ export const members = pgTable(
     // expires, so it cannot be the access check for a one-semester program —
     // every gate compares this against currentTerm().
     bootcampTerm: text("bootcamp_term"),
-    joinedAt: timestamp("joined_at").defaultNow().notNull(),
-    membershipStartDate: timestamp("membership_start_date").notNull(),
-    membershipEndDate: timestamp("membership_end_date"),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow().notNull(),
+    membershipStartDate: timestamp("membership_start_date", { withTimezone: true }).notNull(),
+    membershipEndDate: timestamp("membership_end_date", { withTimezone: true }),
     renewalCount: integer("renewal_count").notNull().default(0),
     skills: text("skills").array(),
     interests: text("interests").array(),
     linkedinUrl: text("linkedin_url"),
     githubUrl: text("github_url"),
     portfolioUrl: text("portfolio_url"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // For the "Active Members" directory listing. user_id is indexed by
@@ -96,10 +96,10 @@ export const membershipHistory = pgTable(
     action: text("action", {
       enum: ["joined", "renewed", "expired", "cancelled"],
     }).notNull(),
-    startDate: timestamp("start_date").notNull(),
-    endDate: timestamp("end_date"),
+    startDate: timestamp("start_date", { withTimezone: true }).notNull(),
+    endDate: timestamp("end_date", { withTimezone: true }),
     notes: text("notes"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("history_member_id_idx").on(table.memberId)],
 );
