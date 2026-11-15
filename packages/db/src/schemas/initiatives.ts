@@ -35,8 +35,8 @@ export const projectLeaders = pgTable(
     appointedBy: text("appointed_by").references(() => users.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // The unique constraint below indexes user_id already.
@@ -86,16 +86,16 @@ export const initiatives = pgTable(
     // four is a leader plus three at `maxMembers = 3`. Null means uncapped; zero
     // would be an initiative nobody can join.
     maxMembers: integer("max_members"),
-    archivedAt: timestamp("archived_at"),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     /** Set when an admin approves or declines a proposal. */
-    reviewedAt: timestamp("reviewed_at"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     reviewedById: text("reviewed_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
     /** The admin's note back to the proposer, shown on a decline. */
     reviewNote: text("review_note"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("initiative_leader_idx").on(table.leaderUserId),
@@ -137,11 +137,11 @@ export const initiativeApplications = pgTable(
     // PDF and never selected by the queue query, only by applicantResume.
     resumeFileName: text("resume_file_name"),
     resumeData: text("resume_data"),
-    resumeUploadedAt: timestamp("resume_uploaded_at"),
+    resumeUploadedAt: timestamp("resume_uploaded_at", { withTimezone: true }),
     // Re-stamped on re-apply, so the leader's queue is ordered by when the hand
     // actually went up.
-    appliedAt: timestamp("applied_at").defaultNow().notNull(),
-    decidedAt: timestamp("decided_at"),
+    appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow().notNull(),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
     decidedById: text("decided_by_id").references(() => users.id, {
       onDelete: "set null",
     }),

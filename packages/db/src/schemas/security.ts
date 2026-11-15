@@ -23,7 +23,7 @@ export const auditLogs = pgTable(
     resourceId: text("resource_id"),
     metadata: jsonb("metadata"),
     severity: securitySeverityEnum("severity").default("info").notNull(),
-    createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("audit_user_id_idx").on(table.userId),
