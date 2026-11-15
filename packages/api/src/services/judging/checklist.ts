@@ -105,7 +105,15 @@ export function rubricLockReason(facts: {
   return null;
 }
 
+// Steps that only mean something once projects exist. With none imported,
+// "nothing needs a room" and "nothing needs claiming" are true of an empty
+// edition, and counting them made a new one read as partly ready.
+const WAITS_FOR_PROJECTS = "Waits for projects. Import or promote them first.";
+
 function roomsItem(facts: ChecklistFacts): Pick<ChecklistItem, "done" | "hint"> {
+  if (facts.entries.devpost + facts.entries.portal === 0) {
+    return { done: false, hint: WAITS_FOR_PROJECTS };
+  }
   if (facts.scheduledRoots.length === 0) {
     return {
       done: true,
@@ -199,12 +207,14 @@ export function buildChecklist(facts: ChecklistFacts): ChecklistItem[] {
     {
       key: "claims",
       label: "Claims started",
-      done: facts.claimsStarted || facts.entries.devpost === 0,
+      done: facts.claimsStarted || (total > 0 && facts.entries.devpost === 0),
       hint: facts.claimsStarted
         ? "Hackers have started claiming their Devpost projects."
-        : facts.entries.devpost === 0
-          ? "Every project came from the portal, so hackers are already linked."
-          : "Email claim links so hackers can find their projects.",
+        : total === 0
+          ? WAITS_FOR_PROJECTS
+          : facts.entries.devpost === 0
+            ? "Every project came from the portal, so hackers are already linked."
+            : "Email claim links so hackers can find their projects.",
     },
     {
       key: "itinerary",
