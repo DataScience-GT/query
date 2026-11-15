@@ -397,9 +397,8 @@ export async function recordEventAttendance(
   },
 ): Promise<{ pointsAwarded: number }> {
   const { event, participant, method, actorId } = input;
-  // One clock for the rule and the row it writes. Left to the database's
-  // now(), checked_in_at (no time zone) follows the session's TimeZone and
-  // would not compare with this one.
+  // One clock for the rule and the row it writes, so the overlap and
+  // too-soon checks compare the very instant that gets stored.
   const now = new Date();
 
   try {

@@ -179,7 +179,7 @@ export const authConfig: NextAuthConfig = {
             const recent = await tx.execute(sql`
               SELECT 1 FROM "verificationToken"
               WHERE "identifier" = ${identifier} AND "token" LIKE 'custom:%'
-                AND "expires" > ${issuedWithinMinute}::timestamp
+                AND "expires" > ${issuedWithinMinute}::timestamptz
               LIMIT 1
             `);
             if (recent.rows.length > 0) return false;
@@ -190,7 +190,7 @@ export const authConfig: NextAuthConfig = {
             `);
             await tx.execute(sql`
               INSERT INTO "verificationToken" ("identifier", "token", "expires")
-              VALUES (${identifier}, ${customToken}, ${expiresISO}::timestamp)
+              VALUES (${identifier}, ${customToken}, ${expiresISO}::timestamptz)
             `);
             return true;
           });

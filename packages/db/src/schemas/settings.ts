@@ -13,5 +13,5 @@ export const systemSettings = pgTable("system_settings", {
   allowPublicRegistration: boolean("allow_public_registration")
     .notNull()
     .default(true),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

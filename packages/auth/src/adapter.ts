@@ -44,7 +44,7 @@ function createAdapter(): Adapter | undefined {
         const expiresISO = token.expires.toISOString();
         await db.execute(sql`
           INSERT INTO "verificationToken" ("identifier", "token", "expires")
-          VALUES (${token.identifier}, ${token.token}, ${expiresISO}::timestamp)
+          VALUES (${token.identifier}, ${token.token}, ${expiresISO}::timestamptz)
         `);
         return token;
       },

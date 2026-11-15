@@ -15,5 +15,5 @@ export const memberResumes = pgTable("member_resume", {
   storageKey: text("storage_key").notNull(),
   fileName: text("file_name").notNull(),
   sizeBytes: integer("size_bytes").notNull(),
-  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).defaultNow().notNull(),
 });

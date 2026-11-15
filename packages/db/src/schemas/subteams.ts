@@ -56,12 +56,12 @@ export const subteams = pgTable(
     // questions are written.
     isOpen: boolean("is_open").notNull().default(false),
     /** Archived is hidden from members; its applications stay on the record. */
-    archivedAt: timestamp("archived_at"),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdById: text("created_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("subteam_archived_idx").on(table.archivedAt)],
 );
@@ -103,8 +103,8 @@ export const subteamApplications = pgTable(
       .default(sql`'[]'::jsonb`),
     /** Anything else they want the admins to know. */
     note: text("note"),
-    appliedAt: timestamp("applied_at").defaultNow().notNull(),
-    decidedAt: timestamp("decided_at"),
+    appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow().notNull(),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
     decidedById: text("decided_by_id").references(() => users.id, {
       onDelete: "set null",
     }),
