@@ -39,7 +39,7 @@ export const hackathonPointAdjustments = pgTable(
     actorId: text("actor_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("point_adjustment_participant_idx").on(
@@ -76,8 +76,8 @@ export const hackathonStoreItems = pgTable(
     displayOrder: integer("display_order").notNull().default(0),
     // Optimistic lock for two organisers editing the same item.
     revision: integer("revision").notNull().default(0),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("store_item_hackathon_idx").on(table.hackathonId),
@@ -108,8 +108,8 @@ export const hackathonStorePurchases = pgTable(
     actorId: text("actor_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    voidedAt: timestamp("voided_at"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
     voidedById: text("voided_by_id").references(() => users.id, {
       onDelete: "set null",
     }),

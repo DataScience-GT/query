@@ -24,7 +24,7 @@ export const events = pgTable(
     title: text("title").notNull(),
     description: text("description"),
     location: text("location"),
-    eventDate: timestamp("event_date").notNull(),
+    eventDate: timestamp("event_date", { withTimezone: true }).notNull(),
     qrCode: text("qr_code").notNull().unique(),
     checkInEnabled: boolean("check_in_enabled").notNull().default(true),
     /**
@@ -50,8 +50,8 @@ export const events = pgTable(
     createdById: text("created_by_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // One event per week per bootcamp. Nulls count as distinct in Postgres, so
@@ -85,7 +85,7 @@ export const eventCheckIns = pgTable(
     checkInMethod: text("check_in_method", { enum: ["qr_code", "manual"] })
       .notNull()
       .default("qr_code"),
-    checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
+    checkedInAt: timestamp("checked_in_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     // A person is at a given event once. events.checkIn already treats a 23505
