@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export function GET() {
   return Response.json(
-    { ok: true },
+    { ok: true, version: process.env.NEXT_PUBLIC_APP_VERSION },
     { headers: { "cache-control": "no-store" } },
   );
 }
