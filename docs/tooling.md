@@ -13,11 +13,17 @@ Each linted package has a `.oxlintrc.json`, and warnings fail the run. `base.jso
 
 ## Turbo
 
-Root `turbo.json` defines `build`, `dev`, `lint`, `typecheck`, `test`, `format`, `clean`, plus `push` / `studio` / `ui-add`. `globalEnv` lists secrets and tunables that must bust the cache when they change (database, auth, Stripe, email, DDoS, proxy hops).
+Root `turbo.json` defines `build`, `dev`, `lint`, `typecheck`, `test`, `format`, `clean`, plus `push` / `studio` / `ui-add`. `globalPassThroughEnv` hands secrets and tunables (database, auth, Stripe, email, DDoS, proxy hops) to every task without hashing them, so changing one does not bust the cache. `test` hashes `DATABASE_URL` on its own.
 
 `sites/mainweb/turbo.json` extends the root and sets Next `.next/**` build outputs.
 
-`turbo/generators/` is a Plop generator (`init`) that scaffolds a new `packages/<name>` with oxlint, package.json, tsconfig, and `src/index.ts`.
+`turbo/generators/` is a Plop generator (`init`) that scaffolds a new `packages/<name>` with oxlint, package.json, tsconfig, and `src/index.ts`. Run it with `pnpm turbo gen init`.
+
+`tooling/scripts/src/restore-workspace.ts` rewrites internal deps a tool flattened to `"*"` back to `workspace:*`. Run it from the repo root with `node tooling/scripts/src/restore-workspace.ts`.
+
+## Build version
+
+`sites/mainweb/next.config.mjs` stamps every build with `NEXT_PUBLIC_APP_VERSION`: `<major>.<minor>` from `sites/mainweb/package.json`, then the git commit count, then the short SHA (`1.0.812+abc1234`). A build without git history falls back to `<package version>+<UTC timestamp>`. `/api/ping` returns it, so `curl https://datasciencegt.org/api/ping` shows what is live. Bump `major.minor` in `sites/mainweb/package.json` by hand for a release worth naming; the patch moves on its own. A turbo cache hit replays the stamp of the build it cached, which is the same code.
 
 ## Other root files
 
@@ -25,7 +31,5 @@ Root `turbo.json` defines `build`, `dev`, `lint`, `typecheck`, `test`, `format`,
 | --- | --- |
 | `.nvmrc` | Node 24 |
 | `pnpm-workspace.yaml` | Workspace globs, the `catalog` of shared dependency versions (packages use `"catalog:"`), plus every pnpm setting: `overrides` (security pins), `allowBuilds`, `autoInstallPeers`, `publicHoistPattern` (hoists prettier), `frozenLockfile`. pnpm 12 reads settings only from here — not `.npmrc`, not `package.json`'s `pnpm` field |
-| `restore-workspace.js` | Rewrite internal deps from `"*"` back to `workspace:*` |
 | `.dockerignore` | Slim Docker context (docs, git, env files, `node_modules`) |
-| `types/globals.d.ts` | Image module declarations (png/jpg/svg) |
 | `.vscode/settings.json` | Quiet terminal bell; disable compile-hero on save |
