@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import { readFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -7,31 +7,54 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Build version: `<major>.<minor>.<UTC commit time as YYYYMMDDHHmm>+<short
- * sha>`. App Hosting clones with depth 1, so a commit count would read 1 on
- * every deploy; the HEAD commit's time is there even in a shallow clone and
- * only moves forward on main. Without git, the build time and no sha.
+ * Build version `MAJOR.MINOR.PATCH`. MAJOR and MINOR are set by hand in this
+ * package's package.json. PATCH counts merges into main since that version
+ * line last changed, so every deploy adds one; at 100 it rolls into MINOR to
+ * stay two digits. App Hosting clones with depth 1, which has no history to
+ * count, so a shallow clone is deepened from the public repo first.
  */
-function appVersion() {
+function appBuild() {
   const { version } = JSON.parse(
     readFileSync(path.join(__dirname, "package.json"), "utf8"),
   );
-  const [major, minor] = version.split(".");
-  const stamp = (date) => date.toISOString().replace(/\D/g, "").slice(0, 12);
+  const [major, minor] = version.split(".").map(Number);
   try {
-    const git = (cmd) =>
-      execSync(`git ${cmd}`, {
+    const git = (...args) =>
+      execFileSync("git", args, {
         cwd: __dirname,
         stdio: ["ignore", "pipe", "ignore"],
       })
         .toString()
         .trim();
-    const committed = new Date(Number(git("log -1 --format=%ct")) * 1000);
-    return `${major}.${minor}.${stamp(committed)}+${git("rev-parse --short HEAD")}`;
+    if (git("rev-parse", "--is-shallow-repository") === "true") {
+      git(
+        "fetch",
+        "--quiet",
+        "--unshallow",
+        "https://github.com/DataScience-GT/query.git",
+        "HEAD",
+      );
+    }
+    const base = git(
+      "log",
+      "-1",
+      "--format=%H",
+      '-G^\\s*"version":',
+      "--",
+      "package.json",
+    );
+    const range = base ? ["HEAD", `^${base}`] : ["HEAD"];
+    const merges = Number(git("rev-list", "--first-parent", "--count", ...range));
+    return {
+      version: `${major}.${minor + Math.floor(merges / 100)}.${merges % 100}`,
+      commit: git("rev-parse", "--short", "HEAD"),
+    };
   } catch {
-    return `${major}.${minor}.${stamp(new Date())}`;
+    return { version, commit: "" };
   }
 }
+
+const build = appBuild();
 
 /**
  * Content-Security-Policy.
@@ -87,7 +110,10 @@ const cspHeaderName =
 const nextConfig = {
   output: "standalone",
   reactCompiler: true,
-  env: { NEXT_PUBLIC_APP_VERSION: appVersion() },
+  env: {
+    NEXT_PUBLIC_APP_VERSION: build.version,
+    NEXT_PUBLIC_APP_COMMIT: build.commit,
+  },
   transpilePackages: ["@query/api", "@query/auth", "@query/db", "@query/ui"],
   outputFileTracingRoot: path.join(__dirname, "../../"),
   // Native/dynamic requires that a bundler mangles. Left external so the
