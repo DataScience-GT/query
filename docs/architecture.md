@@ -191,4 +191,3 @@ The event site does not talk to the database. Interest and registration live on 
 
 - `packages/consts` is mentioned in older notes and is **not** a workspace today.
 - `graphify-out/` is generated graph output, not product code.
-- `trust badge/` holds MLH league badge SVGs for the event site.
