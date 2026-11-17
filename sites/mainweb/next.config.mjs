@@ -1,8 +1,36 @@
+import { execSync } from "child_process";
+import { readFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+/**
+ * Build version, stamped fresh on every build: `<major>.<minor>.<commit
+ * count>+<short sha>`. The commit count only grows on main, so each deploy
+ * reads higher than the last. A build without git history falls back to the
+ * package version plus a UTC timestamp, which still changes every build.
+ */
+function appVersion() {
+  const { version } = JSON.parse(
+    readFileSync(path.join(__dirname, "package.json"), "utf8"),
+  );
+  try {
+    const git = (cmd) =>
+      execSync(`git ${cmd}`, {
+        cwd: __dirname,
+        stdio: ["ignore", "pipe", "ignore"],
+      })
+        .toString()
+        .trim();
+    const [major, minor] = version.split(".");
+    return `${major}.${minor}.${git("rev-list --count HEAD")}+${git("rev-parse --short HEAD")}`;
+  } catch {
+    const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 12);
+    return `${version}+${stamp}`;
+  }
+}
 
 /**
  * Content-Security-Policy.
@@ -58,6 +86,7 @@ const cspHeaderName =
 const nextConfig = {
   output: "standalone",
   reactCompiler: true,
+  env: { NEXT_PUBLIC_APP_VERSION: appVersion() },
   transpilePackages: ["@query/api", "@query/auth", "@query/db", "@query/ui"],
   outputFileTracingRoot: path.join(__dirname, "../../"),
   // Native/dynamic requires that a bundler mangles. Left external so the

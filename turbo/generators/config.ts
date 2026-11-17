@@ -13,7 +13,7 @@ type PkgJson = {
 
 function sanitizeName(value: unknown): string {
   if (typeof value !== "string") return "";
-  return value.replace(/^@forge\//, "").trim();
+  return value.replace(/^@query\//, "").trim();
 }
 
 async function latestVersion(pkg: string): Promise<string> {
