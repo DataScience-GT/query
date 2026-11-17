@@ -7,15 +7,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Build version, stamped fresh on every build: `<major>.<minor>.<commit
- * count>+<short sha>`. The commit count only grows on main, so each deploy
- * reads higher than the last. A build without git history falls back to the
- * package version plus a UTC timestamp, which still changes every build.
+ * Build version: `<major>.<minor>.<UTC commit time as YYYYMMDDHHmm>+<short
+ * sha>`. App Hosting clones with depth 1, so a commit count would read 1 on
+ * every deploy; the HEAD commit's time is there even in a shallow clone and
+ * only moves forward on main. Without git, the build time and no sha.
  */
 function appVersion() {
   const { version } = JSON.parse(
     readFileSync(path.join(__dirname, "package.json"), "utf8"),
   );
+  const [major, minor] = version.split(".");
+  const stamp = (date) => date.toISOString().replace(/\D/g, "").slice(0, 12);
   try {
     const git = (cmd) =>
       execSync(`git ${cmd}`, {
@@ -24,11 +26,10 @@ function appVersion() {
       })
         .toString()
         .trim();
-    const [major, minor] = version.split(".");
-    return `${major}.${minor}.${git("rev-list --count HEAD")}+${git("rev-parse --short HEAD")}`;
+    const committed = new Date(Number(git("log -1 --format=%ct")) * 1000);
+    return `${major}.${minor}.${stamp(committed)}+${git("rev-parse --short HEAD")}`;
   } catch {
-    const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 12);
-    return `${version}+${stamp}`;
+    return `${major}.${minor}.${stamp(new Date())}`;
   }
 }
 
