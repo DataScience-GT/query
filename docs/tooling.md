@@ -23,7 +23,7 @@ Root `turbo.json` defines `build`, `dev`, `lint`, `typecheck`, `test`, `format`,
 
 ## Build version
 
-`sites/mainweb/next.config.mjs` stamps every build with `NEXT_PUBLIC_APP_VERSION`: `<major>.<minor>` from `sites/mainweb/package.json`, then the git commit count, then the short SHA (`1.0.812+abc1234`). A build without git history falls back to `<package version>+<UTC timestamp>`. `/api/ping` returns it, so `curl https://datasciencegt.org/api/ping` shows what is live. Bump `major.minor` in `sites/mainweb/package.json` by hand for a release worth naming; the patch moves on its own. A turbo cache hit replays the stamp of the build it cached, which is the same code.
+`sites/mainweb/next.config.mjs` stamps every build with `NEXT_PUBLIC_APP_VERSION`: `<major>.<minor>` from `sites/mainweb/package.json`, then the HEAD commit's UTC time as `YYYYMMDDHHmm`, then the short SHA (`1.0.202611172241+4f90d33`). Not a commit count: App Hosting clones with depth 1, where the count is always 1. A build without git uses the build time and drops the SHA. `/api/ping` returns it, so `curl https://datasciencegt.org/api/ping` shows what is live. Bump `major.minor` in `sites/mainweb/package.json` by hand for a release worth naming; the patch moves on its own. A turbo cache hit replays the stamp of the build it cached, which is the same code.
 
 ## Other root files
 
