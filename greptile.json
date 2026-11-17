@@ -1,6 +1,5 @@
 {
   "includeBranches": ["main"],
-  "includeKeywords": "Sync: dev to main",
   "excludeAuthors": ["dependabot[bot]", "renovate[bot]"],
   "autoReview": ["open", "push"]
 }

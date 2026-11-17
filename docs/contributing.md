@@ -91,7 +91,7 @@ Unique indexes, cascade behavior, and “current hackathon” resolution have bi
 
 ## Workspace protocol
 
-Internal packages use `workspace:*`. `restore-workspace.js` rewrites accidental `"*"` versions back to `workspace:*` if a tool flattened them.
+Internal packages use `workspace:*`. `node tooling/scripts/src/restore-workspace.ts` rewrites accidental `"*"` versions back to `workspace:*` if a tool flattened them.
 
 ## Issues
 

@@ -122,4 +122,4 @@ Images are plain `<img>` tags over files in `public/`; there is no image pipelin
 
 ## Assets
 
-MLH league trust badges live in the repo-root folder `trust badge/` (SVG + `.ai`). Copy into `public/` if a page needs to ship one.
+MLH league trust badge sources live in `sites/hacklytics2027/mlh-trust-badges/` (SVG + `.ai`). The folder is outside `public/`, so nothing in it ships. Copy into `public/` if a page needs to ship one.
