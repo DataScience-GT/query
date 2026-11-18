@@ -62,6 +62,35 @@ jobs:
         with:
           category: "/language:javascript-typescript"
 
+  # The workflows themselves: script injection from branch names and PR text,
+  # over-broad token permissions, untrusted checkouts. Needs no install, so it
+  # runs beside the TypeScript job rather than inside it.
+  analyze-actions:
+    name: Analyze GitHub Actions workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: actions
+          build-mode: none
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:actions"
+
   dependency-review:
     name: Dependency Security Review
     runs-on: ubuntu-latest
@@ -82,4 +111,19 @@ jobs:
           fail-on-severity: high
           comment-summary-in-pr: always
           vulnerability-check: true
+          # This repo's own workspace packages are linked, not downloaded.
+          # They have no registry entry for the license lookup to find, so
+          # they were reported as Unknown License. Keep this list in step
+          # with the @query/* names under packages/ and tooling/.
+          allow-dependencies-licenses: >-
+            pkg:npm/%40query/api,
+            pkg:npm/%40query/auth,
+            pkg:npm/%40query/core,
+            pkg:npm/%40query/db,
+            pkg:npm/%40query/event-kit,
+            pkg:npm/%40query/oxlint-config,
+            pkg:npm/%40query/prettier-config,
+            pkg:npm/%40query/scripts,
+            pkg:npm/%40query/tsconfig,
+            pkg:npm/%40query/ui
 
