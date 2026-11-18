@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "node ../../tooling/scripts/src/guard-local.ts --stripe --email && next dev --port 3001",
+    "dev": "query-guard-local --stripe --email && next dev --port 3001",
     "build": "next build",
     "start": "next start",
     "lint": "oxlint .",
@@ -45,6 +45,7 @@
   "devDependencies": {
     "@next/bundle-analyzer": "catalog:",
     "@query/oxlint-config": "workspace:*",
+    "@query/scripts": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "catalog:",
     "@types/archiver": "^8.0.0",
