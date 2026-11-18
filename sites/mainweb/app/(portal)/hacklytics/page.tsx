@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ORG_NAME_SHORT } from "@query/core";
 import { headers } from "next/headers";
 import { appRouter, createContext, resolveClientIp } from "@query/api";
 import type { RouterOutputs } from "@query/api";
@@ -81,7 +82,7 @@ function Masthead() {
       >
         Hacklytics
       </a>
-      <span className={meta}>by Data Science @ GT</span>
+      <span className={meta}>by {ORG_NAME_SHORT}</span>
     </div>
   );
 }
@@ -292,7 +293,7 @@ export default async function HacklyticsPage() {
         <Masthead />
         <h1 className={`mt-12 ${pageTitle}`}>Nothing announced yet</h1>
         <p className={pageDek}>
-          The next Hacklytics has not been announced. Follow Data Science @ GT
+          The next Hacklytics has not been announced. Follow {ORG_NAME_SHORT}
           and it will show up here first.
         </p>
         <FlowerBed />
