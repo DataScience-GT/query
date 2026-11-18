@@ -31,7 +31,11 @@ const latest: Edition = {
       start: "2027-02-26T21:00:00-05:00",
       end: "2027-02-28T09:00:00-05:00",
     },
+    timeZone: ZONE,
     venue: { name: "The Hall" },
+    links: {
+      social: [{ label: "Chat", href: "https://chat.example.test/room" }],
+    },
     registration: {
       url: "https://example.test/form",
       validFrom: "2026-08-01T00:00:00-04:00",
@@ -47,6 +51,20 @@ const latest: Edition = {
     image: "/share.jpg",
     url: "https://example.test",
   },
+  imports: [
+    {
+      from: "@query/core",
+      imported: "VENUE_TZ",
+      local: "VENUE_TZ",
+      value: ZONE,
+    },
+    {
+      from: "@query/core",
+      imported: "SOCIAL_LINKS",
+      local: "SOCIAL_LINKS",
+      value: { chat: "https://chat.example.test/room" },
+    },
+  ],
   kit: { publicFiles: ["/favicon.ico", "/sw.js"] },
 };
 
@@ -156,7 +174,7 @@ describe("buildPlan", () => {
   it("carries over every field the answers do not decide, including ones it has never heard of", () => {
     const plan = buildPlan(answers, inputs);
     expect(plan.carried).toBe(
-      "brand, venue, registration, someFieldTheKitAddedLater",
+      "brand, timeZone, venue, links, registration, someFieldTheKitAddedLater",
     );
     expect(plan.core).toContain('"someFieldTheKitAddedLater"');
     expect(plan.core).toContain('"storageKey": "key"');
@@ -170,6 +188,26 @@ describe("buildPlan", () => {
     expect(plan.seo).toContain('"url": "https://example.test"');
     expect(plan.seo).not.toContain("old description");
     expect(plan.shareImage).toBe("/share.jpg");
+  });
+
+  it("keeps a value the latest config read from a package as that import, and imports it", () => {
+    const plan = buildPlan(answers, inputs);
+    expect(plan.core).toContain('"timeZone": VENUE_TZ');
+    expect(plan.core).toContain('"href": SOCIAL_LINKS.chat');
+    expect(plan.core).not.toContain("America/New_York");
+    expect(plan.core).not.toContain("chat.example.test");
+    expect(plan.imports).toBe(
+      'import { SOCIAL_LINKS, VENUE_TZ } from "@query/core";',
+    );
+  });
+
+  it("imports nothing when the latest config imports nothing", () => {
+    const plan = buildPlan(answers, {
+      ...inputs,
+      latest: { ...latest, imports: [] },
+    });
+    expect(plan.imports).toBe("");
+    expect(plan.core).toContain('"timeZone": "America/New_York"');
   });
 
   it("moves the offer's start to the new year", () => {

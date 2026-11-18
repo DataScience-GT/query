@@ -4,13 +4,15 @@
  * It loads the latest edition's `event.config.ts` through the kit and carries
  * every field over, so a field the kit adds later is carried over too.
  */
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Plugin } from "vite";
 
+import type { Imported } from "./source";
 import { kitPublicFiles } from "./kit";
 import { editionDirName, editionYearOf, SITES_DIR } from "./paths";
+import { parseNamedImports } from "./source";
 
 // turbo gen bundles this file into one CommonJS script, which cannot hold Vite:
 // it reads its own import.meta.url. A specifier esbuild cannot see stays an
@@ -51,6 +53,8 @@ export interface Edition {
   /** The fields of the built `EventConfig` this generator reads. */
   seo: Record<string, unknown>;
   timeZone: string;
+  /** What the config imports from packages other than the kit, with the values they hold. */
+  imports: Imported[];
   /** What the kit the edition imports asks of a site. */
   kit: {
     /** Root-level files its components link to, like "/favicon.ico". */
@@ -129,12 +133,27 @@ export async function loadEdition(
       throw new Error(`${dir}/src/event.config.ts does not name a timeZone`);
     }
 
+    const imports: Imported[] = [];
+    for (const { from, imported, local } of parseNamedImports(
+      readFileSync(file, "utf8"),
+    )) {
+      if (from === KIT_PACKAGE || from.startsWith(".")) continue;
+      const resolved = await server.pluginContainer.resolveId(from, file);
+      if (!resolved) continue;
+      const exports = (await server.ssrLoadModule(resolved.id)) as Record<
+        string,
+        unknown
+      >;
+      imports.push({ from, imported, local, value: exports[imported] });
+    }
+
     return {
       year,
       dir,
       core: structuredClone(core) as EventCore,
       seo,
       timeZone: core.timeZone,
+      imports,
       kit: {
         publicFiles: kitPublicFiles(dirname(capture.kitFile())),
       },
