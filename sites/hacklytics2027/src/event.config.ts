@@ -3,16 +3,19 @@
  * countdown and the schedule all read this, so moving the weekend is one edit
  * to `start` and `end`. See docs/sites/event-kit.md for every field.
  */
+import {
+  MLH_CODE_OF_CONDUCT_URL,
+  ORG_NAME_SHORT,
+  SITE_ORIGIN,
+  SOCIAL_LINKS,
+  VENUE_TZ,
+} from "@query/core";
 import { defineEvent } from "@query/event-kit";
 
 const BRAND = "Hacklytics";
 const YEAR = 2027;
 const CONTACT = "hello@hacklytics.io";
-// The portal origin, the social links, the time zone and the code of conduct
-// also live in @query/db's constants and mainweb. This static site cannot
-// import @query/db (turbo boundaries: static does not depend on data), so they
-// repeat here until a dependency-free package holds them for both.
-const PORTAL = "https://datasciencegt.org";
+const ORG = ORG_NAME_SHORT;
 
 /**
  * Where every Notify me / sign-up button goes: a Typeform, for now. The
@@ -23,7 +26,7 @@ const INTEREST_URL = "https://form.typeform.com/to/GvqBCdAe";
 
 const CODE_OF_CONDUCT = {
   label: "MLH Code of Conduct",
-  href: "https://static.mlh.io/docs/mlh-code-of-conduct.pdf",
+  href: MLH_CODE_OF_CONDUCT_URL,
 };
 
 const email = { text: CONTACT, href: `mailto:${CONTACT}` };
@@ -31,7 +34,7 @@ const email = { text: CONTACT, href: `mailto:${CONTACT}` };
 export default defineEvent({
   brand: BRAND,
   year: YEAR,
-  timeZone: "America/New_York",
+  timeZone: VENUE_TZ,
   theme: {
     name: "Digital Bloom",
     // Kept from before the kit, so a returning visitor keeps their theme choice.
@@ -59,19 +62,19 @@ export default defineEvent({
       country: "US",
     },
   },
-  organizer: { name: "Data Science @ GT" },
+  organizer: { name: ORG },
   contactEmail: CONTACT,
 
   links: {
-    portal: PORTAL,
+    portal: SITE_ORIGIN,
     portalPath: "/hacklytics",
     // The portal in local dev: the judge-interest form posts here from localhost.
     devPortal: "http://localhost:3001",
     mlh: "https://mlh.io/na?utm_source=na-hackathon&utm_medium=TrustBadge&utm_campaign=2026-season&utm_content=white",
     codeOfConduct: CODE_OF_CONDUCT,
     social: [
-      { label: "Instagram", href: "https://www.instagram.com/datasciencegt/" },
-      { label: "LinkedIn", href: "https://www.linkedin.com/company/dsgt/" },
+      { label: "Instagram", href: SOCIAL_LINKS.instagram },
+      { label: "LinkedIn", href: SOCIAL_LINKS.linkedin },
     ],
   },
 
@@ -88,10 +91,10 @@ export default defineEvent({
   content: ({ name, dates, hackHours, links }) => ({
     seo: {
       tagline: "Data Science Hackathon at Georgia Tech",
-      description: `${name} is a free, ${hackHours}-hour data science and AI hackathon run by Data Science @ GT at Georgia Tech in Atlanta, ${dates.long}.`,
+      description: `${name} is a free, ${hackHours}-hour data science and AI hackathon run by ${ORG} at Georgia Tech in Atlanta, ${dates.long}.`,
       shareDescription: `A ${hackHours}-hour data science and AI hackathon at Georgia Tech. Room for 1,000+ hackers in Atlanta.`,
       summary: `A ${hackHours}-hour data science and AI hackathon at Georgia Tech.`,
-      eventDescription: `Data Science @ GT runs the Southeast’s data science hackathon: ${hackHours} hours of data science and AI at Georgia Tech.`,
+      eventDescription: `${ORG} runs the Southeast’s data science hackathon: ${hackHours} hours of data science and AI at Georgia Tech.`,
       keywords: [
         "hackathon",
         "data science",
@@ -110,7 +113,7 @@ export default defineEvent({
     about: {
       heading: "The Southeast’s data science hackathon",
       body: [
-        `${BRAND} is a ${hackHours}-hour data science and AI hackathon run by Data Science @ GT at the Klaus Advanced Computing Building in Atlanta, ${dates.long}.`,
+        `${BRAND} is a ${hackHours}-hour data science and AI hackathon run by ${ORG} at the Klaus Advanced Computing Building in Atlanta, ${dates.long}.`,
         "Room for 1,000+ hackers. It costs nothing to attend: meals and swag are covered.",
       ],
     },
@@ -150,7 +153,7 @@ export default defineEvent({
 
     judges: {
       body: [
-        "Judges score the projects. Apply on the Data Science @ GT portal: you sign in, then answer four short steps that take about five minutes. An organizer approves each application.",
+        `Judges score the projects. Apply on the ${ORG} portal: you sign in, then answer four short steps that take about five minutes. An organizer approves each application.`,
         `Judging is part of the ${dates.long} weekend. Projects are due on Devpost Sunday at 9:00 AM and the weekend closes at 4:00 PM. On judging day you get a room or table and scan its QR code to take your seat. Exact judging times are not published yet.`,
         ["Questions? Email ", email, "."],
       ],
@@ -160,7 +163,7 @@ export default defineEvent({
     // An empty plot: the seedlings are the 2027 partners, not announced yet.
     sponsors: {
       body: [
-        "Hosted by Data Science @ GT. A Major League Hacking member event.",
+        `Hosted by ${ORG}. A Major League Hacking member event.`,
         [
           `${YEAR} partners are not announced yet. To sponsor, email `,
           email,
@@ -209,7 +212,7 @@ export default defineEvent({
         q: "How do I sign up to judge?",
         a: [
           { text: "Apply to judge", href: links.judgeApply },
-          " on the Data Science @ GT portal. You sign in, fill four short steps (about five minutes), and an organizer approves your application.",
+          ` on the ${ORG} portal. You sign in, fill four short steps (about five minutes), and an organizer approves your application.`,
         ],
       },
       {
