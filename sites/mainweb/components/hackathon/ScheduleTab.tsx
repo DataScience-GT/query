@@ -1,6 +1,6 @@
 "use client";
 
-import { VENUE_TZ } from "@query/db/constants";
+import { VENUE_TZ } from "@query/core";
 import { venueDayNumber } from "@/lib/venue-time";
 import React from "react";
 import Link from "next/link";

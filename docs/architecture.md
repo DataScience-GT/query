@@ -1,6 +1,6 @@
 # Architecture
 
-**query** is a pnpm + Turborepo monorepo. Two sites (the Next.js portal and an Astro marketing site) sit beside four internal packages. Club operations and hackathon operations share one Postgres database but are modeled as separate domains.
+**query** is a pnpm + Turborepo monorepo. Two sites (the Next.js portal and an Astro marketing site) sit beside five internal packages. Club operations and hackathon operations share one Postgres database but are modeled as separate domains.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -31,9 +31,11 @@
 
 `@query/ui` is the shared design system: class strings, CSS tokens and React primitives. Source-only (no build step); mainweb transpiles it. It is not on the request path.
 
+`@query/event-kit` is the shared kit for the Hacklytics event sites: the page shell, navbar, footer and content sections, driven by one `defineEvent` config per edition. Source-only; each Astro site compiles it. See [Event kit](./sites/event-kit.md).
+
 ## Monorepo map
 
-How the workspaces depend on each other. Solid lines are runtime dependencies, dotted lines are dev-time configs. `hacklytics2027` has no workspace dependencies.
+How the workspaces depend on each other. Solid lines are runtime dependencies, dotted lines are dev-time configs. `hacklytics2027` depends only on `@query/event-kit`.
 
 ```mermaid
 flowchart TD
@@ -42,7 +44,9 @@ flowchart TD
   api["@query/api"]
   auth["@query/auth"]
   db["@query/db"]
+  core["@query/core"]
   ui["@query/ui"]
+  kit["@query/event-kit"]
   subgraph tooling["tooling"]
     oxlint["@query/oxlint-config"]
     prettier["@query/prettier-config"]
@@ -52,17 +56,26 @@ flowchart TD
   web --> api
   web --> auth
   web --> db
+  web --> core
   web --> ui
+  hack --> kit
   api --> auth
   api --> db
+  api --> core
   auth --> db
+  auth --> core
+  db --> core
   web -.-> oxlint
   web -.-> tsconfig
   ui -.-> oxlint
   ui -.-> tsconfig
+  kit -.-> oxlint
+  kit -.-> tsconfig
   api -.-> tsconfig
   auth -.-> tsconfig
   db -.-> tsconfig
+  core -.-> oxlint
+  core -.-> tsconfig
   oxlint -.-> prettier
   prettier -.-> tsconfig
   hack ~~~ web
@@ -74,11 +87,14 @@ Each workspace's `turbo.json` gives it a layer tag. The root `turbo.json` says w
 
 | Tag | Workspaces | May depend on |
 | --- | --- | --- |
+| `core` | `packages/core` | nothing in the workspace: no `app`, `service`, `data`, `ui` or `static` dependency. Every other layer may depend on it |
 | `app` | `sites/mainweb`, `sites/hacklytics2026`, `sites/hacklytics2027` | anything; nothing may depend on an app |
 | `static` | the two Astro sites, on top of `app` | not `data` or `service`: the event sites ship with no database or server code |
 | `service` | `packages/api`, `packages/auth` | `data`, not `ui` or `app` |
 | `data` | `packages/db` | not `service`, `ui` or `app` |
-| `ui` | `packages/ui` | not `data`, `service` or `app` |
+| `ui` | `packages/ui`, `packages/event-kit` | not `data`, `service` or `app` |
+
+`@query/core` is the one place for values that more than one workspace needs, such as the site origin, the social links and the time units. It has no runtime dependencies, so the event sites can import it where they cannot import `data` or `service`.
 
 `tooling/*` is untagged, so it is unrestricted. A new package needs a `turbo.json` with `"extends": ["//"]` and one of these tags. Without a tag, no layer rule applies to it.
 

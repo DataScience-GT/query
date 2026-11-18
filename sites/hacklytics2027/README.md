@@ -11,4 +11,4 @@ pnpm --filter hacklytics2027 preview    # serve out/
 pnpm --filter hacklytics2027 typecheck  # tsc --noEmit over src/
 ```
 
-Pages are `src/pages/` (`index.astro`, `404.astro`). Most of the site renders at build time and ships no JavaScript; the flower beds are the only React, and each hydrates on its own. Outbound links are centralized in `src/lib/links.ts`.
+Pages are `src/pages/` (`index.astro`, `404.astro`). Most of the site renders at build time and ships no JavaScript; the flower beds are the only React, and each hydrates on its own. The edition (dates, links, copy) is `src/event.config.ts`; the shell and sections come from `@query/event-kit`.

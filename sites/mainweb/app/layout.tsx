@@ -6,7 +6,7 @@ import {
   ORG_NAME_SPOKEN,
   ORG_TAGLINE,
   SITE_ORIGIN,
-} from "@query/db/constants";
+} from "@query/core";
 import "./fonts.generated.css";
 import "./globals.css";
 import { FONT_PRELOADS } from "@/lib/fonts.generated";

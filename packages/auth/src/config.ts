@@ -3,11 +3,8 @@ import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import EmailProvider from "next-auth/providers/nodemailer";
 import { db } from "@query/db";
-import {
-  NOREPLY_EMAIL,
-  ORG_NAME_SPOKEN,
-  siteOrigin,
-} from "@query/db/constants";
+import { NOREPLY_EMAIL, ORG_NAME_SPOKEN } from "@query/core";
+import { siteOrigin } from "@query/core/server";
 import { linkPaidPaymentByVerifiedEmail } from "@query/db/services/membership";
 import { sql } from "drizzle-orm";
 import { randomInt } from "node:crypto";

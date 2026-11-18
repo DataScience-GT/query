@@ -10,7 +10,7 @@
 // flush, up to RETRY_LIMIT buckets, then dropped and counted.
 import { randomUUID } from "node:crypto";
 import { db, sql, statusSample } from "@query/db";
-import { DAY, STATUS_BUCKET_MS } from "@query/db/constants";
+import { DAY, STATUS_BUCKET_MS } from "@query/core";
 import { statusSampleWriteFailures } from "./metrics";
 
 export const BUCKET_MS = STATUS_BUCKET_MS;

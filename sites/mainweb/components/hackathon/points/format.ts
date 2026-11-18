@@ -1,4 +1,4 @@
-import { VENUE_TZ } from "@query/db/constants";
+import { VENUE_TZ } from "@query/core";
 
 // Times on the venue's clock, as the schedule shows them: "2:00 PM" should be
 // the time on the wall at the event, whatever zone the phone is set to.

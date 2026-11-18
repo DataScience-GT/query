@@ -10,6 +10,7 @@ import path from "node:path";
 const INTERNAL = new Set([
   "@query/api",
   "@query/auth",
+  "@query/core",
   "@query/db",
   "@query/ui",
   "@query/oxlint-config",

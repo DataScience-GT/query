@@ -1,0 +1,186 @@
+/* The event kit's styles. A site imports this after Tailwind:
+
+     @import "tailwindcss";
+     @import "@query/event-kit/styles.css";
+
+   and then defines the palette the components read, in its own theme CSS.
+   This file owns the structure (the measure, the type scale for titles, the
+   buttons, links, the badge, the theme toggle's icon swap) and the Tailwind
+   color tokens; the site owns every value.
+
+   Custom properties a site must define, once for night and once for day (see
+   docs/sites/event-kit.md):
+
+     --ground --raised --ink --ink-2 --ink-3 --rule --line-border
+     --bloom --bloom-hover --bloom-deep --on-bloom --on-bloom-deep --sage
+     --logo-tile --badge-edge --navbar-height --ease
+
+   and in its own @theme inline, the two type families the components use:
+
+     --font-display   titles, track names, the pixel face
+     --font-sans      text and UI
+
+   `--ground` must also be the `theme.ground` hex in the event config. */
+
+/* Tailwind only scans the site's own folder; this brings in the components'. */
+@source "../";
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-raised: var(--raised);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule: var(--rule);
+  --color-line: var(--line-border);
+  --color-bloom: var(--bloom);
+  --color-bloom-deep: var(--bloom-deep);
+  --color-sage: var(--sage);
+  --color-on-bloom: var(--on-bloom);
+  --color-logo-tile: var(--logo-tile);
+}
+
+/* ─── Base ─── */
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: var(--bloom);
+  color: var(--on-bloom);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+@layer components {
+  /* One measure for every band: 1200px of content, 24px gutters on phones,
+     48px from md. In the components layer so a utility can still override a
+     side (the navbar's right padding clears the MLH badge). */
+  .wrap {
+    width: 100%;
+    max-width: calc(1200px + 6rem);
+    margin-inline: auto;
+    padding-inline: 1.5rem;
+  }
+  @media (min-width: 768px) {
+    .wrap { padding-inline: 3rem; }
+  }
+
+  /* Silkscreen's pixel cell is 1/8em and it sets two cells between letters.
+     Taking one back tightens the type and keeps every glyph on the grid, at
+     any size that is a multiple of 8. */
+  .font-display {
+    letter-spacing: -0.125em;
+  }
+
+  /* Display type: the Silkscreen pixel face at its one loaded weight (400). */
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.125em;
+    line-height: 1;
+  }
+  /* 32px, 48px from lg: multiples of 8, so a pixel cell is a whole 4 or 6px.
+     The negative margin takes off the cell of side bearing, so the ink, not
+     the glyph box, starts on the page's left edge. */
+  .section-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 2rem;
+    letter-spacing: -0.125em;
+    margin-left: -0.125em;
+    line-height: 1.05;
+    color: var(--ink);
+  }
+  @media (min-width: 1024px) {
+    .section-title { font-size: 3rem; }
+  }
+
+  /* Small line above a title, one per section at most. In the text face:
+     Silkscreen below 16px falls off its pixel grid and blurs. */
+  .kicker {
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    line-height: 1.25rem;
+    color: var(--ink-2);
+  }
+
+  /* Buttons: verbs. Pink only for the action. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 3rem;
+    border-radius: 0.5rem;
+    padding-inline: 1.25rem;
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    line-height: 1.2;
+    text-decoration: none;
+    transition: background-color 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease);
+  }
+  .btn-bloom {
+    background: var(--bloom);
+    color: var(--on-bloom);
+  }
+  .btn-bloom:hover { background: var(--bloom-hover); }
+  /* The pressed label has its own token. --bloom-deep is a dark pink in both of
+     2027's themes, and neither --ink (near-black in light, 2:1) nor --on-bloom
+     (near-black in dark, 3.3:1) reads on it. */
+  .btn-bloom:active { background: var(--bloom-deep); color: var(--on-bloom-deep); }
+  .btn-line {
+    border: 1px solid var(--line-border);
+    color: var(--ink);
+  }
+  .btn-line:hover { border-color: var(--ink-3); }
+
+  /* Inline text link: ink with a pink underline. */
+  .text-link {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--bloom);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+  .text-link:hover { color: var(--bloom); }
+}
+
+/* The badge's white body vanishes on the light ground, so it gets a hard 1px
+   edge there. Outside the art: MLH's own drawing is untouched. */
+.mlh-badge {
+  filter:
+    drop-shadow(1px 0 0 var(--badge-edge))
+    drop-shadow(-1px 0 0 var(--badge-edge))
+    drop-shadow(0 1px 0 var(--badge-edge));
+}
+
+/* ─── Section anchor offset for fixed navbar ───
+   No content-visibility here: skipped sections sat at a 600px placeholder, so
+   a nav tap or a /#faqs link computed its target from heights that changed
+   mid-scroll and landed off the section. */
+.section-anchor {
+  scroll-margin-top: calc(var(--navbar-height) + 1.5rem);
+}
+
+/* ThemeToggle shows the sun on the night theme and the moon on the day one,
+   decided here so the icon is right before any script runs. Same selectors as
+   the theme's color tokens: an explicit choice on <html data-theme>, else the
+   system setting. */
+.theme-moon { display: none; }
+:root[data-theme="light"] .theme-sun { display: none; }
+:root[data-theme="light"] .theme-moon { display: block; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .theme-sun { display: none; }
+  :root:not([data-theme="dark"]) .theme-moon { display: block; }
+}

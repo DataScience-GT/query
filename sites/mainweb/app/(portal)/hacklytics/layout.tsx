@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { preload } from "react-dom";
 import { db, hackathons, inArray, eq, and, asc, desc } from "@query/db";
-import { ORG_NAME, SITE_ORIGIN } from "@query/db/constants";
+import { ORG_NAME, SITE_ORIGIN } from "@query/core";
 import { VENUE_TZ } from "@/lib/venue-time";
 import "./fonts.generated.css";
 import { FONT_PRELOADS } from "@/lib/fonts.generated";

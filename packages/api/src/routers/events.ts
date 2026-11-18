@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DAY } from "@query/db/constants";
+import { DAY } from "@query/core";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { events, eventCheckIns, members, users } from "@query/db";

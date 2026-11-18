@@ -14,11 +14,11 @@
 import * as dotenv from "dotenv";
 import path from "path";
 import { spawnSync } from "node:child_process";
+import { DAY } from "@query/core";
 
 dotenv.config({ path: path.resolve(__dirname, "../../../.env"), quiet: true });
 
 const ADMIN_EMAIL = "admin@example.test";
-const DAY = 24 * 60 * 60 * 1000;
 
 type PersonSeed = {
   id: string;

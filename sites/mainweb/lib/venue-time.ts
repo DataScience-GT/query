@@ -1,4 +1,4 @@
-import { VENUE_TZ } from "@query/db/constants";
+import { DAY, VENUE_TZ } from "@query/core";
 
 // Portal pages render on the server and again in the browser. A date printed
 // or compared in the runtime's own zone comes out differently in the two (Cloud
@@ -49,13 +49,11 @@ export function venueParts(value: DateLike) {
   return found;
 }
 
-const DAY_MS = 86_400_000;
-
 /**
  * Which calendar day it is at the venue, as a whole number that goes up by one
  * a day. Subtract to count days, compare to ask "is it the same day".
  */
 export function venueDayNumber(value: DateLike): number {
   const { year, month, day } = venueParts(value);
-  return Date.UTC(year, month - 1, day) / DAY_MS;
+  return Date.UTC(year, month - 1, day) / DAY;
 }
