@@ -47,6 +47,16 @@ const latest: Edition = {
     image: "/share.jpg",
     url: "https://example.test",
   },
+  kit: {
+    publicFiles: ["/favicon.ico", "/sw.js"],
+    themeTokens: [
+      "--ground",
+      "--ink",
+      "--on-bloom-deep",
+      "--navbar-height",
+      "--ease",
+    ],
+  },
 };
 
 const CSS = `/* The art, described. */
@@ -200,11 +210,40 @@ describe("buildPlan", () => {
 
   it("starts a neutral theme whose ground matches the config, with no fonts to copy", () => {
     const plan = buildPlan({ ...answers, copyTheme: false }, inputs);
-    expect(plan.core).toContain(`"light": "${NEUTRAL.light.ground}"`);
-    expect(plan.core).toContain(`"dark": "${NEUTRAL.dark.ground}"`);
-    expect(plan.themeCss).toContain(`--ground: ${NEUTRAL.light.ground};`);
+    expect(plan.core).toContain(`"light": "${NEUTRAL.light["--ground"]}"`);
+    expect(plan.core).toContain(`"dark": "${NEUTRAL.dark["--ground"]}"`);
+    expect(plan.themeCss).toContain(`--ground: ${NEUTRAL.light["--ground"]};`);
+    expect(plan.themeCss).toContain("--on-bloom-deep: #ffffff;");
     expect(plan.themeCss).toContain("--navbar-height: 72px;");
     expect(plan.copies.map(([from]) => from)).not.toContain("public/fonts");
+  });
+
+  it("copies the files the kit says it links to, and nothing it does not", () => {
+    const copied = buildPlan(answers, inputs).copies.map(([from]) => from);
+    expect(copied).toEqual(
+      expect.arrayContaining([
+        "public/favicon.ico",
+        "public/sw.js",
+        "public/share.jpg",
+      ]),
+    );
+    expect(copied).not.toContain("public/apple-icon.png");
+  });
+
+  it("refuses a neutral theme the kit has outgrown, and says where to add the token", () => {
+    const outgrown = {
+      ...latest,
+      kit: {
+        ...latest.kit,
+        themeTokens: [...latest.kit.themeTokens, "--new-token"],
+      },
+    };
+    expect(() =>
+      buildPlan(
+        { ...answers, copyTheme: false },
+        { ...inputs, latest: outgrown },
+      ),
+    ).toThrow(/needs --new-token/);
   });
 
   it("drops the package.json entries that belong to a script the new site lacks", () => {

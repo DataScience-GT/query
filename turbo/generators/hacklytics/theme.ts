@@ -111,89 +111,90 @@ export function declaredValue(
   return new RegExp(`${escaped}\\s*:\\s*([^;]+);`).exec(css)?.[1].trim();
 }
 
-/** Tokens the kit's components read that are not colors, and that every theme sets. */
-export const STRUCTURAL_TOKENS = ["--navbar-height", "--ease"] as const;
+/** A theme's custom properties for one color scheme, by property name. */
+type Palette = Record<string, string>;
 
-interface Palette {
-  ground: string;
-  raised: string;
-  ink: string;
-  ink2: string;
-  ink3: string;
-  rule: string;
-  bloom: string;
-  bloomHover: string;
-  bloomDeep: string;
-  onBloom: string;
-  sage: string;
-  lineBorder: string;
-  badgeEdge: string;
-}
-
-/** Every text and UI pair here clears WCAG AA on its ground, in both schemes. */
+/**
+ * The neutral starter's colors, once per scheme. Every text and UI pair here
+ * clears WCAG AA on its ground. A token the kit requires that is in neither
+ * palette is not a color, and is read from the latest edition's theme.
+ */
 export const NEUTRAL: { dark: Palette; light: Palette } = {
   dark: {
-    ground: "#121417",
-    raised: "#1a1d21",
-    ink: "#f2f3f5",
-    ink2: "#b9bec6",
-    ink3: "#959ba5",
-    rule: "#2a2e34",
-    bloom: "#7cc0ff",
-    bloomHover: "#a3d3ff",
-    bloomDeep: "#1f5f99",
-    onBloom: "#06121f",
-    sage: "#8cc9a0",
-    lineBorder: "#5d646f",
-    badgeEdge: "transparent",
+    "--ground": "#121417",
+    "--raised": "#1a1d21",
+    "--ink": "#f2f3f5",
+    "--ink-2": "#b9bec6",
+    "--ink-3": "#959ba5",
+    "--rule": "#2a2e34",
+    "--bloom": "#7cc0ff",
+    "--bloom-hover": "#a3d3ff",
+    "--bloom-deep": "#1f5f99",
+    "--on-bloom": "#06121f",
+    "--on-bloom-deep": "#ffffff",
+    "--sage": "#8cc9a0",
+    "--logo-tile": "#ffffff",
+    "--line-border": "#5d646f",
+    "--badge-edge": "transparent",
   },
   light: {
-    ground: "#f4f5f7",
-    raised: "#ffffff",
-    ink: "#14161a",
-    ink2: "#454b55",
-    ink3: "#5e6570",
-    rule: "#dcdfe4",
-    bloom: "#1b5fa8",
-    bloomHover: "#164f8d",
-    bloomDeep: "#0f3d70",
-    onBloom: "#ffffff",
-    sage: "#2f7a4a",
-    lineBorder: "#7d8590",
-    badgeEdge: "#dcdfe4",
+    "--ground": "#f4f5f7",
+    "--raised": "#ffffff",
+    "--ink": "#14161a",
+    "--ink-2": "#454b55",
+    "--ink-3": "#5e6570",
+    "--rule": "#dcdfe4",
+    "--bloom": "#1b5fa8",
+    "--bloom-hover": "#164f8d",
+    "--bloom-deep": "#0f3d70",
+    "--on-bloom": "#ffffff",
+    "--on-bloom-deep": "#ffffff",
+    "--sage": "#2f7a4a",
+    "--logo-tile": "#ffffff",
+    "--line-border": "#7d8590",
+    "--badge-edge": "#dcdfe4",
   },
 };
-
-const declarations = (palette: Palette, indent: string) =>
-  [
-    ["--ground", palette.ground],
-    ["--raised", palette.raised],
-    ["--ink", palette.ink],
-    ["--ink-2", palette.ink2],
-    ["--ink-3", palette.ink3],
-    ["--rule", palette.rule],
-    ["--bloom", palette.bloom],
-    ["--bloom-hover", palette.bloomHover],
-    ["--bloom-deep", palette.bloomDeep],
-    ["--on-bloom", palette.onBloom],
-    ["--sage", palette.sage],
-    ["--line-border", palette.lineBorder],
-    ["--badge-edge", palette.badgeEdge],
-  ]
-    .map(([property, value]) => `${indent}${property}: ${value};`)
-    .join("\n");
 
 const FALLBACK_FONTS = "ui-sans-serif, system-ui, sans-serif";
 
 /**
- * The neutral starter: system fonts, one accent, no art. `structural` carries
- * the non-color tokens, read from the latest edition's theme.
+ * The neutral starter: system fonts, one accent, no art. `required` is every
+ * custom property the kit's stylesheet says a theme defines, and `inherited`
+ * gives the value of one that is not a color, from the latest edition.
  */
-export function neutralTheme(structural: Record<string, string>): string {
-  const tokens = (indent: string) =>
-    STRUCTURAL_TOKENS.map(
-      (property) => `${indent}${property}: ${structural[property]};`,
-    ).join("\n");
+export function neutralTheme(
+  required: readonly string[],
+  inherited: (token: string) => string | undefined,
+): string {
+  const shared = required.filter(
+    (token) => !(token in NEUTRAL.dark) && !(token in NEUTRAL.light),
+  );
+  const lines = (
+    tokens: readonly string[],
+    values: (token: string) => string | undefined,
+    indent: string,
+  ) =>
+    tokens
+      .map((token) => {
+        const value = values(token);
+        if (value === undefined) {
+          throw new Error(
+            `The kit's theme needs ${token}. Add it to NEUTRAL in turbo/generators/hacklytics/theme.ts, or set it in the latest edition's theme.`,
+          );
+        }
+        return `${indent}${token}: ${value};`;
+      })
+      .join("\n");
+  const scheme = (palette: Palette, indent: string) =>
+    lines(
+      required.filter((token) => !shared.includes(token)),
+      (token) => palette[token],
+      indent,
+    );
+  const sharedLines = shared.length
+    ? `\n\n${lines(shared, inherited, "  ")}`
+    : "";
   return `@import "tailwindcss";
 @import "@query/event-kit/styles.css";
 
@@ -220,22 +221,20 @@ export function neutralTheme(structural: Record<string, string>): string {
 /* Night. TODO: choose your palette. --ground must equal theme.ground.dark in
    src/event.config.ts. */
 :root {
-${declarations(NEUTRAL.dark, "  ")}
-
-${tokens("  ")}
+${scheme(NEUTRAL.dark, "  ")}${sharedLines}
   color-scheme: dark;
 }
 
 /* Day. Used when the visitor picks light, or has no choice saved and their
    system is light. --ground must equal theme.ground.light. */
 :root[data-theme="light"] {
-${declarations(NEUTRAL.light, "  ")}
+${scheme(NEUTRAL.light, "  ")}
 
   color-scheme: light;
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-${declarations(NEUTRAL.light, "    ")}
+${scheme(NEUTRAL.light, "    ")}
 
     color-scheme: light;
   }

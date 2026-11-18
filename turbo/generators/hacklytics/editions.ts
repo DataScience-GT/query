@@ -4,11 +4,12 @@
  * It loads the latest edition's `event.config.ts` through the kit and carries
  * every field over, so a field the kit adds later is carried over too.
  */
-import { existsSync, readdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Plugin } from "vite";
 
+import { kitPublicFiles, requiredThemeTokens } from "./kit";
 import { editionDirName, editionYearOf, SITES_DIR } from "./paths";
 
 // turbo gen bundles this file into one CommonJS script, which cannot hold Vite:
@@ -50,16 +51,24 @@ export interface Edition {
   /** The fields of the built `EventConfig` this generator reads. */
   seo: Record<string, unknown>;
   timeZone: string;
+  /** What the kit the edition imports asks of a site. */
+  kit: {
+    /** Root-level files its components link to, like "/favicon.ico". */
+    publicFiles: string[];
+    /** Custom properties its stylesheet says a theme defines. */
+    themeTokens: string[];
+  };
 }
 
 /**
  * Wraps the kit's `defineEvent` for one module load, so the edition's own
  * input (its core fields, with no derived values mixed in) is captured while
- * the real function still runs and validates it.
+ * the real function still runs and validates it. `kitFile` is where the kit
+ * the edition imports resolved to.
  */
-function captureKit(): Plugin {
+function captureKit(): { plugin: Plugin; kitFile: () => string } {
   let realKit = "";
-  return {
+  const plugin: Plugin = {
     name: "hacklytics-generator-capture-kit",
     enforce: "pre",
     async resolveId(source, importer, options) {
@@ -86,6 +95,7 @@ function captureKit(): Plugin {
       ].join("\n");
     },
   };
+  return { plugin, kitFile: () => realKit };
 }
 
 type Captured = { __hacklyticsEventInput?: Record<string, unknown> };
@@ -99,6 +109,7 @@ export async function loadEdition(
   if (!existsSync(file))
     throw new Error(`${dir}/src/event.config.ts does not exist`);
 
+  const capture = captureKit();
   const { createServer } = (await import(VITE)) as typeof import("vite");
   const server = await createServer({
     root: resolve(root, dir),
@@ -107,33 +118,37 @@ export async function loadEdition(
     appType: "custom",
     server: { middlewareMode: true, hmr: false, watch: null },
     optimizeDeps: { noDiscovery: true },
-    plugins: [captureKit()],
+    plugins: [capture.plugin],
   });
   try {
     const module = await server.ssrLoadModule(pathToFileURL(file).href);
     const input = (globalThis as Captured)[CAPTURE_KEY];
-    const config = module.default as {
-      seo: Record<string, unknown>;
-      timeZone?: unknown;
-    };
     if (!input)
       throw new Error(`${dir}/src/event.config.ts did not call defineEvent`);
     const { content: _content, ...core } = input;
-    const kit = (await server.ssrLoadModule(KIT_PACKAGE)) as {
-      EVENT_TIME_ZONE?: string;
-    };
-    const timeZone = (core.timeZone ??
-      config.timeZone ??
-      kit.EVENT_TIME_ZONE) as unknown;
-    if (typeof timeZone !== "string") {
-      throw new Error(`cannot tell which time zone ${dir} runs in`);
+    const { seo } = module.default as { seo: Record<string, unknown> };
+    if (typeof core.timeZone !== "string") {
+      throw new Error(`${dir}/src/event.config.ts does not name a timeZone`);
     }
+
+    const stylesheet = await server.pluginContainer.resolveId(
+      `${KIT_PACKAGE}/styles.css`,
+      file,
+    );
+    if (!stylesheet)
+      throw new Error(`${dir} cannot resolve the kit's stylesheet`);
     return {
       year,
       dir,
       core: structuredClone(core) as EventCore,
-      seo: config.seo,
-      timeZone,
+      seo,
+      timeZone: core.timeZone,
+      kit: {
+        publicFiles: kitPublicFiles(dirname(capture.kitFile())),
+        themeTokens: requiredThemeTokens(
+          readFileSync(stylesheet.id.replace(/\?.*$/, ""), "utf8"),
+        ),
+      },
     };
   } finally {
     delete (globalThis as Captured)[CAPTURE_KEY];
