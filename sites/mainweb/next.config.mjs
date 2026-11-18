@@ -18,14 +18,20 @@ function appBuild() {
     readFileSync(path.join(__dirname, "package.json"), "utf8"),
   );
   const [major, minor] = version.split(".").map(Number);
+  const git = (...args) =>
+    execFileSync("git", args, {
+      cwd: __dirname,
+      stdio: ["ignore", "pipe", "pipe"],
+    })
+      .toString()
+      .trim();
+  let commit = "";
   try {
-    const git = (...args) =>
-      execFileSync("git", args, {
-        cwd: __dirname,
-        stdio: ["ignore", "pipe", "ignore"],
-      })
-        .toString()
-        .trim();
+    commit = git("rev-parse", "--short", "HEAD");
+  } catch {
+    return { version, commit };
+  }
+  try {
     if (git("rev-parse", "--is-shallow-repository") === "true") {
       git(
         "fetch",
@@ -44,13 +50,20 @@ function appBuild() {
       "package.json",
     );
     const range = base ? ["HEAD", `^${base}`] : ["HEAD"];
-    const merges = Number(git("rev-list", "--first-parent", "--count", ...range));
+    const merges = Number(
+      git("rev-list", "--first-parent", "--count", ...range),
+    );
     return {
       version: `${major}.${minor + Math.floor(merges / 100)}.${merges % 100}`,
-      commit: git("rev-parse", "--short", "HEAD"),
+      commit,
     };
-  } catch {
-    return { version, commit: "" };
+  } catch (e) {
+    // Loud on purpose: on App Hosting's shallow clone a failed deepen lands
+    // here, and the build still passes, so the version would freeze unseen.
+    console.warn(
+      `[version] could not count merges, reporting ${version}: ${e.stderr?.toString().trim() || e.message}`,
+    );
+    return { version, commit };
   }
 }
 
