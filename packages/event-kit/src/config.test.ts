@@ -293,6 +293,15 @@ describe("defineEvent rejects editions that cannot render correctly", () => {
     }
   });
 
+  it("needs a dev portal that is a bare origin", () => {
+    expect(() => build({ links: { ...core.links, devPortal: "localhost:3001" } })).toThrow(
+      /links.devPortal/,
+    );
+    expect(() => build({ links: { ...core.links, devPortal: "http://localhost:3001/" } })).toThrow(
+      /links.devPortal/,
+    );
+  });
+
   it("needs a portal path that starts with a slash and does not end with one", () => {
     for (const portalPath of ["hacklytics", "/hacklytics/", "/", ""]) {
       expect(() => build({ links: { ...core.links, portalPath } })).toThrow(/links.portalPath/);

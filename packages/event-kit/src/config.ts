@@ -125,6 +125,13 @@ export interface EventLinks {
   portal: string;
   /** The edition's page on the portal: a leading slash, no trailing one. */
   portalPath: string;
+  /**
+   * A local portal's origin. When the page is served from a loopback host
+   * the judge-interest form posts here instead of to `portal`, so trying the
+   * form in dev never touches the real list. Without it the form posts to
+   * `portal` everywhere.
+   */
+  devPortal?: string;
   /** MLH's trust badge link, with the season's tracking parameters. */
   mlh: string;
   /** The submission site, shown in the footer when set. */
@@ -331,6 +338,7 @@ export function defineEvent(input: EventInput): EventConfig {
     fail(`contactEmail must be an email address (got "${core.contactEmail}")`);
   }
   requireOrigin("links.portal", core.links.portal);
+  if (core.links.devPortal) requireOrigin("links.devPortal", core.links.devPortal);
   if (!core.links.portalPath.startsWith("/") || core.links.portalPath.endsWith("/")) {
     fail(`links.portalPath must start with a slash and not end with one (got "${core.links.portalPath}")`);
   }

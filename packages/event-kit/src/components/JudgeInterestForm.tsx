@@ -7,14 +7,17 @@ const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 /**
  * Where the form posts: a public, rate-limited endpoint on the portal that
- * accepts the event sites' origins. On a loopback host it talks to a local
- * portal (port 3001) so the form can be tried without touching the real list.
- * A function because it reads the page's hostname, which the build cannot.
+ * accepts the event sites' origins. On a loopback host, when the site names a
+ * local portal, it talks to that one so the form can be tried without
+ * touching the real list. A function because it reads the page's hostname,
+ * which the build cannot.
  */
-export const judgeInterestUrl = (portalOrigin: string) =>
+export const judgeInterestUrl = (portalOrigin: string, devPortalOrigin?: string) =>
   `${
-    typeof window !== "undefined" && LOOPBACK_HOSTS.has(window.location.hostname)
-      ? "http://localhost:3001"
+    devPortalOrigin &&
+    typeof window !== "undefined" &&
+    LOOPBACK_HOSTS.has(window.location.hostname)
+      ? devPortalOrigin
       : portalOrigin
   }/api/judge-interest`;
 
@@ -23,6 +26,8 @@ export interface JudgeInterestFormProps {
   /** The series name, as the copy says "judging Hacklytics". */
   brand: string;
   portalOrigin: string;
+  /** A local portal the form posts to from a loopback host, in place of `portalOrigin`. */
+  devPortalOrigin?: string;
   contactEmail: string;
 }
 
@@ -42,6 +47,7 @@ const label = "block font-sans text-[15px] font-medium text-ink mb-2";
 export default function JudgeInterestForm({
   brand,
   portalOrigin,
+  devPortalOrigin,
   contactEmail,
 }: JudgeInterestFormProps) {
   const [status, setStatus] = useState<Status>("idle");
@@ -58,7 +64,7 @@ export default function JudgeInterestForm({
     setStatus("sending");
     setError("");
     try {
-      const res = await fetch(judgeInterestUrl(portalOrigin), {
+      const res = await fetch(judgeInterestUrl(portalOrigin, devPortalOrigin), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
