@@ -1,7 +1,19 @@
 # `@query/oxlint-config`
 
-Internal oxlint configs for the monorepo. Packages reach them with a relative
-`extends` in their own `.oxlintrc.json`.
+Internal oxlint configs for the monorepo. Each workspace has an
+`oxlint.config.mts` that imports them by package name and passes them to
+`extends`:
+
+```ts
+import base from "@query/oxlint-config/base.json" with { type: "json" };
+import { defineConfig } from "oxlint";
+
+export default defineConfig({ extends: [base] });
+```
+
+The `.mts` extension keeps Node from warning in packages without
+`"type": "module"`. A JSON `.oxlintrc.json` can only `extends` by relative
+path, which is why the workspaces use the TS form.
 
 | File | Use |
 | --- | --- |

@@ -47,8 +47,8 @@ export default function register(plop: PlopTypes.NodePlopAPI): void {
       },
       {
         type: "add",
-        path: "packages/{{ name }}/.oxlintrc.json",
-        templateFile: "templates/oxlintrc.json.hbs",
+        path: "packages/{{ name }}/oxlint.config.mts",
+        templateFile: "templates/oxlint.config.mts.hbs",
       },
       {
         type: "add",
