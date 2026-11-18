@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Refuses to run a command that could touch production from a dev machine.
  *
@@ -103,10 +104,9 @@ function readEnvFile(file: string): Env {
   return out;
 }
 
-if (
-  process.argv[1] &&
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-) {
+// import.meta.main, not an argv[1] comparison: a bin shim reaches this file
+// through the node_modules symlink, which never equals the real path.
+if (import.meta.main) {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
   const flags = process.argv
     .slice(2)
