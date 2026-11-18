@@ -55,6 +55,33 @@ export async function dehydratePrefetched(entries: readonly Prefetch[]) {
   return dehydrate(client);
 }
 
+/** Only what the browser's own session carries, never the session token. */
+function browserSession({
+  user,
+  expires,
+}: NonNullable<Awaited<ReturnType<typeof getPortalCaller>>>["session"]) {
+  const session: Session = {
+    expires: expires ?? "",
+    user: {
+      id: user?.id,
+      name: user?.name,
+      email: user?.email,
+      image: user?.image,
+    } as Session["user"],
+  };
+  return session;
+}
+
+/**
+ * Just the session, for pages that mount SessionProvider and nothing else. A
+ * failed lookup returns undefined, so the browser asks for it as it would for
+ * a visitor with no session.
+ */
+export async function loadPortalSession() {
+  const signedIn = await getPortalCaller().catch(() => null);
+  return signedIn ? browserSession(signedIn.session) : undefined;
+}
+
 /**
  * What every signed-in portal page needs before it can draw: who is signed in
  * and the two reads the sidebar makes. Handed to the client providers, so the
@@ -81,16 +108,8 @@ export async function loadPortalBootstrap() {
     }
   }
 
-  // Only what the browser's own session carries, never the session token.
-  const { user, expires } = signedIn.session;
-  const session: Session = {
-    expires: expires ?? "",
-    user: {
-      id: user?.id,
-      name: user?.name,
-      email: user?.email,
-      image: user?.image,
-    } as Session["user"],
+  return {
+    session: browserSession(signedIn.session),
+    state: await dehydratePrefetched(entries),
   };
-  return { session, state: await dehydratePrefetched(entries) };
 }
