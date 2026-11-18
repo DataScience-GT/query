@@ -7,8 +7,7 @@
 // probes in a row; a result older than 30 minutes says nothing about now, so
 // it is reported as stale instead.
 
-import { MINUTE } from "@query/core";
-import { DAY_MS } from "./status";
+import { DAY, MINUTE } from "@query/core";
 import type { Day, StatusSummary } from "./status";
 
 export type Probe = { t: number; ok: boolean; ms: number; code: number };
@@ -71,9 +70,9 @@ export function combinedDays(data: UptimeData): ProbeDay[] {
  */
 export function probeDays(data: UptimeData, now: number, count = 90): Day[] {
   const byDay = new Map(combinedDays(data).map((d) => [d.day, d]));
-  const today = now - (now % DAY_MS);
+  const today = now - (now % DAY);
   return Array.from({ length: count }, (_, i) => {
-    const day = new Date(today - (count - 1 - i) * DAY_MS)
+    const day = new Date(today - (count - 1 - i) * DAY)
       .toISOString()
       .slice(0, 10);
     const mine = byDay.get(day);
@@ -101,7 +100,7 @@ export type UptimeWindows = {
 };
 
 export function uptimeWindows(data: UptimeData, now: number): UptimeWindows {
-  const last24 = data.recent.filter((p) => p.t > now - DAY_MS);
+  const last24 = data.recent.filter((p) => p.t > now - DAY);
   const days = probeDays(data, now);
   const sum = (list: Day[]) => ({
     up: list.reduce((s, d) => s + d.minutesUp, 0),
