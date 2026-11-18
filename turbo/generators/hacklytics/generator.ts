@@ -14,7 +14,7 @@ import type { Answers, Plan } from "./plan";
 import type { Handover } from "./wiring";
 import { patternOf } from "./dates";
 import { listEditions, loadEdition } from "./editions";
-import { editionDirName } from "./paths";
+import { editionDirName, SITES_DIR } from "./paths";
 import {
   buildPlan,
   validateEnd,
@@ -130,6 +130,13 @@ export function registerHacklytics(plop: PlopTypes.NodePlopAPI): void {
           themeCss: read(`${edition.dir}/src/styles/globals.css`),
           packageJson: read(`${edition.dir}/package.json`),
         });
+        for (const [source] of plan.copies) {
+          if (!existsSync(join(root(), plan.latestDir, source))) {
+            throw new Error(
+              `${plan.latestDir}/${source} does not exist, and a new site needs it`,
+            );
+          }
+        }
         Object.assign(state, plan);
         state.handover = { prev: plan.prev, next: plan.year };
         state.live = liveTargetOf(read(FIREBASE_JSON), state.handover);
@@ -168,30 +175,25 @@ export function registerHacklytics(plop: PlopTypes.NodePlopAPI): void {
 
       ...SITE_FILES.map(([path, template]): PlopTypes.ActionType => ({
         type: "add",
-        path: `sites/{{ siteName }}/${path}`,
+        path: `${SITES_DIR}/{{ siteName }}/${path}`,
         templateFile: `${TEMPLATES}/${template}`,
       })),
       {
         type: "add",
-        path: "sites/{{ siteName }}/package.json",
+        path: `${SITES_DIR}/{{ siteName }}/package.json`,
         template: "{{{ packageJson }}}",
       },
       {
         type: "add",
-        path: "sites/{{ siteName }}/src/styles/globals.css",
+        path: `${SITES_DIR}/{{ siteName }}/src/styles/globals.css`,
         template: "{{{ themeCss }}}",
       },
 
       (rawAnswers) => {
         const state = rawAnswers as State;
         const from = join(root(), state.latestDir);
-        const to = join(root(), "sites", state.siteName);
+        const to = join(root(), SITES_DIR, state.siteName);
         for (const [source, target] of state.copies) {
-          if (!existsSync(join(from, source))) {
-            throw new Error(
-              `${state.latestDir}/${source} does not exist, and a new site needs it`,
-            );
-          }
           cpSync(join(from, source), join(to, target), { recursive: true });
         }
         const worker = join(to, "public/sw.js");
@@ -212,7 +214,7 @@ export function registerHacklytics(plop: PlopTypes.NodePlopAPI): void {
           cwd: root(),
         });
         execSync(
-          `pnpm prettier --write sites/${siteName}/src/event.config.ts sites/${siteName}/package.json`,
+          `pnpm prettier --write ${SITES_DIR}/${siteName}/src/event.config.ts ${SITES_DIR}/${siteName}/package.json`,
           { stdio: "inherit", cwd: root() },
         );
         return `Installed ${siteName}`;
@@ -222,7 +224,7 @@ export function registerHacklytics(plop: PlopTypes.NodePlopAPI): void {
         const state = rawAnswers as State;
         const { prev, year, live, firebaseProject } = state;
         return [
-          `Created sites/${editionDirName(year)}. Next: edit src/event.config.ts and src/styles/globals.css.`,
+          `Created ${SITES_DIR}/${editionDirName(year)}. Next: edit src/event.config.ts and src/styles/globals.css.`,
           `${archiveTarget(live, prev)} now serves the ${prev} edition and ${live} serves ${year}.`,
           `One step is yours: create the Firebase Hosting site "${archiveSiteId(live, prev)}" in the console (project ${firebaseProject}, Hosting, Add another site). Or put the id of an existing site in .firebaserc under ${archiveTarget(live, prev)}. The deploy-${archiveTarget(live, prev)} job fails on main until that site exists.`,
         ].join("\n");
