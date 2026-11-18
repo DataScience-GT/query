@@ -1,0 +1,22 @@
+---
+import "../styles/globals.css";
+{{#if copyTheme}}
+import "../styles/fonts.generated.css";
+{{/if}}
+import EventLayout from "@query/event-kit/components/Layout.astro";
+import event from "../event.config";
+{{#if copyTheme}}
+import { FONT_PRELOADS } from "../lib/fonts.generated";
+{{/if}}
+
+interface Props {
+  /** Whether this is the home page; the footer's call to action only belongs there. */
+  home?: boolean;
+}
+const { home = false } = Astro.props;
+---
+
+<EventLayout event={event} home={home}{{#if copyTheme}} fontPreloads={FONT_PRELOADS}{{/if}}>
+  <slot name="head" slot="head" />
+  <slot />
+</EventLayout>
