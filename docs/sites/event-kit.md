@@ -21,7 +21,7 @@ The kit is everything a Hacklytics event site has in common: the page shell, nav
 
 | Path | Import | What |
 | --- | --- | --- |
-| `src/config.ts` | `@query/event-kit` | `defineEvent`, the types, `MLH_CODE_OF_CONDUCT_URL` |
+| `src/config.ts` | `@query/event-kit` | `defineEvent` and the types |
 | `src/dates.ts` | (internal) | Date labels, day columns and schedule rail positions |
 | `src/components/*.astro`, `*.tsx` | `@query/event-kit/components/<File>` | Layout, chrome and sections |
 | `src/styles/kit.css` | `@query/event-kit/styles.css` | Structural CSS and color tokens |
@@ -102,7 +102,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `venue` | `{ name, address: { street, locality, region, postalCode, country } }` | The JSON-LD place |
 | `organizer` | `{ name }` | Footer copyright, `author`, JSON-LD organizer |
 | `contactEmail` | string | Footer, form errors |
-| `links` | `{ portal, mlh, devpost?, social[] }` | `portal` is an origin with no trailing slash. `devpost` adds a footer link. `social` is `{ label, href }` in footer order |
+| `links` | `{ portal, mlh, devpost?, codeOfConduct?, social[] }` | `portal` is an origin with no trailing slash. `devpost` adds a footer link. `codeOfConduct` is `{ label, href }`, a footer link with that text; a site that also links it from the FAQ reuses its own constant. `social` is `{ label, href }` in footer order |
 | `registration` | `{ url, label, ariaLabel?, availability, validFrom }` | One URL for every sign-up button and the JSON-LD offer. `availability` is `PreOrder`, `InStock` or `SoldOut` |
 
 **`EventContent`**, returned by `content(derived)`

@@ -3,7 +3,7 @@
  * countdown and the schedule all read this, so moving the weekend is one edit
  * to `start` and `end`. See docs/sites/event-kit.md for every field.
  */
-import { MLH_CODE_OF_CONDUCT_URL, defineEvent } from "@query/event-kit";
+import { defineEvent } from "@query/event-kit";
 
 const BRAND = "Hacklytics";
 const YEAR = 2027;
@@ -16,6 +16,11 @@ const PORTAL = "https://datasciencegt.org";
  * to `event.links.portalInterest`.
  */
 const INTEREST_URL = "https://form.typeform.com/to/GvqBCdAe";
+
+const CODE_OF_CONDUCT = {
+  label: "MLH Code of Conduct",
+  href: "https://static.mlh.io/docs/mlh-code-of-conduct.pdf",
+};
 
 const email = { text: CONTACT, href: `mailto:${CONTACT}` };
 
@@ -56,6 +61,7 @@ export default defineEvent({
   links: {
     portal: PORTAL,
     mlh: "https://mlh.io/na?utm_source=na-hackathon&utm_medium=TrustBadge&utm_campaign=2026-season&utm_content=white",
+    codeOfConduct: CODE_OF_CONDUCT,
     social: [
       { label: "Instagram", href: "https://www.instagram.com/datasciencegt/" },
       { label: "LinkedIn", href: "https://www.linkedin.com/company/dsgt/" },
@@ -209,7 +215,7 @@ export default defineEvent({
         q: "What is the MLH Code of Conduct?",
         a: [
           "All participants follow the ",
-          { text: "MLH Code of Conduct", href: MLH_CODE_OF_CONDUCT_URL, external: true },
+          { text: CODE_OF_CONDUCT.label, href: CODE_OF_CONDUCT.href, external: true },
           ". Harassment of any kind is not tolerated.",
         ],
       },

@@ -1,5 +1,4 @@
 ---
-import { MLH_CODE_OF_CONDUCT_URL } from "../config";
 import type { EventConfig } from "../config";
 import { SECTION_NAV } from "../nav";
 
@@ -95,14 +94,16 @@ const portalHost = new URL(links.portal).host;
             Devpost
           </a>
         )}
-        <a
-          href={MLH_CODE_OF_CONDUCT_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
-        >
-          MLH Code of Conduct
-        </a>
+        {links.codeOfConduct && (
+          <a
+            href={links.codeOfConduct.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
+          >
+            {links.codeOfConduct.label}
+          </a>
+        )}
       </div>
     </div>
 
