@@ -9,7 +9,7 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Plugin } from "vite";
 
-import { SITES_DIR, editionDirName, editionYearOf } from "./paths";
+import { editionDirName, editionYearOf, SITES_DIR } from "./paths";
 
 // turbo gen bundles this file into one CommonJS script, which cannot hold Vite:
 // it reads its own import.meta.url. A specifier esbuild cannot see stays an
@@ -31,7 +31,11 @@ export function listEditions(root: string): number[] {
 export type EventCore = Record<string, unknown> & {
   brand: string;
   year: number;
-  theme: { name: string; ground: { light: string; dark: string }; storageKey?: string };
+  theme: {
+    name: string;
+    ground: { light: string; dark: string };
+    storageKey?: string;
+  };
   start: string;
   end: string;
   hacking: { start: string; end: string };
@@ -61,7 +65,10 @@ function captureKit(): Plugin {
     async resolveId(source, importer, options) {
       if (source === CAPTURE_MODULE) return source;
       if (source !== KIT_PACKAGE) return null;
-      const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
+      const resolved = await this.resolve(source, importer, {
+        ...options,
+        skipSelf: true,
+      });
       if (!resolved) return null;
       realKit = resolved.id;
       return CAPTURE_MODULE;
@@ -83,10 +90,14 @@ function captureKit(): Plugin {
 
 type Captured = { __hacklyticsEventInput?: Record<string, unknown> };
 
-export async function loadEdition(root: string, year: number): Promise<Edition> {
+export async function loadEdition(
+  root: string,
+  year: number,
+): Promise<Edition> {
   const dir = `${SITES_DIR}/${editionDirName(year)}`;
   const file = resolve(root, dir, "src", "event.config.ts");
-  if (!existsSync(file)) throw new Error(`${dir}/src/event.config.ts does not exist`);
+  if (!existsSync(file))
+    throw new Error(`${dir}/src/event.config.ts does not exist`);
 
   const { createServer } = (await import(VITE)) as typeof import("vite");
   const server = await createServer({
@@ -101,15 +112,29 @@ export async function loadEdition(root: string, year: number): Promise<Edition> 
   try {
     const module = await server.ssrLoadModule(pathToFileURL(file).href);
     const input = (globalThis as Captured)[CAPTURE_KEY];
-    const config = module.default as { seo: Record<string, unknown>; timeZone?: unknown };
-    if (!input) throw new Error(`${dir}/src/event.config.ts did not call defineEvent`);
+    const config = module.default as {
+      seo: Record<string, unknown>;
+      timeZone?: unknown;
+    };
+    if (!input)
+      throw new Error(`${dir}/src/event.config.ts did not call defineEvent`);
     const { content: _content, ...core } = input;
-    const kit = (await server.ssrLoadModule(KIT_PACKAGE)) as { EVENT_TIME_ZONE?: string };
-    const timeZone = (core.timeZone ?? config.timeZone ?? kit.EVENT_TIME_ZONE) as unknown;
+    const kit = (await server.ssrLoadModule(KIT_PACKAGE)) as {
+      EVENT_TIME_ZONE?: string;
+    };
+    const timeZone = (core.timeZone ??
+      config.timeZone ??
+      kit.EVENT_TIME_ZONE) as unknown;
     if (typeof timeZone !== "string") {
       throw new Error(`cannot tell which time zone ${dir} runs in`);
     }
-    return { year, dir, core: structuredClone(core) as EventCore, seo: config.seo, timeZone };
+    return {
+      year,
+      dir,
+      core: structuredClone(core) as EventCore,
+      seo: config.seo,
+      timeZone,
+    };
   } finally {
     delete (globalThis as Captured)[CAPTURE_KEY];
     await server.close();

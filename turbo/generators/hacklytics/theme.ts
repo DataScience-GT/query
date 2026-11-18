@@ -55,13 +55,18 @@ export function splitTopLevel(css: string): CssItem[] {
       }
     }
     const text = css.slice(start, i).trim();
-    items.push({ kind: text.endsWith("}") ? "block" : "statement", text, prelude: prelude || text });
+    items.push({
+      kind: text.endsWith("}") ? "block" : "statement",
+      text,
+      prelude: prelude || text,
+    });
   }
   return items;
 }
 
 /** The rules a theme is made of. Anything else in a site's CSS is that edition's art. */
-const THEME_PRELUDE = /^(@import\b|@theme\b|:root|@media \(prefers-color-scheme)/;
+const THEME_PRELUDE =
+  /^(@import\b|@theme\b|:root|@media \(prefers-color-scheme)/;
 
 /**
  * The theme contract out of an existing site's stylesheet: the imports, the
@@ -72,21 +77,36 @@ const THEME_PRELUDE = /^(@import\b|@theme\b|:root|@media \(prefers-color-scheme)
 export function extractTheme(css: string): string {
   const items = splitTopLevel(css);
   if (items[0]?.kind === "comment") items.shift();
-  const kept: string[] = [];
+  const kept: { text: string; statement: boolean }[] = [];
   let pending: string[] = [];
   for (const item of items) {
     if (item.kind === "comment") {
       pending.push(item.text);
     } else {
-      if (THEME_PRELUDE.test(item.prelude)) kept.push(...pending, item.text);
+      if (THEME_PRELUDE.test(item.prelude)) {
+        kept.push({
+          text: [...pending, item.text].join("\n"),
+          statement: item.kind === "statement" && pending.length === 0,
+        });
+      }
       pending = [];
     }
   }
-  return kept.join("\n\n");
+  // Imports stay on adjacent lines, as written; everything else gets a blank line.
+  return kept.reduce(
+    (css, group, index) =>
+      index === 0
+        ? group.text
+        : `${css}${group.statement && kept[index - 1].statement ? "\n" : "\n\n"}${group.text}`,
+    "",
+  );
 }
 
 /** A custom property's value out of CSS text, or undefined. */
-export function declaredValue(css: string, property: string): string | undefined {
+export function declaredValue(
+  css: string,
+  property: string,
+): string | undefined {
   const escaped = property.replace(/[-]/g, "\\-");
   return new RegExp(`${escaped}\\s*:\\s*([^;]+);`).exec(css)?.[1].trim();
 }
@@ -171,7 +191,9 @@ const FALLBACK_FONTS = "ui-sans-serif, system-ui, sans-serif";
  */
 export function neutralTheme(structural: Record<string, string>): string {
   const tokens = (indent: string) =>
-    STRUCTURAL_TOKENS.map((property) => `${indent}${property}: ${structural[property]};`).join("\n");
+    STRUCTURAL_TOKENS.map(
+      (property) => `${indent}${property}: ${structural[property]};`,
+    ).join("\n");
   return `@import "tailwindcss";
 @import "@query/event-kit/styles.css";
 

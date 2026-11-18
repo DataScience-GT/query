@@ -9,12 +9,19 @@ import { cpSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { PlopTypes } from "@turbo/gen";
 
-import { patternOf } from "./dates";
 import type { Edition } from "./editions";
+import type { Answers, Plan } from "./plan";
+import type { Handover } from "./wiring";
+import { patternOf } from "./dates";
 import { listEditions, loadEdition } from "./editions";
 import { editionDirName } from "./paths";
-import { buildPlan, validateEnd, validateStart, validateTheme, validateYear } from "./plan";
-import type { Answers, Plan } from "./plan";
+import {
+  buildPlan,
+  validateEnd,
+  validateStart,
+  validateTheme,
+  validateYear,
+} from "./plan";
 import {
   archiveSiteId,
   archiveTarget,
@@ -24,7 +31,6 @@ import {
   wireFirebaseJson,
   wireFirebaseRc,
 } from "./wiring";
-import type { Handover } from "./wiring";
 
 const FIREBASE_JSON = "firebase.json";
 const FIREBASE_RC = ".firebaserc";
@@ -58,7 +64,8 @@ export function registerHacklytics(plop: PlopTypes.NodePlopAPI): void {
   let loading: Promise<Edition> | undefined;
   const latest = () => {
     const years = listEditions(root());
-    if (years.length === 0) throw new Error("There is no sites/hacklytics<year> to start from.");
+    if (years.length === 0)
+      throw new Error("There is no sites/hacklytics<year> to start from.");
     loading ??= loadEdition(root(), Math.max(...years));
     return loading;
   };
@@ -72,7 +79,8 @@ export function registerHacklytics(plop: PlopTypes.NodePlopAPI): void {
         name: "year",
         message: "Year of the new edition",
         default: () => String(Math.max(...listEditions(root())) + 1),
-        validate: (value: string) => validateYear(value.trim(), listEditions(root())),
+        validate: (value: string) =>
+          validateYear(value.trim(), listEditions(root())),
         filter: (value: string) => value.trim(),
       },
       {
@@ -125,7 +133,10 @@ export function registerHacklytics(plop: PlopTypes.NodePlopAPI): void {
         Object.assign(state, plan);
         state.handover = { prev: plan.prev, next: plan.year };
         state.live = liveTargetOf(read(FIREBASE_JSON), state.handover);
-        state.firebaseProject = firebaseProjectOf(read(FIREBASE_RC), state.live);
+        state.firebaseProject = firebaseProjectOf(
+          read(FIREBASE_RC),
+          state.live,
+        );
         return `Planned ${plan.siteName} from ${plan.latestDir}`;
       },
 
@@ -135,13 +146,18 @@ export function registerHacklytics(plop: PlopTypes.NodePlopAPI): void {
       {
         type: "modify",
         path: FIREBASE_JSON,
-        transform: (content, state) => wireFirebaseJson(content, (state as State).handover),
+        transform: (content, state) =>
+          wireFirebaseJson(content, (state as State).handover),
       },
       {
         type: "modify",
         path: FIREBASE_RC,
         transform: (content, state) =>
-          wireFirebaseRc(content, (state as State).handover, (state as State).live),
+          wireFirebaseRc(
+            content,
+            (state as State).handover,
+            (state as State).live,
+          ),
       },
       {
         type: "modify",
@@ -150,13 +166,11 @@ export function registerHacklytics(plop: PlopTypes.NodePlopAPI): void {
           wireCi(content, (state as State).handover, (state as State).live),
       },
 
-      ...SITE_FILES.map(
-        ([path, template]): PlopTypes.ActionType => ({
-          type: "add",
-          path: `sites/{{ siteName }}/${path}`,
-          templateFile: `${TEMPLATES}/${template}`,
-        }),
-      ),
+      ...SITE_FILES.map(([path, template]): PlopTypes.ActionType => ({
+        type: "add",
+        path: `sites/{{ siteName }}/${path}`,
+        templateFile: `${TEMPLATES}/${template}`,
+      })),
       {
         type: "add",
         path: "sites/{{ siteName }}/package.json",
@@ -174,7 +188,9 @@ export function registerHacklytics(plop: PlopTypes.NodePlopAPI): void {
         const to = join(root(), "sites", state.siteName);
         for (const [source, target] of state.copies) {
           if (!existsSync(join(from, source))) {
-            throw new Error(`${state.latestDir}/${source} does not exist, and a new site needs it`);
+            throw new Error(
+              `${state.latestDir}/${source} does not exist, and a new site needs it`,
+            );
           }
           cpSync(join(from, source), join(to, target), { recursive: true });
         }
@@ -191,7 +207,10 @@ export function registerHacklytics(plop: PlopTypes.NodePlopAPI): void {
 
       (rawAnswers) => {
         const { siteName } = rawAnswers as State;
-        execSync("pnpm install --no-frozen-lockfile", { stdio: "inherit", cwd: root() });
+        execSync("pnpm install --no-frozen-lockfile", {
+          stdio: "inherit",
+          cwd: root(),
+        });
         execSync(
           `pnpm prettier --write sites/${siteName}/src/event.config.ts sites/${siteName}/package.json`,
           { stdio: "inherit", cwd: root() },

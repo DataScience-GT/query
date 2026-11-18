@@ -9,7 +9,7 @@
  * older edition keeps its own target, named after the live one plus its year.
  * Making a new edition live turns the previous live edition into an archive.
  */
-import { SITES_DIR, editionDirName } from "./paths";
+import { editionDirName, SITES_DIR } from "./paths";
 
 export interface Handover {
   /** The edition leaving the live target: the latest that exists. */
@@ -41,7 +41,10 @@ const toJson = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
  * The hosting target that serves the newest edition. Before the edit it serves
  * `prev`, after it serves `next`.
  */
-export function liveTargetOf(firebaseJson: string, { prev, next }: Handover): string {
+export function liveTargetOf(
+  firebaseJson: string,
+  { prev, next }: Handover,
+): string {
   const { hosting } = JSON.parse(firebaseJson) as FirebaseJson;
   const entry =
     hosting.find((candidate) => servesEdition(candidate, next)) ??
@@ -58,14 +61,18 @@ export function liveTargetOf(firebaseJson: string, { prev, next }: Handover): st
 export const archiveTarget = (live: string, year: number) => `${live}${year}`;
 
 /** The Hosting site id to create, or replace, for an archive target. */
-export const archiveSiteId = (live: string, year: number) => `${archiveTarget(live, year)}-archive`;
+export const archiveSiteId = (live: string, year: number) =>
+  `${archiveTarget(live, year)}-archive`;
 
 /**
  * Points the live entry at `next`, and gives `prev` an archive entry that is a
  * copy of the live one as it stood, so its URLs, caching and headers behave as
  * they did while it was live.
  */
-export function wireFirebaseJson(text: string, { prev, next }: Handover): string {
+export function wireFirebaseJson(
+  text: string,
+  { prev, next }: Handover,
+): string {
   const config = JSON.parse(text) as FirebaseJson;
   const live = liveTargetOf(text, { prev, next });
   const liveIndex = config.hosting.findIndex((entry) => entry.target === live);
@@ -76,9 +83,14 @@ export function wireFirebaseJson(text: string, { prev, next }: Handover): string
       ...structuredClone(entry),
       target: archiveTarget(live, prev),
     };
-    entry.public = entry.public!.replace(editionDirName(prev), editionDirName(next));
+    entry.public = entry.public!.replace(
+      editionDirName(prev),
+      editionDirName(next),
+    );
     config.hosting.splice(liveIndex + 1, 0, archive);
-  } else if (!config.hosting.some((other) => other.target === archiveTarget(live, prev))) {
+  } else if (
+    !config.hosting.some((other) => other.target === archiveTarget(live, prev))
+  ) {
     throw new Error(
       `firebase.json serves ${editionDirName(next)} live but has no ${archiveTarget(live, prev)} entry. ` +
         `Restore the file with git checkout and run the generator again.`,
@@ -93,7 +105,11 @@ interface FirebaseRc {
 }
 
 /** Maps the new archive target to a placeholder site id, next to the live target. */
-export function wireFirebaseRc(text: string, { prev }: Handover, live: string): string {
+export function wireFirebaseRc(
+  text: string,
+  { prev }: Handover,
+  live: string,
+): string {
   const rc = JSON.parse(text) as FirebaseRc;
   const archive = archiveTarget(live, prev);
   let wired = false;
@@ -109,7 +125,8 @@ export function wireFirebaseRc(text: string, { prev }: Handover, live: string): 
     }
     project.hosting = ordered;
   }
-  if (!wired) throw new Error(`.firebaserc maps no hosting target named "${live}"`);
+  if (!wired)
+    throw new Error(`.firebaserc maps no hosting target named "${live}"`);
   return toJson(rc);
 }
 
@@ -119,20 +136,37 @@ const indentOf = (line: string) => line.length - line.trimStart().length;
 function blockEnd(lines: string[], start: number): number {
   const indent = indentOf(lines[start]);
   let end = start + 1;
-  while (end < lines.length && (lines[end].trim() === "" || indentOf(lines[end]) > indent)) end++;
+  while (
+    end < lines.length &&
+    (lines[end].trim() === "" || indentOf(lines[end]) > indent)
+  )
+    end++;
   while (lines[end - 1].trim() === "") end--;
   return end;
 }
 
 /** The block of the YAML sequence item or mapping key that holds line `at`, found by walking up. */
-function enclosingItem(lines: string[], at: number, itemPattern: RegExp): number {
+function enclosingItem(
+  lines: string[],
+  at: number,
+  itemPattern: RegExp,
+): number {
   for (let i = at; i >= 0; i--) if (itemPattern.test(lines[i])) return i;
   throw new Error(`no enclosing block for line ${at + 1}`);
 }
 
-function withYear(lines: string[], live: string, from: number, to: number): string[] {
-  const tokens = new RegExp(`(${live} ?)${from}`, "gi");
-  return lines.map((line) => line.replace(tokens, `$1${to}`));
+function withYear(
+  lines: string[],
+  live: string,
+  from: number,
+  to: number,
+): string[] {
+  const targetAndYear = new RegExp(`(${live} ?)${from}`, "gi");
+  return lines.map((line) =>
+    line
+      .replace(targetAndYear, `$1${to}`)
+      .replaceAll(editionDirName(from), editionDirName(to)),
+  );
 }
 
 /**
@@ -140,7 +174,11 @@ function withYear(lines: string[], live: string, from: number, to: number): stri
  * the preview and deploy jobs it needs as an archive, copied from the newest
  * archive already in the file.
  */
-export function wireCi(text: string, { prev, next }: Handover, live: string): string {
+export function wireCi(
+  text: string,
+  { prev, next }: Handover,
+  live: string,
+): string {
   const eol = text.includes("\r\n") ? "\r\n" : "\n";
   const lines = text.split(/\r?\n/);
   const artifact = (target: string) => `name: ${target}-out`;
@@ -148,7 +186,10 @@ export function wireCi(text: string, { prev, next }: Handover, live: string): st
   // 1. Live artifact: the `path:` under `name: <live>-out` follows the live edition.
   const liveName = artifact(live);
   for (let i = 1; i < lines.length; i++) {
-    if (lines[i - 1].trim() === liveName && lines[i].trim().startsWith("path:")) {
+    if (
+      lines[i - 1].trim() === liveName &&
+      lines[i].trim().startsWith("path:")
+    ) {
       lines[i] = lines[i].replace(editionDirName(prev), editionDirName(next));
     }
   }
@@ -170,9 +211,15 @@ export function wireCi(text: string, { prev, next }: Handover, live: string): st
 
   const modelArtifact = artifact(archiveTarget(live, model));
   const nameLine = lines.findIndex((line) => line.trim() === modelArtifact);
-  if (nameLine < 0) throw new Error(`ci.yml has no step that uploads ${modelArtifact}`);
+  if (nameLine < 0)
+    throw new Error(`ci.yml has no step that uploads ${modelArtifact}`);
   const stepStart = enclosingItem(lines, nameLine, /^\s*- /);
-  const stepClone = withYear(lines.slice(stepStart, blockEnd(lines, stepStart)), live, model, prev);
+  const stepClone = withYear(
+    lines.slice(stepStart, blockEnd(lines, stepStart)),
+    live,
+    model,
+    prev,
+  );
 
   const jobStart = (name: string) => {
     const at = lines.findIndex((line) => line === `  ${name}:`);
@@ -197,6 +244,7 @@ export function firebaseProjectOf(text: string, live: string): string {
   const project = Object.entries(rc.targets ?? {}).find(
     ([, project]) => live in (project.hosting ?? {}),
   );
-  if (!project) throw new Error(`.firebaserc maps no hosting target named "${live}"`);
+  if (!project)
+    throw new Error(`.firebaserc maps no hosting target named "${live}"`);
   return project[0];
 }

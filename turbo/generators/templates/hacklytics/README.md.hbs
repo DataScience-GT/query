@@ -11,7 +11,7 @@ Two files make the edition. Everything else comes from the kit.
 | `src/event.config.ts` | The dates, links and every line of page copy. Search for `TODO`. [Field reference](../../docs/sites/event-kit.md#eventconfig) |
 | `src/styles/globals.css` | The palette and the two font families. `--ground` must equal `theme.ground` in the config |
 
-Also replace `public{{ shareImage }}`, the 1200 by 630 share image, which is copied from {{ latestDir }}, and give `src/pages/index.astro` a hero of its own.{{#if copyTheme}} The fonts in `public/fonts` and `src/styles/fonts.generated.css` are copied from {{ latestDir }} too; `{{ latestDir }}/scripts/subset-fonts.py` made them.{{/if}}
+Also replace `public{{ shareImage }}`, the 1200 by 630 share image, and `public/mlh-trust-badge.svg`, which names MLH's season. Both are copied from {{ latestDir }}. Give `src/pages/index.astro` a hero of its own.{{#if copyTheme}} The fonts in `public/fonts` and `src/styles/fonts.generated.css` are copied from {{ latestDir }} too; `{{ latestDir }}/scripts/subset-fonts.py` made them.{{/if}}
 
 ```bash
 pnpm --filter {{ siteName }} dev        # astro dev
