@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -19,20 +20,68 @@ import {
   textLink,
 } from "@query/ui/classes";
 import { DeskAnnouncements } from "./DeskAnnouncements";
-import { EvaluationSheet } from "./EvaluationSheet";
 import { GuestNameGate } from "./GuestNameGate";
 import { Itinerary } from "./Itinerary";
-import { MySubmissions } from "./MySubmissions";
 import { DEFAULT_FILTERS, NO_SKIPS, ProjectQueue } from "./ProjectQueue";
 import type { QueueFilters, SkipState } from "./ProjectQueue";
 import { RoomSwitcher } from "./RoomSwitcher";
-import { Shortlist } from "./Shortlist";
 import { useHeartbeat } from "./use-heartbeat";
 import { ICON_STROKE, deskMeta, deskPage, deskStatus } from "./desk";
 import type { DeskContext } from "./desk";
 
 type Opened = "member" | "guest";
 type View = "projects" | "submitted" | "shortlist";
+
+// The project list is what a judge lands on, so it ships with the desk. The
+// project sheet and the other two views load when opened. The sheet is where a
+// judge spends the session, on venue wifi, so its chunk is fetched once the
+// desk is idle; the views are fetched when their tab is pointed at or focused.
+const loadEvaluationSheet = () => import("./EvaluationSheet").then((m) => m.EvaluationSheet);
+const loadMySubmissions = () => import("./MySubmissions").then((m) => m.MySubmissions);
+const loadShortlist = () => import("./Shortlist").then((m) => m.Shortlist);
+
+const EvaluationSheet = dynamic(loadEvaluationSheet, {
+  loading: () => (
+    <p role="status" className={`mt-8 ${deskMeta}`}>
+      Opening the project…
+    </p>
+  ),
+});
+const MySubmissions = dynamic(loadMySubmissions, {
+  loading: () => (
+    <p role="status" className={`mt-8 ${deskMeta}`}>
+      Loading your evaluations…
+    </p>
+  ),
+});
+const Shortlist = dynamic(loadShortlist, {
+  loading: () => (
+    <p role="status" className={`mt-8 ${deskMeta}`}>
+      Loading your shortlist…
+    </p>
+  ),
+});
+
+const VIEW_LOADERS: Partial<Record<View, () => Promise<unknown>>> = {
+  submitted: loadMySubmissions,
+  shortlist: loadShortlist,
+};
+
+// A failed warm-up is not the judge's failure: opening the view retries the
+// import, and the error boundary takes it from there.
+const preloadView = (view: View) => {
+  VIEW_LOADERS[view]?.().catch(() => {});
+};
+
+// Safari has no requestIdleCallback.
+function whenIdle(run: () => void): () => void {
+  if (typeof window.requestIdleCallback === "function") {
+    const id = window.requestIdleCallback(run, { timeout: 2000 });
+    return () => window.cancelIdleCallback(id);
+  }
+  const id = window.setTimeout(run, 1000);
+  return () => window.clearTimeout(id);
+}
 
 // Codes that another try will not change.
 const FINAL = new Set([
@@ -220,6 +269,7 @@ function Desk({
   useHeartbeat(hackathonId);
 
   const isMember = context.kind === "member";
+  const hasProjects = context.challenges.length > 0;
   const projectId = searchParams.get("project");
   const projectChallenge = searchParams.get("challenge") ?? undefined;
 
@@ -238,6 +288,13 @@ function Desk({
       router.replace(pathname);
     }
   };
+
+  useEffect(() => {
+    if (!hasProjects) return;
+    return whenIdle(() => {
+      loadEvaluationSheet().catch(() => {});
+    });
+  }, [hasProjects]);
 
   // The picker sits under the header; a judge sent here from a project may
   // come back to the list scrolled down.
@@ -334,7 +391,7 @@ function Desk({
 
       {/* Picking a room is a mode: the list waits until the judge is done. */}
       {!pickingRoom &&
-        (context.challenges.length === 0 ? (
+        (!hasProjects ? (
           <p className={`mt-10 ${body}`}>
             No projects are set up for judging in this edition yet. This page
             refreshes on its own once organisers add them.
@@ -396,6 +453,8 @@ function DeskViews({
             aria-controls="desk-panel"
             className={`${tab(view === v.id)} min-h-11`}
             onClick={() => onView(v.id)}
+            onPointerEnter={() => preloadView(v.id)}
+            onFocus={() => preloadView(v.id)}
           >
             {v.text}
           </button>
