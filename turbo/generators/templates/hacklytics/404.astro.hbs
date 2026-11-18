@@ -1,0 +1,21 @@
+---
+import MlhBadge from "@query/event-kit/components/MlhBadge.astro";
+import event from "../event.config";
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout>
+  <main class="relative flex min-h-[100svh] flex-col">
+    <MlhBadge event={event} />
+    <div class="wrap flex flex-1 flex-col items-center justify-center pt-28 pb-10 text-center md:pt-40">
+      <p class="kicker text-[17px] leading-7 text-ink md:text-[20px]">Page not found</p>
+      <h1 class="display mt-4 text-[120px] md:text-[192px]">404</h1>
+      <p class="mt-6 max-w-[40ch] font-sans text-[17px] leading-[1.55] text-ink-2 md:text-[19px]">
+        The page may have moved, or it never existed.
+      </p>
+      <div class="mt-8">
+        <a href="/" class="btn btn-bloom">Go to the homepage</a>
+      </div>
+    </div>
+  </main>
+</Layout>
