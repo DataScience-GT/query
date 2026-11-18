@@ -118,6 +118,10 @@ export interface Registration {
   availability: Availability;
   /** When the offer became available, as ISO with offset. */
   validFrom: string;
+  /** The offer's price as a decimal string, "0" for a free event. */
+  price: string;
+  /** The offer's ISO 4217 currency code, such as "USD". */
+  currency: string;
 }
 
 export interface EventLinks {
@@ -262,6 +266,8 @@ export interface EventConfig
 
 const HEX = /^#[0-9a-f]{6}$/i;
 const STORAGE_KEY = /^[\w.:-]+$/;
+const PRICE = /^\d+(\.\d+)?$/;
+const CURRENCY = /^[A-Z]{3}$/;
 
 const fail = (message: string): never => {
   throw new Error(`defineEvent: ${message}`);
@@ -325,6 +331,12 @@ export function defineEvent(input: EventInput): EventConfig {
     fail("the hacking window must sit inside start to end");
   }
   label("registration.validFrom", core.registration.validFrom);
+  if (!PRICE.test(core.registration.price)) {
+    fail(`registration.price must be a decimal like "0" or "25.00" (got "${core.registration.price}")`);
+  }
+  if (!CURRENCY.test(core.registration.currency)) {
+    fail(`registration.currency must be a three-letter ISO 4217 code (got "${core.registration.currency}")`);
+  }
 
   for (const mode of ["light", "dark"] as const) {
     if (!HEX.test(core.theme.ground[mode])) {

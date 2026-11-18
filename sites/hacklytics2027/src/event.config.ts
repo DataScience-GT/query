@@ -77,6 +77,8 @@ export default defineEvent({
     ariaLabel: "Notify me (opens a sign-up form)",
     availability: "PreOrder",
     validFrom: "2026-08-01T00:00:00-04:00",
+    price: "0",
+    currency: "USD",
   },
 
   content: ({ name, dates, hackHours, links }) => ({

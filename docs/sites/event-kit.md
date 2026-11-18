@@ -103,7 +103,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `organizer` | `{ name }` | Footer copyright, `author`, JSON-LD organizer |
 | `contactEmail` | string | Footer, form errors |
 | `links` | `{ portal, portalPath, devPortal?, mlh, devpost?, codeOfConduct?, social[] }` | `portal` is an origin with no trailing slash. `portalPath` is the edition's page on the portal, `/hacklytics` for 2027: a leading slash, no trailing one. `devPortal` is a local portal's origin: on a loopback host the judge-interest form posts there instead of to `portal`, so trying it in dev never touches the real list (2027 sets `http://localhost:3001`). `devpost` adds a footer link. `codeOfConduct` is `{ label, href }`, a footer link with that text; a site that also links it from the FAQ reuses its own constant. `social` is `{ label, href }` in footer order |
-| `registration` | `{ url, label, ariaLabel?, availability, validFrom }` | One URL for every sign-up button and the JSON-LD offer. `availability` is `PreOrder`, `InStock` or `SoldOut` |
+| `registration` | `{ url, label, ariaLabel?, availability, validFrom, price, currency }` | One URL for every sign-up button and the JSON-LD offer. `availability` is `PreOrder`, `InStock` or `SoldOut`. `price` is a decimal string and `currency` an ISO 4217 code: `"0"` and `USD` for a free event |
 
 **`EventContent`**, returned by `content(derived)`
 
@@ -129,6 +129,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 - the hacking window is not inside the event, or ends before it starts
 - a schedule row starts with a weekday the event does not run on
 - two tracks, prizes or FAQs share a title or question
+- `registration.price` is not a decimal, or `registration.currency` is not a three-letter code
 - `links.portal`, `links.devPortal` or `seo.url` is not a bare origin, `links.portalPath` is not a slash-led path, a `ground` color is not `#rrggbb`, or `theme.storageKey` has characters the inline script cannot hold
 
 ## Theme contract

@@ -52,8 +52,8 @@ const jsonLd = {
   offers: {
     "@type": "Offer",
     url: registration.url,
-    price: "0",
-    priceCurrency: "USD",
+    price: registration.price,
+    priceCurrency: registration.currency,
     availability: `https://schema.org/${registration.availability}`,
     validFrom: registration.validFrom,
   },
