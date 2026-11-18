@@ -21,7 +21,6 @@ catalog:
   prettier: 3.9.10
   react: 19.3.1
   react-dom: 19.3.1
-  sanitize-html: 2.18.1
   stripe: 23.1.0
   superjson: 2.2.6
   tailwindcss: 4.3.3

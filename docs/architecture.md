@@ -46,7 +46,6 @@ flowchart TD
   subgraph tooling["tooling"]
     oxlint["@query/oxlint-config"]
     prettier["@query/prettier-config"]
-    tailwind["@query/tailwind-config"]
     tsconfig["@query/tsconfig"]
   end
 
@@ -58,10 +57,8 @@ flowchart TD
   api --> db
   auth --> db
   web -.-> oxlint
-  web -.-> tailwind
   web -.-> tsconfig
   ui -.-> oxlint
-  ui -.-> tailwind
   ui -.-> tsconfig
   api -.-> tsconfig
   auth -.-> tsconfig
@@ -70,6 +67,20 @@ flowchart TD
   prettier -.-> tsconfig
   hack ~~~ web
 ```
+
+## Package layers
+
+Each workspace's `turbo.json` gives it a layer tag. The root `turbo.json` says which layers may depend on which, and CI runs `pnpm turbo boundaries` to enforce it. The check also fails on any import that a workspace's `package.json` doesn't declare, and on any import that reaches into another workspace by relative path.
+
+| Tag | Workspaces | May depend on |
+| --- | --- | --- |
+| `app` | `sites/mainweb`, `sites/hacklytics2026`, `sites/hacklytics2027` | anything; nothing may depend on an app |
+| `static` | the two Astro sites, on top of `app` | not `data` or `service`: the event sites ship with no database or server code |
+| `service` | `packages/api`, `packages/auth` | `data`, not `ui` or `app` |
+| `data` | `packages/db` | not `service`, `ui` or `app` |
+| `ui` | `packages/ui` | not `data`, `service` or `app` |
+
+`tooling/*` is untagged, so it is unrestricted. A new package needs a `turbo.json` with `"extends": ["//"]` and one of these tags. Without a tag, no layer rule applies to it.
 
 ## Two products, one database
 

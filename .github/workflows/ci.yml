@@ -56,6 +56,11 @@ jobs:
           key: turbo-${{ runner.os }}-${{ github.sha }}
           restore-keys: turbo-${{ runner.os }}-
 
+      # Every import is declared in its package.json, nothing reaches into
+      # another workspace by path, and the layer tags in turbo.json hold.
+      - name: Package boundaries
+        run: pnpm turbo boundaries
+
       - name: Lint and typecheck
         run: pnpm turbo run lint typecheck
 
