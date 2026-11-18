@@ -123,6 +123,8 @@ export interface Registration {
 export interface EventLinks {
   /** The portal origin, without a trailing slash. */
   portal: string;
+  /** The edition's page on the portal: a leading slash, no trailing one. */
+  portalPath: string;
   /** MLH's trust badge link, with the season's tracking parameters. */
   mlh: string;
   /** The submission site, shown in the footer when set. */
@@ -329,6 +331,9 @@ export function defineEvent(input: EventInput): EventConfig {
     fail(`contactEmail must be an email address (got "${core.contactEmail}")`);
   }
   requireOrigin("links.portal", core.links.portal);
+  if (!core.links.portalPath.startsWith("/") || core.links.portalPath.endsWith("/")) {
+    fail(`links.portalPath must start with a slash and not end with one (got "${core.links.portalPath}")`);
+  }
   requireAbsolute("links.mlh", core.links.mlh);
   if (core.links.codeOfConduct) {
     requireAbsolute("links.codeOfConduct.href", core.links.codeOfConduct.href);
@@ -341,8 +346,8 @@ export function defineEvent(input: EventInput): EventConfig {
   const callback = (path: string) =>
     `${core.links.portal}/login?callbackUrl=${encodeURIComponent(path)}`;
   const portalLinks: PortalLinks = {
-    portalInterest: callback("/hacklytics"),
-    hackerPortal: `${core.links.portal}/hacklytics`,
+    portalInterest: callback(core.links.portalPath),
+    hackerPortal: `${core.links.portal}${core.links.portalPath}`,
     judgeSignIn: callback("/judge"),
     judgeApply: callback("/judge/register"),
   };

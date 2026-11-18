@@ -31,6 +31,7 @@ const core: EventCore = {
   contactEmail: "hello@hacklytics.io",
   links: {
     portal: "https://datasciencegt.org",
+    portalPath: "/hacklytics",
     mlh: "https://mlh.io/na",
     social: [],
   },
@@ -122,6 +123,14 @@ describe("defineEvent derived values", () => {
     );
     expect(event.links.portalInterest).toBe(
       "https://datasciencegt.org/login?callbackUrl=%2Fhacklytics",
+    );
+  });
+
+  it("puts the edition's page where the config says", () => {
+    const event = build({ links: { ...core.links, portalPath: "/hacklytics/2028" } });
+    expect(event.links.hackerPortal).toBe("https://datasciencegt.org/hacklytics/2028");
+    expect(event.links.portalInterest).toBe(
+      "https://datasciencegt.org/login?callbackUrl=%2Fhacklytics%2F2028",
     );
   });
 
@@ -281,6 +290,12 @@ describe("defineEvent rejects editions that cannot render correctly", () => {
   it("needs a storage key that is safe in the inline theme script", () => {
     for (const storageKey of ["", 'a"b', "a b", "</script>"]) {
       expect(() => build({ theme: { ...core.theme, storageKey } })).toThrow(/theme.storageKey/);
+    }
+  });
+
+  it("needs a portal path that starts with a slash and does not end with one", () => {
+    for (const portalPath of ["hacklytics", "/hacklytics/", "/", ""]) {
+      expect(() => build({ links: { ...core.links, portalPath } })).toThrow(/links.portalPath/);
     }
   });
 
