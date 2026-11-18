@@ -45,6 +45,7 @@ The versions before 3.4 were assigned after the fact, from the repo history.
 | 3.2 | 2026-05 | Public status page |
 | 3.3 | 2026-08 | Docs and the vitest suite |
 | 3.4 | 2026-10 | Judging scheduler (CP-SAT) |
+| 3.5 | 2026-11 | Monorepo restructure: enforced package layers, `@query/core`, the `@query/event-kit` Hacklytics kit and `pnpm turbo gen hacklytics` |
 
 ## Other root files
 
