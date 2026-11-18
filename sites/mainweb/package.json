@@ -43,7 +43,7 @@
     "superjson": "catalog:"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "16.4.3",
+    "@next/bundle-analyzer": "catalog:",
     "@query/oxlint-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "catalog:",
