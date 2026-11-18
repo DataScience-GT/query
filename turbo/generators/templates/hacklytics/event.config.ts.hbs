@@ -1,0 +1,92 @@
+/**
+ * {{ heading }}, in one place.
+ *
+ * The page copy, the JSON-LD Event and the schedule all read this, so moving
+ * the weekend is one edit to `start` and `end`. docs/sites/event-kit.md lists
+ * every field.
+ *
+ * Made by `pnpm turbo gen hacklytics`. The dates and the theme name are the
+ * answers it was given, and the clock times follow {{ latestDir }}.
+ * These fields are carried over from {{ latestDir }} as they stood there:
+ *
+ *   {{ carried }}
+ *
+ * A value that {{ latestDir }} imports from a package is imported here
+ * too, so the organization's links, time zone and name stay in one place.
+ *
+ * Check each before launch, most of all `registration.url`,
+ * `registration.validFrom` and `links.mlh`, which belong to one season.
+ * Each "TODO" below is copy to write for this edition.
+ */
+{{#if imports}}
+{{{ imports }}}
+{{/if}}
+import { defineEvent } from "@query/event-kit";
+
+export default defineEvent({
+{{{ core }}},
+
+  content: ({ name, dates, hackHours }) => ({
+    seo: {
+{{{ seo }}},
+      description: `TODO: ${name} is a ${hackHours}-hour hackathon, ${dates.long}. Say who it is for in a sentence or two.`,
+      shareDescription: `TODO: one line for link previews. ${hackHours} hours, ${dates.short}.`,
+      summary: `TODO: one line for the hero and Twitter. ${hackHours} hours, ${dates.short}.`,
+      eventDescription: `TODO: what happens at ${name}, for search results.`,
+    },
+
+    about: {
+      heading: "TODO: a headline for the About section",
+      body: [
+        `TODO: ${name} runs ${dates.long}. Say what it is, who runs it and where.`,
+        "TODO: a second paragraph, less important than the first.",
+      ],
+    },
+
+    tracks: [
+      { title: "TODO: Track one", description: "TODO: what this track is about" },
+      { title: "TODO: Track two", description: "TODO: what this track is about" },
+    ],
+
+    prizes: {
+      intro: "TODO: a line above the prizes",
+      items: [
+        { label: "TODO: Best overall", detail: "TODO: what it wins" },
+        { label: "TODO: Track prizes", detail: "TODO: what they win" },
+      ],
+    },
+    speakers: [],
+
+    schedule: {
+      intro: "TODO: confirm these times and add the rest of the run of show.",
+      board: [
+{{#each board}}
+        { when: `{{{ when }}}`, event: "{{ event }}"{{#if accent}}, accent: true{{/if}} },
+{{/each}}
+      ],
+    },
+
+    judges: {
+      body: [
+        "TODO: who judges and what they do.",
+        `TODO: judging is part of the ${dates.long} weekend. Say how judges apply.`,
+      ],
+      people: [],
+    },
+
+    sponsors: {
+      body: ["TODO: who hosts the event and how a company can sponsor."],
+      tiers: [],
+    },
+
+    faqs: [
+      { q: "How long is it?", a: `${hackHours} hours of hacking, ${dates.long}.` },
+      { q: "TODO: your next question", a: "TODO: its answer" },
+    ],
+
+    footer: {
+      headline: "TODO: the line above the sign-up button",
+      note: "TODO: a smaller line under it",
+    },
+  }),
+});

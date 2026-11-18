@@ -16,7 +16,7 @@ Root `turbo.json` defines `build`, `dev`, `lint`, `typecheck`, `test`, `format`,
 
 `sites/mainweb/turbo.json` extends the root and sets Next `.next/**` build outputs.
 
-`turbo/generators/` is a Plop generator (`init`) that scaffolds a new `packages/<name>` with oxlint, package.json, tsconfig, and `src/index.ts`. Run it with `pnpm turbo gen init`.
+`turbo/generators/` holds two Plop generators. `init` scaffolds a new `packages/<name>` with oxlint, package.json, tsconfig, and `src/index.ts`. Run it with `pnpm turbo gen init`. `hacklytics` scaffolds a Hacklytics edition site on the event kit and wires its deploy. Run it with `pnpm turbo gen hacklytics`, see [Starting a new edition](./sites/new-edition.md).
 
 `tooling/scripts/src/restore-workspace.ts` rewrites internal deps a tool flattened to `"*"` back to `workspace:*`. Run it from the repo root with `node tooling/scripts/src/restore-workspace.ts`.
 
@@ -45,6 +45,7 @@ The versions before 3.4 were assigned after the fact, from the repo history.
 | 3.2 | 2026-05 | Public status page |
 | 3.3 | 2026-08 | Docs and the vitest suite |
 | 3.4 | 2026-10 | Judging scheduler (CP-SAT) |
+| 3.5 | 2026-11 | Monorepo restructure: enforced package layers, `@query/core`, the `@query/event-kit` Hacklytics kit and `pnpm turbo gen hacklytics` |
 
 ## Other root files
 
