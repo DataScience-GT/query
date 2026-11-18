@@ -36,11 +36,12 @@ The generator holds no venue, link, contact, organizer, clock time or Firebase t
 
 | Carried over from the latest edition | How |
 | --- | --- |
-| `brand`, `venue`, `organizer`, `contactEmail`, `links`, `registration`, and any other core field the answers do not decide | As they are |
+| `brand`, `timeZone`, `venue`, `organizer`, `contactEmail`, `links` (the portal and its path, the local portal, MLH, the code of conduct, social), `registration` (the sign-up URL, label, price and currency), `theme.storageKey`, and any other core field the answers do not decide | As they are |
 | `seo.tagline`, `keywords`, `url`, `image`, `twitter` | As they are. The four description fields are new copy |
 | The clock times | Read as a pattern from `start`, `end` and `hacking`: the clock time of each, and the day each falls on relative to the start or end date. The pattern is laid on your dates |
 | `registration.validFrom` | The same month, day and time, moved to the new year |
-| The time zone | Whatever the latest edition runs in |
+| The time zone | `timeZone` in the latest edition's config |
+| The files a site must serve, and the theme tokens it must define | Read from the kit's components and from the header of its stylesheet, so a file or token the kit adds is picked up |
 
 The ISO strings get the offset the zone has on that date. A weekend in late March is `-04:00` and one in February is `-05:00`. A clock time the zone skips is refused.
 
@@ -58,7 +59,7 @@ sites/hacklytics<year>/
   public/                 favicon.ico, apple-icon.png, mlh-trust-badge.svg, sw.js, the share image
 ```
 
-With the theme copied, it also copies `public/fonts/`, `src/styles/fonts.generated.css` and `src/lib/fonts.generated.ts`, and `globals.css` holds the latest edition's palette and font families without its art. Without, `globals.css` is a neutral starter. It has system fonts, one blue accent and a palette that clears WCAG AA in both schemes, and the config's `theme.ground` matches it.
+With the theme copied, it also copies `public/fonts/`, `src/styles/fonts.generated.css` and `src/lib/fonts.generated.ts`, and `globals.css` holds the latest edition's palette and font families without its art. Without, `globals.css` is a neutral starter. It has system fonts, one blue accent and a palette that clears WCAG AA in both schemes, and the config's `theme.ground` matches it. Tokens that are not colors, such as `--navbar-height` and `--ease`, come from the latest edition's theme. A color token the kit starts to require fails the generator's tests until it is added to the starter.
 
 The page is the kit's. `index.astro` has a plain placeholder hero and then `HomeSections`. `404.astro` is a plain 404. Art is optional, so none is made.
 
