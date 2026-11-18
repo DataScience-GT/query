@@ -1,4 +1,3 @@
-import { EVENT_START_LABEL } from "@/lib/event";
 import { BED_SIZE, bloomSet, plantBed, withBlooms } from "./beds";
 import { PixelBed } from "./PixelBed";
 import { useInBloom } from "./season";
@@ -8,7 +7,15 @@ import { useInBloom } from "./season";
  * bloom comes from the clock and a click plants a flower, neither of which the
  * static HTML can know. The seeds match the markup these beds replaced, so the
  * same plants stand in the same places.
+ *
+ * The islands take the event's start (epoch milliseconds) and its first-day
+ * label as props. Importing the event config would put all of its copy in the
+ * browser bundle.
  */
+
+interface BedProps {
+  start: number;
+}
 
 const Heading = () => <h2 className="font-display text-[16px] text-ink">Plant a flower</h2>;
 
@@ -20,8 +27,8 @@ const HERO_BED = plantBed(0);
 const MENU_BED = plantBed(2);
 const FOOTER_BED = plantBed(3);
 
-export function HeroBed() {
-  const inBloom = useInBloom();
+export function HeroBed({ start, startLabel }: BedProps & { startLabel: string }) {
+  const inBloom = useInBloom(start);
   return (
     <PixelBed
       plants={withBlooms(HERO_BED, bloomSet(inBloom))}
@@ -33,20 +40,20 @@ export function HeroBed() {
       heading={<Heading />}
       caption={
         inBloom
-          ? `${inBloom} of ${BED_SIZE} in bloom · fills in as ${EVENT_START_LABEL} gets closer`
+          ? `${inBloom} of ${BED_SIZE} in bloom · fills in as ${startLabel} gets closer`
           : NO_CAPTION
       }
     />
   );
 }
 
-export function MenuBed() {
-  const inBloom = useInBloom();
+export function MenuBed({ start }: BedProps) {
+  const inBloom = useInBloom(start);
   return <PixelBed plants={withBlooms(MENU_BED, bloomSet(inBloom))} soil />;
 }
 
-export function FooterBed() {
-  const inBloom = useInBloom();
+export function FooterBed({ start }: BedProps) {
+  const inBloom = useInBloom(start);
   return (
     <PixelBed
       plants={withBlooms(FOOTER_BED, bloomSet(inBloom))}

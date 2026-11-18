@@ -1,0 +1,33 @@
+{
+  "name": "@query/event-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "src"
+  ],
+  "exports": {
+    ".": "./src/config.ts",
+    "./styles.css": "./src/styles/kit.css",
+    "./components/*": "./src/components/*"
+  },
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsrs --noEmit",
+    "lint": "oxlint src"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@query/oxlint-config": "workspace:*",
+    "@query/tsconfig": "workspace:*",
+    "@types/react": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "react": "catalog:",
+    "tsrs": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
