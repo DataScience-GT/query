@@ -3,6 +3,7 @@
   "version": "3.5.0",
   "type": "module",
   "private": true,
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "query-guard-local --stripe --email && next dev --port 3001",
     "build": "next build",
