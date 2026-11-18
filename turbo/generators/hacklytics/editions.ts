@@ -7,11 +7,14 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { createServer } from "vite";
 import type { Plugin } from "vite";
 
 import { SITES_DIR, editionDirName, editionYearOf } from "./paths";
 
+// turbo gen bundles this file into one CommonJS script, which cannot hold Vite:
+// it reads its own import.meta.url. A specifier esbuild cannot see stays an
+// import() at run time, and Node loads Vite as the ES module it is.
+const VITE = "vite";
 const KIT_PACKAGE = "@query/event-kit";
 const CAPTURE_KEY = "__hacklyticsEventInput";
 const CAPTURE_MODULE = "\0hacklytics-generator:capture-kit";
@@ -85,6 +88,7 @@ export async function loadEdition(root: string, year: number): Promise<Edition> 
   const file = resolve(root, dir, "src", "event.config.ts");
   if (!existsSync(file)) throw new Error(`${dir}/src/event.config.ts does not exist`);
 
+  const { createServer } = (await import(VITE)) as typeof import("vite");
   const server = await createServer({
     root: resolve(root, dir),
     configFile: false,

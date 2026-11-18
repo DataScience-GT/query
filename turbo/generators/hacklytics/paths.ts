@@ -7,6 +7,6 @@ export const editionDirName = (year: number) => `${PREFIX}${year}`;
 
 /** The year in an edition's directory name, or null for any other directory. */
 export function editionYearOf(dirName: string): number | null {
-  const match = new RegExp(`^${PREFIX}(\d{4})$`).exec(dirName);
+  const match = new RegExp(String.raw`^${PREFIX}(\d{4})$`).exec(dirName);
   return match ? Number(match[1]) : null;
 }
