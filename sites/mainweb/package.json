@@ -21,7 +21,6 @@
     "@stripe/stripe-js": "^10.2.1",
     "@tanstack/react-query": "catalog:",
     "@trpc/client": "catalog:",
-    "@trpc/next": "11.26.0",
     "@trpc/react-query": "catalog:",
     "@trpc/server": "catalog:",
     "@yudiel/react-qr-scanner": "^2.6.0",
@@ -40,14 +39,12 @@
     "react": "catalog:",
     "react-chartjs-2": "5.3.1",
     "react-dom": "catalog:",
-    "sanitize-html": "catalog:",
     "stripe": "catalog:",
     "superjson": "catalog:"
   },
   "devDependencies": {
     "@next/bundle-analyzer": "16.4.3",
     "@query/oxlint-config": "workspace:*",
-    "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "catalog:",
     "@types/archiver": "^8.0.0",
@@ -63,6 +60,7 @@
     "postcss": "catalog:",
     "tailwindcss": "catalog:",
     "tsrs": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

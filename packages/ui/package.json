@@ -26,7 +26,6 @@
   },
   "devDependencies": {
     "@query/oxlint-config": "workspace:*",
-    "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",
@@ -38,6 +37,7 @@
     "react-dom": "catalog:",
     "tailwindcss": "catalog:",
     "tsrs": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
