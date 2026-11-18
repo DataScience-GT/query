@@ -1,4 +1,4 @@
-import { VENUE_TZ } from "@query/db/constants";
+import { VENUE_TZ } from "@query/core";
 
 // Portal pages render on the server and again in the browser. A date printed
 // or compared in the runtime's own zone comes out differently in the two (Cloud

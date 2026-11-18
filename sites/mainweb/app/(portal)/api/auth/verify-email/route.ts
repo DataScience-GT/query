@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { siteOrigin } from "@query/db/constants";
+import { siteOrigin } from "@query/core/server";
 import type { NextRequest } from "next/server";
 import {
   db,

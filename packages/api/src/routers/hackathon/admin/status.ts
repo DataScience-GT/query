@@ -1,7 +1,8 @@
 // Moving applicants between statuses: single, bulk, waves and acceptance emails.
 
 import { z } from "zod";
-import { PARTICIPANT_STATUSES, SITE_ORIGIN } from "@query/db/constants";
+import { SITE_ORIGIN } from "@query/core";
+import { PARTICIPANT_STATUSES } from "@query/db/constants";
 import {
   emailConcurrency,
   forEachWithConcurrency,

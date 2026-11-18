@@ -7,7 +7,7 @@ import {
 } from "@query/db";
 import { lockInventory } from "./config";
 import type { JudgingDb } from "./config";
-import { SITE_ORIGIN } from "@query/db/constants";
+import { SITE_ORIGIN } from "@query/core";
 import { roomLinkPath } from "./room-link";
 
 // Room QR links. A room has at most one live link; issuing a new one retires
