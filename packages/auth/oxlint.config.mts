@@ -1,6 +1,6 @@
 import { defineConfig } from "oxlint";
 
-import base from "@query/oxlint-config/base.json" with { type: "json" };
+import { base } from "@query/oxlint-config";
 
 export default defineConfig({
   extends: [base],
