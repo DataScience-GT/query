@@ -1,17 +1,15 @@
 ---
-import { EVENT_THEME, EVENT_YEAR } from "@/lib/event";
-import { INTEREST_URL } from "@/lib/links";
-import { MenuBed } from "./pixel/GardenBeds";
+import type { EventConfig } from "../config";
+import { SECTION_NAV } from "../nav";
 import ThemeToggle from "./ThemeToggle.astro";
 
-const navItems = [
-  { name: "About", href: "/#about" },
-  { name: "Tracks", href: "/#tracks" },
-  { name: "Prizes", href: "/#prizes" },
-  { name: "Schedule", href: "/#schedule" },
-  { name: "Sponsors", href: "/#sponsors" },
-  { name: "FAQ", href: "/#faqs" },
-];
+interface Props {
+  event: EventConfig;
+}
+const { event } = Astro.props;
+const { registration } = event;
+const navItems = SECTION_NAV.map(({ id, label }) => ({ name: label, href: `/#${id}` }));
+const cta = registration.ariaLabel ?? registration.label;
 
 // The menu is a tinted layer over the page: hidden only by opacity, and the
 // open/hidden/scrolled states ride on data attributes that scripts/navbar.ts
@@ -36,7 +34,7 @@ const navItems = [
       data-nav-home
       class="font-display text-[16px] text-ink shrink-0 inline-flex h-11 items-center"
     >
-      Hacklytics
+      {event.brand}
     </a>
 
     {/* Six links, the logo and the button do not fit below 1024px. Centred on
@@ -60,13 +58,13 @@ const navItems = [
       {/* Compact on phones, where it used to hide in the menu. Below 356px
            there is no room beside the logo; the menu has it. */}
       <a
-        href={INTEREST_URL}
+        href={registration.url}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="Notify me (opens a sign-up form)"
+        aria-label={cta}
         class="btn btn-bloom h-11 px-2.5 text-[12px] max-[356px]:hidden sm:px-4 sm:text-[15px] shrink-0 group-data-[open]/h:invisible"
       >
-        Notify me
+        {registration.label}
       </a>
 
       <button
@@ -106,24 +104,24 @@ const navItems = [
   </nav>
   <div class="wrap mt-10">
     <a
-      href={INTEREST_URL}
+      href={registration.url}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Notify me (opens a sign-up form)"
+      aria-label={cta}
       class="btn btn-bloom w-full"
     >
-      Notify me
+      {registration.label}
     </a>
   </div>
   <div class="mt-auto">
-    {/* Fills the space under the button on a tall phone. On a short one there
-         is none, and the theme switch below has to stay on screen. The menu
-         only opens below 1024px, so the bed hydrates only there. */}
+    {/* Fills the space under the button on a tall phone with the site's art.
+         On a short one there is none, and the theme switch below has to stay
+         on screen. */}
     <div class="[@media(max-height:760px)]:hidden">
-      <MenuBed client:media="(max-width: 1023px)" />
+      <slot name="art" />
     </div>
     <div class="wrap pt-4 pb-12 flex items-center justify-between gap-4">
-      <span class="font-sans text-[13px] text-ink-3">{EVENT_THEME} · {EVENT_YEAR}</span>
+      <span class="font-sans text-[13px] text-ink-3">{event.theme.name} · {event.year}</span>
       <div class="sm:hidden">
         <ThemeToggle />
       </div>

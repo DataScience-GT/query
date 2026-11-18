@@ -1,8 +1,35 @@
 import React, { useState } from "react";
 import type { FormEvent } from "react";
-import { judgeInterestUrl } from "@/lib/links";
 
 type Status = "idle" | "sending" | "done" | "error";
+
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/**
+ * Where the form posts: a public, rate-limited endpoint on the portal that
+ * accepts the event sites' origins. On a loopback host, when the site names a
+ * local portal, it talks to that one so the form can be tried without
+ * touching the real list. A function because it reads the page's hostname,
+ * which the build cannot.
+ */
+export const judgeInterestUrl = (portalOrigin: string, devPortalOrigin?: string) =>
+  `${
+    devPortalOrigin &&
+    typeof window !== "undefined" &&
+    LOOPBACK_HOSTS.has(window.location.hostname)
+      ? devPortalOrigin
+      : portalOrigin
+  }/api/judge-interest`;
+
+/** An island, so its props are written into the page: keep them to what the form needs. */
+export interface JudgeInterestFormProps {
+  /** The series name, as the copy says "judging Hacklytics". */
+  brand: string;
+  portalOrigin: string;
+  /** A local portal the form posts to from a loopback host, in place of `portalOrigin`. */
+  devPortalOrigin?: string;
+  contactEmail: string;
+}
 
 // 16px text so iOS does not zoom the page on focus.
 const field =
@@ -17,7 +44,12 @@ const label = "block font-sans text-[15px] font-medium text-ink mb-2";
  * invitation to the full application. The full application stays the button
  * in the Judges section above.
  */
-export default function JudgeInterestForm() {
+export default function JudgeInterestForm({
+  brand,
+  portalOrigin,
+  devPortalOrigin,
+  contactEmail,
+}: JudgeInterestFormProps) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
 
@@ -32,7 +64,7 @@ export default function JudgeInterestForm() {
     setStatus("sending");
     setError("");
     try {
-      const res = await fetch(judgeInterestUrl(), {
+      const res = await fetch(judgeInterestUrl(portalOrigin, devPortalOrigin), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -46,7 +78,7 @@ export default function JudgeInterestForm() {
       } | null;
       setError(
         json?.error ??
-          "Something went wrong. Please try again or email hello@hacklytics.io.",
+          `Something went wrong. Please try again or email ${contactEmail}.`,
       );
     } catch {
       setError(
@@ -65,9 +97,7 @@ export default function JudgeInterestForm() {
               Not ready to apply?
             </h3>
             <p className="font-sans text-[17px] text-ink-2 leading-[1.55] max-w-[45ch] mt-4">
-              Leave your details and we will be in touch about judging
-              Hacklytics. No account needed. Submitting again with the same
-              email updates your answers.
+              {`Leave your details and we will be in touch about judging ${brand}. No account needed. Submitting again with the same email updates your answers.`}
             </p>
           </div>
 

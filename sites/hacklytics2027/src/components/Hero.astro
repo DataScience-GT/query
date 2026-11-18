@@ -1,22 +1,20 @@
 ---
-import { EVENT_DATES_SHORT } from "@/lib/event";
-import { INTEREST_URL } from "@/lib/links";
-import { EVENT_START } from "./pixel/event";
-import MlhBadge from "./MlhBadge.astro";
+import MlhBadge from "@query/event-kit/components/MlhBadge.astro";
+import event from "../event.config";
 import { HeroBed } from "./pixel/GardenBeds";
 
 const units = ["days", "hours", "minutes", "seconds"] as const;
 ---
 
 <section class="relative flex min-h-[100svh] flex-col">
-  <MlhBadge />
+  <MlhBadge event={event} />
 
   {/* Top padding clears the navbar and the MLH badge, which hangs to
       98px on phones and 158px from md (90px wide, 1:1.75). */}
   <div class="wrap relative z-20 flex flex-1 flex-col pt-28 md:pt-40 short:pt-24">
     <div class="text-center">
       <p class="kicker text-[17px] max-[340px]:text-[15px] md:text-[20px] leading-7 text-ink">
-        {EVENT_DATES_SHORT} · Klaus, Georgia Tech
+        {event.dates.short} · Klaus, Georgia Tech
       </p>
 
       {/* One line at every width, and only multiples of 8, so a pixel
@@ -44,12 +42,12 @@ const units = ["days", "hours", "minutes", "seconds"] as const;
 
         <div class="mt-8 flex flex-col min-[360px]:grid min-[360px]:grid-cols-[8rem_1fr] sm:flex sm:flex-row sm:justify-center lg:flex-col lg:items-start xl:flex-row xl:justify-start gap-3">
           <a
-            href={INTEREST_URL}
+            href={event.registration.url}
             target="_blank"
             rel="noopener noreferrer"
             class="btn btn-bloom"
           >
-            Notify me
+            {event.registration.label}
           </a>
           <a href="#tracks" class="btn btn-line max-[389px]:px-3 max-[389px]:text-[14px]">
             See tracks and prizes
@@ -98,11 +96,11 @@ const units = ["days", "hours", "minutes", "seconds"] as const;
       first screen that needs React, and nothing on it is needed to read the
       page, so it hydrates once the browser is idle. */}
   <div class="pb-6">
-    <HeroBed client:idle />
+    <HeroBed client:idle start={event.startMs} startLabel={event.dates.startLabel} />
   </div>
 </section>
 
-<script is:inline define:vars={{ start: EVENT_START.getTime() }}>
+<script is:inline define:vars={{ start: event.startMs }}>
   {
     const figures = document.querySelectorAll("[data-countdown-unit]");
     const tick = () => {

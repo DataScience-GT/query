@@ -1,15 +1,15 @@
 ---
-import { FooterBed } from "./pixel/GardenBeds";
-import { EVENT_YEAR } from "@/lib/event";
-import { INTEREST_URL, JUDGE_URL, PORTAL_HACKATHON_URL, PORTAL_ORIGIN, SOCIAL_LINKS } from "@/lib/links";
+import type { EventConfig } from "../config";
+import { SECTION_NAV } from "../nav";
 
 interface Props {
-  /** The 404's bare soil is the point of that page, so it gets no bed in bloom under it. */
+  event: EventConfig;
+  /** The call to action and the site's art under it only belong on the home page. */
   home?: boolean;
 }
-const { home = false } = Astro.props;
-
-const navIds = ["about", "tracks", "prizes", "schedule", "sponsors", "faqs"];
+const { event, home = false } = Astro.props;
+const { registration, links, footer } = event;
+const portalHost = new URL(links.portal).host;
 ---
 
 <footer class="relative w-full overflow-hidden">
@@ -17,22 +17,24 @@ const navIds = ["about", "tracks", "prizes", "schedule", "sponsors", "faqs"];
     {home && (
       <>
         <h2 class="display -ml-[0.125em] text-[32px] md:text-[40px] lg:text-[56px] xl:text-[72px] leading-[1.05] mb-8">
-          Applications open soon
+          {footer.headline}
         </h2>
 
         <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-16">
           <a
-            href={INTEREST_URL}
+            href={registration.url}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Notify me (opens a sign-up form)"
+            aria-label={registration.ariaLabel ?? registration.label}
             class="btn btn-bloom"
           >
-            Notify me
+            {registration.label}
           </a>
-          <p class="font-sans text-[17px] text-ink-2 max-w-sm leading-relaxed">
-            We’ll let you know the moment they do
-          </p>
+          {footer.note && (
+            <p class="font-sans text-[17px] text-ink-2 max-w-sm leading-relaxed">
+              {footer.note}
+            </p>
+          )}
         </div>
       </>
     )}
@@ -41,19 +43,19 @@ const navIds = ["about", "tracks", "prizes", "schedule", "sponsors", "faqs"];
          "MLH Code of Conduct" onto lines of their own even at 1440px. */}
     <div class:list={["flex flex-col gap-4 pt-8", home && "border-t border-rule"]}>
       <nav class="grid grid-cols-3 gap-x-6 sm:flex sm:flex-wrap">
-        {navIds.map((id) => (
+        {SECTION_NAV.map(({ id, label }) => (
           <a
             href={`/#${id}`}
             class="font-sans text-[15px] capitalize text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 min-w-11 items-center"
           >
-            {id === "faqs" ? "FAQ" : id}
+            {label}
           </a>
         ))}
       </nav>
 
       <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-0 sm:gap-x-8 whitespace-nowrap">
         <a
-          href={PORTAL_HACKATHON_URL}
+          href={links.hackerPortal}
           target="_blank"
           rel="noopener noreferrer"
           class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
@@ -61,68 +63,68 @@ const navIds = ["about", "tracks", "prizes", "schedule", "sponsors", "faqs"];
           Hacker portal
         </a>
         <a
-          href={JUDGE_URL}
+          href={links.judgeSignIn}
           target="_blank"
           rel="noopener noreferrer"
           class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
         >
-          Judge Hacklytics
+          Judge {event.brand}
         </a>
         <a
-          href="mailto:hello@hacklytics.io"
+          href={`mailto:${event.contactEmail}`}
           class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
         >
-          hello@hacklytics.io
+          {event.contactEmail}
         </a>
         <a
-          href={PORTAL_ORIGIN}
+          href={links.portal}
           target="_blank"
           rel="noopener noreferrer"
           class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
         >
-          datasciencegt.org
+          {portalHost}
         </a>
-        <a
-          href="https://static.mlh.io/docs/mlh-code-of-conduct.pdf"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
-        >
-          MLH Code of Conduct
-        </a>
+        {links.devpost && (
+          <a
+            href={links.devpost}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
+          >
+            Devpost
+          </a>
+        )}
+        {links.codeOfConduct && (
+          <a
+            href={links.codeOfConduct.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
+          >
+            {links.codeOfConduct.label}
+          </a>
+        )}
       </div>
     </div>
 
     <div class="pt-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-      <p class="font-sans text-[13px] text-ink-3">© {EVENT_YEAR} Data Science @ GT</p>
+      <p class="font-sans text-[13px] text-ink-3">© {event.year} {event.organizer.name}</p>
       <div class="flex items-center gap-5">
-        <a
-          href={SOCIAL_LINKS.instagram}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Instagram"
-          class="font-sans text-[13px] text-ink-3 hover:text-ink transition-colors inline-flex min-h-11 items-center"
-        >
-          Instagram
-        </a>
-        <a
-          href={SOCIAL_LINKS.linkedin}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="LinkedIn"
-          class="font-sans text-[13px] text-ink-3 hover:text-ink transition-colors inline-flex min-h-11 items-center"
-        >
-          LinkedIn
-        </a>
+        {links.social.map(({ label, href }) => (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={label}
+            class="font-sans text-[13px] text-ink-3 hover:text-ink transition-colors inline-flex min-h-11 items-center"
+          >
+            {label}
+          </a>
+        ))}
       </div>
     </div>
   </div>
 
-  {/* The page ends in the same bed it started in. */}
-  {home && (
-    <>
-      <h2 class="wrap font-display text-[16px] text-ink pt-10">Plant a flower</h2>
-      <FooterBed client:visible />
-    </>
-  )}
+  {/* The site's art, closing the page. */}
+  {home && <slot name="art" />}
 </footer>

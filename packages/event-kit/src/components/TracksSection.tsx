@@ -1,25 +1,30 @@
 import React from "react";
-import { BloomSprite } from "../pixel/PixelSprite";
-import { BLOOM, DAISY, MUSHROOM, TULIP } from "../pixel/sprites";
-import type { SpriteMap } from "../pixel/sprites";
+import type { ComponentType } from "react";
+import type { EventConfig, Track } from "../config";
 
-const tracks: { title: string; description: string; sprite: SpriteMap }[] = [
-  { title: "Finance", description: "Markets, models, and fintech", sprite: DAISY },
-  { title: "Sports Analytics", description: "Performance, strategy, and the game", sprite: TULIP },
-  { title: "Healthcare", description: "Care, bioinformatics, and health tech", sprite: BLOOM },
-  { title: "Entertainment", description: "Media, games, and interactive AI", sprite: MUSHROOM },
-];
+export interface TrackArtProps {
+  track: Track;
+  index: number;
+}
 
-export default function TracksSection() {
-  // The signature: the four plants are dormant until the row is seen, then
-  // ribbon pink one after another, left to right. scripts/bloom.ts flips
-  // data-bloom on the first time the row is in view.
+/**
+ * `Art` draws each track's picture in the cell beside its words. The row is
+ * marked `data-bloom-watch` so a site script can start the art the first time
+ * the row is in view, and sets `--bed` so art can double its scale from md.
+ */
+export default function TracksSection({
+  event,
+  Art,
+}: {
+  event: EventConfig;
+  Art?: ComponentType<TrackArtProps>;
+}) {
   return (
     <section id="tracks" className="section-anchor relative">
       <div className="wrap py-12 md:py-24">
         <h2 className="section-title mb-10 md:mb-20">Tracks</h2>
 
-        {/* One plot per track. A phone gets rows, plant left of its words.
+        {/* One plot per track. A phone gets rows, art left of its words.
             From sm each li is a subgrid, so titles and descriptions line up
             across a row. The space between rows there is the li's pb-14, not
             a row gap, which the subgrid would also put between a title and
@@ -29,18 +34,20 @@ export default function TracksSection() {
           data-bloom-watch=""
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 sm:-mb-14 [--bed:1] md:[--bed:2]"
         >
-          {tracks.map((t, i) => (
+          {event.tracks.map((track, i) => (
             <li
-              key={t.title}
+              key={track.title}
               className="grid grid-cols-[5rem_1fr] gap-x-4 py-4 border-b border-sage sm:grid-cols-none sm:grid-rows-subgrid sm:row-span-3 sm:py-0 sm:pb-14 sm:border-b-0"
             >
               <div className="row-span-2 flex items-end sm:row-span-1 sm:h-32 md:h-60 sm:border-b sm:border-sage">
-                <BloomSprite map={t.sprite} scale={6} blooms index={i} />
+                {Art && <Art track={track} index={i} />}
               </div>
               <h3 className="font-display -ml-[0.125em] text-[24px] leading-snug text-ink self-end sm:mt-5">
-                {t.title}
+                {track.title}
               </h3>
-              <p className="font-sans text-[17px] leading-[1.5] text-ink-2 mt-1 sm:mt-3">{t.description}</p>
+              <p className="font-sans text-[17px] leading-[1.5] text-ink-2 mt-1 sm:mt-3">
+                {track.description}
+              </p>
             </li>
           ))}
         </ul>

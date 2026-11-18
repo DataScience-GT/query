@@ -1,11 +1,14 @@
-import { GROUND, THEME_KEY } from "@/lib/theme";
-
 type Theme = "light" | "dark";
 
 const root = document.documentElement;
+// Written onto <html> by the Layout from the event config.
+const KEY = root.dataset.themeKey ?? "";
+const GROUND = {
+  light: root.dataset.groundLight ?? "",
+  dark: root.dataset.groundDark ?? "",
+};
 const buttons = document.querySelectorAll<HTMLButtonElement>("[data-theme-toggle]");
 const light = window.matchMedia("(prefers-color-scheme: light)");
-
 // An explicit choice wins; otherwise the system setting decides, which is
 // what globals.css does with no data-theme attribute.
 const current = (): Theme => {
@@ -44,7 +47,7 @@ buttons.forEach((button) =>
     const next: Theme = current() === "dark" ? "light" : "dark";
     root.dataset.theme = next;
     try {
-      localStorage.setItem(THEME_KEY, next);
+      localStorage.setItem(KEY, next);
     } catch {
       // Private mode or blocked storage: the choice lasts this page view.
     }
@@ -56,7 +59,7 @@ light.addEventListener("change", syncLabels);
 
 // A choice saved in another tab (key null is storage being cleared there).
 window.addEventListener("storage", (event) => {
-  if (event.key !== null && event.key !== THEME_KEY) return;
+  if (event.key !== null && event.key !== KEY) return;
   const saved = event.newValue;
   if (saved === "light" || saved === "dark") {
     root.dataset.theme = saved;
