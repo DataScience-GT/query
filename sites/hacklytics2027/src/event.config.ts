@@ -61,6 +61,8 @@ export default defineEvent({
   links: {
     portal: PORTAL,
     portalPath: "/hacklytics",
+    // The portal in local dev: the judge-interest form posts here from localhost.
+    devPortal: "http://localhost:3001",
     mlh: "https://mlh.io/na?utm_source=na-hackathon&utm_medium=TrustBadge&utm_campaign=2026-season&utm_content=white",
     codeOfConduct: CODE_OF_CONDUCT,
     social: [
