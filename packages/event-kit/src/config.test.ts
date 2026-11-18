@@ -40,6 +40,8 @@ const core: EventCore = {
     label: "Notify me",
     availability: "PreOrder",
     validFrom: "2026-08-01T00:00:00-04:00",
+    price: "0",
+    currency: "USD",
   },
 };
 
@@ -306,6 +308,22 @@ describe("defineEvent rejects editions that cannot render correctly", () => {
     for (const portalPath of ["hacklytics", "/hacklytics/", "/", ""]) {
       expect(() => build({ links: { ...core.links, portalPath } })).toThrow(/links.portalPath/);
     }
+  });
+
+  it("needs a decimal price and an ISO currency code", () => {
+    const registration = core.registration;
+    for (const price of ["", "free", "-1", "$5"]) {
+      expect(() => build({ registration: { ...registration, price } })).toThrow(
+        /registration.price/,
+      );
+    }
+    for (const currency of ["", "usd", "US", "DOLLAR"]) {
+      expect(() => build({ registration: { ...registration, currency } })).toThrow(
+        /registration.currency/,
+      );
+    }
+    const paid = build({ registration: { ...registration, price: "25.00", currency: "EUR" } });
+    expect(paid.registration).toMatchObject({ price: "25.00", currency: "EUR" });
   });
 
   it("needs an absolute code of conduct link", () => {
