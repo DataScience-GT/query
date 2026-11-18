@@ -22,3 +22,7 @@ Values that describe a database column stay in `@query/db/constants`: the role, 
 ## Adding a value
 
 Put a value here when two workspaces need it, instead of typing it again where it is used. A value that only one workspace reads stays in that workspace.
+
+## Where it is not used
+
+`tooling/scripts/src/uptime-probe.ts` keeps its own `DAY_MS` and the production URL. The uptime workflow runs it with plain Node and no install step, so it cannot resolve a workspace package.
