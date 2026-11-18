@@ -1,7 +1,17 @@
 ---
 import Hero from "../components/Hero.astro";
-import HomeSections from "../components/HomeSections.astro";
+import HomeSections from "@query/event-kit/components/HomeSections.astro";
+import { JudgesPlot, RailEnd, RailStart, SponsorsPlot, TrackArt } from "../components/SectionArt";
+import event from "../event.config";
 import Layout from "../layouts/Layout.astro";
+
+const art = {
+  track: TrackArt,
+  railStart: RailStart,
+  railEnd: RailEnd,
+  judges: JudgesPlot,
+  sponsors: SponsorsPlot,
+};
 ---
 
 <Layout home>
@@ -15,7 +25,7 @@ import Layout from "../layouts/Layout.astro";
   />
   <main class="relative w-full overflow-x-hidden">
     <Hero />
-    <HomeSections />
+    <HomeSections event={event} art={art} />
   </main>
   <script>
     import "../scripts/bloom";
