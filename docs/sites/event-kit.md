@@ -151,6 +151,17 @@ The site also maps the two families in its own `@theme inline`: `--font-display`
 
 `kit.css` registers `@source "../"`, which makes Tailwind scan the kit's components. Tailwind only scans the importing site's folder otherwise, and the utilities the kit uses would be missing from the page.
 
+## What the kit fixes on purpose
+
+Nothing that differs between editions is a literal in the kit. These are the same for every edition, so they are literals: changing one is a kit change, not a config change.
+
+- **Files in the site's `public/`.** `favicon.ico`, `apple-icon.png`, `mlh-trust-badge.svg` (preloaded by `Layout`, shown by `MlhBadge`) and `sw.js`, plus the file `seo.image` names. A site ships files with these names.
+- **Portal routes.** `/login?callbackUrl=`, `/judge`, `/judge/register` and `POST {portal}/api/judge-interest`. They are the portal app's contract with every edition. Only the edition's own page, `links.portalPath`, is config.
+- **Language and share image.** `lang="en"`, `og:locale` `en_US` and the 1200 by 630 share image size. The kit's own copy is English.
+- **Schema.org vocabulary.** The JSON-LD says an in-person, scheduled event. `venue` is required, so the kit assumes a physical place.
+- **The kit's own copy.** The button and form labels ("Apply to judge", "Hacker portal", "Devpost", "Keep me posted"), the form's placeholders, and the section ids and labels in `nav.ts`.
+- **Token and attribute names.** `bloom` and `sage` name the accent roles, `data-bloom` marks the art that animates, and the display face's letter-spacing (`-0.125em`) is tuned for a pixel face.
+
 ## What stays out of the kit
 
 - **Art and its CSS.** The 2027 pixel sprites, the flower animations and the hero globe belong to Digital Bloom.
