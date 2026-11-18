@@ -1,7 +1,24 @@
 # `@query/oxlint-config`
 
-Internal oxlint configs for the monorepo. Packages reach them with a relative
-`extends` in their own `.oxlintrc.json`.
+Internal oxlint configs for the monorepo. Each workspace has an
+`oxlint.config.mts` that imports them by package name and passes them to
+`extends`:
+
+```ts
+import { base, react } from "@query/oxlint-config";
+import { defineConfig } from "oxlint";
+
+export default defineConfig({ extends: [base, react] });
+```
+
+Import from the package entry (`index.js`), not the JSON files. oxlint
+resolves a `jsPlugins` name such as `eslint-plugin-turbo` from the workspace
+that extends the config, and only this package depends on it. `index.js`
+resolves each plugin to an absolute path from here first.
+
+The `.mts` extension keeps Node from warning in packages without
+`"type": "module"`. A JSON `.oxlintrc.json` can only `extends` by relative
+path, which is why the workspaces use the TS form.
 
 | File | Use |
 | --- | --- |
