@@ -12,7 +12,7 @@ export function parseInstant(label: string, iso: string): number {
   const ms = ISO_WITH_OFFSET.test(iso) ? Date.parse(iso) : Number.NaN;
   if (Number.isNaN(ms)) {
     throw new Error(
-      `${label} must be an ISO 8601 timestamp with a UTC offset, like 2027-02-26T17:00:00-05:00 (got "${iso}")`,
+      `${label} must be an ISO 8601 timestamp with a UTC offset, such as YYYY-MM-DDTHH:MM:SS-05:00 or YYYY-MM-DDTHH:MM:SSZ (got "${iso}")`,
     );
   }
   return ms;
