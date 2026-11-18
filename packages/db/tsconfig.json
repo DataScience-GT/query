@@ -8,9 +8,6 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "paths": {
-      "@/*": ["./src/*"]
-    },
     "outDir": "dist"
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts", "*.ts"],

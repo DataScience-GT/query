@@ -6,9 +6,6 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "types": ["astro/client"],
-    "paths": {
-      "@/*": ["./src/*"]
-    },
     "strict": false,
     "verbatimModuleSyntax": false
   },
