@@ -280,6 +280,9 @@ importers:
       '@query/prettier-config':
         specifier: workspace:*
         version: link:tooling/prettier
+      '@query/scripts':
+        specifier: workspace:*
+        version: link:tooling/scripts
       turbo:
         specifier: ^2.11.10
         version: 2.11.10
@@ -406,6 +409,9 @@ importers:
       '@query/oxlint-config':
         specifier: workspace:*
         version: link:../../tooling/oxlint
+      '@query/scripts':
+        specifier: workspace:*
+        version: link:../../tooling/scripts
       '@query/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/typescript
@@ -670,6 +676,9 @@ importers:
       '@query/oxlint-config':
         specifier: workspace:*
         version: link:../../tooling/oxlint
+      '@query/scripts':
+        specifier: workspace:*
+        version: link:../../tooling/scripts
       '@query/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/typescript
