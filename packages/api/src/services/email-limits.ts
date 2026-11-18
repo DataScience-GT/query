@@ -1,4 +1,4 @@
-import { MINUTE } from "@query/db/constants";
+import { MINUTE } from "@query/core";
 
 // How many people one mass send may reach, in one place. This lived as a
 // literal in three places — the `participantIds` cap, the chunk size the

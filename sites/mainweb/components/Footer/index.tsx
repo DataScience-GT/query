@@ -1,5 +1,5 @@
 // components/Footer/Footer.tsx
-import { SOCIAL_LINKS } from "@query/db/constants";
+import { CONTACT_EMAIL, SOCIAL_LINKS } from "@query/core";
 import Image from "next/image";
 import Link from "next/link";
 import logo from "@/assets/images/dsgt/apple-touch-icon.png";
@@ -45,7 +45,7 @@ const Footer = ({ className = "" }: FooterProps) => {
                 Meet the Team
               </Link>
               <Link
-                href="mailto:hello@datasciencegt.org"
+                href={`mailto:${CONTACT_EMAIL}`}
                 className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
               >
                 Contact
@@ -108,7 +108,7 @@ const Footer = ({ className = "" }: FooterProps) => {
                 Instagram
               </a>
               <a
-                href="mailto:hello@datasciencegt.org"
+                href={`mailto:${CONTACT_EMAIL}`}
                 className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
               >
                 Email List

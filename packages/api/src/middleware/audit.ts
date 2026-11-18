@@ -1,5 +1,5 @@
 import { auditLogs } from "@query/db";
-import { DAY, HOUR } from "@query/db/constants";
+import { DAY, HOUR } from "@query/core";
 import { and, lt, ne } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 

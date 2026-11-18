@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { VENUE_TZ } from "@query/db/constants";
+import { HOUR, VENUE_TZ } from "@query/core";
 import { uptimePercent } from "@/lib/status";
 import type { Bucket, Day } from "@/lib/status";
 
@@ -332,14 +332,13 @@ export function UptimeLegend() {
 }
 
 const MARGIN = { l: 52, r: 6, t: 8, b: 22 };
-const HOUR_MS = 60 * 60 * 1000;
 // The last 24 hours plus the one in progress, on clock hours.
 const SLOTS = 25;
 
 type Hour = { t: number; requests: number; errors: number; p95Ms: number };
 
 const slotStart = (lastT: number, i: number) =>
-  lastT - (lastT % HOUR_MS) - (SLOTS - 1 - i) * HOUR_MS;
+  lastT - (lastT % HOUR) - (SLOTS - 1 - i) * HOUR;
 
 const slotCenter = (i: number, plotW: number) =>
   MARGIN.l + ((i + 0.5) / SLOTS) * plotW;
@@ -349,7 +348,7 @@ function byHour(buckets: (Bucket | null)[], lastT: number): (Hour | null)[] {
   return Array.from({ length: SLOTS }, (_, i) => {
     const t = slotStart(lastT, i);
     const data = buckets.filter(
-      (b): b is Bucket => !!b && b.t >= t && b.t < t + HOUR_MS,
+      (b): b is Bucket => !!b && b.t >= t && b.t < t + HOUR,
     );
     if (data.length === 0) return null;
     return {

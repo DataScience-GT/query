@@ -10,6 +10,7 @@
 // a run in the background at most every 15 minutes, so a poll never waits on
 // GitHub and the next one sees the results.
 
+import { MINUTE } from "@query/core";
 import { and, eq, isNull, lt, or } from "drizzle-orm";
 import {
   hackathonProjects,
@@ -67,7 +68,6 @@ const REQUEST_TIMEOUT_MS = 10_000;
 const MAX_IN_FLIGHT = 5;
 const EVIDENCE_LIMIT = 20;
 export const REPO_CHECK_EVERY_MS = 15 * 60 * 1000;
-const MINUTE_MS = 60 * 1000;
 
 // First path segments on github.com that are pages, not accounts.
 const NOT_AN_OWNER = new Set([
@@ -142,7 +142,7 @@ export function reposOfEntry(entry: {
 
 /** Later than the deadline plus grace. A push exactly on the line is on time. */
 export function isLate(pushedAt: Date, deadline: Date, graceMinutes: number) {
-  return pushedAt.getTime() > deadline.getTime() + graceMinutes * MINUTE_MS;
+  return pushedAt.getTime() > deadline.getTime() + graceMinutes * MINUTE;
 }
 
 // GitHub's JSON is read defensively: a field that is not what it should be

@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { SELF_CHECK_IN_LEAD_MS } from "@query/db/constants";
+import { SELF_CHECK_IN_LEAD_MS } from "@query/core";
 import type { CheckInMethod } from "@query/db/constants";
 import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";

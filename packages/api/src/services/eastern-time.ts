@@ -1,4 +1,4 @@
-import { VENUE_TZ } from "@query/db/constants";
+import { VENUE_TZ } from "@query/core";
 
 // Shared with the site: pages that decide what "today" is have to agree with
 // the API, and the server runs in UTC.
