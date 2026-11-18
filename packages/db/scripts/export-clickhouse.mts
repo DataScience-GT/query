@@ -26,6 +26,7 @@ import { fileURLToPath } from "node:url";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
 import { Pool } from "pg";
+import { DAY } from "@query/core";
 import {
   hackathonEventAttendees,
   hackathonEvents,
@@ -175,7 +176,6 @@ try {
     })
     .from(membershipHistory);
 
-  const DAY_MS = 24 * 60 * 60 * 1000;
   const historyRows = history.map((row) => ({
     id: row.id,
     member_id: row.memberId,
@@ -186,7 +186,7 @@ try {
     term_days:
       row.startDate && row.endDate
         ? Math.round(
-            (row.endDate.getTime() - row.startDate.getTime()) / DAY_MS,
+            (row.endDate.getTime() - row.startDate.getTime()) / DAY,
           )
         : 0,
   }));

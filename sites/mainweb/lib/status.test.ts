@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { DAY as DAY_MS } from "@query/core";
 import {
   BUCKET_MS,
-  DAY_MS,
   dayFromBuckets,
   deriveStatus,
   fillBuckets,

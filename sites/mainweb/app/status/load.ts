@@ -1,8 +1,8 @@
 import { unstable_cache } from "next/cache";
+import { DAY } from "@query/core";
 import { db, sql } from "@query/db";
 import {
   BUCKET_MS,
-  DAY_MS,
   ERROR_RATE_LIMIT,
   dayFromBuckets,
   deriveStatus,
@@ -98,7 +98,7 @@ const DAILY_REVALIDATE_S = 6 * 60 * 60;
 
 async function queryDays(todayStart: number): Promise<Day[]> {
   if (!db) throw new Error("no database");
-  const since90d = new Date(todayStart - 89 * DAY_MS);
+  const since90d = new Date(todayStart - 89 * DAY);
   const until = new Date(todayStart);
   const daily = await withTimeout(
     db.execute<DayRow>(sql`
@@ -138,7 +138,7 @@ async function loadHistory(now: number) {
   if (!db) throw new Error("no database");
   const lastBucket = now - (now % BUCKET_MS);
   const since24h = new Date(lastBucket - 287 * BUCKET_MS);
-  const todayStart = now - (now % DAY_MS);
+  const todayStart = now - (now % DAY);
 
   const [recent, past] = await Promise.all([
     withTimeout(
