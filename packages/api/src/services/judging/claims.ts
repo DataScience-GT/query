@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { siteOrigin } from "@query/db/constants";
+import { siteOrigin } from "@query/core/server";
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, eq, isNull } from "drizzle-orm";
 import {

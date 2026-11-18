@@ -42,6 +42,7 @@ flowchart TD
   api["@query/api"]
   auth["@query/auth"]
   db["@query/db"]
+  core["@query/core"]
   ui["@query/ui"]
   subgraph tooling["tooling"]
     oxlint["@query/oxlint-config"]
@@ -52,10 +53,14 @@ flowchart TD
   web --> api
   web --> auth
   web --> db
+  web --> core
   web --> ui
   api --> auth
   api --> db
+  api --> core
   auth --> db
+  auth --> core
+  db --> core
   web -.-> oxlint
   web -.-> tsconfig
   ui -.-> oxlint
@@ -63,6 +68,8 @@ flowchart TD
   api -.-> tsconfig
   auth -.-> tsconfig
   db -.-> tsconfig
+  core -.-> oxlint
+  core -.-> tsconfig
   oxlint -.-> prettier
   prettier -.-> tsconfig
   hack ~~~ web

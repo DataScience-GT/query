@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { hackathons } from "@query/db";
 import { eq } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
-import { HOUR } from "@query/db/constants";
+import { HOUR } from "@query/core";
 
 export type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
 

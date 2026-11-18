@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { VENUE_TZ } from "@query/db/constants";
+import { VENUE_TZ } from "@query/core";
 import { uptimePercent } from "@/lib/status";
 import type { Bucket, Day } from "@/lib/status";
 

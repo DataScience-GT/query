@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CONTACT_EMAIL } from "@query/db/constants";
+import { CONTACT_EMAIL } from "@query/core";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {

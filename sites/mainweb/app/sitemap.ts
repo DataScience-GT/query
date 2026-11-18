@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { SITE_ORIGIN } from "@query/db/constants";
+import { SITE_ORIGIN } from "@query/core";
 
 const SITE = SITE_ORIGIN;
 

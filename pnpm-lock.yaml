@@ -298,6 +298,9 @@ importers:
       '@query/auth':
         specifier: workspace:*
         version: link:../auth
+      '@query/core':
+        specifier: workspace:*
+        version: link:../core
       '@query/db':
         specifier: workspace:*
         version: link:../db
@@ -350,6 +353,9 @@ importers:
       '@auth/drizzle-adapter':
         specifier: 1.11.3
         version: 1.11.3(nodemailer@10.4.0)
+      '@query/core':
+        specifier: workspace:*
+        version: link:../core
       '@query/db':
         specifier: workspace:*
         version: link:../db
@@ -414,6 +420,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@query/core':
+        specifier: workspace:*
+        version: link:../core
       '@t3-oss/env-nextjs':
         specifier: 0.13.11
         version: 0.13.11(typescript@7.0.2)(zod@4.6.6)
@@ -615,6 +624,9 @@ importers:
       '@query/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@query/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@query/db':
         specifier: workspace:*
         version: link:../../packages/db

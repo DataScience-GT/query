@@ -7,7 +7,7 @@
 // probes in a row; a result older than 30 minutes says nothing about now, so
 // it is reported as stale instead.
 
-import { MINUTE } from "@query/db/constants";
+import { MINUTE } from "@query/core";
 import { DAY_MS } from "./status";
 import type { Day, StatusSummary } from "./status";
 

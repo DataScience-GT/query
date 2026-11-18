@@ -1,5 +1,5 @@
 import { admins, members, judges, projectLeaders } from "@query/db";
-import { DAY } from "@query/db/constants";
+import { DAY } from "@query/core";
 // Deep import: the one rule for "which hackathon is current", shared
 // with the sign-in hook in @query/auth.
 import {

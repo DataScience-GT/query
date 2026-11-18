@@ -6,7 +6,12 @@
 // Uptime % = up minutes / minutes with data. A bucket nobody sent a request
 // into does not exist, and counts as neither up nor down.
 
-import { DAY, MINUTE, STATUS_BUCKET_MINUTES, STATUS_BUCKET_MS } from "@query/db/constants";
+import {
+  DAY,
+  MINUTE,
+  STATUS_BUCKET_MINUTES,
+  STATUS_BUCKET_MS,
+} from "@query/core";
 
 export const BUCKET_MIN = STATUS_BUCKET_MINUTES;
 export const BUCKET_MS = STATUS_BUCKET_MS;
