@@ -16,7 +16,7 @@ Root `turbo.json` defines `build`, `dev`, `lint`, `typecheck`, `test`, `format`,
 
 `sites/mainweb/turbo.json` extends the root and sets Next `.next/**` build outputs.
 
-`turbo/generators/` is a Plop generator (`init`) that scaffolds a new `packages/<name>` with oxlint, package.json, tsconfig, and `src/index.ts`. Run it with `pnpm turbo gen init`.
+`turbo/generators/` holds two Plop generators. `init` scaffolds a new `packages/<name>` with oxlint, package.json, tsconfig, and `src/index.ts`. Run it with `pnpm turbo gen init`. `hacklytics` scaffolds a Hacklytics edition site on the event kit and wires its deploy. Run it with `pnpm turbo gen hacklytics`, see [Starting a new edition](./sites/new-edition.md).
 
 `tooling/scripts/src/restore-workspace.ts` rewrites internal deps a tool flattened to `"*"` back to `workspace:*`. Run it from the repo root with `node tooling/scripts/src/restore-workspace.ts`.
 
