@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@astrojs/react": "catalog:",
+    "@query/core": "workspace:*",
     "@query/event-kit": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "astro": "catalog:",

@@ -1,5 +1,6 @@
 "use client";
 
+import { MLH_CODE_OF_CONDUCT_URL } from "@query/core";
 import { venueFormat } from "@/lib/venue-time";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -45,8 +46,6 @@ import Link from "next/link";
 
 type RegistrationStep = 0 | 1 | 2 | 3;
 
-const MLH_CODE_OF_CONDUCT_URL =
-  "https://static.mlh.io/docs/mlh-code-of-conduct.pdf";
 const MLH_PRIVACY_URL = "https://mlh.io/privacy";
 const MLH_CONTEST_TERMS_URL =
   "https://github.com/MLH/mlh-policies/blob/main/contest-terms.md";
