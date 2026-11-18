@@ -12,8 +12,8 @@
    docs/sites/event-kit.md):
 
      --ground --raised --ink --ink-2 --ink-3 --rule --line-border
-     --bloom --bloom-hover --bloom-deep --on-bloom --sage
-     --badge-edge --navbar-height --ease
+     --bloom --bloom-hover --bloom-deep --on-bloom --on-bloom-deep --sage
+     --logo-tile --badge-edge --navbar-height --ease
 
    and in its own @theme inline, the two type families the components use:
 
@@ -37,6 +37,7 @@
   --color-bloom-deep: var(--bloom-deep);
   --color-sage: var(--sage);
   --color-on-bloom: var(--on-bloom);
+  --color-logo-tile: var(--logo-tile);
 }
 
 /* ─── Base ─── */
@@ -134,9 +135,10 @@ body {
     color: var(--on-bloom);
   }
   .btn-bloom:hover { background: var(--bloom-hover); }
-  /* --bloom-deep is a dark pink in both themes, so the pressed label is white:
-     --ink is near-black in light (2:1) and --on-bloom is near-black in dark (3.3:1). */
-  .btn-bloom:active { background: var(--bloom-deep); color: #ffffff; }
+  /* The pressed label has its own token. --bloom-deep is a dark pink in both of
+     2027's themes, and neither --ink (near-black in light, 2:1) nor --on-bloom
+     (near-black in dark, 3.3:1) reads on it. */
+  .btn-bloom:active { background: var(--bloom-deep); color: var(--on-bloom-deep); }
   .btn-line {
     border: 1px solid var(--line-border);
     color: var(--ink);
