@@ -29,23 +29,3 @@ export function kitPublicFiles(srcDir: string): string[] {
   }
   return [...found].sort();
 }
-
-/**
- * The custom properties the kit's stylesheet says a theme defines. They are
- * listed in its opening comment, under "must define".
- */
-export function requiredThemeTokens(kitCss: string): string[] {
-  const header = /\/\*[\s\S]*?\*\//.exec(kitCss)?.[0] ?? "";
-  const from = header.indexOf("must define");
-  const to = header.indexOf("@theme", from);
-  const tokens =
-    from < 0
-      ? []
-      : (header.slice(from, to < 0 ? undefined : to).match(/--[\w-]+/g) ?? []);
-  if (tokens.length === 0) {
-    throw new Error(
-      "Could not read the theme tokens from the kit's stylesheet header.",
-    );
-  }
-  return [...new Set(tokens)];
-}
