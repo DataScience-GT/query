@@ -17,13 +17,7 @@ import {
   yearOfIso,
 } from "./dates";
 import { editionDirName } from "./paths";
-import {
-  declaredValue,
-  extractTheme,
-  NEUTRAL,
-  neutralTheme,
-  STRUCTURAL_TOKENS,
-} from "./theme";
+import { declaredValue, extractTheme, NEUTRAL, neutralTheme } from "./theme";
 
 export interface Answers {
   year: string;
@@ -32,14 +26,6 @@ export interface Answers {
   end: string;
   copyTheme: boolean;
 }
-
-/** Files the kit links to by path, from the site's `public/`. The site must ship each. */
-export const KIT_PUBLIC_FILES = [
-  "favicon.ico",
-  "apple-icon.png",
-  "mlh-trust-badge.svg",
-  "sw.js",
-] as const;
 
 /** Where a site keeps its fonts: the files, the CSS that declares them, and the preload list. */
 const FONT_FILES = [
@@ -194,25 +180,13 @@ export function buildPlan(answers: Answers, inputs: Inputs): Plan {
   if (typeof moments === "string") throw new Error(moments);
 
   const themeName = answers.theme.trim();
-  const structural = Object.fromEntries(
-    STRUCTURAL_TOKENS.map((token) => {
-      const value = declaredValue(inputs.themeCss, token);
-      if (value === undefined) {
-        throw new Error(
-          `${latest.dir}/src/styles/globals.css does not set ${token}`,
-        );
-      }
-      return [token, value];
-    }),
-  );
-
   const core = structuredClone(latest.core) as EventCore;
   core.year = year;
   core.theme.name = themeName;
   if (!answers.copyTheme)
     core.theme.ground = {
-      light: NEUTRAL.light.ground,
-      dark: NEUTRAL.dark.ground,
+      light: NEUTRAL.light["--ground"],
+      dark: NEUTRAL.dark["--ground"],
     };
   core.start = moments.start;
   core.end = moments.end;
@@ -264,9 +238,10 @@ export function buildPlan(answers: Answers, inputs: Inputs): Plan {
   ];
 
   const siteName = editionDirName(year);
-  const copies: [string, string][] = KIT_PUBLIC_FILES.map((file) => [
-    `public/${file}`,
-    `public/${file}`,
+  // The files the kit's components link to by path, which the site must serve.
+  const copies: [string, string][] = latest.kit.publicFiles.map((file) => [
+    `public${file}`,
+    `public${file}`,
   ]);
   const image = latest.seo.image;
   if (typeof image === "string")
@@ -291,7 +266,7 @@ export function buildPlan(answers: Answers, inputs: Inputs): Plan {
     packageJson: carryPackageJson(inputs.packageJson, siteName),
     themeCss: answers.copyTheme
       ? `${themeHeader(themeName, latest.dir)}\n\n${extractTheme(inputs.themeCss)}\n`
-      : `${neutralTheme(structural)}\n`,
+      : `${neutralTheme(latest.kit.themeTokens, (token) => declaredValue(inputs.themeCss, token))}\n`,
     copies,
   };
 }
