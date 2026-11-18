@@ -116,7 +116,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `speakers` | `{ name, title?, company? }[]`: a Speakers block under the prizes when there are any |
 | `schedule` | `{ intro, board: { when, event, accent? }[] }`: `when` starts with a day's three-letter weekday |
 | `judges` | `{ body: Rich[], people: { name, title?, company? }[] }`: the apply button follows `body`, `people` follow the button |
-| `sponsors` | `{ body: Rich[], tiers: { name, sponsors: { name, url?, logo? }[] }[] }`: logos sit on a white tile in either theme |
+| `sponsors` | `{ body: Rich[], tiers: { name, sponsors: { name, url?, logo? }[] }[] }`: logos sit on a `--logo-tile` tile in either theme |
 | `faqs` | `{ q, a: Rich }[]`, split in two columns at the halfway point |
 | `footer` | `{ headline, note? }` |
 
@@ -141,8 +141,9 @@ The kit's components use Tailwind utilities and classes over these names. The si
 | `--ground`, `--raised` | Page background, form field background |
 | `--ink`, `--ink-2`, `--ink-3` | Primary, body and meta text |
 | `--rule`, `--line-border` | Hairline rules, control borders |
-| `--bloom`, `--bloom-hover`, `--bloom-deep`, `--on-bloom` | The one accent and the text on it |
+| `--bloom`, `--bloom-hover`, `--bloom-deep`, `--on-bloom`, `--on-bloom-deep` | The one accent and the text on it. `--on-bloom-deep` is the label on the pressed button, over `--bloom-deep` |
 | `--sage` | The secondary accent, the rule under the art plots |
+| `--logo-tile` | The tile sponsor logos sit on. Logos are drawn for white, so it is white in either theme |
 | `--badge-edge` | The MLH badge's edge on the light ground |
 | `--navbar-height`, `--ease` | The fixed header's height and the one easing curve |
 

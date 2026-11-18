@@ -41,9 +41,11 @@
   --bloom-hover: #ffd3dd;
   --bloom-deep: #b03a5f;
   --on-bloom: #1a0a10;
+  --on-bloom-deep: #ffffff; /* the pressed button's label, in both themes */
   --sage: #96bf98;
   --line-border: #5f6577; /* ≥3:1 on ground */
 
+  --logo-tile: #ffffff; /* sponsor logos are drawn for white, in both themes */
   --badge-edge: transparent;
 
   --navbar-height: 72px;

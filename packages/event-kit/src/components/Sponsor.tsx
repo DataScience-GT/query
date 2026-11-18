@@ -4,14 +4,14 @@ import type { EventConfig, Sponsor } from "../config";
 import Rich from "./Rich";
 
 function SponsorMark({ sponsor: s }: { sponsor: Sponsor }) {
-  // Logos are drawn for a white ground, so they sit on a white tile in either theme.
+  // Logos are drawn for a light ground, so they sit on a --logo-tile tile in either theme.
   const mark = s.logo ? (
     <img src={s.logo} alt={s.name} className="h-10 w-auto max-w-[9rem] object-contain" />
   ) : (
     s.name
   );
   const tile = s.logo
-    ? "inline-flex h-16 items-center rounded-lg bg-white px-4"
+    ? "inline-flex h-16 items-center rounded-lg bg-logo-tile px-4"
     : "font-sans text-[17px] text-ink";
   if (!s.url) return <span className={tile}>{mark}</span>;
   return (
