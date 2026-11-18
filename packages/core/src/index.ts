@@ -1,3 +1,3 @@
-export * from "./site";
-export * from "./time";
-export * from "./identity";
+export * from "./site.ts";
+export * from "./time.ts";
+export * from "./identity.ts";

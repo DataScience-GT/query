@@ -1,16 +1,46 @@
 {
   "name": "@query/core",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "license": "Apache-2.0",
+  "description": "The values every Data Science at Georgia Tech workspace shares: site origin, organisation identity, and time units.",
+  "homepage": "https://github.com/DataScience-GT/query/blob/main/docs/packages/core.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DataScience-GT/query.git",
+    "directory": "packages/core"
+  },
   "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
     "./server": "./src/server.ts"
   },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./server": {
+        "types": "./dist/server.d.ts",
+        "default": "./dist/server.js"
+      }
+    }
+  },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "pnpm run build",
     "lint": "oxlint .",
     "typecheck": "tsrs --noEmit"
   },

@@ -1,4 +1,4 @@
-import { SITE_ORIGIN } from "./site";
+import { SITE_ORIGIN } from "./site.ts";
 
 /** The origin NextAuth is configured with, or undefined when neither variable is set. */
 export function configuredSiteOrigin(): string | undefined {

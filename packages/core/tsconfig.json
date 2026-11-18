@@ -2,6 +2,7 @@
   "extends": "@query/tsconfig/base.json",
   "compilerOptions": {
     "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
