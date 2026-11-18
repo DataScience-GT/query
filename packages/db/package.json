@@ -25,7 +25,6 @@
     "drizzle-orm": "catalog:",
     "next-auth": "catalog:",
     "pg": "8.23.0",
-    "postgres": "3.4.9",
     "zod": "catalog:"
   },
   "devDependencies": {

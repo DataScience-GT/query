@@ -5,14 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./client": "./src/client.ts",
-    "./trpc-server": "./src/trpc-server.ts",
-    "./server": "./src/index.ts",
-    "./context": "./src/context.ts",
-    "./middleware": "./src/middleware.ts",
-    "./middleware/cache": "./src/middleware/cache.ts",
     "./middleware/security": "./src/middleware/security.ts",
-    "./trpc": "./src/trpc.ts",
     "./pricing": "./src/services/pricing.ts",
     "./email-limits": "./src/services/email-limits.ts",
     "./eastern-time": "./src/services/eastern-time.ts",
@@ -31,15 +24,9 @@
   "dependencies": {
     "@query/auth": "workspace:*",
     "@query/db": "workspace:*",
-    "@tanstack/react-query": "catalog:",
-    "@trpc/client": "catalog:",
-    "@trpc/next": "11.26.0",
-    "@trpc/react-query": "catalog:",
     "@trpc/server": "catalog:",
     "drizzle-orm": "catalog:",
-    "image-size": "2.0.4",
     "prom-client": "15.1.3",
-    "sanitize-html": "catalog:",
     "stripe": "catalog:",
     "superjson": "catalog:",
     "zod": "catalog:"
@@ -47,7 +34,6 @@
   "devDependencies": {
     "@query/oxlint-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
-    "@types/sanitize-html": "^2.16.2",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "tsrs": "catalog:",
