@@ -23,7 +23,29 @@ Root `turbo.json` defines `build`, `dev`, `lint`, `typecheck`, `test`, `format`,
 
 ## Build version
 
-`sites/mainweb/next.config.mjs` stamps every build with `NEXT_PUBLIC_APP_VERSION`: `<major>.<minor>` from `sites/mainweb/package.json`, then the git commit count, then the short SHA (`1.0.812+abc1234`). A build without git history falls back to `<package version>+<UTC timestamp>`. `/api/ping` returns it, so `curl https://datasciencegt.org/api/ping` shows what is live. Bump `major.minor` in `sites/mainweb/package.json` by hand for a release worth naming; the patch moves on its own. A turbo cache hit replays the stamp of the build it cached, which is the same code.
+`sites/mainweb/next.config.mjs` stamps every build with `NEXT_PUBLIC_APP_VERSION` as `MAJOR.MINOR.PATCH`, and with the short SHA as `NEXT_PUBLIC_APP_COMMIT`. `/api/ping` returns both, so `curl https://datasciencegt.org/api/ping` shows what is live.
+
+- `MAJOR.MINOR` come from `version` in `sites/mainweb/package.json`, set by hand.
+- `PATCH` is the number of merges into `main` since that `version` line last changed, so each deploy adds one. At 100 it rolls into `MINOR` (`3.4.99` is followed by `3.5.0`), so the patch is never more than two digits.
+- App Hosting clones with depth 1, which has no history to count. The config detects a shallow clone and runs `git fetch --unshallow` against the public repo first, which adds about 15 seconds to the build.
+- A build with no git at all reports the `package.json` version as is.
+- A turbo cache hit replays the version of the build it cached, which is the same code.
+
+To ship a release worth naming, change `version` in `sites/mainweb/package.json` (for example to `4.0.0`) in a PR. The patch restarts from that commit.
+
+### Version history
+
+The versions before 3.4 were assigned after the fact, from the repo history.
+
+| Version | Since | What changed |
+| --- | --- | --- |
+| 1.x | 2025-06 | Single Next.js club site |
+| 2.x | 2025-12 | pnpm and turbo monorepo with `db`, `auth`, `api`; live on App Hosting with Stripe in 2026-01 |
+| 3.0 | 2026-02 | Member portal: login, dashboards, admin, judge |
+| 3.1 | 2026-03 | Hacklytics 2027 event site |
+| 3.2 | 2026-05 | Public status page |
+| 3.3 | 2026-08 | Docs and the vitest suite |
+| 3.4 | 2026-10 | Judging scheduler (CP-SAT) |
 
 ## Other root files
 
