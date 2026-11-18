@@ -6,6 +6,8 @@ Framework: Astro 7 (static build), React 19 islands, Tailwind 4 (`@tailwindcss/v
 
 Marketing site for Hacklytics 2027 (“Digital Bloom”). It has **no database** and **no tRPC**. Anything dynamic (interest list, registration) lives on the portal.
 
+The page shell, navbar, footer and content sections come from [`@query/event-kit`](./event-kit.md). This site owns the edition's config (`src/event.config.ts`), its theme CSS, the hero and the pixel art. A new edition follows the same split.
+
 ## Run
 
 ```bash
@@ -23,19 +25,18 @@ Astro 7 needs Vite 8 while the root `package.json` overrides `vite` to 7 for the
 
 | Path | Role |
 | --- | --- |
-| `src/pages/index.astro` | Home: hero, then the sections |
+| `src/event.config.ts` | The edition: `defineEvent` with the dates, links and every line of page copy. [Field reference](./event-kit.md#eventconfig) |
+| `src/pages/index.astro` | Home: hero, then the kit's `HomeSections` with this site's art |
 | `src/pages/404.astro` | 404 (`out/404.html`) |
-| `src/layouts/Layout.astro` | `<head>` (font preloads, metadata, JSON-LD, the no-flash theme script), navbar, footer |
+| `src/layouts/Layout.astro` | Wraps the kit's layout: loads the CSS and font preloads, and puts the menu and footer flower beds in the kit's slots |
 | `src/components/Hero.astro` | Hero. The countdown is an inline script; the garden is a React island |
-| `src/components/Navbar.astro`, `Footer.astro`, `ThemeToggle.astro` | Chrome. Behaviour lives in `src/scripts/` |
-| `src/components/HomeSections.astro`, `src/components/sections/*` | About, tracks, prizes, schedule, sponsors, FAQ, rendered at build time (React, no directive) |
+| `src/components/SectionArt.tsx` | The plants drawn into the kit's sections: one per track, the Judges and Sponsors plots, the schedule rail's bud and tulip |
 | `src/components/pixel/*` | Pixel sprites and flower beds; `season.ts` holds the one bloom count, `GardenBeds.tsx` the four React islands |
-| `src/scripts/*` | The plain scripts: `navbar`, `theme-toggle`, `bloom`, `service-worker` |
-| `src/styles/globals.css`, `fonts.generated.css`, `src/lib/fonts.generated.ts`, `public/fonts/` | Styles; the fonts are output of `scripts/subset-fonts.py`, committed |
-| `src/lib/links.ts` | Portal origin + interest URL |
+| `src/scripts/bloom.ts` | Writes `data-bloom="on"` on the track row and the schedule rail when they are in view |
+| `src/styles/globals.css`, `fonts.generated.css`, `src/lib/fonts.generated.ts`, `public/fonts/` | The theme (palette, fonts, flower animations); the fonts are output of `scripts/subset-fonts.py`, committed |
 | `public/sw.js` | Service worker (Firebase header: no-cache, `Service-Worker-Allowed: /`) |
 
-Schedule copy lives in `src/components/sections/Schedule/data.ts`.
+The navbar, footer, theme toggle, MLH badge and the About, Tracks, Prizes, Schedule, Judges, Sponsors and FAQ sections live in `packages/event-kit`, and render at build time (React, no directive). Schedule, tracks, prizes and FAQ copy are in `src/event.config.ts`.
 
 ## JavaScript and hydration
 
@@ -45,17 +46,19 @@ Everything renders to HTML at build time. Only what needs the browser ships code
 | --- | --- | --- |
 | About, tracks, prizes, schedule, sponsors, FAQ, sprites | Build time, no JS | Nothing to do after load |
 | Tracks and schedule bloom | `src/scripts/bloom.ts` (about 300 bytes) | They only need `data-bloom="on"` written when 35% is in view |
-| Navbar (menu, hide on scroll, section links) | `src/scripts/navbar.ts` | Plain DOM work; React would add nothing |
-| Theme toggle | `src/scripts/theme-toggle.ts`; the icon follows the theme in CSS | Right icon on first paint, even before the script runs |
+| Navbar (menu, hide on scroll, section links) | `packages/event-kit/src/scripts/navbar.ts` | Plain DOM work; React would add nothing |
+| Theme toggle | `packages/event-kit/src/scripts/theme-toggle.ts`; the icon follows the theme in CSS | Right icon on first paint, even before the script runs |
 | Theme with no flash | `is:inline` script in `<head>` | Must run before first paint |
 | Countdown | Inline script after the hero markup | Fills in the zeros during parsing, before first paint, so the figures never jump, then ticks |
-| Service worker | `src/scripts/service-worker.ts`, production only, after `load` | Keeps it off the critical path |
+| Service worker | `packages/event-kit/src/scripts/service-worker.ts`, production only, after `load` | Keeps it off the critical path |
 | Hero flower bed | React island, `client:idle` | In the first screen but not needed to read it; hydrates off the critical path |
 | Footer flower bed | React island, `client:visible` | Page bottom; hydrates when scrolled near |
 | 404 flower bed | React island, `client:visible` | Same |
 | Menu flower bed | React island, `client:media="(max-width: 1023px)"` | The menu only opens below 1024px, so desktop never loads it |
 
-The beds are the one place React stays. How many flowers are in bloom depends on the date, so the build cannot bake it, and a click plants one. The static HTML draws every plant dormant (`useInBloom` returns 0 there) and hydration brings in the real count.
+The beds are the one place React stays, besides the judge interest form. How many flowers are in bloom depends on the date, so the build cannot bake it, and a click plants one. The static HTML draws every plant dormant (`useInBloom` returns 0 there) and hydration brings in the real count.
+
+The beds take the event's start (`start`, epoch milliseconds) and first-day label (`startLabel`) as props, passed from `Hero.astro` and `layouts/Layout.astro`. They do not import `event.config.ts`: an island that imports it bundles all the page copy into the browser.
 
 React Compiler is not enabled: the islands are small, and it would add its runtime for no change in output.
 
@@ -90,23 +93,23 @@ Call it with `node`, not `pnpm vision`: pnpm prints its own header on stdout, wh
 
 ## Interest CTA
 
-`lib/links.ts` is the only outbound destination. The Typeform URL was once pasted in four files and drifted.
+`registration.url` in `src/event.config.ts` is the only sign-up destination. The Typeform URL was once pasted in four files and drifted.
 
-Every Notify me button and link (header, mobile menu, hero, FAQ, footer) points at `INTEREST_URL`, a Typeform, for now. On phones 356px and wider the header keeps a compact Notify me button beside the menu toggle, so the CTA does not hide inside the hamburger menu.
+Every Notify me button and link (header, mobile menu, hero, FAQ, footer) points at it, a Typeform, for now. On phones 356px and wider the header keeps a compact Notify me button beside the menu toggle, so the CTA does not hide inside the hamburger menu.
 
-Once registration opens on the portal, swap `INTEREST_URL` back to `PORTAL_INTEREST_URL`, which signs the visitor in first:
+Once registration opens on the portal, set `registration.url` to the portal's interest form, `event.links.portalInterest`, which signs the visitor in first:
 
 ```
-{PORTAL_ORIGIN}/login?callbackUrl=/hacklytics
+{links.portal}/login?callbackUrl=/hacklytics
 ```
 
 `callbackUrl` is encoded so it survives the email-code hop through `/verify`. The portal only honors same-origin paths.
 
-The footer also links to the portal for the two audiences that are not waiting on the list: **Hacker portal** (`PORTAL_HACKATHON_URL`, `{PORTAL_ORIGIN}/hacklytics`) and **Judge Hacklytics** (`JUDGE_URL`, sign-in with `callbackUrl=/judge`).
+The footer also links to the portal for the two audiences that are not waiting on the list: **Hacker portal** (`links.hackerPortal`, `{links.portal}/hacklytics`) and **Judge Hacklytics** (`links.judgeSignIn`, sign-in with `callbackUrl=/judge`). The kit derives all four links from `links.portal`.
 
 ## Judge interest form
 
-Below the Judges section, `components/sections/JudgeInterestForm.tsx` (a React island, `client:visible`) collects name, email, company, title, expertise, LinkedIn and a note, with no account. It posts JSON to `{PORTAL_ORIGIN}/api/judge-interest` (`judgeInterestUrl()` in `lib/links.ts`; on `localhost` it posts to `http://localhost:3001` so dev never touches the real list). The "Apply to judge" button above stays the full application.
+Below the Judges section, the kit's `JudgeInterestForm` (`packages/event-kit/src/components/JudgeInterestForm.tsx`, a React island, `client:visible`) collects name, email, company, title, expertise, LinkedIn and a note, with no account. It posts JSON to `{links.portal}/api/judge-interest` (`judgeInterestUrl()` in the same file; on `localhost` it posts to `http://localhost:3001` so dev never touches the real list). The "Apply to judge" button above stays the full application.
 
 The endpoint is a portal route handler, so the portal must be deployed for the form to work. It allows only this site's origins, rate limits per IP and has a hidden honeypot field; see [Judge portal](../features/judge-portal.md#judge-interest-leads). Organizers read the list at `/admin/judging/interest`.
 
