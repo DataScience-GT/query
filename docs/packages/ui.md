@@ -15,7 +15,7 @@ Hacklytics has its own theme and does not use it. Mainweb also uses local `compo
 
 Primitives: `Alert`, `Checkbox`, `FormChipSelect`, `FormInput`, `FormTextarea`, `LiquidGlass`, `Modal`, `SearchableSelect`, `Skeleton`, `Spinner`, `StatTile`, `StepProgress`, `Switch`.
 
-Mainweb imports `theme.css` from `app/globals.css` and `portal.css` from `app/(portal)/layout.tsx`. What stays in mainweb is the site-specific CSS (`app/(portal)/liquid-glass.css`: reset, scrollbars, light overrides, the `/hacklytics` theme) and domain wrappers that map `@query/db` types to labels.
+Mainweb imports `theme.css` from `app/globals.css` and `portal.css` from `app/(portal)/layout.tsx` and `app/(auth)/layout.tsx`. What stays in mainweb is the site-specific CSS (`app/(portal)/liquid-glass.css`: reset, scrollbars, light overrides, the `/hacklytics` theme) and domain wrappers that map `@query/db` types to labels.
 
 ## Adding a primitive
 
