@@ -1,6 +1,3 @@
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
-
 /** @typedef {import("prettier").Config} PrettierConfig */
 /** @typedef {import("prettier-plugin-tailwindcss").PluginOptions} TailwindConfig */
 /** @typedef {import("@ianvs/prettier-plugin-sort-imports").PluginConfig} SortImportsConfig */
@@ -12,11 +9,6 @@ const config = {
     "prettier-plugin-tailwindcss",
   ],
 
-  // Ensure Tailwind config path works in ESM
-  tailwindConfig: join(
-    dirname(fileURLToPath(import.meta.url)),
-    "../tailwind/web.ts"
-  ),
   tailwindFunctions: ["cn", "cva"],
 
   // Sort imports
