@@ -3,8 +3,6 @@
   "compilerOptions": {
     "noEmit": false,
     "incremental": false,
-    "allowImportingTsExtensions": false,
-    "rewriteRelativeImportExtensions": true,
     "target": "ES2022",
     "rootDir": "src",
     "outDir": "dist",
