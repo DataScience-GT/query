@@ -62,6 +62,35 @@ jobs:
         with:
           category: "/language:javascript-typescript"
 
+  # The workflows themselves: script injection from branch names and PR text,
+  # over-broad token permissions, untrusted checkouts. Needs no install, so it
+  # runs beside the TypeScript job rather than inside it.
+  analyze-actions:
+    name: Analyze GitHub Actions workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: actions
+          build-mode: none
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:actions"
+
   dependency-review:
     name: Dependency Security Review
     runs-on: ubuntu-latest
