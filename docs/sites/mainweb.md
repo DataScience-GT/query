@@ -5,7 +5,7 @@ Workspace name: `web`
 Framework: Next.js 16 App Router, React 19, Tailwind 4, `output: "standalone"`  
 Dev: `next dev --port 3001`
 
-This is the club’s public site **and** the authenticated portal. There is no separate `sites/portal` app; portal routes live in the `(portal)` route group.
+This is the club’s public site **and** the authenticated portal. There is no separate `sites/portal` app; portal routes live in the `(portal)` route group and the sign-in screens in `(auth)`.
 
 ## Public routes
 
@@ -23,14 +23,21 @@ This is the club’s public site **and** the authenticated portal. There is no s
 
 `app/api/csp-report/route.ts` receives CSP report-only violations.
 
+## Sign-in routes (`app/(auth)`)
+
+| Path | Page |
+| --- | --- |
+| `/login` | Sign-in (Google, GitHub if configured, email code) |
+| `/verify` | Email code entry |
+
+The group's layout mounts the theme and `SessionProvider` and nothing else: no tRPC, react-query or sidebar, so a first-time visitor downloads none of the portal's data stack. It is a sibling of `(portal)` under the root layout, so moving between the two is a client navigation, not a reload. A `trpc` hook in either page would throw at runtime, because the provider is not mounted here.
+
 ## Portal routes (`app/(portal)`)
 
 Unauthenticated and authenticated product UI. `proxy.ts` marks these prefixes `private, no-store`.
 
 | Path | Audience |
 | --- | --- |
-| `/login` | Sign-in (Google, GitHub if configured, email code) |
-| `/verify` | Email code entry |
 | `/auth/error` | NextAuth error page |
 | `/dashboard` | Member home |
 | `/settings` | Profile / account |
@@ -74,6 +81,7 @@ Unauthenticated and authenticated product UI. `proxy.ts` marks these prefixes `p
 - `lib/query-client.ts` — TanStack Query client
 - `lib/use-portal-context.ts` — `user.getPortalContext`
 - `(portal)/providers.tsx` — Query + tRPC providers
+- `(auth)/layout.tsx` — theme and session only, for `/login` and `/verify`
 
 Helpers: `lib/hackathon-slug.ts`, `lib/phone.ts`, `lib/bootcamp-schedule.ts`, `lib/trpc-error.ts`, `lib/chunk-error.ts`, `lib/safe-callback.ts` (the last three have unit tests).
 
