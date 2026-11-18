@@ -284,6 +284,13 @@ describe("defineEvent rejects editions that cannot render correctly", () => {
     }
   });
 
+  it("needs an absolute code of conduct link", () => {
+    const codeOfConduct = { label: "Code of conduct", href: "/conduct" };
+    expect(() => build({ links: { ...core.links, codeOfConduct } })).toThrow(
+      /links.codeOfConduct.href/,
+    );
+  });
+
   it("needs origins without a path, and hex colors", () => {
     expect(() => build({ links: { ...core.links, portal: "https://datasciencegt.org/" } })).toThrow(
       /links.portal/,

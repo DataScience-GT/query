@@ -20,10 +20,6 @@ import type { EventDates, ScheduleRail } from "./dates";
 
 export type { EventDates, EventDay, ScheduleRail } from "./dates";
 
-/** MLH's code of conduct, linked from the footer and the FAQ. */
-export const MLH_CODE_OF_CONDUCT_URL =
-  "https://static.mlh.io/docs/mlh-code-of-conduct.pdf";
-
 type NonEmpty<T> = readonly [T, ...T[]];
 
 export interface Link {
@@ -131,6 +127,8 @@ export interface EventLinks {
   mlh: string;
   /** The submission site, shown in the footer when set. */
   devpost?: string;
+  /** The code of conduct, shown in the footer when set. `label` is the link text. */
+  codeOfConduct?: { label: string; href: string };
   /** Footer social links, in the order shown. */
   social: readonly { label: string; href: string }[];
 }
@@ -332,6 +330,9 @@ export function defineEvent(input: EventInput): EventConfig {
   }
   requireOrigin("links.portal", core.links.portal);
   requireAbsolute("links.mlh", core.links.mlh);
+  if (core.links.codeOfConduct) {
+    requireAbsolute("links.codeOfConduct.href", core.links.codeOfConduct.href);
+  }
   requireAbsolute("registration.url", core.registration.url);
 
   const dates = describeDates(core.timeZone, startMs, endMs);
