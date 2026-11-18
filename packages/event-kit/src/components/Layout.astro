@@ -1,0 +1,122 @@
+---
+import type { EventConfig } from "../config";
+import Footer from "./Footer.astro";
+import Navbar from "./Navbar.astro";
+
+interface Props {
+  event: EventConfig;
+  /** Whether this is the home page; the footer's call to action and art only belong there. */
+  home?: boolean;
+  /** Font files to preload on every page, as served paths. */
+  fontPreloads?: readonly string[];
+}
+const { event, home = false, fontPreloads = [] } = Astro.props;
+const { seo, theme, registration, venue, organizer, links } = event;
+
+// Slots: `head` for extra <head> tags (the hero image preload), `menu-art`
+// for the site's art at the foot of the mobile menu, `footer-art` for the art
+// closing the home page. The default slot is the page.
+const title = `${event.headline} · ${seo.tagline}`;
+const ogImage = `${seo.url}${seo.image}`;
+const storageKey = theme.storageKey ?? "hl-theme";
+
+// Runs before first paint so a saved light/dark choice never flashes the other
+// theme, and points the theme-color metas at it so the bar matches the page.
+// Kept tiny and dependency-free.
+const themeScript = `try{var t=localStorage.getItem("${storageKey}");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=t==="light"?"${theme.ground.light}":"${theme.ground.dark}"})}}catch(e){}`;
+
+// JSON-LD structured data for SEO Event Schema
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Event",
+  name: event.headline,
+  startDate: event.start,
+  endDate: event.end,
+  eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+  eventStatus: "https://schema.org/EventScheduled",
+  location: {
+    "@type": "Place",
+    name: venue.name,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: venue.address.street,
+      addressLocality: venue.address.locality,
+      postalCode: venue.address.postalCode,
+      addressRegion: venue.address.region,
+      addressCountry: venue.address.country,
+    },
+  },
+  image: [ogImage],
+  description: seo.eventDescription,
+  offers: {
+    "@type": "Offer",
+    url: registration.url,
+    price: "0",
+    priceCurrency: "USD",
+    availability: `https://schema.org/${registration.availability}`,
+    validFrom: registration.validFrom,
+  },
+  organizer: {
+    "@type": "Organization",
+    name: organizer.name,
+    url: links.portal,
+  },
+};
+---
+
+<!doctype html>
+<html
+  lang="en"
+  data-scroll-behavior="smooth"
+  data-theme-key={storageKey}
+  data-ground-light={theme.ground.light}
+  data-ground-dark={theme.ground.dark}
+>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {fontPreloads.map((href) => <link rel="preload" href={href} as="font" crossorigin="" type="font/woff2" />)}
+    <link rel="preload" href="/mlh-trust-badge.svg" as="image" />
+    <slot name="head" />
+    {/* The browser bar follows the device setting by default; the theme
+        toggle repeats these when a choice is made. */}
+    <meta name="theme-color" content={theme.ground.light} media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content={theme.ground.dark} media="(prefers-color-scheme: dark)" />
+    <title>{title}</title>
+    <meta name="description" content={seo.description} />
+    <meta name="author" content={organizer.name} />
+    <meta name="keywords" content={seo.keywords.join(",")} />
+    <meta property="og:title" content={event.headline} />
+    <meta property="og:description" content={seo.shareDescription} />
+    <meta property="og:url" content={seo.url} />
+    <meta property="og:site_name" content={event.brand} />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={`${event.name} ${theme.name}`} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:creator" content={seo.twitter} />
+    <meta name="twitter:title" content={event.headline} />
+    <meta name="twitter:description" content={seo.summary} />
+    <meta name="twitter:image" content={ogImage} />
+    <link rel="icon" href="/favicon.ico" sizes="64x64" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="/apple-icon.png" sizes="180x180" type="image/png" />
+    <script is:inline set:html={themeScript} />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, "\u003c")} />
+  </head>
+  <body class="font-sans antialiased">
+    <Navbar event={event}>
+      <slot name="menu-art" slot="art" />
+    </Navbar>
+    <slot />
+    <Footer event={event} home={home}>
+      <slot name="footer-art" slot="art" />
+    </Footer>
+    <script>
+      import "../scripts/theme-toggle";
+    </script>
+    {import.meta.env.PROD && <script>import "../scripts/service-worker";</script>}
+  </body>
+</html>

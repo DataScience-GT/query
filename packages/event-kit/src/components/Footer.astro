@@ -1,0 +1,129 @@
+---
+import { MLH_CODE_OF_CONDUCT_URL } from "../config";
+import type { EventConfig } from "../config";
+import { SECTION_NAV } from "../nav";
+
+interface Props {
+  event: EventConfig;
+  /** The call to action and the site's art under it only belong on the home page. */
+  home?: boolean;
+}
+const { event, home = false } = Astro.props;
+const { registration, links, footer } = event;
+const portalHost = new URL(links.portal).host;
+---
+
+<footer class="relative w-full overflow-hidden">
+  <div class:list={["wrap pb-10", home ? "pt-12 md:pt-24" : "pt-2"]}>
+    {home && (
+      <>
+        <h2 class="display -ml-[0.125em] text-[32px] md:text-[40px] lg:text-[56px] xl:text-[72px] leading-[1.05] mb-8">
+          {footer.headline}
+        </h2>
+
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-16">
+          <a
+            href={registration.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={registration.ariaLabel ?? registration.label}
+            class="btn btn-bloom"
+          >
+            {registration.label}
+          </a>
+          {footer.note && (
+            <p class="font-sans text-[17px] text-ink-2 max-w-sm leading-relaxed">
+              {footer.note}
+            </p>
+          )}
+        </div>
+      </>
+    )}
+
+    {/* Two rows at every width: side by side, the links wrapped FAQ and
+         "MLH Code of Conduct" onto lines of their own even at 1440px. */}
+    <div class:list={["flex flex-col gap-4 pt-8", home && "border-t border-rule"]}>
+      <nav class="grid grid-cols-3 gap-x-6 sm:flex sm:flex-wrap">
+        {SECTION_NAV.map(({ id, label }) => (
+          <a
+            href={`/#${id}`}
+            class="font-sans text-[15px] capitalize text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 min-w-11 items-center"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+
+      <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-0 sm:gap-x-8 whitespace-nowrap">
+        <a
+          href={links.hackerPortal}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
+        >
+          Hacker portal
+        </a>
+        <a
+          href={links.judgeSignIn}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
+        >
+          Judge {event.brand}
+        </a>
+        <a
+          href={`mailto:${event.contactEmail}`}
+          class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
+        >
+          {event.contactEmail}
+        </a>
+        <a
+          href={links.portal}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
+        >
+          {portalHost}
+        </a>
+        {links.devpost && (
+          <a
+            href={links.devpost}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
+          >
+            Devpost
+          </a>
+        )}
+        <a
+          href={MLH_CODE_OF_CONDUCT_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="font-sans text-[15px] text-ink-2 hover:text-ink transition-colors inline-flex min-h-11 items-center"
+        >
+          MLH Code of Conduct
+        </a>
+      </div>
+    </div>
+
+    <div class="pt-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <p class="font-sans text-[13px] text-ink-3">© {event.year} {event.organizer.name}</p>
+      <div class="flex items-center gap-5">
+        {links.social.map(({ label, href }) => (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={label}
+            class="font-sans text-[13px] text-ink-3 hover:text-ink transition-colors inline-flex min-h-11 items-center"
+          >
+            {label}
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {/* The site's art, closing the page. */}
+  {home && <slot name="art" />}
+</footer>

@@ -1,0 +1,47 @@
+---
+import type { ComponentType } from "react";
+import type { EventConfig } from "../config";
+import AboutSection from "./AboutSection";
+import FAQSection from "./FAQSection";
+import JudgeInterestForm from "./JudgeInterestForm";
+import JudgesSection from "./JudgesSection";
+import PrizeAndSpeakerSection from "./PrizeAndSpeakerSection";
+import Schedule from "./Schedule";
+import SponsorsSection from "./Sponsor";
+import TracksSection from "./TracksSection";
+import type { TrackArtProps } from "./TracksSection";
+
+/**
+ * The art a site draws into the sections. Each piece is a React component
+ * rendered at build time; a section without its art lays out the same, empty.
+ */
+export interface HomeArt {
+  track?: ComponentType<TrackArtProps>;
+  railStart?: ComponentType;
+  railEnd?: ComponentType;
+  judges?: ComponentType;
+  sponsors?: ComponentType;
+}
+
+interface Props {
+  event: EventConfig;
+  art?: HomeArt;
+}
+const { event, art = {} } = Astro.props;
+---
+
+<div class="relative">
+  <AboutSection event={event} />
+  <TracksSection event={event} Art={art.track} />
+  <PrizeAndSpeakerSection event={event} />
+  <Schedule event={event} RailStart={art.railStart} RailEnd={art.railEnd} />
+  <JudgesSection event={event} Plot={art.judges} />
+  <JudgeInterestForm
+    client:visible
+    brand={event.brand}
+    portalOrigin={event.links.portal}
+    contactEmail={event.contactEmail}
+  />
+  <SponsorsSection event={event} Plot={art.sponsors} />
+  <FAQSection event={event} />
+</div>
