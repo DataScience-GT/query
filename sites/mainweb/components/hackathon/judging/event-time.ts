@@ -1,4 +1,4 @@
-import { VENUE_TZ } from "@query/db/constants";
+import { VENUE_TZ } from "@query/core";
 
 // Judging happens in the building, so every time on these screens is the
 // venue's clock, never the phone's: a hacker whose phone is still on west

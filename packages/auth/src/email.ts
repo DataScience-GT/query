@@ -1,10 +1,6 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
-import {
-  NOREPLY_EMAIL,
-  ORG_NAME_SPOKEN,
-  SITE_ORIGIN,
-} from "@query/db/constants";
+import { NOREPLY_EMAIL, ORG_NAME_SPOKEN, SITE_ORIGIN } from "@query/core";
 
 // Owns the pooled SMTP connection for the process. `pool: true` only does
 // anything if the transporter outlives the message — built per call, every

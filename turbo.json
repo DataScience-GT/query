@@ -3,6 +3,9 @@
   "ui": "stream",
   "boundaries": {
     "tags": {
+      "core": {
+        "dependencies": { "deny": ["app", "service", "data", "ui", "static"] }
+      },
       "data": { "dependencies": { "deny": ["service", "ui", "app"] } },
       "ui": { "dependencies": { "deny": ["data", "service", "app"] } },
       "service": { "dependencies": { "deny": ["ui", "app"] } },

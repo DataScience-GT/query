@@ -7,7 +7,8 @@ import {
 } from "@query/db";
 import { lockInventory } from "./config";
 import type { JudgingDb } from "./config";
-import { SITE_ORIGIN } from "@query/db/constants";
+import { SITE_ORIGIN } from "@query/core";
+import { configuredSiteOrigin } from "@query/core/server";
 import { roomLinkPath } from "./room-link";
 
 // Room QR links. A room has at most one live link; issuing a new one retires
@@ -19,7 +20,7 @@ import { roomLinkPath } from "./room-link";
  * whatever host the organiser happened to use.
  */
 export function portalOrigin(req?: Request): string {
-  const configured = process.env.NEXTAUTH_URL || process.env.AUTH_URL;
+  const configured = configuredSiteOrigin();
   if (configured) return new URL(configured).origin;
   if (req) return new URL(req.url).origin;
   return SITE_ORIGIN;

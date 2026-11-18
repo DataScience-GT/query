@@ -6,11 +6,15 @@
 // Uptime % = up minutes / minutes with data. A bucket nobody sent a request
 // into does not exist, and counts as neither up nor down.
 
-import { DAY, MINUTE, STATUS_BUCKET_MINUTES, STATUS_BUCKET_MS } from "@query/db/constants";
+import {
+  DAY,
+  MINUTE,
+  STATUS_BUCKET_MINUTES,
+  STATUS_BUCKET_MS,
+} from "@query/core";
 
 export const BUCKET_MIN = STATUS_BUCKET_MINUTES;
 export const BUCKET_MS = STATUS_BUCKET_MS;
-export const DAY_MS = DAY;
 export const ERROR_RATE_LIMIT = 0.05;
 /** A live ping slower than this is Degraded, not Operational. */
 export const SLOW_PING_MS = 1000;
@@ -64,9 +68,9 @@ export function uptimePercent(
  */
 export function fillDays(rows: Day[], now: number, count = 90): Day[] {
   const byDay = new Map(rows.map((row) => [row.day, row]));
-  const today = now - (now % DAY_MS);
+  const today = now - (now % DAY);
   return Array.from({ length: count }, (_, i) => {
-    const day = new Date(today - (count - 1 - i) * DAY_MS)
+    const day = new Date(today - (count - 1 - i) * DAY)
       .toISOString()
       .slice(0, 10);
     return (

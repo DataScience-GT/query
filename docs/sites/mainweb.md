@@ -79,7 +79,7 @@ Helpers: `lib/hackathon-slug.ts`, `lib/phone.ts`, `lib/bootcamp-schedule.ts`, `l
 
 ## Config highlights (`next.config.mjs`)
 
-- Transpiles `@query/api`, `@query/auth`, `@query/db`, `@query/ui`
+- Transpiles `@query/api`, `@query/auth`, `@query/core`, `@query/db`, `@query/ui`
 - `outputFileTracingRoot` is the monorepo root (needed for standalone on App Hosting)
 - Security headers: HSTS, CSP (report-only unless `CSP_ENFORCE=true`), frame options SAMEORIGIN (admin print/QR iframes), Permissions-Policy (camera **not** denied — `/scan` needs it)
 - React Compiler enabled

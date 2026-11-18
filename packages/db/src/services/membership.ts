@@ -1,5 +1,5 @@
 import { and, eq, isNull } from "drizzle-orm";
-import { VENUE_TZ } from "../constants";
+import { VENUE_TZ } from "@query/core";
 import type { DrizzleDB } from "../client";
 import { members, membershipHistory } from "../schemas/members";
 import { PRE_CURRENT_STATUSES } from "../schemas/hackathons";

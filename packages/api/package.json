@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@query/auth": "workspace:*",
+    "@query/core": "workspace:*",
     "@query/db": "workspace:*",
     "@trpc/server": "catalog:",
     "drizzle-orm": "catalog:",
