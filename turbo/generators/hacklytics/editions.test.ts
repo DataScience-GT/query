@@ -45,6 +45,8 @@ describe("the latest edition, loaded through the kit", () => {
       },
     );
     expect(plan.siteName).toBe(`hacklytics${next}`);
-    expect(JSON.parse(`{${plan.core}}`).year).toBe(next);
+    expect(plan.core).toContain(`"year": ${next}`);
+    expect(plan.core).not.toContain(edition.timeZone);
+    expect(plan.imports).toContain("@query/core");
   }, 60_000);
 });

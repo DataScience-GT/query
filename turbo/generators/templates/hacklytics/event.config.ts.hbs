@@ -11,10 +11,16 @@
  *
  *   {{ carried }}
  *
+ * A value {{ latestDir }} read from a package it imports stays an import here,
+ * so the organization's links, time zone and name still come from one place.
+ *
  * Check each before launch, most of all `registration.url`,
  * `registration.validFrom` and `links.mlh`, which belong to one season.
  * Each "TODO" below is copy to write for this edition.
  */
+{{#if imports}}
+{{{ imports }}}
+{{/if}}
 import { defineEvent } from "@query/event-kit";
 
 export default defineEvent({

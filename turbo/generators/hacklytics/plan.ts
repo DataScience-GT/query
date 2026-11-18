@@ -7,6 +7,7 @@
  */
 import type { Moments, SchedulePattern } from "./dates";
 import type { Edition, EventCore } from "./editions";
+import type { Imported } from "./source";
 import {
   applyPattern,
   boardTime,
@@ -17,6 +18,7 @@ import {
   yearOfIso,
 } from "./dates";
 import { editionDirName } from "./paths";
+import { importLines, propertiesOf, referencesOf } from "./source";
 import { extractTheme } from "./theme";
 
 export interface Answers {
@@ -127,12 +129,6 @@ export function validateEnd(
   return typeof moments === "string" ? moments : true;
 }
 
-/** A JS object literal body: the properties of `value`, without the braces. */
-const propertiesOf = (value: Record<string, unknown>) => {
-  const text = JSON.stringify(value, null, 2);
-  return text.slice(text.indexOf("\n") + 1, text.lastIndexOf("\n"));
-};
-
 interface BoardRow {
   /** Source of a template literal, so the weekday follows the dates. */
   when: string;
@@ -150,6 +146,8 @@ export interface Plan {
   /** Public path of the share image the edition starts with. */
   shareImage: string;
   latestDir: string;
+  /** `import` lines for the packages whose values `core` and `seo` read, or empty. */
+  imports: string;
   /** `src/event.config.ts` properties carried over or computed, as source. */
   core: string;
   carried: string;
@@ -203,6 +201,11 @@ export function buildPlan(answers: Answers, inputs: Inputs): Plan {
     ),
   );
 
+  const references = referencesOf(latest.imports);
+  const used = new Set<Imported>();
+  const coreSource = propertiesOf(core, references, used);
+  const seoSource = propertiesOf(seo, references, used);
+
   const startDay = parseDay(answers.start)!;
   const endDay = parseDay(answers.end)!;
   const lastDay = daysBetween(startDay, endDay);
@@ -253,9 +256,10 @@ export function buildPlan(answers: Answers, inputs: Inputs): Plan {
     themeName,
     shareImage: typeof image === "string" ? image : "",
     latestDir: latest.dir,
-    core: propertiesOf(core),
+    imports: importLines(used),
+    core: coreSource,
     carried: carriedKeys.join(", "),
-    seo: propertiesOf(seo),
+    seo: seoSource,
     board,
     packageJson: carryPackageJson(inputs.packageJson, siteName),
     themeCss: `${themeHeader(themeName, latest.dir)}\n\n${extractTheme(inputs.themeCss)}\n`,
