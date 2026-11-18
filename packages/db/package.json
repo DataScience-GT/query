@@ -39,6 +39,7 @@
     "tsrs": "catalog:",
     "tsx": "^4.23.15",
     "typescript": "catalog:",
+    "vitest": "catalog:",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }
