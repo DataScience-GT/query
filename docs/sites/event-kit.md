@@ -81,7 +81,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `hackHours` | `36` | Copy, the rail's label |
 | `schedule.rail` | `{ span: 72, from: 21, to: 57 }` | Schedule rail positions |
 | `startMs`, `endMs` | epoch milliseconds | Countdown, season |
-| `links.portalInterest`, `.hackerPortal`, `.judgeSignIn`, `.judgeApply` | `{portal}/login?callbackUrl=...` | Buttons, copy |
+| `links.portalInterest`, `.hackerPortal`, `.judgeSignIn`, `.judgeApply` | `{portal}/login?callbackUrl=...`; `hackerPortal` is `{portal}{portalPath}` and `portalInterest` signs in to `portalPath` | Buttons, copy |
 
 `hackHours` is elapsed time, and the rail is clock time, so across a daylight-saving change a window that reads 9 PM to 9 AM is 35 hours long and still ends at hour 57.
 
@@ -102,7 +102,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `venue` | `{ name, address: { street, locality, region, postalCode, country } }` | The JSON-LD place |
 | `organizer` | `{ name }` | Footer copyright, `author`, JSON-LD organizer |
 | `contactEmail` | string | Footer, form errors |
-| `links` | `{ portal, mlh, devpost?, codeOfConduct?, social[] }` | `portal` is an origin with no trailing slash. `devpost` adds a footer link. `codeOfConduct` is `{ label, href }`, a footer link with that text; a site that also links it from the FAQ reuses its own constant. `social` is `{ label, href }` in footer order |
+| `links` | `{ portal, portalPath, mlh, devpost?, codeOfConduct?, social[] }` | `portal` is an origin with no trailing slash. `portalPath` is the edition's page on the portal, `/hacklytics` for 2027: a leading slash, no trailing one. `devpost` adds a footer link. `codeOfConduct` is `{ label, href }`, a footer link with that text; a site that also links it from the FAQ reuses its own constant. `social` is `{ label, href }` in footer order |
 | `registration` | `{ url, label, ariaLabel?, availability, validFrom }` | One URL for every sign-up button and the JSON-LD offer. `availability` is `PreOrder`, `InStock` or `SoldOut` |
 
 **`EventContent`**, returned by `content(derived)`
@@ -129,7 +129,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 - the hacking window is not inside the event, or ends before it starts
 - a schedule row starts with a weekday the event does not run on
 - two tracks, prizes or FAQs share a title or question
-- `links.portal` or `seo.url` is not a bare origin, a `ground` color is not `#rrggbb`, or `theme.storageKey` has characters the inline script cannot hold
+- `links.portal` or `seo.url` is not a bare origin, `links.portalPath` is not a slash-led path, a `ground` color is not `#rrggbb`, or `theme.storageKey` has characters the inline script cannot hold
 
 ## Theme contract
 
