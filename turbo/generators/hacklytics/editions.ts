@@ -42,7 +42,7 @@ export type EventCore = Record<string, unknown> & {
   start: string;
   end: string;
   hacking: { start: string; end: string };
-  registration: { validFrom: string };
+  registration: { validFrom: string; [field: string]: unknown };
 };
 
 export interface Edition {
