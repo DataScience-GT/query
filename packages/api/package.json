@@ -24,15 +24,9 @@
   "dependencies": {
     "@query/auth": "workspace:*",
     "@query/db": "workspace:*",
-    "@tanstack/react-query": "catalog:",
-    "@trpc/client": "catalog:",
-    "@trpc/next": "11.26.0",
-    "@trpc/react-query": "catalog:",
     "@trpc/server": "catalog:",
     "drizzle-orm": "catalog:",
-    "image-size": "2.0.4",
     "prom-client": "15.1.3",
-    "sanitize-html": "catalog:",
     "stripe": "catalog:",
     "superjson": "catalog:",
     "zod": "catalog:"
@@ -40,7 +34,6 @@
   "devDependencies": {
     "@query/oxlint-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
-    "@types/sanitize-html": "^2.16.2",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "tsrs": "catalog:",
