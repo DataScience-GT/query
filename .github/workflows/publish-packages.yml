@@ -1,0 +1,138 @@
+name: Publish packages
+
+# Publishes @query/core or @query/event-kit to GitHub Packages as
+# @datascience-gt/core or @datascience-gt/event-kit. The repo keeps the
+# @query names. The name is rewritten only in this job's checkout, right
+# before pnpm publish.
+#
+# Run it from the Actions tab and pick the package, or push a tag named
+# core-v<version> or event-kit-v<version>. The tag's version must equal the
+# version in the package's package.json. See docs/packages/publishing.md.
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package to publish
+        type: choice
+        required: true
+        options:
+          - core
+          - event-kit
+      dry-run:
+        description: Build and pack, then report what would be published without publishing
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "core-v*"
+      - "event-kit-v*"
+
+permissions:
+  contents: read
+  packages: write
+
+# Two releases at once would race on the registry.
+concurrency:
+  group: publish-packages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to GitHub Packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      INPUT_PACKAGE: ${{ inputs.package }}
+      INPUT_DRY_RUN: ${{ inputs.dry-run }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve the package
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            pkg="$INPUT_PACKAGE"
+            tag_version=""
+          elif [[ "$GITHUB_REF_NAME" =~ ^(core|event-kit)-v(.+)$ ]]; then
+            pkg="${BASH_REMATCH[1]}"
+            tag_version="${BASH_REMATCH[2]}"
+          else
+            echo "::error::Tag '$GITHUB_REF_NAME' is not core-v<version> or event-kit-v<version>"
+            exit 1
+          fi
+          case "$pkg" in
+            core | event-kit) ;;
+            *) echo "::error::Unknown package '$pkg'"; exit 1 ;;
+          esac
+          version="$(node -p "require('./packages/$pkg/package.json').version")"
+          if [ -n "$tag_version" ] && [ "$tag_version" != "$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME names $tag_version but packages/$pkg/package.json is $version"
+            exit 1
+          fi
+          echo "PKG=$pkg" >> "$GITHUB_ENV"
+          echo "Releasing @query/$pkg@$version as @datascience-gt/$pkg@$version"
+
+      # No version pin: the one in packageManager is the one that reads
+      # overrides and allowBuilds from pnpm-workspace.yaml. Pinning here
+      # silently installed an older pnpm that ignores both.
+      - uses: pnpm/action-setup@v6
+
+      # registry-url and scope write an .npmrc that sends only @datascience-gt
+      # packages to GitHub Packages. Everything else still installs from npm.
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+          registry-url: https://npm.pkg.github.com
+          scope: "@datascience-gt"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # event-kit ships source and has no build script, so --if-present.
+      - name: Build
+        run: pnpm --filter "@query/$PKG" run --if-present build
+
+      # pnpm replaces workspace: ranges with real versions when it packs, and
+      # the @query names do not exist on the registry. A dependency on another
+      # @query package would publish a package nobody can install, so stop.
+      # devDependencies are dropped so the published manifest does not name
+      # private workspaces.
+      - name: Rename to the published name
+        working-directory: packages/${{ env.PKG }}
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'EOF'
+          import { readFileSync, writeFileSync } from "node:fs";
+
+          const file = "package.json";
+          const pkg = JSON.parse(readFileSync(file, "utf8"));
+
+          const leaks = ["dependencies", "peerDependencies", "optionalDependencies"]
+            .flatMap((field) => Object.entries(pkg[field] ?? {}).map(([name, range]) => ({ field, name, range })))
+            .filter(({ name, range }) => name.startsWith("@query/") || String(range).startsWith("workspace:"));
+          if (leaks.length > 0) {
+            for (const { field, name, range } of leaks) {
+              console.log(`::error::${pkg.name} has ${field}.${name} = ${range}. Publish that package first and rename the dependency too.`);
+            }
+            process.exit(1);
+          }
+
+          const published = `@datascience-gt/${process.env.PKG}`;
+          delete pkg.devDependencies;
+          pkg.name = published;
+          writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`);
+          console.log(`package.json is now ${published}@${pkg.version}`);
+          EOF
+
+      - name: Publish
+        working-directory: packages/${{ env.PKG }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          args=(--no-git-checks --registry https://npm.pkg.github.com)
+          if [ "$INPUT_DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          pnpm publish "${args[@]}"

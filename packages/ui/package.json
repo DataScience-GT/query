@@ -16,7 +16,7 @@
     "./portal.css": "./src/portal.css",
     "./*": "./src/*.tsx"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "scripts": {
     "typecheck": "tsrs --noEmit",
     "lint": "oxlint src"
