@@ -14,10 +14,16 @@ export interface Wall {
 
 const DAY_MS = 864e5;
 
-export function parseDay(value: string): { year: number; month: number; day: number } | null {
+export function parseDay(
+  value: string,
+): { year: number; month: number; day: number } | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return null;
-  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const [year, month, day] = [
+    Number(match[1]),
+    Number(match[2]),
+    Number(match[3]),
+  ];
   const probe = new Date(Date.UTC(year, month - 1, day));
   const real =
     probe.getUTCFullYear() === year &&
@@ -28,15 +34,28 @@ export function parseDay(value: string): { year: number; month: number; day: num
 
 const pad = (n: number, width = 2) => String(n).padStart(width, "0");
 
-export const dayString = ({ year, month, day }: { year: number; month: number; day: number }) =>
-  `${pad(year, 4)}-${pad(month)}-${pad(day)}`;
+export const dayString = ({
+  year,
+  month,
+  day,
+}: {
+  year: number;
+  month: number;
+  day: number;
+}) => `${pad(year, 4)}-${pad(month)}-${pad(day)}`;
 
 export function addDays(
   day: { year: number; month: number; day: number },
   days: number,
 ): { year: number; month: number; day: number } {
-  const moved = new Date(Date.UTC(day.year, day.month - 1, day.day) + days * DAY_MS);
-  return { year: moved.getUTCFullYear(), month: moved.getUTCMonth() + 1, day: moved.getUTCDate() };
+  const moved = new Date(
+    Date.UTC(day.year, day.month - 1, day.day) + days * DAY_MS,
+  );
+  return {
+    year: moved.getUTCFullYear(),
+    month: moved.getUTCMonth() + 1,
+    day: moved.getUTCDate(),
+  };
 }
 
 /** Whole days from `from` to `to`, both calendar days. */
@@ -45,7 +64,8 @@ export function daysBetween(
   to: { year: number; month: number; day: number },
 ): number {
   return Math.round(
-    (Date.UTC(to.year, to.month - 1, to.day) - Date.UTC(from.year, from.month - 1, from.day)) /
+    (Date.UTC(to.year, to.month - 1, to.day) -
+      Date.UTC(from.year, from.month - 1, from.day)) /
       DAY_MS,
   );
 }
@@ -124,7 +144,10 @@ export function clockOf(wall: Wall): string {
   return `${pad(wall.hour)}:${pad(wall.minute)}`;
 }
 
-export function withClock(day: { year: number; month: number; day: number }, clock: string): Wall {
+export function withClock(
+  day: { year: number; month: number; day: number },
+  clock: string,
+): Wall {
   const [hour, minute] = clock.split(":").map(Number);
   return { ...day, hour, minute };
 }
@@ -154,8 +177,13 @@ export interface Moments {
   hacking: { start: string; end: string };
 }
 
-const wallOfIso = (iso: string, timeZone: string) => wallAt(Date.parse(iso), timeZone);
-const dayOf = (wall: Wall) => ({ year: wall.year, month: wall.month, day: wall.day });
+const wallOfIso = (iso: string, timeZone: string) =>
+  wallAt(Date.parse(iso), timeZone);
+const dayOf = (wall: Wall) => ({
+  year: wall.year,
+  month: wall.month,
+  day: wall.day,
+});
 
 /** Reads the clock times and day offsets out of an existing edition. */
 export function patternOf(moments: Moments, timeZone: string): SchedulePattern {
@@ -166,8 +194,14 @@ export function patternOf(moments: Moments, timeZone: string): SchedulePattern {
   return {
     start: clockOf(start),
     end: clockOf(end),
-    hackStart: { days: daysBetween(dayOf(start), dayOf(hackStart)), clock: clockOf(hackStart) },
-    hackEnd: { days: daysBetween(dayOf(end), dayOf(hackEnd)), clock: clockOf(hackEnd) },
+    hackStart: {
+      days: daysBetween(dayOf(start), dayOf(hackStart)),
+      clock: clockOf(hackStart),
+    },
+    hackEnd: {
+      days: daysBetween(dayOf(end), dayOf(hackEnd)),
+      clock: clockOf(hackEnd),
+    },
   };
 }
 
@@ -178,22 +212,31 @@ export function applyPattern(
   endDay: { year: number; month: number; day: number },
   timeZone: string,
 ): Moments {
-  const at = (day: typeof startDay, clock: string) => isoAt(withClock(day, clock), timeZone);
+  const at = (day: typeof startDay, clock: string) =>
+    isoAt(withClock(day, clock), timeZone);
   return {
     start: at(startDay, pattern.start),
     end: at(endDay, pattern.end),
     hacking: {
-      start: at(addDays(startDay, pattern.hackStart.days), pattern.hackStart.clock),
+      start: at(
+        addDays(startDay, pattern.hackStart.days),
+        pattern.hackStart.clock,
+      ),
       end: at(addDays(endDay, pattern.hackEnd.days), pattern.hackEnd.clock),
     },
   };
 }
 
 /** `iso` moved to the same month, day and clock in `year`, with that date's offset. */
-export function sameMomentInYear(iso: string, year: number, timeZone: string): string {
+export function sameMomentInYear(
+  iso: string,
+  year: number,
+  timeZone: string,
+): string {
   const wall = wallOfIso(iso, timeZone);
   let day = { year, month: wall.month, day: wall.day };
-  if (!parseDay(dayString(day))) day = addDays({ year, month: wall.month + 1, day: 1 }, -1);
+  if (!parseDay(dayString(day)))
+    day = addDays({ year, month: wall.month + 1, day: 1 }, -1);
   return isoAt({ ...day, hour: wall.hour, minute: wall.minute }, timeZone);
 }
 

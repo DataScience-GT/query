@@ -5,6 +5,8 @@
  * output is plain data the templates render, so a bad answer fails here, with
  * nothing written.
  */
+import type { Moments, SchedulePattern } from "./dates";
+import type { Edition, EventCore } from "./editions";
 import {
   applyPattern,
   boardTime,
@@ -14,10 +16,14 @@ import {
   sameMomentInYear,
   yearOfIso,
 } from "./dates";
-import type { Moments, SchedulePattern } from "./dates";
-import type { Edition, EventCore } from "./editions";
 import { editionDirName } from "./paths";
-import { STRUCTURAL_TOKENS, declaredValue, extractTheme, neutralTheme, NEUTRAL } from "./theme";
+import {
+  declaredValue,
+  extractTheme,
+  NEUTRAL,
+  neutralTheme,
+  STRUCTURAL_TOKENS,
+} from "./theme";
 
 export interface Answers {
   year: string;
@@ -36,16 +42,28 @@ export const KIT_PUBLIC_FILES = [
 ] as const;
 
 /** Where a site keeps its fonts: the files, the CSS that declares them, and the preload list. */
-const FONT_FILES = ["public/fonts", "src/styles/fonts.generated.css", "src/lib/fonts.generated.ts"] as const;
+const FONT_FILES = [
+  "public/fonts",
+  "src/styles/fonts.generated.css",
+  "src/lib/fonts.generated.ts",
+] as const;
 
 /** `package.json` entries tied to `scripts/capture-vision.mts`, which a new site does not get. */
-const NOT_CARRIED = { scripts: ["vision"], devDependencies: ["playwright"] } as const;
+const NOT_CARRIED = {
+  scripts: ["vision"],
+  devDependencies: ["playwright"],
+} as const;
 
 /** Core fields the answers decide. Everything else in the core is carried over as it is. */
 const ANSWERED = ["year", "theme", "start", "end", "hacking"] as const;
 
 /** Copy this generator writes new for each edition. Every other `seo` field is carried over. */
-const NEW_SEO = ["description", "shareDescription", "summary", "eventDescription"] as const;
+const NEW_SEO = [
+  "description",
+  "shareDescription",
+  "summary",
+  "eventDescription",
+] as const;
 
 export interface Inputs {
   latest: Edition;
@@ -95,7 +113,8 @@ export function momentsFor(
   const startDay = parseDay(start);
   const endDay = parseDay(end);
   if (!startDay || !endDay) return "Dates are written YYYY-MM-DD.";
-  if (daysBetween(startDay, endDay) < 0) return "The end date is before the start date.";
+  if (daysBetween(startDay, endDay) < 0)
+    return "The end date is before the start date.";
   const moments = applyPattern(pattern, startDay, endDay, timeZone);
   const ms = (iso: string) => Date.parse(iso);
   const inOrder =
@@ -159,7 +178,10 @@ export interface Plan {
 export function buildPlan(answers: Answers, inputs: Inputs): Plan {
   const { latest, existing } = inputs;
   const year = Number(answers.year);
-  const checks = [validateYear(answers.year, existing), validateTheme(answers.theme)];
+  const checks = [
+    validateYear(answers.year, existing),
+    validateTheme(answers.theme),
+  ];
   const failed = checks.find((check) => check !== true);
   if (typeof failed === "string") throw new Error(failed);
 
@@ -176,7 +198,9 @@ export function buildPlan(answers: Answers, inputs: Inputs): Plan {
     STRUCTURAL_TOKENS.map((token) => {
       const value = declaredValue(inputs.themeCss, token);
       if (value === undefined) {
-        throw new Error(`${latest.dir}/src/styles/globals.css does not set ${token}`);
+        throw new Error(
+          `${latest.dir}/src/styles/globals.css does not set ${token}`,
+        );
       }
       return [token, value];
     }),
@@ -185,13 +209,18 @@ export function buildPlan(answers: Answers, inputs: Inputs): Plan {
   const core = structuredClone(latest.core) as EventCore;
   core.year = year;
   core.theme.name = themeName;
-  if (!answers.copyTheme) core.theme.ground = { light: NEUTRAL.light.ground, dark: NEUTRAL.dark.ground };
+  if (!answers.copyTheme)
+    core.theme.ground = {
+      light: NEUTRAL.light.ground,
+      dark: NEUTRAL.dark.ground,
+    };
   core.start = moments.start;
   core.end = moments.end;
   core.hacking = moments.hacking;
   core.registration.validFrom = sameMomentInYear(
     latest.core.registration.validFrom,
-    yearOfIso(latest.core.registration.validFrom, timeZone) + (year - latest.year),
+    yearOfIso(latest.core.registration.validFrom, timeZone) +
+      (year - latest.year),
     timeZone,
   );
 
@@ -199,28 +228,49 @@ export function buildPlan(answers: Answers, inputs: Inputs): Plan {
     (key) => !(ANSWERED as readonly string[]).includes(key),
   );
   const seo = Object.fromEntries(
-    Object.entries(latest.seo).filter(([key]) => !(NEW_SEO as readonly string[]).includes(key)),
+    Object.entries(latest.seo).filter(
+      ([key]) => !(NEW_SEO as readonly string[]).includes(key),
+    ),
   );
 
   const startDay = parseDay(answers.start)!;
   const endDay = parseDay(answers.end)!;
   const lastDay = daysBetween(startDay, endDay);
-  const rowAt = (index: number, clock: string, event: string, accent = false): BoardRow => ({
+  const rowAt = (
+    index: number,
+    clock: string,
+    event: string,
+    accent = false,
+  ): BoardRow => ({
     when: `\${dates.days[${index}].key} ${boardTime(clock)}`,
     event,
     accent,
   });
   const board = [
     rowAt(0, pattern.start, "Check-in opens"),
-    rowAt(pattern.hackStart.days, pattern.hackStart.clock, "Hacking begins", true),
-    rowAt(lastDay + pattern.hackEnd.days, pattern.hackEnd.clock, "Hacking ends", true),
+    rowAt(
+      pattern.hackStart.days,
+      pattern.hackStart.clock,
+      "Hacking begins",
+      true,
+    ),
+    rowAt(
+      lastDay + pattern.hackEnd.days,
+      pattern.hackEnd.clock,
+      "Hacking ends",
+      true,
+    ),
     rowAt(lastDay, pattern.end, "Closing ceremony"),
   ];
 
   const siteName = editionDirName(year);
-  const copies: [string, string][] = KIT_PUBLIC_FILES.map((file) => [`public/${file}`, `public/${file}`]);
+  const copies: [string, string][] = KIT_PUBLIC_FILES.map((file) => [
+    `public/${file}`,
+    `public/${file}`,
+  ]);
   const image = latest.seo.image;
-  if (typeof image === "string") copies.push([`public${image}`, `public${image}`]);
+  if (typeof image === "string")
+    copies.push([`public${image}`, `public${image}`]);
   if (answers.copyTheme) {
     for (const path of FONT_FILES) copies.push([path, path]);
   }
@@ -256,7 +306,10 @@ function themeHeader(themeName: string, from: string): string {
 }
 
 function carryPackageJson(text: string, name: string): string {
-  const pkg = JSON.parse(text) as Record<string, Record<string, string> | string>;
+  const pkg = JSON.parse(text) as Record<
+    string,
+    Record<string, string> | string
+  >;
   pkg.name = name;
   for (const [section, entries] of Object.entries(NOT_CARRIED)) {
     const table = pkg[section] as Record<string, string> | undefined;

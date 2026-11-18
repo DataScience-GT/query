@@ -1,12 +1,16 @@
 /**
- * {{ siteName }}, {{ themeName }}, in one place. The page copy, the JSON-LD
- * Event and the schedule all read this, so moving the weekend is one edit to
- * `start` and `end`. docs/sites/event-kit.md lists every field.
+ * {{ heading }}, in one place. The page copy, the JSON-LD Event and the
+ * schedule all read this, so moving the weekend is one edit to `start` and
+ * `end`. docs/sites/event-kit.md lists every field.
  *
- * Made by `pnpm turbo gen hacklytics`. Carried over from {{ latestDir }}:
- * {{ carried }}. Check each before launch, most of all `registration.url`,
- * `registration.validFrom` and `links.mlh`, which belong to one season. The
- * dates, clock times and theme name are the answers the generator was given.
+ * Made by `pnpm turbo gen hacklytics`. The dates and the theme name are the
+ * answers it was given, and the clock times follow {{ latestDir }}.
+ * These fields are carried over from {{ latestDir }} as they stood there:
+ *
+ *   {{ carried }}
+ *
+ * Check each before launch, most of all `registration.url`,
+ * `registration.validFrom` and `links.mlh`, which belong to one season.
  * Each "TODO" below is copy to write for this edition.
  */
 import { defineEvent } from "@query/event-kit";
