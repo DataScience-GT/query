@@ -1,0 +1,70 @@
+name: Prune preview channels
+
+# Every PR gets a Firebase Hosting preview channel per Hacklytics site
+# (ci.yml, channel pr-<number>). A site holds at most 50 channels, and a busy
+# day of PRs filled hacklytics2027 before the 7-day expiry freed any, so every
+# new preview failed with "channel quota reached". This deletes the pr-<n>
+# channels of PRs that are no longer open: on close, and daily as a sweep for
+# closes this missed. The live channel is never touched.
+on:
+  pull_request:
+    types: [closed]
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: prune-preview-channels
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    name: Delete closed PRs' preview channels
+    # Forks get no repo secrets, so there is nothing to authenticate with.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Prune
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DSGT_WEBSITE }}
+          # Same pin as the deploy jobs in ci.yml: 15.34.1 checks the Service
+          # Usage API, which is disabled on dsgt-website.
+          FIREBASE_TOOLS: firebase-tools@15.34.0
+        run: |
+          set -euo pipefail
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
+
+          # Every hosting site the repo deploys to, read from .firebaserc so a
+          # new Hacklytics edition is covered without editing this file.
+          rc="$(cat .firebaserc)"
+          project="$(node -p "JSON.parse(process.argv[1]).projects.default" "$rc")"
+          sites="$(node -p "[...new Set(Object.values(JSON.parse(process.argv[1]).targets[process.argv[2]].hosting).flat())].join(' ')" "$rc" "$project")"
+
+          open=" $(gh pr list --state open --limit 500 --json number --jq '[.[].number] | join(" ")') "
+          echo "Open PRs:$open"
+
+          for site in $sites; do
+            channels="$(npx --yes "$FIREBASE_TOOLS" hosting:channel:list --site "$site" --project "$project" --json \
+              | node -e 'let d="";process.stdin.on("data",(c)=>(d+=c)).on("end",()=>{const r=JSON.parse(d).result;const list=Array.isArray(r)?r:(r?.channels??[]);console.log(list.map((c)=>c.name.split("/").pop()).filter((id)=>/^pr-\d+$/.test(id)).join(" "))})')"
+            for channel in $channels; do
+              number="${channel#pr-}"
+              case "$open" in *" $number "*) continue ;; esac
+              npx --yes "$FIREBASE_TOOLS" hosting:channel:delete "$channel" --site "$site" --project "$project" --force
+              echo "Deleted $site/$channel"
+            done
+          done
