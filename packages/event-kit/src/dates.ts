@@ -1,10 +1,8 @@
 /**
  * Everything an edition's dates turn into: labels, day columns and schedule
- * rail positions, all computed from ISO timestamps in the event's time zone.
- * Nothing here is typed by hand per edition.
+ * rail positions, all computed from ISO timestamps in the event's time zone,
+ * which the edition's config names. Nothing here is typed by hand per edition.
  */
-
-export const EVENT_TIME_ZONE = "America/New_York";
 
 const ISO_WITH_OFFSET =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/;
@@ -20,15 +18,26 @@ export function parseInstant(label: string, iso: string): number {
   return ms;
 }
 
-const wallClockFormat = new Intl.DateTimeFormat("en-US", {
-  timeZone: EVENT_TIME_ZONE,
-  year: "numeric",
-  month: "numeric",
-  day: "numeric",
-  hour: "numeric",
-  minute: "numeric",
-  hourCycle: "h23",
-});
+const wallClockFormat = (timeZone: string) =>
+  new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    hourCycle: "h23",
+  });
+
+/** Whether the runtime knows this IANA time zone name. */
+export const isTimeZone = (timeZone: string) => {
+  try {
+    wallClockFormat(timeZone);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 interface WallClock {
   year: number;
@@ -39,9 +48,9 @@ interface WallClock {
 }
 
 /** The calendar fields an instant shows on a clock in the event's time zone. */
-function wallClock(ms: number): WallClock {
+function wallClock(timeZone: string, ms: number): WallClock {
   const fields: Record<string, number> = {};
-  for (const { type, value } of wallClockFormat.formatToParts(ms)) {
+  for (const { type, value } of wallClockFormat(timeZone).formatToParts(ms)) {
     fields[type] = Number(value);
   }
   return {
@@ -57,7 +66,7 @@ function wallClock(ms: number): WallClock {
 const wallMs = (c: WallClock) =>
   Date.UTC(c.year, c.month - 1, c.day, c.hour, c.minute);
 
-export const yearInEventZone = (ms: number) => wallClock(ms).year;
+export const yearInZone = (timeZone: string, ms: number) => wallClock(timeZone, ms).year;
 
 const nameOf = (options: Intl.DateTimeFormatOptions, utcMs: number) =>
   new Intl.DateTimeFormat("en-US", { ...options, timeZone: "UTC" }).format(
@@ -87,9 +96,9 @@ export interface EventDates {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function describeDates(startMs: number, endMs: number): EventDates {
-  const start = wallClock(startMs);
-  const end = wallClock(endMs);
+export function describeDates(timeZone: string, startMs: number, endMs: number): EventDates {
+  const start = wallClock(timeZone, startMs);
+  const end = wallClock(timeZone, endMs);
   const first = Date.UTC(start.year, start.month - 1, start.day);
   const last = Date.UTC(end.year, end.month - 1, end.day);
   const count = (last - first) / DAY_MS + 1;
@@ -139,18 +148,19 @@ export interface ScheduleRail {
 }
 
 export function describeRail(
+  timeZone: string,
   startMs: number,
   endMs: number,
   hackingStartMs: number,
   hackingEndMs: number,
 ): ScheduleRail {
-  const start = wallClock(startMs);
-  const end = wallClock(endMs);
+  const start = wallClock(timeZone, startMs);
+  const end = wallClock(timeZone, endMs);
   const midnight = Date.UTC(start.year, start.month - 1, start.day);
   const lastMidnight = Date.UTC(end.year, end.month - 1, end.day);
   return {
     span: ((lastMidnight - midnight) / DAY_MS + 1) * 24,
-    from: (wallMs(wallClock(hackingStartMs)) - midnight) / 36e5,
-    to: (wallMs(wallClock(hackingEndMs)) - midnight) / 36e5,
+    from: (wallMs(wallClock(timeZone, hackingStartMs)) - midnight) / 36e5,
+    to: (wallMs(wallClock(timeZone, hackingEndMs)) - midnight) / 36e5,
   };
 }

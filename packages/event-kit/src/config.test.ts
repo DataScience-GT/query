@@ -5,6 +5,7 @@ import type { EventContent, EventCore, EventInput } from "./config";
 const core: EventCore = {
   brand: "Hacklytics",
   year: 2027,
+  timeZone: "America/New_York",
   theme: { name: "Digital Bloom", ground: { light: "#f1f4f6", dark: "#0e0f13" } },
   start: "2027-02-26T17:00:00-05:00",
   end: "2027-02-28T16:00:00-05:00",
@@ -173,6 +174,44 @@ describe("defineEvent dates in the event's time zone", () => {
     expect(event.schedule.rail).toEqual({ span: 72, from: 21, to: 57 });
   });
 
+  it("labels the same instants by the calendar and clock of another zone", () => {
+    // 5 PM Friday to 4 PM Sunday in New York is Saturday 7 AM to Monday 6 AM in Tokyo.
+    const event = build(
+      {
+        timeZone: "Asia/Tokyo",
+        start: "2027-02-26T22:00:00Z",
+        end: "2027-02-28T21:00:00Z",
+        hacking: { start: "2027-02-27T02:00:00Z", end: "2027-02-28T14:00:00Z" },
+      },
+      {
+        schedule: {
+          intro: "",
+          board: [{ when: "Sat 7:00 AM", event: "Check-in" }],
+        },
+      },
+    );
+    expect(event.dates.short).toBe("Feb 27–Mar 1, 2027");
+    expect(event.dates.days).toEqual([
+      { key: "Sat", name: "Saturday", label: "Feb 27" },
+      { key: "Sun", name: "Sunday", label: "Feb 28" },
+      { key: "Mon", name: "Monday", label: "Mar 1" },
+    ]);
+    expect(event.hackHours).toBe(36);
+    expect(event.schedule.rail).toEqual({ span: 72, from: 11, to: 47 });
+  });
+
+  it("takes the year of the start in the event's zone", () => {
+    // 20:00 UTC on New Year's Eve is already January 1 in Tokyo, still December 31 in New York.
+    const nye = {
+      start: "2026-12-31T20:00:00Z",
+      end: "2027-01-01T08:00:00Z",
+      hacking: { start: "2026-12-31T21:00:00Z", end: "2027-01-01T07:00:00Z" },
+    };
+    const schedule = { intro: "", board: [{ when: "Fri 5:00 AM", event: "Go" }] } as const;
+    expect(build({ ...nye, timeZone: "Asia/Tokyo" }, { schedule }).dates.short).toBe("Jan 1, 2027");
+    expect(() => build(nye)).toThrow(/not in 2027/);
+  });
+
   it("labels a one-day event as a single date", () => {
     const event = build(
       {
@@ -200,6 +239,11 @@ describe("defineEvent rejects editions that cannot render correctly", () => {
     expect(() => build({ start: "2027-02-26T17:00:00" })).toThrow(/UTC offset/);
     expect(() => build({ start: "February 26" })).toThrow(/UTC offset/);
     expect(() => build({ start: "2027-13-40T17:00:00-05:00" })).toThrow(/UTC offset/);
+  });
+
+  it("needs a time zone the runtime knows", () => {
+    expect(() => build({ timeZone: "Nowhere/City" })).toThrow(/timeZone/);
+    expect(() => build({ timeZone: "" })).toThrow(/timeZone/);
   });
 
   it("needs the year to match the start", () => {

@@ -22,6 +22,7 @@ const email = { text: CONTACT, href: `mailto:${CONTACT}` };
 export default defineEvent({
   brand: BRAND,
   year: YEAR,
+  timeZone: "America/New_York",
   theme: {
     name: "Digital Bloom",
     // --ground in styles/globals.css, per theme.

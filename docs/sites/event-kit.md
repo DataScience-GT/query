@@ -8,7 +8,7 @@ The kit is everything a Hacklytics event site has in common: the page shell, nav
 
 | The kit owns | A site owns |
 | --- | --- |
-| `defineEvent` and the `EventConfig` types, with every date label computed from ISO strings in America/New_York | `src/event.config.ts`: the dates, links and copy |
+| `defineEvent` and the `EventConfig` types, with every date label computed from ISO strings in the config's `timeZone` | `src/event.config.ts`: the dates, links and copy |
 | `Layout.astro`: `<head>`, meta, Open Graph and Twitter tags, the JSON-LD Event, the no-flash theme script, the navbar and footer | `src/styles/globals.css`: the palette, the two font families, the art's CSS |
 | `Navbar`, `Footer`, `MlhBadge`, `ThemeToggle` and their scripts (menu, hide on scroll, theme switch, service worker registration) | The hero, the 404 body and anything else only one edition has |
 | The sections `About`, `Tracks`, `PrizeAndSpeaker`, `Schedule`, `Judges`, `Sponsors`, `FAQ` and the `JudgeInterestForm` island, composed by `HomeSections.astro` | The art drawn into the sections: sprites, plots, the globe, the garden |
@@ -69,7 +69,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 
 ## Dates
 
-`start` and `end` are ISO 8601 strings with an offset, such as `2027-02-26T17:00:00-05:00`. Everything else about the schedule is derived from them in America/New_York. A timestamp written in UTC (`2027-02-27T03:00:00Z`) gives the New York day it falls on, so `Feb 26`.
+`start` and `end` are ISO 8601 strings with an offset, such as `2027-02-26T17:00:00-05:00`. Everything else about the schedule is derived from them in the venue's `timeZone`, an IANA name such as `America/New_York`. A timestamp written in UTC (`2027-02-27T03:00:00Z`) gives the day it falls on in that zone, so `Feb 26` for New York and `Feb 27` for `Asia/Tokyo`.
 
 | Derived | Example | Used by |
 | --- | --- | --- |
@@ -94,7 +94,8 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | Field | Type | Notes |
 | --- | --- | --- |
 | `brand` | string | The series: `Hacklytics`. Navbar logo, `og:site_name`, "Judge Hacklytics" |
-| `year` | number | Must be the year of `start` |
+| `year` | number | Must be the year of `start` in `timeZone` |
+| `timeZone` | string | The venue's IANA time zone. Day names, date labels and the schedule rail read the calendar and clock there |
 | `theme` | `{ name, ground: { light, dark }, storageKey? }` | `ground` is the `#rrggbb` page color, used for the browser bar. It must equal `--ground` in the theme CSS. `storageKey` defaults to `hl-theme` |
 | `start`, `end` | ISO string | `end` must be after `start` |
 | `hacking` | `{ start, end }` | ISO strings inside `start` to `end`. Positions the schedule rail |
@@ -124,7 +125,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 `defineEvent` throws, so the site build fails, when:
 
 - a timestamp has no offset, or `end` is not after `start`
-- `year` is not the year of `start`
+- `timeZone` is not a zone the runtime knows, or `year` is not the year of `start` there
 - the hacking window is not inside the event, or ends before it starts
 - a schedule row starts with a weekday the event does not run on
 - two tracks, prizes or FAQs share a title or question

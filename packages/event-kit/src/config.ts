@@ -3,7 +3,7 @@
  * call; every kit component reads the result, so the page copy, the JSON-LD
  * Event, the countdown and the schedule cannot disagree about when the
  * weekend is. Dates are written once, as ISO strings, and every label is
- * computed from them in America/New_York.
+ * computed from them in the time zone the edition names.
  *
  * `defineEvent` throws on an edition that cannot be rendered correctly (end
  * before start, a schedule row on a day the event does not run, ...), and the
@@ -12,12 +12,12 @@
 import {
   describeDates,
   describeRail,
+  isTimeZone,
   parseInstant,
-  yearInEventZone,
+  yearInZone,
 } from "./dates";
 import type { EventDates, ScheduleRail } from "./dates";
 
-export { EVENT_TIME_ZONE } from "./dates";
 export type { EventDates, EventDay, ScheduleRail } from "./dates";
 
 /** MLH's code of conduct, linked from the footer and the FAQ. */
@@ -171,6 +171,12 @@ export interface EventCore {
   /** The series name: "Hacklytics". */
   brand: string;
   year: number;
+  /**
+   * The IANA time zone of the venue. Day names, date labels and the schedule
+   * rail read the calendar and clock there, whatever zone a timestamp is
+   * written in.
+   */
+  timeZone: string;
   theme: Theme;
   /** ISO 8601 with offset, like 2027-02-26T17:00:00-05:00: when check-in opens. */
   start: string;
@@ -290,10 +296,14 @@ export function defineEvent(input: EventInput): EventConfig {
     }
   };
 
+  if (!isTimeZone(core.timeZone)) {
+    fail(`timeZone must be an IANA time zone name (got "${core.timeZone}")`);
+  }
+
   const startMs = label("start", core.start);
   const endMs = label("end", core.end);
   if (endMs <= startMs) fail(`end (${core.end}) must be after start (${core.start})`);
-  if (yearInEventZone(startMs) !== core.year) {
+  if (yearInZone(core.timeZone, startMs) !== core.year) {
     fail(`start (${core.start}) is not in ${core.year}`);
   }
 
@@ -319,7 +329,7 @@ export function defineEvent(input: EventInput): EventConfig {
   requireAbsolute("links.mlh", core.links.mlh);
   requireAbsolute("registration.url", core.registration.url);
 
-  const dates = describeDates(startMs, endMs);
+  const dates = describeDates(core.timeZone, startMs, endMs);
   const hackHours = (hackEndMs - hackStartMs) / 36e5;
   const name = `${core.brand} ${core.year}`;
   const callback = (path: string) =>
@@ -359,7 +369,7 @@ export function defineEvent(input: EventInput): EventConfig {
     links: { ...core.links, ...portalLinks },
     schedule: {
       ...copy.schedule,
-      rail: describeRail(startMs, endMs, hackStartMs, hackEndMs),
+      rail: describeRail(core.timeZone, startMs, endMs, hackStartMs, hackEndMs),
     },
   };
 }
