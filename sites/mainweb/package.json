@@ -63,6 +63,7 @@
     "postcss": "catalog:",
     "tailwindcss": "catalog:",
     "tsrs": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

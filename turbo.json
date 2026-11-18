@@ -1,6 +1,15 @@
 {
   "$schema": "https://turborepo.org/schema.json",
   "ui": "stream",
+  "boundaries": {
+    "tags": {
+      "data": { "dependencies": { "deny": ["service", "ui", "app"] } },
+      "ui": { "dependencies": { "deny": ["data", "service", "app"] } },
+      "service": { "dependencies": { "deny": ["ui", "app"] } },
+      "static": { "dependencies": { "deny": ["data", "service"] } },
+      "app": { "dependents": { "deny": ["app", "service", "data", "ui"] } }
+    }
+  },
   "tasks": {
     "test": {
       "dependsOn": ["^build"],
