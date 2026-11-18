@@ -14,7 +14,6 @@ const INTERNAL = new Set([
   "@query/ui",
   "@query/oxlint-config",
   "@query/prettier-config",
-  "@query/tailwind-config",
   "@query/tsconfig",
 ]);
 

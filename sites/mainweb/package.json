@@ -45,7 +45,6 @@
   "devDependencies": {
     "@next/bundle-analyzer": "16.4.3",
     "@query/oxlint-config": "workspace:*",
-    "@query/tailwind-config": "workspace:*",
     "@query/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "catalog:",
     "@types/archiver": "^8.0.0",
