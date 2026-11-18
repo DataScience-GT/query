@@ -1,6 +1,8 @@
 import { execSync } from "node:child_process";
 import type { PlopTypes } from "@turbo/gen";
 
+import { registerHacklytics } from "./hacklytics/generator";
+
 type Answers = {
   name: string;
   deps?: string;
@@ -25,6 +27,8 @@ async function latestVersion(pkg: string): Promise<string> {
 }
 
 export default function register(plop: PlopTypes.NodePlopAPI): void {
+  registerHacklytics(plop);
+
   plop.setGenerator("init", {
     description: "Create a new monorepo package",
     prompts: [

@@ -32,6 +32,8 @@ The package has no `sideEffects` field on purpose. The components load their scr
 
 ## Using the kit in a site
 
+A new edition does not start by hand: `pnpm turbo gen hacklytics` makes the site with all five steps below done and wires its deploy. See [Starting a new edition](./new-edition.md).
+
 1. `package.json`: depend on `"@query/event-kit": "workspace:*"`.
 2. `src/event.config.ts`: `export default defineEvent({...})`.
 3. `src/styles/globals.css`: import Tailwind, then the kit CSS, then define the palette.
