@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { Printer } from "lucide-react";
-import { SELF_CHECK_IN_LEAD_MS } from "@query/db/constants";
+import { SELF_CHECK_IN_LEAD_MS } from "@query/core";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { decodeHackathonParam } from "@/lib/hackathon-slug";

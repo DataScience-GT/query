@@ -1,0 +1,8 @@
+import { defineConfig } from "oxlint";
+
+import { base, react } from "@query/oxlint-config";
+
+export default defineConfig({
+  extends: [base, react],
+  ignorePatterns: ["**/*.config.*", "public/sw.js", "scripts/**"],
+});

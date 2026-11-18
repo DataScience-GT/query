@@ -1,7 +1,8 @@
 // Moving applicants between statuses: single, bulk, waves and acceptance emails.
 
 import { z } from "zod";
-import { PARTICIPANT_STATUSES, SITE_ORIGIN } from "@query/db/constants";
+import { siteOrigin } from "@query/core/server";
+import { PARTICIPANT_STATUSES } from "@query/db/constants";
 import {
   emailConcurrency,
   forEachWithConcurrency,
@@ -396,7 +397,7 @@ export const statusProcedures = {
             await sendAcceptanceEmail({
               email: participant.user.email,
               hackathonName: hackathon.name,
-              host: process.env.NEXTAUTH_URL || SITE_ORIGIN,
+              host: siteOrigin(),
             });
             // Stamped one row at a time, right after the send. A batch of hundreds can
             // die partway — Cloud Run kills the request at 300s — and this marker is what

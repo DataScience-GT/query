@@ -127,7 +127,13 @@ const nextConfig = {
     NEXT_PUBLIC_APP_VERSION: build.version,
     NEXT_PUBLIC_APP_COMMIT: build.commit,
   },
-  transpilePackages: ["@query/api", "@query/auth", "@query/db", "@query/ui"],
+  transpilePackages: [
+    "@query/api",
+    "@query/auth",
+    "@query/core",
+    "@query/db",
+    "@query/ui",
+  ],
   outputFileTracingRoot: path.join(__dirname, "../../"),
   // Native/dynamic requires that a bundler mangles. Left external so the
   // standalone output loads them from node_modules at runtime.

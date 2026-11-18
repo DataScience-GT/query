@@ -15,6 +15,7 @@
     "@google-cloud/storage": "^8.2.0",
     "@query/api": "workspace:*",
     "@query/auth": "workspace:*",
+    "@query/core": "workspace:*",
     "@query/db": "workspace:*",
     "@query/ui": "workspace:*",
     "@stripe/react-stripe-js": "^7.0.1",

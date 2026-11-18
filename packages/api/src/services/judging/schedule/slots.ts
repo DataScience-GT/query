@@ -4,6 +4,8 @@
 // counted in whole slots, rounded up, so a 15-minute break on a 10-minute grid
 // leaves two empty slots rather than one and a half.
 
+import { MINUTE } from "@query/core";
+
 /** The columns judging_schedule stores, named the same so a saved row fits. */
 export type ScheduleTiming = {
   windowStart: Date;
@@ -20,8 +22,6 @@ export type ScheduleTiming = {
  * bounded however long a window an organiser types.
  */
 export const MAX_SLOTS = 1440;
-
-const MINUTE = 60_000;
 
 export function slotMinutes(timing: ScheduleTiming): number {
   return timing.setupMinutes + timing.judgingMinutes + timing.teardownMinutes;

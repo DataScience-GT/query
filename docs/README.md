@@ -8,7 +8,7 @@ Members looking for a club-language overview should start at [Club project](./cl
 | --- | --- |
 | [Club project](./club-project.md) | What the live site is, who uses it, current status, how to help |
 | [Getting started](./getting-started.md) | Prerequisites, local Postgres, env vars, first `pnpm dev` |
-| [Architecture](./architecture.md) | How the two sites and four packages fit together |
+| [Architecture](./architecture.md) | How the sites and packages fit together |
 | [Contributing](./contributing.md) | Branches, scripts, tests, and review expectations |
 | [Environment variables](./operations/environment.md) | Every env var the process actually reads |
 | [Deployment](./operations/deployment.md) | Firebase App Hosting, Firebase Hosting, GCP secrets |
@@ -56,8 +56,10 @@ Room-based judging, from setup to results.
 | --- | --- | --- |
 | [API](./packages/api.md) | `@query/api` | tRPC routers, middleware, pricing |
 | [Auth](./packages/auth.md) | `@query/auth` | NextAuth, providers, mailer |
+| [Core](./packages/core.md) | `@query/core` | Org, site and time constants shared by every workspace |
 | [Database](./packages/db.md) | `@query/db` | Drizzle schema, client, membership rules |
 | [UI](./packages/ui.md) | `@query/ui` | Design tokens, class strings and React primitives |
+| [Event kit](./sites/event-kit.md) | `@query/event-kit` | Shared shell, sections and config for the Hacklytics event sites |
 
 ## Sites
 
