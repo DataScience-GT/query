@@ -59,6 +59,7 @@ Room-based judging, from setup to results.
 | [Core](./packages/core.md) | `@query/core` | Org, site and time constants shared by every workspace |
 | [Database](./packages/db.md) | `@query/db` | Drizzle schema, client, membership rules |
 | [UI](./packages/ui.md) | `@query/ui` | Design tokens, class strings and React primitives |
+| [Publishing](./packages/publishing.md) | `@datascience-gt/*` | Releasing `@query/core` and `@query/event-kit` to GitHub Packages |
 | [Event kit](./sites/event-kit.md) | `@query/event-kit` | Shared shell, sections and config for the Hacklytics event sites |
 
 ## Sites

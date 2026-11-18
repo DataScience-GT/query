@@ -1,23 +1,39 @@
 {
   "name": "@query/event-kit",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Shared page shell, sections and config for the Hacklytics event sites. Astro, React and Tailwind source.",
+  "homepage": "https://github.com/DataScience-GT/query/blob/main/docs/sites/event-kit.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DataScience-GT/query.git",
+    "directory": "packages/event-kit"
+  },
   "type": "module",
   "files": [
-    "src"
+    "src",
+    "!src/**/*.test.ts",
+    "README.md",
+    "LICENSE"
   ],
   "exports": {
     ".": "./src/config.ts",
     "./styles.css": "./src/styles/kit.css",
     "./components/*": "./src/components/*"
   },
-  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "typecheck": "tsrs --noEmit",
     "lint": "oxlint src"
   },
   "peerDependencies": {
-    "react": "^18.3.1 || ^19.0.0"
+    "astro": "^7.4.7",
+    "react": "^18.3.1 || ^19.0.0",
+    "react-dom": "^18.3.1 || ^19.0.0",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@query/oxlint-config": "workspace:*",

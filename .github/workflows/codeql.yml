@@ -82,4 +82,19 @@ jobs:
           fail-on-severity: high
           comment-summary-in-pr: always
           vulnerability-check: true
+          # This repo's own workspace packages are linked, not downloaded.
+          # They have no registry entry for the license lookup to find, so
+          # they were reported as Unknown License. Keep this list in step
+          # with the @query/* names under packages/ and tooling/.
+          allow-dependencies-licenses: >-
+            pkg:npm/%40query/api,
+            pkg:npm/%40query/auth,
+            pkg:npm/%40query/core,
+            pkg:npm/%40query/db,
+            pkg:npm/%40query/event-kit,
+            pkg:npm/%40query/oxlint-config,
+            pkg:npm/%40query/prettier-config,
+            pkg:npm/%40query/scripts,
+            pkg:npm/%40query/tsconfig,
+            pkg:npm/%40query/ui
 

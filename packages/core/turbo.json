@@ -1,5 +1,10 @@
 {
   "$schema": "https://turborepo.org/schema.json",
   "extends": ["//"],
-  "tags": ["core"]
+  "tags": ["core"],
+  "tasks": {
+    "build": {
+      "outputs": ["dist/**"]
+    }
+  }
 }
