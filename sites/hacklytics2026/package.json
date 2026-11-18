@@ -10,9 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@astrojs/react": "7.1.1",
-    "@tailwindcss/vite": "4.3.3",
-    "astro": "7.4.7",
+    "@astrojs/react": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "astro": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },

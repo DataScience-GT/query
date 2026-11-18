@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "query-guard-local": "./src/guard-local.ts"
+  },
   "scripts": {
     "lint": "oxlint .",
     "typecheck": "tsrs --noEmit"
