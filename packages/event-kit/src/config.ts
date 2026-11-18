@@ -97,10 +97,11 @@ export interface Theme {
    */
   ground: { light: string; dark: string };
   /**
-   * localStorage key for a saved light or dark choice. Shared by every
-   * edition on an origin so a returning visitor keeps their pick.
+   * localStorage key for a saved light or dark choice. Give every edition on
+   * an origin the same key so a returning visitor keeps their pick. Letters,
+   * digits and `_ . : -`, since it is written into an inline script.
    */
-  storageKey?: string;
+  storageKey: string;
 }
 
 export type Availability = "PreOrder" | "InStock" | "SoldOut";
@@ -253,6 +254,7 @@ export interface EventConfig
 }
 
 const HEX = /^#[0-9a-f]{6}$/i;
+const STORAGE_KEY = /^[\w.:-]+$/;
 
 const fail = (message: string): never => {
   throw new Error(`defineEvent: ${message}`);
@@ -321,6 +323,9 @@ export function defineEvent(input: EventInput): EventConfig {
     if (!HEX.test(core.theme.ground[mode])) {
       fail(`theme.ground.${mode} must be a #rrggbb color (got "${core.theme.ground[mode]}")`);
     }
+  }
+  if (!STORAGE_KEY.test(core.theme.storageKey)) {
+    fail(`theme.storageKey must be letters, digits and _ . : - (got "${core.theme.storageKey}")`);
   }
   if (!core.contactEmail.includes("@")) {
     fail(`contactEmail must be an email address (got "${core.contactEmail}")`);

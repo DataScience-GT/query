@@ -96,7 +96,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `brand` | string | The series: `Hacklytics`. Navbar logo, `og:site_name`, "Judge Hacklytics" |
 | `year` | number | Must be the year of `start` in `timeZone` |
 | `timeZone` | string | The venue's IANA time zone. Day names, date labels and the schedule rail read the calendar and clock there |
-| `theme` | `{ name, ground: { light, dark }, storageKey? }` | `ground` is the `#rrggbb` page color, used for the browser bar. It must equal `--ground` in the theme CSS. `storageKey` defaults to `hl-theme` |
+| `theme` | `{ name, storageKey, ground: { light, dark } }` | `ground` is the `#rrggbb` page color, used for the browser bar. It must equal `--ground` in the theme CSS. `storageKey` is the localStorage key for a saved light or dark choice: letters, digits and `_ . : -`. Give every edition on an origin the same key so a returning visitor keeps their pick (2027 uses `hl-theme`) |
 | `start`, `end` | ISO string | `end` must be after `start` |
 | `hacking` | `{ start, end }` | ISO strings inside `start` to `end`. Positions the schedule rail |
 | `venue` | `{ name, address: { street, locality, region, postalCode, country } }` | The JSON-LD place |
@@ -129,7 +129,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 - the hacking window is not inside the event, or ends before it starts
 - a schedule row starts with a weekday the event does not run on
 - two tracks, prizes or FAQs share a title or question
-- `links.portal` or `seo.url` is not a bare origin, or a `ground` color is not `#rrggbb`
+- `links.portal` or `seo.url` is not a bare origin, a `ground` color is not `#rrggbb`, or `theme.storageKey` has characters the inline script cannot hold
 
 ## Theme contract
 

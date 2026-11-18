@@ -6,7 +6,11 @@ const core: EventCore = {
   brand: "Hacklytics",
   year: 2027,
   timeZone: "America/New_York",
-  theme: { name: "Digital Bloom", ground: { light: "#f1f4f6", dark: "#0e0f13" } },
+  theme: {
+    name: "Digital Bloom",
+    storageKey: "hl-theme",
+    ground: { light: "#f1f4f6", dark: "#0e0f13" },
+  },
   start: "2027-02-26T17:00:00-05:00",
   end: "2027-02-28T16:00:00-05:00",
   hacking: {
@@ -272,6 +276,12 @@ describe("defineEvent rejects editions that cannot render correctly", () => {
     expect(() =>
       build({}, { tracks: [{ title: "A", description: "" }, { title: "A", description: "" }] }),
     ).toThrow(/duplicate track/);
+  });
+
+  it("needs a storage key that is safe in the inline theme script", () => {
+    for (const storageKey of ["", 'a"b', "a b", "</script>"]) {
+      expect(() => build({ theme: { ...core.theme, storageKey } })).toThrow(/theme.storageKey/);
+    }
   });
 
   it("needs origins without a path, and hex colors", () => {
