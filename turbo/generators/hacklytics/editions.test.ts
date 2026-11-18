@@ -33,7 +33,6 @@ describe("the latest edition, loaded through the kit", () => {
         theme: "Test Theme",
         start: `${next}-02-26`,
         end: `${next}-02-28`,
-        copyTheme: true,
       },
       {
         latest: edition,

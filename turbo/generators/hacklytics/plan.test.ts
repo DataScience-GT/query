@@ -9,7 +9,7 @@ import {
   validateTheme,
   validateYear,
 } from "./plan";
-import { extractTheme, NEUTRAL, splitTopLevel } from "./theme";
+import { extractTheme, splitTopLevel } from "./theme";
 
 const ZONE = "America/New_York";
 
@@ -47,16 +47,7 @@ const latest: Edition = {
     image: "/share.jpg",
     url: "https://example.test",
   },
-  kit: {
-    publicFiles: ["/favicon.ico", "/sw.js"],
-    themeTokens: [
-      "--ground",
-      "--ink",
-      "--on-bloom-deep",
-      "--navbar-height",
-      "--ease",
-    ],
-  },
+  kit: { publicFiles: ["/favicon.ico", "/sw.js"] },
 };
 
 const CSS = `/* The art, described. */
@@ -106,7 +97,6 @@ const answers: Answers = {
   theme: "  Neon Dawn ",
   start: "2099-02-26",
   end: "2099-02-28",
-  copyTheme: true,
 };
 
 describe("answers", () => {
@@ -198,7 +188,7 @@ describe("buildPlan", () => {
     ]);
   });
 
-  it("copies the theme's tokens and fonts, and not the art, when asked to", () => {
+  it("copies the theme's tokens and fonts, and not the art", () => {
     const plan = buildPlan(answers, inputs);
     expect(plan.themeCss).toContain("--ground: #000000;");
     expect(plan.themeCss).toContain("@theme inline");
@@ -206,16 +196,6 @@ describe("buildPlan", () => {
     expect(plan.themeCss).not.toContain("flower");
     expect(plan.themeCss).not.toContain("The art, described");
     expect(plan.copies.map(([from]) => from)).toContain("public/fonts");
-  });
-
-  it("starts a neutral theme whose ground matches the config, with no fonts to copy", () => {
-    const plan = buildPlan({ ...answers, copyTheme: false }, inputs);
-    expect(plan.core).toContain(`"light": "${NEUTRAL.light["--ground"]}"`);
-    expect(plan.core).toContain(`"dark": "${NEUTRAL.dark["--ground"]}"`);
-    expect(plan.themeCss).toContain(`--ground: ${NEUTRAL.light["--ground"]};`);
-    expect(plan.themeCss).toContain("--on-bloom-deep: #ffffff;");
-    expect(plan.themeCss).toContain("--navbar-height: 72px;");
-    expect(plan.copies.map(([from]) => from)).not.toContain("public/fonts");
   });
 
   it("copies the files the kit says it links to, and nothing it does not", () => {
@@ -228,22 +208,6 @@ describe("buildPlan", () => {
       ]),
     );
     expect(copied).not.toContain("public/apple-icon.png");
-  });
-
-  it("refuses a neutral theme the kit has outgrown, and says where to add the token", () => {
-    const outgrown = {
-      ...latest,
-      kit: {
-        ...latest.kit,
-        themeTokens: [...latest.kit.themeTokens, "--new-token"],
-      },
-    };
-    expect(() =>
-      buildPlan(
-        { ...answers, copyTheme: false },
-        { ...inputs, latest: outgrown },
-      ),
-    ).toThrow(/needs --new-token/);
   });
 
   it("drops the package.json entries that belong to a script the new site lacks", () => {

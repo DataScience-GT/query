@@ -47,7 +47,6 @@ const TEMPLATES = "templates/hacklytics";
 const SITE_FILES: [path: string, template: string][] = [
   ["astro.config.mjs", "astro.config.mjs.hbs"],
   ["tsconfig.json", "tsconfig.json.hbs"],
-  ["turbo.json", "turbo.json.hbs"],
   ["oxlint.config.mts", "oxlint.config.mts.hbs"],
   [".gitignore", "gitignore.hbs"],
   ["README.md", "README.md.hbs"],
@@ -112,12 +111,6 @@ export function registerHacklytics(plop: PlopTypes.NodePlopAPI): void {
           );
         },
         filter: (value: string) => value.trim(),
-      },
-      {
-        type: "confirm",
-        name: "copyTheme",
-        message: "Copy the theme (CSS and fonts) from the latest edition?",
-        default: true,
       },
     ],
     actions: [

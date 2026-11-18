@@ -17,14 +17,13 @@ import {
   yearOfIso,
 } from "./dates";
 import { editionDirName } from "./paths";
-import { declaredValue, extractTheme, NEUTRAL, neutralTheme } from "./theme";
+import { extractTheme } from "./theme";
 
 export interface Answers {
   year: string;
   theme: string;
   start: string;
   end: string;
-  copyTheme: boolean;
 }
 
 /** Where a site keeps its fonts: the files, the CSS that declares them, and the preload list. */
@@ -33,6 +32,9 @@ const FONT_FILES = [
   "src/styles/fonts.generated.css",
   "src/lib/fonts.generated.ts",
 ] as const;
+
+/** The site's turbo tags and tasks, which every static site shares. */
+const SHARED_FILES = ["turbo.json"] as const;
 
 /** `package.json` entries tied to `scripts/capture-vision.mts`, which a new site does not get. */
 const NOT_CARRIED = {
@@ -147,7 +149,6 @@ export interface Plan {
   themeName: string;
   /** Public path of the share image the edition starts with. */
   shareImage: string;
-  copyTheme: boolean;
   latestDir: string;
   /** `src/event.config.ts` properties carried over or computed, as source. */
   core: string;
@@ -183,11 +184,6 @@ export function buildPlan(answers: Answers, inputs: Inputs): Plan {
   const core = structuredClone(latest.core) as EventCore;
   core.year = year;
   core.theme.name = themeName;
-  if (!answers.copyTheme)
-    core.theme.ground = {
-      light: NEUTRAL.light["--ground"],
-      dark: NEUTRAL.dark["--ground"],
-    };
   core.start = moments.start;
   core.end = moments.end;
   core.hacking = moments.hacking;
@@ -246,9 +242,8 @@ export function buildPlan(answers: Answers, inputs: Inputs): Plan {
   const image = latest.seo.image;
   if (typeof image === "string")
     copies.push([`public${image}`, `public${image}`]);
-  if (answers.copyTheme) {
-    for (const path of FONT_FILES) copies.push([path, path]);
-  }
+  for (const path of [...SHARED_FILES, ...FONT_FILES])
+    copies.push([path, path]);
 
   return {
     year,
@@ -257,16 +252,13 @@ export function buildPlan(answers: Answers, inputs: Inputs): Plan {
     heading: `${core.brand} ${year}, ${themeName}`,
     themeName,
     shareImage: typeof image === "string" ? image : "",
-    copyTheme: answers.copyTheme,
     latestDir: latest.dir,
     core: propertiesOf(core),
     carried: carriedKeys.join(", "),
     seo: propertiesOf(seo),
     board,
     packageJson: carryPackageJson(inputs.packageJson, siteName),
-    themeCss: answers.copyTheme
-      ? `${themeHeader(themeName, latest.dir)}\n\n${extractTheme(inputs.themeCss)}\n`
-      : `${neutralTheme(latest.kit.themeTokens, (token) => declaredValue(inputs.themeCss, token))}\n`,
+    themeCss: `${themeHeader(themeName, latest.dir)}\n\n${extractTheme(inputs.themeCss)}\n`,
     copies,
   };
 }

@@ -4,12 +4,12 @@
  * It loads the latest edition's `event.config.ts` through the kit and carries
  * every field over, so a field the kit adds later is carried over too.
  */
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Plugin } from "vite";
 
-import { kitPublicFiles, requiredThemeTokens } from "./kit";
+import { kitPublicFiles } from "./kit";
 import { editionDirName, editionYearOf, SITES_DIR } from "./paths";
 
 // turbo gen bundles this file into one CommonJS script, which cannot hold Vite:
@@ -55,8 +55,6 @@ export interface Edition {
   kit: {
     /** Root-level files its components link to, like "/favicon.ico". */
     publicFiles: string[];
-    /** Custom properties its stylesheet says a theme defines. */
-    themeTokens: string[];
   };
 }
 
@@ -131,12 +129,6 @@ export async function loadEdition(
       throw new Error(`${dir}/src/event.config.ts does not name a timeZone`);
     }
 
-    const stylesheet = await server.pluginContainer.resolveId(
-      `${KIT_PACKAGE}/styles.css`,
-      file,
-    );
-    if (!stylesheet)
-      throw new Error(`${dir} cannot resolve the kit's stylesheet`);
     return {
       year,
       dir,
@@ -145,9 +137,6 @@ export async function loadEdition(
       timeZone: core.timeZone,
       kit: {
         publicFiles: kitPublicFiles(dirname(capture.kitFile())),
-        themeTokens: requiredThemeTokens(
-          readFileSync(stylesheet.id.replace(/\?.*$/, ""), "utf8"),
-        ),
       },
     };
   } finally {
