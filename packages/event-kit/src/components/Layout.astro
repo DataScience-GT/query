@@ -1,5 +1,6 @@
 ---
 import type { EventConfig } from "../config";
+import { serializeJsonLd } from "../json-ld";
 import Footer from "./Footer.astro";
 import Navbar from "./Navbar.astro";
 
@@ -104,7 +105,7 @@ const jsonLd = {
     <link rel="icon" href="/favicon.ico" sizes="64x64" type="image/x-icon" />
     <link rel="apple-touch-icon" href="/apple-icon.png" sizes="180x180" type="image/png" />
     <script is:inline set:html={themeScript} />
-    <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, "\u003c")} />
+    <script is:inline type="application/ld+json" set:html={serializeJsonLd(jsonLd)} />
   </head>
   <body class="font-sans antialiased">
     <Navbar event={event}>
