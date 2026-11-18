@@ -1,0 +1,21 @@
+# {{ siteName }} (`{{ siteName }}`)
+
+Static marketing site for {{ siteName }}, {{ themeName }}, built with Astro on the shared event kit (`@query/event-kit`). No database. Made by `pnpm turbo gen hacklytics`.
+
+**How a new edition works:** [docs/sites/new-edition.md](../../docs/sites/new-edition.md)
+
+Two files make the edition. Everything else comes from the kit.
+
+| File | What to put in it |
+| --- | --- |
+| `src/event.config.ts` | The dates, links and every line of page copy. Search for `TODO`. [Field reference](../../docs/sites/event-kit.md#eventconfig) |
+| `src/styles/globals.css` | The palette and the two font families. `--ground` must equal `theme.ground` in the config |
+
+Also replace `public{{ shareImage }}`, the 1200 by 630 share image, which is copied from {{ latestDir }}, and give `src/pages/index.astro` a hero of its own.{{#if copyTheme}} The fonts in `public/fonts` and `src/styles/fonts.generated.css` are copied from {{ latestDir }} too; `{{ latestDir }}/scripts/subset-fonts.py` made them.{{/if}}
+
+```bash
+pnpm --filter {{ siteName }} dev        # astro dev
+pnpm --filter {{ siteName }} build      # static files -> out/
+pnpm --filter {{ siteName }} preview    # serve out/
+pnpm --filter {{ siteName }} typecheck  # tsc --noEmit
+```
