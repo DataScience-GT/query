@@ -2,7 +2,7 @@
 
 The central monorepo for Data Science at Georgia Tech club operations and digital infrastructure.
 
-mainweb and four internal packages share one Postgres database; the Hacklytics site is a static export. Club membership, events, bootcamp, and initiatives are modeled separately from hackathon editions, registration, teams, and judging — they share a database and touch nowhere.
+mainweb and five internal packages share one Postgres database; the Hacklytics site is a static export. Club membership, events, bootcamp, and initiatives are modeled separately from hackathon editions, registration, teams, and judging — they share a database and touch nowhere.
 
 **Documentation:** start at [`docs/README.md`](./docs/README.md).
 
@@ -21,6 +21,7 @@ Member-facing overview — what it is, what members use, current status, and how
 | `sites/hacklytics2026` | `hacklytics2026` | Archived Hacklytics 2026 site, Astro static output (Firebase Hosting target `hacklytics2026`) |
 | `packages/api` | `@query/api` | tRPC routers, middleware, pricing |
 | `packages/auth` | `@query/auth` | NextAuth (Google, GitHub, email codes) |
+| `packages/core` | `@query/core` | Org, site and time constants shared by every workspace |
 | `packages/db` | `@query/db` | Drizzle schema, client, membership rules |
 | `packages/ui` | `@query/ui` | Design system: tokens, classes, primitives |
 | `tooling/*` | `@query/oxlint-config`, `@query/prettier-config`, `@query/tsconfig` | Shared configs |
