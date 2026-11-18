@@ -8,6 +8,10 @@ import { defineEvent } from "@query/event-kit";
 const BRAND = "Hacklytics";
 const YEAR = 2027;
 const CONTACT = "hello@hacklytics.io";
+// The portal origin, the social links, the time zone and the code of conduct
+// also live in @query/db's constants and mainweb. This static site cannot
+// import @query/db (turbo boundaries: static does not depend on data), so they
+// repeat here until a dependency-free package holds them for both.
 const PORTAL = "https://datasciencegt.org";
 
 /**
