@@ -25,6 +25,8 @@ export default defineEvent({
   timeZone: "America/New_York",
   theme: {
     name: "Digital Bloom",
+    // Kept from before the kit, so a returning visitor keeps their theme choice.
+    storageKey: "hl-theme",
     // --ground in styles/globals.css, per theme.
     ground: { light: "#f1f4f6", dark: "#0e0f13" },
   },

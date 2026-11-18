@@ -19,7 +19,7 @@ const { seo, theme, registration, venue, organizer, links } = event;
 // closing the home page. The default slot is the page.
 const title = `${event.headline} · ${seo.tagline}`;
 const ogImage = `${seo.url}${seo.image}`;
-const storageKey = theme.storageKey ?? "hl-theme";
+const { storageKey } = theme;
 
 // Runs before first paint so a saved light/dark choice never flashes the other
 // theme, and points the theme-color metas at it so the bar matches the page.
