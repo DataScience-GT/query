@@ -15,8 +15,6 @@ export default function PortalWrapper({
   // of links they cannot use is the wrong first impression. Guest judges come
   // in through a room's QR code with no account at all.
   const isAuthPage =
-    pathname === "/login" ||
-    pathname === "/verify" ||
     pathname === "/hacklytics" ||
     pathname.startsWith("/judge/guest") ||
     pathname.startsWith("/judge/activate");
