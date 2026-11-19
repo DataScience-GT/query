@@ -29,8 +29,10 @@ This is the club’s public site **and** the authenticated portal. There is no s
 | --- | --- |
 | `/login` | Sign-in (Google, GitHub if configured, email code) |
 | `/verify` | Email code entry |
+| `/auth/error` | NextAuth error page, where a failed sign-in lands (`pages.error` in `packages/auth/src/config.ts`) |
+| `/judge/guest/invalid-link` | Where a room QR code with a bad signature, a revoked link or an archived room ends up |
 
-The group's layout mounts the theme and `SessionProvider` and nothing else: no tRPC, react-query or sidebar, so a first-time visitor downloads none of the portal's data stack. It is a sibling of `(portal)` under the root layout, so moving between the two is a client navigation, not a reload. A `trpc` hook in either page would throw at runtime, because the provider is not mounted here.
+The group's layout mounts the theme and `SessionProvider` and nothing else: no tRPC, react-query or sidebar, so a first-time visitor downloads none of the portal's data stack. It is a sibling of `(portal)` under the root layout, so moving between the two is a client navigation, not a reload. A `trpc` hook in any of these pages would throw at runtime, because the provider is not mounted here. `/judge/guest/invalid-link` lives here, not beside `/judge/guest/[hackathonId]` in `(portal)`; the static segment still wins over the dynamic one across groups.
 
 ## Portal routes (`app/(portal)`)
 
@@ -38,7 +40,6 @@ Unauthenticated and authenticated product UI. `proxy.ts` marks these prefixes `p
 
 | Path | Audience |
 | --- | --- |
-| `/auth/error` | NextAuth error page |
 | `/dashboard` | Member home |
 | `/settings` | Profile / account |
 | `/club` | Membership, pass, club scanner tab |
