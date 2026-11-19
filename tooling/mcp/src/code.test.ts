@@ -1,4 +1,4 @@
-import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
@@ -211,18 +211,24 @@ describe("graph over this repo", () => {
 
   it("does not index gitignored files, such as the next-env.d.ts Next generates", () => {
     const generated = resolve(ROOT, "sites/mainweb/next-env.d.ts");
-    const existed = existsSync(generated);
+    // Exclusive create: a file Next already wrote is left as it is.
+    let created = false;
     try {
-      if (!existed)
-        writeFileSync(
-          generated,
-          '/// <reference types="next" />\nimport "./.next/types/routes.d.ts";\n',
-        );
+      writeFileSync(
+        generated,
+        '/// <reference types="next" />\nimport "./.next/types/routes.d.ts";\n',
+        { flag: "wx" },
+      );
+      created = true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    }
+    try {
       const files = [...getGraph().files.keys()];
       expect(files).not.toContain("sites/mainweb/next-env.d.ts");
       expect(files).toContain("sites/mainweb/lib/trpc.tsx");
     } finally {
-      if (!existed) rmSync(generated, { force: true });
+      if (created) rmSync(generated, { force: true });
     }
   });
 
