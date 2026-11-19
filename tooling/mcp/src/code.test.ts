@@ -209,6 +209,29 @@ describe("graph over this repo", () => {
     expect(broken.map((e) => `${e.from} -> ${e.spec}`)).toEqual([]);
   });
 
+  it("does not index gitignored files, such as the next-env.d.ts Next generates", () => {
+    const generated = resolve(ROOT, "sites/mainweb/next-env.d.ts");
+    // Exclusive create: a file Next already wrote is left as it is.
+    let created = false;
+    try {
+      writeFileSync(
+        generated,
+        '/// <reference types="next" />\nimport "./.next/types/routes.d.ts";\n',
+        { flag: "wx" },
+      );
+      created = true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    }
+    try {
+      const files = [...getGraph().files.keys()];
+      expect(files).not.toContain("sites/mainweb/next-env.d.ts");
+      expect(files).toContain("sites/mainweb/lib/trpc.tsx");
+    } finally {
+      if (created) rmSync(generated, { force: true });
+    }
+  });
+
   it("serves a repeat call from the cache", () => {
     expect(getGraph()).toBe(graph);
   });
