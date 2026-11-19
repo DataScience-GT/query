@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import PortalSidebar from "./PortalSidebar";
+import type { PortalSidebarSection } from "./PortalSidebar";
 
 export default function PortalWrapper({
+  sections,
   children,
 }: {
+  sections: PortalSidebarSection[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -25,7 +28,11 @@ export default function PortalWrapper({
   return (
     <div className="bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen flex flex-col md:flex-row">
       {!isAuthPage && (
-        <PortalSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+        <PortalSidebar
+          isOpen={isSidebarOpen}
+          setIsOpen={setIsSidebarOpen}
+          sections={sections}
+        />
       )}
       <div
         className={`flex-1 w-full transition-[padding] duration-200 ${isAuthPage ? "" : isSidebarOpen ? "md:pl-60 pt-16 md:pt-0" : "md:pl-[72px] pt-16 md:pt-0"}`}

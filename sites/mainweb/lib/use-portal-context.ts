@@ -19,7 +19,8 @@ export function usePortalContext() {
 
 /**
  * Call after mutations that change admin, judge, or member status. The portal
- * layout reads the same context on the server, so this refreshes the route too.
+ * layout draws the sidebar from the same context on the server, so this
+ * refreshes the route too.
  */
 export function useInvalidatePortalContext() {
   const utils = trpc.useUtils();
