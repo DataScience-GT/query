@@ -11,7 +11,9 @@ import "../(portal)/fonts.generated.css";
 import "@query/ui/portal.css";
 import "../(portal)/liquid-glass.css";
 
-// Sign-in screens for visitors with no account yet. They look like the portal
+// Sign-in screens for visitors with no account yet, and the two dead ends a
+// signed-out visitor can land on (a failed sign-in and a dead room QR code,
+// at /auth/error and /judge/guest/invalid-link). They look like the portal
 // (same fonts, theme ramp and page ground) but use none of its data stack, so
 // they sit in a sibling group that mounts the theme and the session and leaves
 // out tRPC, react-query and the sidebar. Sibling groups share the root layout,
