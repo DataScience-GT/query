@@ -84,32 +84,43 @@ export async function loadPortalSession() {
 
 /**
  * What every signed-in portal page needs before it can draw: who is signed in
- * and the two reads the sidebar makes. Handed to the client providers, so the
- * browser neither asks /api/auth/session for the session nor makes a tRPC
- * round trip for the portal context after hydration.
+ * and the two reads the sidebar makes. The client providers get them as a
+ * session and dehydrated state, so the browser neither asks /api/auth/session
+ * nor makes a tRPC round trip for the portal context after hydration. The
+ * sidebar is drawn from the same two reads on the server, so they come back
+ * as plain values too.
  */
 export async function loadPortalBootstrap() {
   // A failed lookup (the database unreachable, say) must not take the whole
   // portal down with it: fall back to the browser asking, as it did before.
   const signedIn = await getPortalCaller().catch(() => null);
-  if (!signedIn) return { session: undefined, state: undefined };
+  if (!signedIn) {
+    return {
+      session: undefined,
+      state: undefined,
+      portal: undefined,
+      registrations: undefined,
+    };
+  }
   const { caller } = signedIn;
 
   const portal = await caller.user.getPortalContext().catch(() => null);
   const entries: Prefetch[] = [];
+  let registrations:
+    | ReturnType<typeof caller.hackathon.myRegistrations>
+    | undefined;
   if (portal) {
     entries.push(["user.getPortalContext", undefined, Promise.resolve(portal)]);
     if (!portal.isAdmin && !portal.isBugTester) {
-      entries.push([
-        "hackathon.myRegistrations",
-        undefined,
-        caller.hackathon.myRegistrations(),
-      ]);
+      registrations = caller.hackathon.myRegistrations();
+      entries.push(["hackathon.myRegistrations", undefined, registrations]);
     }
   }
 
   return {
     session: browserSession(signedIn.session),
     state: await dehydratePrefetched(entries),
+    portal: portal ?? undefined,
+    registrations: await registrations?.catch(() => undefined),
   };
 }
