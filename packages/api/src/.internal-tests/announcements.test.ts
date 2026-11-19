@@ -564,6 +564,7 @@ describe("Announcements", () => {
    */
   describe("Announcements shown to a hacker", () => {
     const row = {
+      id: "a1",
       subject: "Registration is open",
       heading: "Registration is open",
       body: "Applications close soon.",
@@ -602,6 +603,7 @@ describe("Announcements", () => {
 
       expect(res).toEqual([
         {
+          id: "a1",
           subject: "Registration is open",
           heading: "Registration is open",
           body: "Applications close soon.",

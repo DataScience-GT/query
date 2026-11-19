@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { ResumePreview } from "@/components/portal/ResumePreview";
+import { venueFormat } from "@/lib/venue-time";
 import {
   btnPrimary,
   btnSecondary,
@@ -142,6 +143,7 @@ export default function AdminResumesPage() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search resumes"
             placeholder="Search by name, email or major…"
             className="w-full rounded-[var(--radius-sm)] border border-[var(--border-medium)] bg-[var(--bg-input)] pl-10 pr-3.5 py-2.5 text-[15px] text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:border-accent focus:outline-none focus:ring-2 focus:ring-[var(--accent-dim)] transition-colors"
           />
@@ -228,7 +230,7 @@ export default function AdminResumesPage() {
                         <span className="font-mono">
                           {formatSize(row.sizeBytes)}
                         </span>{" "}
-                        · {new Date(row.uploadedAt).toLocaleDateString()}
+                        · {venueFormat(row.uploadedAt)}
                       </td>
                       <td className="py-3 px-3">
                         <button
