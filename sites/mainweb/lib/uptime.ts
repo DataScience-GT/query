@@ -81,6 +81,8 @@ export function probeDays(data: UptimeData, now: number, count = 90): Day[] {
       requests: mine?.probes ?? 0,
       errors: mine ? mine.probes - mine.up : 0,
       worstP95Ms: mine?.worstMs ?? 0,
+      // A probe has one duration per check; there is no p99 to report.
+      worstP99Ms: null,
       minutesWithData: mine?.probes ?? 0,
       minutesDbDown: 0,
       minutesUp: mine?.up ?? 0,

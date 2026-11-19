@@ -47,13 +47,24 @@ All but `run_check` only read files. The readers scan the source text rather tha
 
 `sites/mainweb/next.config.mjs` stamps every build with `NEXT_PUBLIC_APP_VERSION` as `MAJOR.MINOR.PATCH`, and with the short SHA as `NEXT_PUBLIC_APP_COMMIT`. `/api/ping` returns both, so `curl https://datasciencegt.org/api/ping` shows what is live.
 
-- `MAJOR.MINOR` come from `version` in `sites/mainweb/package.json`, set by hand.
+- `MAJOR.MINOR` come from `version` in `sites/mainweb/package.json`, set with `pnpm version:set` (below).
 - `PATCH` is the number of merges into `main` since that `version` line last changed, so each deploy adds one. At 100 it rolls into `MINOR` (`3.4.99` is followed by `3.5.0`), so the patch is never more than two digits.
 - App Hosting clones with depth 1, which has no history to count. The config detects a shallow clone and runs `git fetch --unshallow` against the public repo first, which adds about 15 seconds to the build.
 - A build with no git at all reports the `package.json` version as is.
 - A turbo cache hit replays the version of the build it cached, which is the same code.
 
-To ship a release worth naming, change `version` in `sites/mainweb/package.json` (for example to `4.0.0`) in a PR. The patch restarts from that commit.
+To ship a release worth naming, run `pnpm version:set 4.0.0` in a PR. The patch restarts from that commit.
+
+### Which versions mean something
+
+There is one version for everything. Every `package.json` in the repo (the root, `packages/*`, `tooling/*` and `sites/*`, the published `@query/core` and `@query/event-kit` included) carries the same `version` as `sites/mainweb`, written `MAJOR.MINOR.0`. Only the site's `PATCH` is different: it is computed at build time, as above, and never written to a file.
+
+- Change it in all files at once with `pnpm version:set 3.7.0`. It rewrites only the `version` field of each `package.json`, so nothing else in the files moves.
+- `tooling/scripts/src/versions.test.ts` fails `pnpm test` and names each package whose `version` differs from `sites/mainweb`, so they cannot drift. A new package starts at the current version.
+- `next.config.mjs` counts merges since the last change to `sites/mainweb/package.json` only, so the other files change in the same commit without affecting the count.
+- A release of `@query/core` or `@query/event-kit` publishes whatever the shared version is, see [Publishing shared packages](./packages/publishing.md).
+
+Dependency versions follow the same idea. A dependency that two or more workspaces use, or that has to move in lockstep (`turbo` and `eslint-plugin-turbo`), is pinned once in the `catalog` in `pnpm-workspace.yaml` and referenced as `"catalog:"`. Catalog entries are exact versions.
 
 ### Version history
 

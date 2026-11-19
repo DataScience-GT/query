@@ -10,7 +10,7 @@ import {
   hackathons,
   judgingEntries,
 } from "@query/db";
-import { eq, and, or, isNull, inArray } from "drizzle-orm";
+import { eq, and, or, isNull, isNotNull, inArray } from "drizzle-orm";
 import { VOLATILE_TTL } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { assertHackathonVisible } from "../hackathon/visibility";
@@ -161,30 +161,38 @@ export const teamReadProcedures = {
   myProjects: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
 
-    const participants = await db.query.hackathonParticipants.findMany({
-      where: eq(hackathonParticipants.userId, ctx.userId as string),
-      columns: { id: true, teamId: true },
-    });
+    const userId = ctx.userId as string;
 
-    const teamIds = participants
-      .map((p) => p.teamId)
-      .filter((id): id is string => !!id);
-    const soloIds = participants.filter((p) => !p.teamId).map((p) => p.id);
-
-    // No filter would mean "every project in the platform", so bail first.
-    if (teamIds.length === 0 && soloIds.length === 0) return [];
+    // One round trip: the caller's team ids and solo registrations are
+    // subqueries, not a read of their own first. A caller with no registration
+    // matches nothing, so the old "no filter means every project" bail is not
+    // needed.
+    const myTeamIds = db
+      .select({ id: hackathonParticipants.teamId })
+      .from(hackathonParticipants)
+      .where(
+        and(
+          eq(hackathonParticipants.userId, userId),
+          isNotNull(hackathonParticipants.teamId),
+        ),
+      );
+    const mySoloIds = db
+      .select({ id: hackathonParticipants.id })
+      .from(hackathonParticipants)
+      .where(
+        and(
+          eq(hackathonParticipants.userId, userId),
+          isNull(hackathonParticipants.teamId),
+        ),
+      );
 
     return await db.query.hackathonProjects.findMany({
       where: or(
-        teamIds.length
-          ? inArray(hackathonProjects.teamId, teamIds)
-          : undefined,
-        soloIds.length
-          ? and(
-              isNull(hackathonProjects.teamId),
-              inArray(hackathonProjects.submittedById, soloIds),
-            )
-          : undefined,
+        inArray(hackathonProjects.teamId, myTeamIds),
+        and(
+          isNull(hackathonProjects.teamId),
+          inArray(hackathonProjects.submittedById, mySoloIds),
+        ),
       ),
       columns: { submittedById: false },
       with: { team: { columns: { id: true, name: true } } },
