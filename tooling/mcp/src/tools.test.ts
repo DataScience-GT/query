@@ -1,10 +1,20 @@
-import { readFileSync } from "node:fs";
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { procedures } from "./api.ts";
-import { checkArgs, dbRefusal } from "./check.ts";
+import { checkArgs, dbRefusal, guardRefusal } from "./check.ts";
 import { dbSchema, tables } from "./db.ts";
 import { docsRead, docsSearch } from "./docs.ts";
+import { fillPattern } from "./graph.ts";
 import { isClientFile, routes } from "./routes.ts";
 import { findClose, parseChain, ROOT, splitTop, walk } from "./source.ts";
 import { workspaces } from "./workspace.ts";
@@ -70,7 +80,11 @@ describe("docs", () => {
     expect(() => docsRead("docs/../../etc/passwd")).toThrow(
       /outside the repository/,
     );
-    expect(() => docsRead("C:\\Windows\\win.ini")).toThrow(
+    // Absolute paths outside the repo, written for the platform running this.
+    const absolute =
+      process.platform === "win32" ? "C:\\Windows\\win.ini" : "/etc/hosts";
+    expect(() => docsRead(absolute)).toThrow(/outside the repository/);
+    expect(() => docsRead(resolve(ROOT, "..", "outside.md"))).toThrow(
       /outside the repository/,
     );
     expect(() => docsRead("package.json")).toThrow(/Not a documentation file/);
@@ -216,5 +230,81 @@ describe("run_check", () => {
     ).toBeNull();
     expect(dbRefusal("test", {})).toBeNull();
     expect(dbRefusal("lint", neon)).toBeNull();
+  });
+});
+
+describe("api_procedures cache", () => {
+  it("reads a router file again after it changes", () => {
+    const dir = mkdtempSync(join(tmpdir(), "mcp-api-"));
+    const root = join(dir, "root.ts");
+    try {
+      writeFileSync(
+        root,
+        "export const appRouter = createTRPCRouter({ a: publicProcedure.query(() => 1) });\n",
+      );
+      expect(procedures(root).map((p) => p.path)).toEqual(["a"]);
+      writeFileSync(
+        root,
+        "export const appRouter = createTRPCRouter({ a: publicProcedure.query(() => 1), b: publicProcedure.mutation(() => 2) });\n",
+      );
+      expect(procedures(root).map((p) => p.path)).toEqual(["a", "b"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("export patterns", () => {
+  it("substitutes every star in a target, as Node does", () => {
+    expect(fillPattern("./src/*/*.ts", "x")).toBe("./src/x/x.ts");
+  });
+});
+
+describe("run_check local-services guard", () => {
+  // A copy of the guard rooted in a temp folder, so its env files are ours and
+  // the real .env files are never read or written.
+  const sandbox = (files: Record<string, string>) => {
+    const dir = mkdtempSync(join(tmpdir(), "mcp-guard-"));
+    mkdirSync(join(dir, "tooling/scripts/src"), { recursive: true });
+    const guard = join(dir, "tooling/scripts/src/guard-local.ts");
+    copyFileSync(resolve(ROOT, "tooling/scripts/src/guard-local.ts"), guard);
+    for (const [name, text] of Object.entries(files)) {
+      mkdirSync(join(dir, name, ".."), { recursive: true });
+      writeFileSync(join(dir, name), text);
+    }
+    return { dir, guard };
+  };
+  const clean = { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot };
+  const remote =
+    "DATABASE_URL=postgres://u:p@ep-x.us-east-2.aws.neon.tech/db\n";
+
+  it("refuses a remote URL that only an env file holds", () => {
+    for (const file of [
+      ".env",
+      "sites/mainweb/.env",
+      "sites/mainweb/.env.local",
+    ]) {
+      const { dir, guard } = sandbox({ [file]: remote });
+      try {
+        expect(guardRefusal("test", clean, guard)).toMatch(/neon.tech/);
+        expect(guardRefusal("build", clean, guard)).toMatch(
+          /Refusing to run build/,
+        );
+        expect(guardRefusal("lint", clean, guard)).toBeNull();
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
+  });
+
+  it("allows a local URL in an env file", () => {
+    const { dir, guard } = sandbox({
+      ".env": "DATABASE_URL=postgres://u:p@localhost:5434/neondb\n",
+    });
+    try {
+      expect(guardRefusal("test", clean, guard)).toBeNull();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

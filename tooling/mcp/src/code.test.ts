@@ -220,6 +220,12 @@ describe("graph over this repo", () => {
       expect(codeSymbol("probeSymbolForTest")).toContain(
         "tooling/mcp/src/probe-for-test.ts:1",
       );
+      // An edit that changes the file is read again.
+      writeFileSync(probe, "export const probeRenamedForTest = 22222;\n");
+      expect(codeSymbol("probeSymbolForTest")).toContain("No symbol");
+      expect(codeSymbol("probeRenamedForTest")).toContain(
+        "tooling/mcp/src/probe-for-test.ts:1",
+      );
     } finally {
       rmSync(probe, { force: true });
     }

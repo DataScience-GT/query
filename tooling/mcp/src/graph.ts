@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, posix, resolve } from "node:path";
 import { parse } from "@babel/parser";
 
-import { rel, ROOT, stripComments } from "./source.ts";
+import { readIfChanged, rel, ROOT, stripComments } from "./source.ts";
 import { workspaces } from "./workspace.ts";
 
 const ROOTS = ["sites", "packages", "tooling"];
@@ -576,6 +576,10 @@ function exportTarget(value: unknown): string | null {
   return null;
 }
 
+/** Node substitutes every `*` in an exports or paths target, not the first. */
+export const fillPattern = (target: string, value: string) =>
+  target.replaceAll("*", value);
+
 const EXTERNAL_PREFIX = /^(node:|astro:|virtual:|https?:|data:)/;
 
 export function externalName(spec: string): string {
@@ -649,7 +653,7 @@ class Resolver {
             subpath.length - (key.length - star - 1),
           );
           const mapped = exportTarget(value);
-          if (mapped) target = mapped.replace("*", matched);
+          if (mapped) target = fillPattern(mapped, matched);
           break;
         }
     } else if (subpath === ".") target = pkg.main ?? "./src/index.ts";
@@ -683,7 +687,7 @@ class Resolver {
         ? spec.slice(alias.prefix.length, spec.length - alias.suffix.length)
         : "";
       for (const target of alias.targets) {
-        const base = posix.normalize(target.replace("*", star));
+        const base = posix.normalize(fillPattern(target, star));
         const hit = this.file(base);
         if (hit) return { to: hit };
         const asset = this.asset(base);
@@ -749,16 +753,15 @@ export function getGraph(): Graph {
   for (const file of abs) {
     const key = rel(file);
     seen.add(key);
-    const stat = statSync(file);
     const prior = infos.get(key);
-    if (prior && prior.mtime === stat.mtimeMs && prior.size === stat.size)
-      continue;
+    const stamped = readIfChanged(file, prior);
+    if (!stamped) continue;
     changed = true;
     infos.set(key, {
       file: key,
-      mtime: stat.mtimeMs,
-      size: stat.size,
-      ...parseSource(readFileSync(file, "utf8"), file),
+      mtime: stamped.mtime,
+      size: stamped.size,
+      ...parseSource(stamped.text, file),
     });
   }
   for (const key of [...infos.keys()])
