@@ -90,4 +90,20 @@ describe("JudgesTab apply link", () => {
     expect(container.textContent).toContain("Copied");
     expect(container.textContent).not.toContain("Couldn't copy");
   });
+
+  it("clears the copy failure once a later copy succeeds", async () => {
+    const writeText = vi
+      .fn()
+      .mockImplementationOnce(() => Promise.reject(new Error("denied")))
+      .mockImplementation(() => Promise.resolve());
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const { container, copy } = await openCopyButton();
+
+    await act(async () => copy.click());
+    expect(container.textContent).toContain("Couldn't copy");
+    await act(async () => copy.click());
+
+    expect(container.textContent).toContain("Copied");
+    expect(container.textContent).not.toContain("Couldn't copy");
+  });
 });
