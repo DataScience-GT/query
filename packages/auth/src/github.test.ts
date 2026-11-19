@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { verifiedGitHubEmail } from "./github";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { fetchGitHubProfile, verifiedGitHubEmail } from "./github";
 
 describe("verifiedGitHubEmail", () => {
   it("takes the primary address when it is verified", () => {
@@ -28,5 +29,31 @@ describe("verifiedGitHubEmail", () => {
       ]),
     ).toBeNull();
     expect(verifiedGitHubEmail([])).toBeNull();
+  });
+});
+
+describe("fetchGitHubProfile", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("returns the profile body on success", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ id: 7, login: "octo" })),
+    );
+    await expect(fetchGitHubProfile({})).resolves.toEqual({
+      id: 7,
+      login: "octo",
+    });
+  });
+
+  // A rate-limit body is JSON too; passed along it becomes a profile with no id.
+  it("throws on an error status instead of returning its body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({ message: "API rate limit exceeded" }, { status: 403 }),
+      ),
+    );
+    await expect(fetchGitHubProfile({})).rejects.toThrow("403");
   });
 });
