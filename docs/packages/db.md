@@ -14,6 +14,8 @@ Drizzle ORM schemas, Postgres client, and membership rules. Package: `packages/d
 | `idleTimeoutMillis` | `60000` | Reuse across a burst; under Neon's 5-min scale-to-zero |
 | SSL | `rejectUnauthorized: true` in production | |
 
+`warmPool()` opens the retained connections once at boot (`sites/mainweb/instrumentation.ts`). `primePool()` is for a request that already has a session cookie: when the pool holds no connection it starts six at once, so the handshakes overlap the session read instead of following it. It runs on a request, never on a timer, and does nothing while the pool has any connection, so it cannot keep Neon awake. `createContext` calls it for a request with a session cookie, and the portal layout passes `primeDb`.
+
 If `DATABASE_URL` is missing, `db` is `null` and a warning is logged. Builds that never query still succeed.
 
 Production: Neon serverless Postgres (`us-east-1`, next to App Hosting in us-east4), pooled endpoint (`-pooler` host). Local: `docker compose` Postgres 18.6 (the version Neon runs) on port 5433, database `neondb`.
