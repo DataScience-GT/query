@@ -49,10 +49,20 @@ function appBuild() {
       "--",
       "package.json",
     );
-    const range = base ? ["HEAD", `^${base}`] : ["HEAD"];
-    const merges = Number(
-      git("rev-list", "--first-parent", "--count", ...range),
+    const lines = (out) => out.split("\n").filter(Boolean);
+    const firstParent = lines(
+      git("rev-list", "--first-parent", "HEAD", ...(base ? [`^${base}`] : [])),
     );
+    // The version commit reaches main through a dev merge's second parent, and
+    // main's own merge commits never flow back into dev, so `^base` alone
+    // leaves every earlier main merge in the count. Keep only the merges that
+    // contain the version commit.
+    const after = base
+      ? new Set(lines(git("rev-list", "--ancestry-path", `${base}..HEAD`)))
+      : null;
+    const merges = after
+      ? firstParent.filter((c) => after.has(c)).length
+      : firstParent.length;
     return {
       version: `${major}.${minor + Math.floor(merges / 100)}.${merges % 100}`,
       commit,
