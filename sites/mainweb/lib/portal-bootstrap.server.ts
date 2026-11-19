@@ -21,6 +21,8 @@ export const getPortalCaller = cache(async () => {
   if (!(await hasSessionCookie())) return null;
   const ctx = await createContext({
     clientIp: resolveClientIp((await headers()).get("x-forwarded-for")),
+    // The cookie check above passed, so the session read is coming.
+    primeDb: true,
   });
   if (!ctx.session?.user) return null;
   return { session: ctx.session, caller: appRouter.createCaller(ctx) };
@@ -116,18 +118,29 @@ export async function loadPortalBootstrap() {
   }
   const { caller } = signedIn;
 
-  const portal = await caller.user.getPortalContext().catch(() => {
+  // Both reads start now. The registrations read does not depend on the portal
+  // context except to be thrown away for staff, and waiting for it first put a
+  // database round trip between them for every non-staff visitor.
+  const portalRead = caller.user.getPortalContext();
+  const registrationsRead = caller.hackathon.myRegistrations();
+  // Settled below only for a non-staff visitor; a discarded read must not
+  // surface as an unhandled rejection.
+  registrationsRead.catch(() => undefined);
+  // The dashboard, club and settings pages prefetch the profile next, and a
+  // read already in flight is shared by the cache. Started here it overlaps
+  // these two instead of following them. A failure is the page's to report.
+  caller.user.me().catch(() => undefined);
+
+  const portal = await portalRead.catch(() => {
     navFailed = true;
     return null;
   });
   const entries: Prefetch[] = [];
-  let registrations:
-    | ReturnType<typeof caller.hackathon.myRegistrations>
-    | undefined;
+  let registrations: typeof registrationsRead | undefined;
   if (portal) {
     entries.push(["user.getPortalContext", undefined, Promise.resolve(portal)]);
     if (!portal.isAdmin && !portal.isBugTester) {
-      registrations = caller.hackathon.myRegistrations();
+      registrations = registrationsRead;
       entries.push(["hackathon.myRegistrations", undefined, registrations]);
     }
   }

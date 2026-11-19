@@ -20,7 +20,7 @@ Run `git config core.hooksPath .githooks` once per clone. `pre-commit` refuses c
 
 `sites/mainweb/next.config.mjs` stamps each build `MAJOR.MINOR.PATCH` and shows it at `/api/ping`.
 
-- `MAJOR.MINOR` is the `version` field in `sites/mainweb/package.json`, set by hand in a PR.
+- `MAJOR.MINOR` is the `version` field in `sites/mainweb/package.json`. Every other `package.json` in the repo carries the same version, `MAJOR.MINOR.0`. Change them together with `pnpm version:set <version>` in a PR; a test fails if one differs.
 - `PATCH` is the number of merges into `main` since that line last changed. At 100 it rolls into `MINOR`.
 - The history table (3.0 onward) is in [Tooling](./tooling.md#version-history). Add a row when a release is worth naming.
 

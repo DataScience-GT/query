@@ -68,6 +68,7 @@ const perBucket = (since: Date, until?: Date) => sql`
     sum(requests)::int as requests,
     sum(errors)::int as errors,
     max(p95_ms)::int as p95_ms,
+    max(p99_ms)::int as p99_ms,
     bool_and(db_ok) as db_ok,
     max(db_ms)::int as db_ms
   from status_sample
@@ -79,6 +80,7 @@ type BucketRow = {
   requests: number;
   errors: number;
   p95_ms: number;
+  p99_ms: number | null;
   db_ok: boolean;
   db_ms: number;
 };
@@ -88,6 +90,7 @@ type DayRow = {
   requests: number;
   errors: number;
   worst_p95_ms: number;
+  worst_p99_ms: number | null;
   buckets: number;
   buckets_db_down: number;
   buckets_up: number;
@@ -107,6 +110,7 @@ async function queryDays(todayStart: number): Promise<Day[]> {
           sum(requests)::int as requests,
           sum(errors)::int as errors,
           max(p95_ms)::int as worst_p95_ms,
+          max(p99_ms)::int as worst_p99_ms,
           count(*)::int as buckets,
           (count(*) filter (where not db_ok))::int as buckets_db_down,
           (count(*) filter (
@@ -121,6 +125,7 @@ async function queryDays(todayStart: number): Promise<Day[]> {
     requests: row.requests,
     errors: row.errors,
     worstP95Ms: row.worst_p95_ms,
+    worstP99Ms: row.worst_p99_ms,
     minutesWithData: row.buckets * 5,
     minutesDbDown: row.buckets_db_down * 5,
     minutesUp: row.buckets_up * 5,
@@ -152,6 +157,7 @@ async function loadHistory(now: number) {
     requests: row.requests,
     errors: row.errors,
     p95Ms: row.p95_ms,
+    p99Ms: row.p99_ms,
     dbOk: row.db_ok,
     dbMs: row.db_ms,
   }));

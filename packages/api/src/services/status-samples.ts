@@ -28,6 +28,7 @@ export type StatusRow = {
   errors: number;
   p50Ms: number;
   p95Ms: number;
+  p99Ms: number;
   dbOk: boolean;
   dbMs: number;
 };
@@ -94,6 +95,7 @@ export function createStatusRecorder(deps: StatusRecorderDeps) {
     errors: bucket.errors,
     p50Ms: Math.round(percentile(bucket.samples, 0.5)),
     p95Ms: Math.round(percentile(bucket.samples, 0.95)),
+    p99Ms: Math.round(percentile(bucket.samples, 0.99)),
   });
 
   async function drain() {
@@ -216,6 +218,7 @@ const recorder = createStatusRecorder({
           errors: sql`excluded.errors`,
           p50Ms: sql`excluded.p50_ms`,
           p95Ms: sql`excluded.p95_ms`,
+          p99Ms: sql`excluded.p99_ms`,
           dbOk: sql`excluded.db_ok`,
           dbMs: sql`excluded.db_ms`,
         },

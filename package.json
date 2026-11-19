@@ -1,7 +1,7 @@
 {
   "name": "query",
   "private": true,
-  "version": "1.0.0",
+  "version": "3.6.0",
   "license": "Apache-2.0",
   "packageManager": "pnpm@12.18.0",
   "engines": {
@@ -17,7 +17,8 @@
     "test": "query-guard-local && vitest run",
     "local:up": "node tooling/scripts/src/local.ts up",
     "local:down": "node tooling/scripts/src/local.ts down",
-    "local:reset": "node tooling/scripts/src/local.ts reset"
+    "local:reset": "node tooling/scripts/src/local.ts reset",
+    "version:set": "node tooling/scripts/src/version-set.ts"
   },
   "dependencies": {
     "next": "catalog:",
@@ -26,7 +27,7 @@
   "devDependencies": {
     "@query/prettier-config": "workspace:*",
     "@query/scripts": "workspace:*",
-    "turbo": "^2.11.10",
+    "turbo": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
   },

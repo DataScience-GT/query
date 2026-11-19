@@ -1,4 +1,4 @@
-import { db } from "@query/db";
+import { db, primePool } from "@query/db";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { cache } from "./middleware/cache";
 import { resolveClientIp } from "./middleware/security";
@@ -31,6 +31,8 @@ export async function createContext(
   opts?: Partial<FetchCreateContextFnOptions> & {
     clientIp?: string;
     req?: Request;
+    /** The caller already knows a session cookie is present (server render). */
+    primeDb?: boolean;
   },
 ) {
   let session: Session = null;
@@ -40,6 +42,17 @@ export async function createContext(
 
   // Only attempt auth if database is available
   if (db) {
+    // The session read is the first of several queries this request makes.
+    // Only a visitor with a session cookie reads it; everyone else may be
+    // served from the cache and must not open connections for nothing.
+    if (
+      opts?.primeDb ||
+      /(^|;\s*)(__Secure-)?authjs\.session-token(\.\d+)?=/.test(
+        req?.headers.get("cookie") ?? "",
+      )
+    ) {
+      primePool();
+    }
     try {
       const auth = await getAuth();
       session = await auth();

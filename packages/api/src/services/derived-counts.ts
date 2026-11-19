@@ -10,7 +10,8 @@
 // hackathons.currentParticipants) drifted whenever an FK cascade removed rows
 // without touching them; the rows cannot drift from themselves.
 
-import { and, count, inArray } from "drizzle-orm";
+import { and, count, eq, inArray, isNotNull } from "drizzle-orm";
+import type { SQLWrapper } from "drizzle-orm";
 import {
   eventCheckIns,
   hackathonParticipants,
@@ -23,13 +24,20 @@ const unique = (ids: (string | null | undefined)[]) => [
   ...new Set(ids.filter((id): id is string => !!id)),
 ];
 
-export const checkInCounts = async (
-  db: Reader,
-  eventIds: (string | null | undefined)[],
-) => {
-  const ids = unique(eventIds);
+// The ids a count is about: a list already in hand, or a subquery that selects
+// them. A subquery lets the count run beside the read that lists its parents,
+// one round trip for both where the count after the list was two in a row.
+// Rows inserted between the two reads can disagree by one for an instant,
+// which these counts always could. An empty list does not query.
+type Ids = (string | null | undefined)[] | SQLWrapper;
+const resolveIds = (ids: Ids) => (Array.isArray(ids) ? unique(ids) : ids);
+const isEmpty = (ids: string[] | SQLWrapper) =>
+  Array.isArray(ids) && ids.length === 0;
+
+export const checkInCounts = async (db: Reader, eventIds: Ids) => {
+  const ids = resolveIds(eventIds);
   const counts = new Map<string, number>();
-  if (ids.length === 0) return counts;
+  if (isEmpty(ids)) return counts;
   const rows = await db
     .select({ id: eventCheckIns.eventId, n: count() })
     .from(eventCheckIns)
@@ -39,13 +47,10 @@ export const checkInCounts = async (
   return counts;
 };
 
-export const teamMemberCounts = async (
-  db: Reader,
-  teamIds: (string | null | undefined)[],
-) => {
-  const ids = unique(teamIds);
+export const teamMemberCounts = async (db: Reader, teamIds: Ids) => {
+  const ids = resolveIds(teamIds);
   const counts = new Map<string, number>();
-  if (ids.length === 0) return counts;
+  if (isEmpty(ids)) return counts;
   const rows = await db
     .select({ id: hackathonParticipants.teamId, n: count() })
     .from(hackathonParticipants)
@@ -55,15 +60,28 @@ export const teamMemberCounts = async (
   return counts;
 };
 
+// Member counts for every team one user sits on, without needing those team
+// ids first.
+export const teamMemberCountsForUser = (db: Reader, userId: string) =>
+  teamMemberCounts(
+    db,
+    db
+      .select({ id: hackathonParticipants.teamId })
+      .from(hackathonParticipants)
+      .where(
+        and(
+          eq(hackathonParticipants.userId, userId),
+          isNotNull(hackathonParticipants.teamId),
+        ),
+      ),
+  );
+
 // A seat belongs to somebody accepted: SEATED_STATUSES in
 // routers/hackathon/admin/seats.ts, which this must agree with.
-export const seatedCounts = async (
-  db: Reader,
-  hackathonIds: (string | null | undefined)[],
-) => {
-  const ids = unique(hackathonIds);
+export const seatedCounts = async (db: Reader, hackathonIds: Ids) => {
+  const ids = resolveIds(hackathonIds);
   const counts = new Map<string, number>();
-  if (ids.length === 0) return counts;
+  if (isEmpty(ids)) return counts;
   const rows = await db
     .select({ id: hackathonParticipants.hackathonId, n: count() })
     .from(hackathonParticipants)

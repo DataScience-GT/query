@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, publicProcedure } from "../../trpc";
 import { hackathons } from "@query/db";
-import { eq, and, gte, notInArray } from "drizzle-orm";
+import { eq, and, desc, gte, notInArray } from "drizzle-orm";
 import {
   callerIsAdmin,
   isAdmin,
@@ -15,7 +15,7 @@ import {
 import { recordAdminAction } from "../../middleware/audit";
 import { CacheKeys, VOLATILE_TTL } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
-import { withSeatedCounts } from "../../services/derived-counts";
+import { seatedCounts, withSeatedCounts } from "../../services/derived-counts";
 
 // Every hackathon read below returns currentParticipants counted from the
 // participant rows (one grouped query per call). The stored column is retired:
@@ -117,30 +117,22 @@ export const hackathonCrudRouter = createTRPCRouter({
       // Staff-only statuses stay listable by admins (the setup and judging pages
       // pick a hackathon off this endpoint), so both the rows and the cache entry
       // depend on who is asking.
-      const adminViewer = await callerIsAdmin(ctx);
-
       // An explicit status filter is honoured, but for a non-admin a staff-only
       // status simply has no visible rows.
-      if (
-        !adminViewer &&
-        input.status &&
-        STAFF_ONLY_STATUSES.includes(input.status)
-      ) {
-        return [] as HackathonList;
-      }
-
-      const cacheKey = `hackathons:list:${adminViewer ? "admin" : "public"}:${input.status || "all"}:${input.upcoming ? "upcoming" : "all"}:${input.limit}:${input.offset}`;
+      const staffOnlyStatus =
+        !!input.status && STAFF_ONLY_STATUSES.includes(input.status);
 
       // getOrSet: the entry lives VOLATILE_TTL seconds and is shared by every
       // caller asking the same question, so a plain miss let the whole
       // in-flight set run this query at once, five seconds apart, forever.
-      return await ctx.cache.getOrSet<HackathonList>(
-        cacheKey,
-        async () => {
-          const now = new Date();
+      const read = (adminViewer: boolean) =>
+        ctx.cache.getOrSet<HackathonList>(
+          `hackathons:list:${adminViewer ? "admin" : "public"}:${input.status || "all"}:${input.upcoming ? "upcoming" : "all"}:${input.limit}:${input.offset}`,
+          async () => {
+            const now = new Date();
 
-          const rows = await (ctx.db as DrizzleDB).query.hackathons.findMany({
-            where: and(
+            const db = ctx.db as DrizzleDB;
+            const where = and(
               // Hidden means hidden from the public funnel, not from the people running the
               // event. Filtering it for staff too emptied the judging dashboard, which
               // picks an edition off here.
@@ -150,15 +142,50 @@ export const hackathonCrudRouter = createTRPCRouter({
                 ? undefined
                 : notInArray(hackathons.status, STAFF_ONLY_STATUSES),
               input.upcoming ? gte(hackathons.startDate, now) : undefined,
-            ),
-            limit: input.limit,
-            offset: input.offset,
-            orderBy: (hackathons, { desc }) => [desc(hackathons.startDate)],
-          });
-          return await withSeatedCounts(ctx.db as DrizzleDB, rows);
-        },
-        VOLATILE_TTL,
-      );
+            );
+
+            // The seat counts select their editions with the same filter, order
+            // and page, so they run beside the list, not after it.
+            const [rows, seated] = await Promise.all([
+              db.query.hackathons.findMany({
+                where,
+                limit: input.limit,
+                offset: input.offset,
+                // The id breaks ties, so the page and the seat-count
+                // subquery below pick the same rows at a page boundary.
+                orderBy: (hackathons, { desc }) => [
+                  desc(hackathons.startDate),
+                  desc(hackathons.id),
+                ],
+              }),
+              seatedCounts(
+                db,
+                db
+                  .select({ id: hackathons.id })
+                  .from(hackathons)
+                  .where(where)
+                  .orderBy(desc(hackathons.startDate), desc(hackathons.id))
+                  .limit(input.limit)
+                  .offset(input.offset),
+              ),
+            ]);
+            return rows.map((row) => ({
+              ...row,
+              currentParticipants: seated.get(row.id) ?? 0,
+            }));
+          },
+          VOLATILE_TTL,
+        );
+
+      // Nearly every caller is not an admin, so the public listing starts
+      // beside the admin check instead of after it: two reads in a row became
+      // one round trip. An admin discards it and reads the admin listing.
+      const publicRead = staffOnlyStatus ? null : read(false);
+      publicRead?.catch(() => undefined);
+
+      const adminViewer = await callerIsAdmin(ctx);
+      if (adminViewer) return await read(true);
+      return publicRead ? await publicRead : ([] as HackathonList);
     }),
 
 
