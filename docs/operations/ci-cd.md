@@ -23,6 +23,8 @@ Both deploy jobs `need` `verify`, so nothing ships that failed lint, typecheck, 
 | --- | --- | --- |
 | `codeql.yml` | Push/PR `main`/`dev`, daily 02:00 UTC | CodeQL `security-extended,security-and-quality`; PRs also run dependency review (`fail-on-severity: high`) |
 
+Third-party actions (`pnpm/action-setup`, `FirebaseExtended/action-hosting-deploy`, `dependabot/fetch-metadata`) are pinned to a full commit SHA with the version in a trailing comment, because a tag can be moved to different code after review. Dependabot's GitHub Actions updates bump the SHA and the comment together. Actions owned by GitHub (`actions/*`, `github/*`) stay on major tags.
+
 ## Mainweb deploy
 
 Mainweb production is **Firebase App Hosting**, not `ci.yml`. App Hosting builds from `apphosting.yaml` when the connected branch updates, independent of whether `verify` passed — the gate is the `main` ruleset, so require the `Lint, typecheck, test, build` check there.
