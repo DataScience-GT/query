@@ -1,7 +1,7 @@
 {
   "name": "@query/oxlint-config",
   "private": true,
-  "version": "0.3.0",
+  "version": "3.6.0",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@query/prettier-config": "workspace:*",
-    "eslint-plugin-turbo": "2.11.10",
+    "eslint-plugin-turbo": "catalog:",
     "prettier": "catalog:"
   },
   "prettier": "@query/prettier-config"
