@@ -30,7 +30,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "chart.js": "^4.6.1",
     "drizzle-orm": "catalog:",
-    "geist": "^1.7.2",
+    "geist": "^1.9.2",
     "lucide-react": "^1.48.0",
     "next": "catalog:",
     "next-auth": "catalog:",
