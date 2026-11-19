@@ -24,7 +24,16 @@ const FAQCard: React.FC<{ title: string; content: string; delay: string; color: 
     <div
       className={`group relative w-full animate-fade-in-up ${rotate} hover:rotate-0 transition-all duration-300 hover:z-10 cursor-pointer h-fit`}
       style={{ animationDelay: delay }}
+      role="button"
+      tabIndex={0}
+      aria-expanded={isOpen}
       onClick={() => setIsOpen(!isOpen)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setIsOpen(!isOpen);
+        }
+      }}
     >
       {/* Shadow Layer */}
       <div className={`absolute inset-0 ${color} rounded-[2rem] transform translate-y-2 translate-x-2 transition-transform group-hover:translate-x-3 group-hover:translate-y-3`}></div>
