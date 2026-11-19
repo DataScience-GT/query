@@ -4,6 +4,11 @@ import { dehydrate, QueryClient } from "@tanstack/react-query";
 import type { Session } from "next-auth";
 import { appRouter, createContext, resolveClientIp } from "@query/api";
 
+async function hasSessionCookie() {
+  const jar = await cookies();
+  return jar.getAll().some((c) => c.name.endsWith("authjs.session-token"));
+}
+
 /**
  * The signed-in visitor's tRPC caller for this request, or null when there is
  * none. Cached per request so the layout and a page's prefetch share one
@@ -13,10 +18,7 @@ import { appRouter, createContext, resolveClientIp } from "@query/api";
  * hacklytics page) costs nothing here and mounts exactly as before.
  */
 export const getPortalCaller = cache(async () => {
-  const jar = await cookies();
-  if (!jar.getAll().some((c) => c.name.endsWith("authjs.session-token"))) {
-    return null;
-  }
+  if (!(await hasSessionCookie())) return null;
   const ctx = await createContext({
     clientIp: resolveClientIp((await headers()).get("x-forwarded-for")),
   });
@@ -84,32 +86,60 @@ export async function loadPortalSession() {
 
 /**
  * What every signed-in portal page needs before it can draw: who is signed in
- * and the two reads the sidebar makes. Handed to the client providers, so the
- * browser neither asks /api/auth/session for the session nor makes a tRPC
- * round trip for the portal context after hydration.
+ * and the two reads the sidebar makes. The client providers get them as a
+ * session and dehydrated state, so the browser neither asks /api/auth/session
+ * nor makes a tRPC round trip for the portal context after hydration. The
+ * sidebar is drawn from the same two reads on the server, so they come back
+ * as plain values too. `navFailed` says a read for a visitor with a session
+ * cookie failed or found no session, so the nav may have been drawn from less
+ * than it should have been.
  */
 export async function loadPortalBootstrap() {
   // A failed lookup (the database unreachable, say) must not take the whole
   // portal down with it: fall back to the browser asking, as it did before.
-  const signedIn = await getPortalCaller().catch(() => null);
-  if (!signedIn) return { session: undefined, state: undefined };
+  let navFailed = false;
+  const signedIn = await getPortalCaller().catch(() => {
+    navFailed = true;
+    return null;
+  });
+  if (!signedIn) {
+    // createContext swallows a failed session lookup, so a cookie with no
+    // session may be a database blip rather than a signed-out visitor.
+    navFailed ||= await hasSessionCookie();
+    return {
+      session: undefined,
+      state: undefined,
+      portal: undefined,
+      registrations: undefined,
+      navFailed,
+    };
+  }
   const { caller } = signedIn;
 
-  const portal = await caller.user.getPortalContext().catch(() => null);
+  const portal = await caller.user.getPortalContext().catch(() => {
+    navFailed = true;
+    return null;
+  });
   const entries: Prefetch[] = [];
+  let registrations:
+    | ReturnType<typeof caller.hackathon.myRegistrations>
+    | undefined;
   if (portal) {
     entries.push(["user.getPortalContext", undefined, Promise.resolve(portal)]);
     if (!portal.isAdmin && !portal.isBugTester) {
-      entries.push([
-        "hackathon.myRegistrations",
-        undefined,
-        caller.hackathon.myRegistrations(),
-      ]);
+      registrations = caller.hackathon.myRegistrations();
+      entries.push(["hackathon.myRegistrations", undefined, registrations]);
     }
   }
 
   return {
     session: browserSession(signedIn.session),
     state: await dehydratePrefetched(entries),
+    portal: portal ?? undefined,
+    registrations: await registrations?.catch(() => {
+      navFailed = true;
+      return undefined;
+    }),
+    navFailed,
   };
 }
