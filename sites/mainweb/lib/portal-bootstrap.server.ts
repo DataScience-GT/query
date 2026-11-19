@@ -88,23 +88,32 @@ export async function loadPortalSession() {
  * session and dehydrated state, so the browser neither asks /api/auth/session
  * nor makes a tRPC round trip for the portal context after hydration. The
  * sidebar is drawn from the same two reads on the server, so they come back
- * as plain values too.
+ * as plain values too. `navFailed` says a signed-in visitor's read failed, so
+ * the nav was drawn from less than it should have been.
  */
 export async function loadPortalBootstrap() {
   // A failed lookup (the database unreachable, say) must not take the whole
   // portal down with it: fall back to the browser asking, as it did before.
-  const signedIn = await getPortalCaller().catch(() => null);
+  let navFailed = false;
+  const signedIn = await getPortalCaller().catch(() => {
+    navFailed = true;
+    return null;
+  });
   if (!signedIn) {
     return {
       session: undefined,
       state: undefined,
       portal: undefined,
       registrations: undefined,
+      navFailed,
     };
   }
   const { caller } = signedIn;
 
-  const portal = await caller.user.getPortalContext().catch(() => null);
+  const portal = await caller.user.getPortalContext().catch(() => {
+    navFailed = true;
+    return null;
+  });
   const entries: Prefetch[] = [];
   let registrations:
     | ReturnType<typeof caller.hackathon.myRegistrations>
@@ -121,6 +130,10 @@ export async function loadPortalBootstrap() {
     session: browserSession(signedIn.session),
     state: await dehydratePrefetched(entries),
     portal: portal ?? undefined,
-    registrations: await registrations?.catch(() => undefined),
+    registrations: await registrations?.catch(() => {
+      navFailed = true;
+      return undefined;
+    }),
+    navFailed,
   };
 }
