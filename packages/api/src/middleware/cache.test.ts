@@ -276,3 +276,14 @@ describe("TokenBucketLimiter.sweep", () => {
     expect(limiter.size).toBe(5);
   });
 });
+
+describe("the process-wide cache", () => {
+  it("is one instance for every copy of the module", async () => {
+    const first = await import("./cache");
+    vi.resetModules();
+    const second = await import("./cache");
+
+    expect(second.CacheService).not.toBe(first.CacheService);
+    expect(second.cache).toBe(first.cache);
+  });
+});
