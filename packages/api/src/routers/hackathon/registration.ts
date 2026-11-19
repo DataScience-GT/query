@@ -14,7 +14,7 @@ import { eq, and, inArray, isNull, ne } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { assertHackathonVisible } from "./visibility";
 import { evictParticipantCaches } from "./admin";
-import { teamMemberCounts } from "../../services/derived-counts";
+import { teamMemberCountsForUser } from "../../services/derived-counts";
 
 // Postgres unique_violation on hackathon_participant_hackathon_user_idx — a second
 // submission of the same form. Drizzle wraps every driver error in a
@@ -520,52 +520,54 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     return ctx.cache.getOrSet(
       `hackathon:registrations:${userId}`,
       async () => {
-        const rows = await (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
-          // What the portal reads from a registration: the sidebar, dashboard,
-          // event pages and submit page. The rest of the application (phone,
-          // demographics, emergency contact, essay) is the viewer's own data but
-          // no screen draws it from here, and the edition's rules, prizes and
-          // track lists have their own read.
-          columns: {
-            id: true,
-            hackathonId: true,
-            registrationStatus: true,
-            teamId: true,
-            attendanceConfirmedAt: true,
-            hasSubmittedProject: true,
-          },
-          where: eq(hackathonParticipants.userId, userId),
-          with: {
-            hackathon: {
-              columns: {
-                id: true,
-                name: true,
-                description: true,
-                theme: true,
-                status: true,
-                startDate: true,
-                endDate: true,
-                registrationDeadline: true,
+        const db = ctx.db as DrizzleDB;
+        // Counted from the participant rows; the stored counter is retired. The
+        // counts come from a subquery on the caller's own teams, not from the
+        // ids the list returns, so both reads share one round trip.
+        const [rows, counts] = await Promise.all([
+          db.query.hackathonParticipants.findMany({
+            // What the portal reads from a registration: the sidebar, dashboard,
+            // event pages and submit page. The rest of the application (phone,
+            // demographics, emergency contact, essay) is the viewer's own data
+            // but no screen draws it from here, and the edition's rules, prizes
+            // and track lists have their own read.
+            columns: {
+              id: true,
+              hackathonId: true,
+              registrationStatus: true,
+              teamId: true,
+              attendanceConfirmedAt: true,
+              hasSubmittedProject: true,
+            },
+            where: eq(hackathonParticipants.userId, userId),
+            with: {
+              hackathon: {
+                columns: {
+                  id: true,
+                  name: true,
+                  description: true,
+                  theme: true,
+                  status: true,
+                  startDate: true,
+                  endDate: true,
+                  registrationDeadline: true,
+                },
+              },
+              team: {
+                columns: {
+                  id: true,
+                  name: true,
+                  captainId: true,
+                  maxMembers: true,
+                },
               },
             },
-            team: {
-              columns: {
-                id: true,
-                name: true,
-                captainId: true,
-                maxMembers: true,
-              },
-            },
-          },
-          orderBy: (hackathonParticipants, { desc }) => [
-            desc(hackathonParticipants.registeredAt),
-          ],
-        });
-        // Counted from the participant rows; the stored counter is retired.
-        const counts = await teamMemberCounts(
-          ctx.db as DrizzleDB,
-          rows.map((row) => row.team?.id),
-        );
+            orderBy: (hackathonParticipants, { desc }) => [
+              desc(hackathonParticipants.registeredAt),
+            ],
+          }),
+          teamMemberCountsForUser(db, userId),
+        ]);
         return rows.map((row) => ({
           ...row,
           team: row.team

@@ -181,14 +181,28 @@ vi.mock("@query/db", () => {
           // to stay chainable as well as awaitable.
           where: vi.fn().mockImplementation(() =>
             Object.assign(Promise.resolve([{ count: 0 }]), {
-              orderBy: vi.fn().mockResolvedValue([{ count: 0 }]),
+              // The hackathon list selects its ids as a subquery that is never
+              // run here: `.orderBy().limit().offset()` only has to chain.
+              orderBy: vi.fn().mockImplementation(() =>
+                Object.assign(Promise.resolve([{ count: 0 }]), {
+                  limit: vi.fn().mockImplementation(() =>
+                    Object.assign(Promise.resolve([]), {
+                      offset: vi.fn().mockResolvedValue([]),
+                    }),
+                  ),
+                }),
+              ),
               groupBy: vi.fn().mockResolvedValue([]),
               limit: vi.fn().mockResolvedValue([]),
               offset: vi.fn().mockResolvedValue([]),
               for: vi.fn().mockResolvedValue([{ count: 0 }]),
             }),
           ),
-          orderBy: vi.fn().mockResolvedValue([{ count: 0 }]),
+          orderBy: vi.fn().mockImplementation(() =>
+            Object.assign(Promise.resolve([{ count: 0 }]), {
+              limit: vi.fn().mockResolvedValue([]),
+            }),
+          ),
           groupBy: vi.fn().mockResolvedValue([]),
           innerJoin: vi.fn().mockImplementation(() => ({
             innerJoin: vi.fn().mockImplementation(() => ({

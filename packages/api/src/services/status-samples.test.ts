@@ -110,6 +110,7 @@ describe("recorder", () => {
       errors: 1,
       p50Ms: 100,
       p95Ms: 190,
+      p99Ms: 200,
       dbOk: true,
       dbMs: 7,
     });

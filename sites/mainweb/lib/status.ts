@@ -26,6 +26,8 @@ export type Bucket = {
   errors: number;
   /** Slowest instance's p95 for the bucket. */
   p95Ms: number;
+  /** Slowest instance's p99, or null for rows from before p99 was recorded. */
+  p99Ms: number | null;
   dbOk: boolean;
   dbMs: number;
 };
@@ -36,6 +38,8 @@ export type Day = {
   requests: number;
   errors: number;
   worstP95Ms: number;
+  /** Null when no bucket of the day recorded a p99. */
+  worstP99Ms: number | null;
   minutesWithData: number;
   minutesDbDown: number;
   minutesUp: number;
@@ -79,12 +83,19 @@ export function fillDays(rows: Day[], now: number, count = 90): Day[] {
         requests: 0,
         errors: 0,
         worstP95Ms: 0,
+        worstP99Ms: null,
         minutesWithData: 0,
         minutesDbDown: 0,
         minutesUp: 0,
       }
     );
   });
+}
+
+/** The largest recorded value, or null when none was recorded. */
+export function worstOf(values: (number | null)[]): number | null {
+  const recorded = values.filter((v): v is number => v !== null);
+  return recorded.length === 0 ? null : Math.max(...recorded);
 }
 
 /**
@@ -102,6 +113,7 @@ export function dayFromBuckets(buckets: Bucket[], day: string): Day | null {
     requests: mine.reduce((sum, b) => sum + b.requests, 0),
     errors: mine.reduce((sum, b) => sum + b.errors, 0),
     worstP95Ms: Math.max(...mine.map((b) => b.p95Ms)),
+    worstP99Ms: worstOf(mine.map((b) => b.p99Ms)),
     minutesWithData: mine.length * BUCKET_MIN,
     minutesDbDown: mine.filter((b) => !b.dbOk).length * BUCKET_MIN,
     minutesUp: mine.filter(isUp).length * BUCKET_MIN,
