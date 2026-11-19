@@ -23,12 +23,14 @@ vi.mock("@/lib/trpc", () => ({
 
 const long = "word ".repeat(80);
 const older = {
+  id: "a1",
   heading: "Parking",
   body: long,
   cta: null,
   sentAt: "2026-11-01T12:00:00.000Z",
 };
 const newer = {
+  id: "a2",
   heading: "Doors open",
   body: "Short.",
   cta: null,
@@ -61,5 +63,25 @@ describe("HackerAnnouncements", () => {
 
     await act(async () => root.unmount());
     container.remove();
+  });
+
+  it("renders two announcements with the same heading and time as two items", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    mocks.data = [
+      { ...newer, id: "b1" },
+      { ...newer, id: "b2" },
+    ];
+    await act(async () => root.render(<HackerAnnouncements hackathonId="h" />));
+
+    expect(container.querySelectorAll("article")).toHaveLength(2);
+    expect(error).not.toHaveBeenCalled();
+
+    await act(async () => root.unmount());
+    container.remove();
+    error.mockRestore();
   });
 });
