@@ -10,7 +10,7 @@ Running the monitoring stack locally and scraping production is in the repo's `m
 
 ### Where the numbers come from
 
-There is no background worker in the app. Every tRPC procedure is already timed by the `recordDuration` middleware in `packages/api/src/trpc.ts`; the same middleware feeds `packages/api/src/services/status-samples.ts`, which counts each call into an in-process five-minute bucket (requests, server errors, a bounded sample of durations for p50 and p95).
+There is no background worker in the app. Every tRPC procedure is already timed by the `recordDuration` middleware in `packages/api/src/trpc.ts`; the same middleware feeds `packages/api/src/services/status-samples.ts`, which counts each call into an in-process five-minute bucket (requests, server errors, a bounded sample of durations for p50, p95 and p99).
 
 The first call that lands in a later bucket writes the finished bucket to `status_sample` and returns without waiting. The write is an upsert keyed on bucket and instance; a retry replaces the row, so a write that landed but lost its reply is not counted twice. It runs `select 1` and stores whether it answered and how long it took. A failed write is retried with the next flush (up to 12 buckets, then dropped) and counted in `dsgt_status_sample_write_failures_total`. The first flush after a process starts, and then once a day, the same code deletes rows older than 90 days.
 
@@ -64,7 +64,10 @@ After merge the maintainers must: allow the workflow to write (Settings, Actions
 | `requests`         | tRPC calls in the bucket                            |
 | `errors`           | Server errors only                                  |
 | `p50_ms`, `p95_ms` | From a bounded in-process sample (500 durations)    |
+| `p99_ms`           | Same sample. Nullable: rows from before it was recorded are `null`, not 0 |
 | `db_ok`, `db_ms`   | `select 1` taken when the bucket was written        |
+
+`p99_ms` is added by `drizzle-kit push` as a nullable column, so it is additive and needs no backfill. Percentiles are nearest-rank over the sample, so a bucket with fewer than 100 calls reports its slowest call as p99. At this site's traffic that is most buckets, which is the point: one slow call is the tail. Across instances the page shows the slowest instance's value, as it does for p95.
 
 Aggregates only. No user, route or request detail is stored.
 
@@ -86,7 +89,7 @@ Derived from the live check and the last 15 minutes of buckets:
 
 ### What the page shows
 
-The status headline with the reason, 90 day and 30 day uptime, a 90 day strip with one bar per UTC day (colour by uptime: 99% or better, 95 to 99%, under 95%, gray for no data, with a tooltip and a table view), a 24 hour p95 latency chart (slowest instance per bucket) and a 24 hour requests and errors chart. Times are Eastern. The loader is `sites/mainweb/app/status/load.ts`; each query has a 3 second deadline, and if the database is asleep or stalled the page renders Down with empty charts rather than failing. An open tab refreshes itself every 5 minutes while visible, and on return to the tab if the last refresh was 5 minutes ago or more (`AutoRefresh.tsx`).
+The status headline with the reason, 90 day and 30 day uptime, a 90 day strip with one bar per UTC day (colour by uptime: 99% or better, 95 to 99%, under 95%, gray for no data, with a tooltip and a table view), a 24 hour p95 latency chart (slowest instance per bucket; the tooltip and the table also give the worst p99, and the 90 day tooltip and table give each day's worst p99, shown as "n/a" for days recorded before p99 existed) and a 24 hour requests and errors chart. Times are Eastern. The loader is `sites/mainweb/app/status/load.ts`; each query has a 3 second deadline, and if the database is asleep or stalled the page renders Down with empty charts rather than failing. An open tab refreshes itself every 5 minutes while visible, and on return to the tab if the last refresh was 5 minutes ago or more (`AutoRefresh.tsx`).
 
 ## Metrics endpoint
 
