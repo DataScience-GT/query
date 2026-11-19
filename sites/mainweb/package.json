@@ -13,7 +13,7 @@
     "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
-    "@google-cloud/storage": "^8.2.0",
+    "@google-cloud/storage": "^9.0.0",
     "@query/api": "workspace:*",
     "@query/auth": "workspace:*",
     "@query/core": "workspace:*",
