@@ -17,10 +17,12 @@ They publish to GitHub Packages under the GitHub organization's scope, `@datasci
 
 ## Releasing
 
-1. Bump `version` in `packages/<name>/package.json` in a normal PR and merge it.
+The published packages do not have a version of their own. Every `package.json` in the repo carries the same version as `sites/mainweb` (see [Which versions mean something](../tooling.md#which-versions-mean-something)), so a release publishes whatever that shared version is, for example `@datascience-gt/core@3.6.0`. A registry refuses a version it already holds, so the shared version has to move (`pnpm version:set <version>`) before the next release of the same package.
+
+1. Set the shared version with `pnpm version:set <version>` in a normal PR and merge it.
 2. Publish, either way:
    - **Actions tab:** run **Publish packages** and pick `core` or `event-kit`. Tick **dry-run** to see what would ship without publishing.
-   - **Tag:** push `core-v<version>` or `event-kit-v<version>`. The job fails if the tag's version differs from `package.json`.
+   - **Tag:** push `core-v<version>` or `event-kit-v<version>` (for example `core-v3.6.0`). The job fails if the tag's version differs from `package.json`.
 
 The job builds the package, refuses to publish if it depends on another `@query/*` package or a `workspace:` range (that dependency would not exist on the registry), drops `devDependencies`, renames it, and runs `pnpm publish` with the repo's `GITHUB_TOKEN`. See `.github/workflows/publish-packages.yml`.
 

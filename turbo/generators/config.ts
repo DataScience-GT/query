@@ -1,4 +1,6 @@
 import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { PlopTypes } from "@turbo/gen";
 
 import { registerHacklytics } from "./hacklytics/generator";
@@ -6,6 +8,7 @@ import { registerHacklytics } from "./hacklytics/generator";
 type Answers = {
   name: string;
   deps?: string;
+  version?: string;
 };
 
 type PkgJson = {
@@ -47,6 +50,15 @@ export default function register(plop: PlopTypes.NodePlopAPI): void {
       (rawAnswers) => {
         const answers = rawAnswers as Answers;
         answers.name = sanitizeName(answers.name);
+        // Every package carries the version of sites/mainweb.
+        answers.version = (
+          JSON.parse(
+            readFileSync(
+              join(plop.getDestBasePath(), "sites/mainweb/package.json"),
+              "utf8",
+            ),
+          ) as { version: string }
+        ).version;
         return `Scaffolding ${answers.name}`;
       },
       {
