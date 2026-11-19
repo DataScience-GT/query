@@ -228,6 +228,10 @@ describe("run_check", () => {
     expect(
       dbRefusal("test", { DATABASE_URL: "postgres://u:p@[::1]:5432/pgx" }),
     ).toBeNull();
+    for (const host of ["db", "postgres"])
+      expect(
+        dbRefusal("test", { DATABASE_URL: `postgres://u:p@${host}:5432/app` }),
+      ).toBeNull();
     expect(dbRefusal("test", {})).toBeNull();
     expect(dbRefusal("lint", neon)).toBeNull();
   });
