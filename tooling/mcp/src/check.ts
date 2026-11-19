@@ -12,7 +12,14 @@ export type Task = (typeof TASKS)[number];
 const TIMEOUT_MS = 10 * 60 * 1000;
 const TAIL_LINES = 80;
 const TAIL_CHARS = 8000;
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+// The hosts guard-local.ts accepts: this machine, or a compose service name.
+const LOCAL_HOSTS = new Set([
+  "localhost",
+  "127.0.0.1",
+  "::1",
+  "db",
+  "postgres",
+]);
 const DB_VARS = ["DATABASE_URL", "TEST_DATABASE_URL"];
 
 type Env = Record<string, string | undefined>;
