@@ -4,7 +4,7 @@ packages:
   - tooling/*
 
 catalog:
-  "@astrojs/react": 7.1.1
+  "@astrojs/react": 7.1.9
   "@next/bundle-analyzer": 16.4.5
   "@tailwindcss/postcss": 4.3.3
   "@tailwindcss/vite": 4.3.3
