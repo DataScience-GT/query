@@ -179,10 +179,15 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
             <button
               type="button"
               onClick={() => {
-                void navigator.clipboard?.writeText(applyLink).then(() => {
+                // writeText rejects when the page lacks clipboard permission,
+                // and an organiser must still be able to read the link.
+                const fail = () =>
+                  setError(`Couldn't copy. The link is ${applyLink}`);
+                if (!navigator.clipboard) return fail();
+                void navigator.clipboard.writeText(applyLink).then(() => {
                   setLinkCopied(true);
                   setTimeout(() => setLinkCopied(false), 2000);
-                });
+                }, fail);
               }}
               className={btnSecondary}
             >
