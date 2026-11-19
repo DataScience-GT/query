@@ -10,6 +10,7 @@ Members looking for a club-language overview should start at [Club project](./cl
 | [Getting started](./getting-started.md) | Prerequisites, local Postgres, env vars, first `pnpm dev` |
 | [Architecture](./architecture.md) | How the sites and packages fit together |
 | [Contributing](./contributing.md) | Branches, scripts, tests, and review expectations |
+| [Conventions](./conventions.md) | The short version of how to work in this repo, for coding agents |
 | [Environment variables](./operations/environment.md) | Every env var the process actually reads |
 | [Deployment](./operations/deployment.md) | Firebase App Hosting, Firebase Hosting, GCP secrets |
 | [CI/CD](./operations/ci-cd.md) | GitHub Actions, Dependabot, branch automation |
