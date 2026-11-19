@@ -206,8 +206,19 @@ export class CacheService {
   }
 }
 
-// Global cache instance
-export const cache = new CacheService(300, 10000); // 5 minutes default TTL, max 10000 entries
+// One cache per Node process. In a production build, server-rendered pages and
+// route handlers each load their own copy of this module, so a module-level
+// `new CacheService` gave each its own: a mutation through /api/trpc evicted
+// its copy and the layout kept answering from the other for the rest of the TTL.
+const globalForCache = globalThis as unknown as {
+  queryCache: CacheService | undefined;
+};
+
+// 5 minutes default TTL, max 10000 entries
+export const cache = (globalForCache.queryCache ??= new CacheService(
+  300,
+  10000,
+));
 
 // No exported `cacheStats` snapshot: one existed, taken once at module load,
 // so it reported zeroes forever. Call cache.getStats() for a live reading.
