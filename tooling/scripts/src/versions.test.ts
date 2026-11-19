@@ -2,12 +2,13 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+
 import {
   drifted,
   packageFiles,
   readVersion,
-  SITE_PACKAGE,
   setVersion,
+  SITE_PACKAGE,
 } from "./versions.ts";
 
 const repo = path.resolve(import.meta.dirname, "../../..");
@@ -71,5 +72,6 @@ describe("setVersion", () => {
 
   it("refuses a version that is not MAJOR.MINOR.PATCH", () => {
     expect(() => setVersion(fixture(), "3.7")).toThrow();
+    expect(() => setVersion(fixture(), "3.7.1")).toThrow(/MAJOR\.MINOR\.0/);
   });
 });

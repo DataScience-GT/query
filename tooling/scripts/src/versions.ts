@@ -35,7 +35,10 @@ export function packageFiles(root: string): string[] {
   return files;
 }
 
-function readJson(root: string, file: string): { name: string; version?: string } {
+function readJson(
+  root: string,
+  file: string,
+): { name: string; version?: string } {
   return JSON.parse(readFileSync(path.join(root, file), "utf8")) as {
     name: string;
     version?: string;
@@ -63,8 +66,9 @@ export function drifted(
 
 /** Rewrites only the `version` field of every package.json. Returns the files changed. */
 export function setVersion(root: string, version: string): string[] {
-  if (!/^\d+\.\d+\.\d+$/.test(version)) {
-    throw new Error(`"${version}" is not MAJOR.MINOR.PATCH`);
+  // The site's PATCH is counted at build time, so the files hold MAJOR.MINOR.0.
+  if (!/^\d+\.\d+\.0$/.test(version)) {
+    throw new Error(`"${version}" is not MAJOR.MINOR.0`);
   }
   const changed: string[] = [];
   for (const file of packageFiles(root)) {
