@@ -1,0 +1,246 @@
+// @vitest-environment jsdom
+import type { Root } from "react-dom/client";
+import * as React from "react";
+import { act } from "react";
+import { createRoot } from "react-dom/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { InfoTab } from "./InfoTab";
+
+// The registration form is a separate module that InfoTab loads when it is
+// opened, so these run the real InfoTab and the real form together with only
+// the session, router and tRPC hooks stubbed.
+
+Object.assign(globalThis, { React, IS_REACT_ACT_ENVIRONMENT: true });
+
+// The first test pays to transform the form and its imports, which takes
+// longer than the default when the whole suite is running at once.
+vi.setConfig({ testTimeout: 30_000 });
+
+const mocks = vi.hoisted(() => ({
+  fetchRecord: vi.fn(),
+  invalidate: vi.fn(),
+  onSuccess: {} as Record<string, () => void>,
+}));
+
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({
+    data: { user: { id: "u1", name: "Ada Lovelace" } },
+    status: "authenticated",
+  }),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+
+vi.mock("next/link", () => ({
+  default: ({
+    href,
+    children,
+  }: {
+    href: string;
+    children: React.ReactNode;
+  }) => <a href={href}>{children}</a>,
+}));
+
+vi.mock("@/lib/trpc", () => {
+  const mutation = (name: string) => (opts?: { onSuccess?: () => void }) => {
+    if (opts?.onSuccess) mocks.onSuccess[name] = opts.onSuccess;
+    return {
+      isPending: false,
+      isSuccess: false,
+      isError: false,
+      mutate: vi.fn(),
+    };
+  };
+  const query = () => ({ data: undefined, isLoading: false });
+  const invalidate = { invalidate: mocks.invalidate };
+  return {
+    trpc: {
+      useUtils: () => ({
+        hackathon: {
+          myParticipantRecord: { fetch: mocks.fetchRecord, ...invalidate },
+          myRegistrations: invalidate,
+          list: invalidate,
+          getById: invalidate,
+        },
+      }),
+      resume: { me: { useQuery: query } },
+      hackathon: {
+        myInterest: { useQuery: query },
+        register: { useMutation: mutation("register") },
+        updateMyRegistration: { useMutation: mutation("update") },
+        withdrawRegistration: { useMutation: mutation("withdraw") },
+        confirmAttendance: { useMutation: mutation("confirm") },
+      },
+    },
+  };
+});
+
+const hackathon = {
+  id: "h1",
+  name: "Test Hack",
+  description: "About this event.",
+  status: "open",
+  currentParticipants: 0,
+};
+
+let root: Root;
+let host: HTMLDivElement;
+
+async function mount(
+  props: Partial<React.ComponentProps<typeof InfoTab>> = {},
+) {
+  host = document.createElement("div");
+  document.body.append(host);
+  root = createRoot(host);
+  await act(async () => {
+    root.render(
+      <InfoTab hackathon={hackathon} isRegistered={false} {...props} />,
+    );
+  });
+}
+
+function button(text: string) {
+  const found = [...host.querySelectorAll("button")].find((b) =>
+    b.textContent?.includes(text),
+  );
+  if (!found) throw new Error(`no button "${text}"`);
+  return found;
+}
+
+// The form arrives by a dynamic import, so after the click it is Loading… until
+// the module has come in.
+async function click(text: string) {
+  await act(async () => {
+    button(text).click();
+  });
+  // Cold, the first import also has to be transformed, so wait for it rather
+  // than for a fixed time.
+  for (let i = 0; i < 100 && host.textContent?.includes("Loading…"); i++) {
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+  }
+}
+
+function field(label: string) {
+  const l = [...host.querySelectorAll("label")].find((x) =>
+    x.textContent?.startsWith(label),
+  );
+  const input =
+    l && host.querySelector<HTMLInputElement>(`#${CSS.escape(l.htmlFor)}`);
+  if (!input) throw new Error(`no field "${label}"`);
+  return input;
+}
+
+// jsdom does not lay anything out, so it has no scrollIntoView.
+const scrollIntoView = vi.fn();
+Element.prototype.scrollIntoView = scrollIntoView;
+
+beforeEach(() => {
+  scrollIntoView.mockReset();
+  localStorage.clear();
+  mocks.fetchRecord.mockReset();
+  mocks.invalidate.mockReset();
+});
+
+afterEach(async () => {
+  await act(async () => root.unmount());
+  host.remove();
+});
+
+describe("InfoTab registration form", () => {
+  it("opens the form once Start registration is clicked and it has loaded", async () => {
+    await mount();
+    expect(host.textContent).toContain("About this event.");
+    expect(host.textContent).not.toContain("Personal information");
+
+    await click("Start registration");
+
+    expect(host.textContent).toContain("Personal information");
+    expect(host.textContent).not.toContain("About this event.");
+    expect(scrollIntoView).toHaveBeenCalled();
+    // The account name stands in until they type their own.
+    expect(field("First name").value).toBe("Ada");
+    expect(field("Last name").value).toBe("Lovelace");
+  });
+
+  it("restores the saved draft over the account name", async () => {
+    localStorage.setItem(
+      "reg-draft:h1:u1",
+      JSON.stringify({
+        firstName: "Grace",
+        phone: "(555) 123-4567",
+        age: "30",
+      }),
+    );
+    await mount();
+    await click("Start registration");
+
+    expect(field("First name").value).toBe("Grace");
+    expect(field("Last name").value).toBe("Lovelace");
+    expect(field("Phone number").value).toBe("(555) 123-4567");
+    expect(field("Age").value).toBe("30");
+  });
+
+  it("returns to the overview on Cancel", async () => {
+    await mount();
+    await click("Start registration");
+    expect(host.textContent).toContain("Personal information");
+
+    await click("Cancel");
+
+    expect(host.textContent).not.toContain("Personal information");
+    expect(host.textContent).toContain("About this event.");
+    expect(button("Start registration")).toBeTruthy();
+  });
+
+  it("shows the registration notice once the form reports success", async () => {
+    await mount();
+    await click("Start registration");
+
+    await act(async () => mocks.onSuccess.register());
+
+    expect(host.textContent).toContain("Registration received");
+    expect(host.textContent).not.toContain("Personal information");
+  });
+
+  it("edits the saved application, seeding its fields and leaving the draft alone", async () => {
+    localStorage.setItem(
+      "reg-draft:h1:u1",
+      JSON.stringify({ firstName: "Draft" }),
+    );
+    mocks.fetchRecord.mockResolvedValue({
+      firstName: "Saved",
+      lastName: "Person",
+      phone: "+15551234567",
+      age: 22,
+    });
+    await mount({
+      isRegistered: true,
+      myReg: { registrationStatus: "pending" },
+    });
+
+    await click("Edit application");
+
+    expect(mocks.fetchRecord).toHaveBeenCalledWith(
+      { hackathonId: "h1" },
+      { staleTime: 0 },
+    );
+    expect(host.textContent).toContain("Personal information");
+    expect(field("First name").value).toBe("Saved");
+    expect(field("Last name").value).toBe("Person");
+    expect(field("Phone number").value).toBe("(555) 123-4567");
+    expect(field("Age").value).toBe("22");
+    expect(localStorage.getItem("reg-draft:h1:u1")).toBe(
+      JSON.stringify({ firstName: "Draft" }),
+    );
+
+    await act(async () => mocks.onSuccess.update());
+
+    expect(host.textContent).toContain("Application updated.");
+    expect(host.textContent).not.toContain("Personal information");
+  });
+});
