@@ -8,7 +8,7 @@ import { setVersion } from "./versions.ts";
 
 const version = process.argv[2];
 if (!version) {
-  console.error("Usage: pnpm version:set MAJOR.MINOR.PATCH");
+  console.error("Usage: pnpm version:set MAJOR.MINOR.0");
   process.exit(1);
 }
 const changed = setVersion(process.cwd(), version);
