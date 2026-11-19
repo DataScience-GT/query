@@ -160,6 +160,13 @@ vi.mock("@query/db", async () => {
               groupBy: vi.fn().mockResolvedValue([]),
             }),
           ),
+          // The event list selects its ids as a subquery that is never run
+          // here: `.orderBy().limit()` only has to chain.
+          orderBy: vi.fn().mockImplementation(() =>
+            Object.assign(Promise.resolve([]), {
+              limit: vi.fn().mockResolvedValue([]),
+            }),
+          ),
         })),
       })),
     },

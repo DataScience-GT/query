@@ -26,6 +26,10 @@ export const statusSample = pgTable(
     errors: integer("errors").notNull().default(0),
     p50Ms: integer("p50_ms").notNull().default(0),
     p95Ms: integer("p95_ms").notNull().default(0),
+    // Nullable, not default 0: rows written before this column existed have no
+    // p99, and 0 would read as a perfect one. Additive, so `drizzle-kit push`
+    // adds it without a prompt.
+    p99Ms: integer("p99_ms"),
     dbOk: boolean("db_ok").notNull().default(true),
     dbMs: integer("db_ms").notNull().default(0),
   },

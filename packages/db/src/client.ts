@@ -13,6 +13,7 @@ const globalForDb = globalThis as unknown as {
 };
 
 let db: DrizzleDB | null = null;
+let pool: Pool | null = null;
 
 if (DATABASE_URL) {
   const conn =
@@ -59,6 +60,7 @@ if (DATABASE_URL) {
 
   if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
 
+  pool = conn;
   db = drizzle(conn, { schema });
 } else {
   // Deliberate startup diagnostic: `db` stays null instead of throwing so
@@ -91,6 +93,35 @@ export async function warmPool(): Promise<number> {
 
   const results = await Promise.all(probes);
   return results.filter(Boolean).length;
+}
+
+/**
+ * Starts connections for a request that is about to need the database, when
+ * the pool holds none.
+ *
+ * A request reads the session first, then fans out to several parallel
+ * queries, and the pool opens a connection per concurrent query. Started on
+ * demand, the second wave of handshakes began only after the session read
+ * returned, so a cold pool paid for two in a row. Opening them together lets
+ * the extra handshakes overlap the session read instead. The portal layout
+ * then runs seven queries at once (the role lookups, the registrations and the
+ * profile), and the session read's own connection is free by then, so six
+ * more cover it.
+ *
+ * Call it only from a request that will query. It does nothing while the pool
+ * holds any connection, opens nothing on a timer, and the connections idle out
+ * after `idleTimeoutMillis` like any other, so it cannot keep Neon awake.
+ */
+export function primePool(count = 6): void {
+  if (!pool || pool.totalCount > 0) return;
+  for (let i = 0; i < Math.min(count, pool.options.max ?? count); i += 1) {
+    pool.connect().then(
+      (client) => client.release(),
+      () => {
+        // The query that needed it reports an unreachable database.
+      },
+    );
+  }
 }
 
 export { db };

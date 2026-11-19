@@ -17,7 +17,7 @@ import {
 import { randomUUID } from "crypto";
 import { currentTerm } from "@query/db/services/membership";
 import { isAdmin, isScanner } from "../middleware/procedures";
-import { withCheckInCounts } from "../services/derived-counts";
+import { checkInCounts, withCheckInCounts } from "../services/derived-counts";
 import type { DrizzleDB } from "@query/db";
 
 // Postgres unique_violation. Drizzle wraps every driver error in a
@@ -245,11 +245,30 @@ export const eventRouter = createTRPCRouter({
   list: publicProcedure.query(async ({ ctx }) => {
     const fetchEvents = async () => {
       const db = ctx.db as NonNullable<typeof ctx.db>;
-      const rows = await db.query.events.findMany({
-        orderBy: (events, { desc }) => [desc(events.eventDate)],
-        limit: 50,
-      });
-      return withCheckInCounts(db, rows);
+      // The counts select the same fifty events with a subquery, so they run
+      // beside the list, not after it.
+      const [rows, checkIns] = await Promise.all([
+        db.query.events.findMany({
+          // The id breaks ties, so this and the subquery pick the same fifty.
+          orderBy: (events, { desc }) => [
+            desc(events.eventDate),
+            desc(events.id),
+          ],
+          limit: 50,
+        }),
+        checkInCounts(
+          db,
+          db
+            .select({ id: events.id })
+            .from(events)
+            .orderBy(desc(events.eventDate), desc(events.id))
+            .limit(50),
+        ),
+      ]);
+      return rows.map((row) => ({
+        ...row,
+        currentCheckIns: checkIns.get(row.id) ?? 0,
+      }));
     };
 
     const cacheKey = `events:list:public`;

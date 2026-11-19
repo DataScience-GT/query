@@ -423,6 +423,7 @@ async function main() {
         errors: i % 37 === 0 ? 1 : 0,
         p50Ms: 60 + ((i * 3) % 40),
         p95Ms: 220 + ((i * 11) % 180),
+        p99Ms: 400 + ((i * 17) % 500),
       })),
     )
     .onConflictDoNothing();
