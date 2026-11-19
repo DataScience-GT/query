@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   createContext: vi.fn(),
   getPortalContext: vi.fn(),
   myRegistrations: vi.fn(),
+  me: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({
@@ -18,7 +19,7 @@ vi.mock("@query/api", () => ({
   createContext: mocks.createContext,
   appRouter: {
     createCaller: () => ({
-      user: { getPortalContext: mocks.getPortalContext },
+      user: { getPortalContext: mocks.getPortalContext, me: mocks.me },
       hackathon: { myRegistrations: mocks.myRegistrations },
     }),
   },
@@ -42,6 +43,47 @@ beforeEach(() => {
   });
   mocks.myRegistrations.mockReset();
   mocks.myRegistrations.mockResolvedValue([]);
+  mocks.me.mockReset();
+  mocks.me.mockResolvedValue({ id: "u1" });
+});
+
+describe("loadPortalBootstrap round trips", () => {
+  it("starts the registrations read before the portal context settles", async () => {
+    let settle: (value: unknown) => void = () => {};
+    mocks.getPortalContext.mockReturnValue(
+      new Promise((resolve) => {
+        settle = resolve;
+      }),
+    );
+
+    const loading = loadPortalBootstrap();
+    await vi.waitFor(() => expect(mocks.getPortalContext).toHaveBeenCalled());
+    await Promise.resolve();
+    expect(mocks.myRegistrations).toHaveBeenCalledTimes(1);
+
+    settle({ isAdmin: false, isBugTester: false });
+    await loading;
+  });
+
+  it("starts the profile read beside them and ignores its failure", async () => {
+    mocks.me.mockRejectedValue(new Error("db down"));
+
+    const result = await loadPortalBootstrap();
+    expect(mocks.me).toHaveBeenCalledTimes(1);
+    expect(result.navFailed).toBe(false);
+  });
+
+  it("leaves registrations out for staff and ignores a failure of the discarded read", async () => {
+    mocks.getPortalContext.mockResolvedValue({
+      isAdmin: true,
+      isBugTester: false,
+    });
+    mocks.myRegistrations.mockRejectedValue(new Error("not needed"));
+
+    const result = await loadPortalBootstrap();
+    expect(result.registrations).toBeUndefined();
+    expect(result.navFailed).toBe(false);
+  });
 });
 
 describe("loadPortalBootstrap navFailed", () => {
