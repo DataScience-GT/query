@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Suspense,
-  lazy,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -16,6 +9,7 @@ import { ArrowLeft } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { loginHref } from "@/lib/safe-callback";
+import { useIsClient } from "@/lib/use-is-client";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
   body,
@@ -56,8 +50,6 @@ const loadShortlist = () => import("./Shortlist").then((m) => m.Shortlist);
 const EvaluationSheet = lazy(() =>
   loadEvaluationSheet().then((Sheet) => ({ default: Sheet })),
 );
-
-const subscribeNothing = () => () => {};
 
 function SheetPending({ onClose }: { onClose: () => void }) {
   return (
@@ -278,11 +270,7 @@ function Desk({
   context: DeskContext;
 }) {
   const router = useRouter();
-  const hydrated = useSyncExternalStore(
-    subscribeNothing,
-    () => true,
-    () => false,
-  );
+  const hydrated = useIsClient();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [view, setView] = useState<View>("projects");
