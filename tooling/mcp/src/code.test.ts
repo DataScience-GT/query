@@ -1,4 +1,4 @@
-import { rmSync, writeFileSync } from "node:fs";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
@@ -207,6 +207,23 @@ describe("graph over this repo", () => {
   it("leaves no import unresolved", () => {
     const broken = [...graph.out.values()].flat().filter((e) => e.unresolved);
     expect(broken.map((e) => `${e.from} -> ${e.spec}`)).toEqual([]);
+  });
+
+  it("does not index gitignored files, such as the next-env.d.ts Next generates", () => {
+    const generated = resolve(ROOT, "sites/mainweb/next-env.d.ts");
+    const existed = existsSync(generated);
+    try {
+      if (!existed)
+        writeFileSync(
+          generated,
+          '/// <reference types="next" />\nimport "./.next/types/routes.d.ts";\n',
+        );
+      const files = [...getGraph().files.keys()];
+      expect(files).not.toContain("sites/mainweb/next-env.d.ts");
+      expect(files).toContain("sites/mainweb/lib/trpc.tsx");
+    } finally {
+      if (!existed) rmSync(generated, { force: true });
+    }
   });
 
   it("serves a repeat call from the cache", () => {
