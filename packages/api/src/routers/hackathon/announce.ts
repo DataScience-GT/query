@@ -364,6 +364,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
 
       const rows = await db
         .select({
+          id: hackathonAnnouncements.id,
           subject: hackathonAnnouncements.subject,
           heading: hackathonAnnouncements.heading,
           body: hackathonAnnouncements.body,
@@ -388,6 +389,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
         .limit(LATEST_FOR_ME);
 
       return rows.map((row) => ({
+        id: row.id,
         subject: row.subject,
         heading: row.heading,
         body: row.body,
