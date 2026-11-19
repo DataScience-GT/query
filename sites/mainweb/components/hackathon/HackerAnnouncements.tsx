@@ -109,9 +109,9 @@ export function HackerAnnouncements({ hackathonId }: { hackathonId: string }) {
         Announcements
       </h2>
       <div className="mt-2 divide-y divide-[var(--border-subtle)]">
-        {announcements.map((announcement, index) => (
+        {announcements.map((announcement) => (
           <Announcement
-            key={`${String(announcement.sentAt)}-${index}`}
+            key={`${String(announcement.sentAt)}-${announcement.heading}`}
             announcement={announcement}
           />
         ))}
