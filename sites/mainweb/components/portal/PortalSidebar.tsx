@@ -57,8 +57,6 @@ export default function PortalSidebar({
     };
   }, [isMobileOpen]);
 
-  if (pathname === "/login" || pathname === "/verify") return null;
-
   const themeLabel = theme === "dark" ? "Paper edition" : "Night edition";
   const ThemeIcon = theme === "dark" ? Sun : Moon;
 
