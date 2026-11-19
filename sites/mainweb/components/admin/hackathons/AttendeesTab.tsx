@@ -791,6 +791,7 @@ export function AttendeesTab({
                         type="checkbox"
                         checked={selectedIds.has(attendee.id)}
                         onChange={() => toggleSelect(attendee.id)}
+                        aria-label={`Select ${attendee.user?.name || attendee.user?.email || "applicant"}`}
                         className="w-4 h-4 rounded-sm accent-[var(--accent)] cursor-pointer align-middle"
                       />
                     </td>
@@ -802,19 +803,28 @@ export function AttendeesTab({
                         )
                       }
                     >
-                      {expandedRow === attendee.id ? (
-                        <ChevronUp
-                          size={16}
-                          strokeWidth={1.75}
-                          className="text-[var(--text-primary)]"
-                        />
-                      ) : (
-                        <ChevronDown
-                          size={16}
-                          strokeWidth={1.75}
-                          className="text-[var(--text-subtle)]"
-                        />
-                      )}
+                      {/* The click lands on the cell's handler above; the button is
+                          what a keyboard or screen reader can reach. */}
+                      <button
+                        type="button"
+                        aria-expanded={expandedRow === attendee.id}
+                        aria-label={`${expandedRow === attendee.id ? "Collapse" : "Expand"} details for ${attendee.user?.name || attendee.user?.email || "applicant"}`}
+                        className="block"
+                      >
+                        {expandedRow === attendee.id ? (
+                          <ChevronUp
+                            size={16}
+                            strokeWidth={1.75}
+                            className="text-[var(--text-primary)]"
+                          />
+                        ) : (
+                          <ChevronDown
+                            size={16}
+                            strokeWidth={1.75}
+                            className="text-[var(--text-subtle)]"
+                          />
+                        )}
+                      </button>
                     </td>
                     <td
                       className="px-3 py-3"
