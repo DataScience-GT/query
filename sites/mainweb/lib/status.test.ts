@@ -17,6 +17,7 @@ const bucket = (over: Partial<Bucket> = {}): Bucket => ({
   requests: 100,
   errors: 0,
   p95Ms: 80,
+  p99Ms: 120,
   dbOk: true,
   dbMs: 10,
   ...over,
@@ -42,6 +43,7 @@ describe("uptimePercent", () => {
     requests: 0,
     errors: 0,
     worstP95Ms: 0,
+    worstP99Ms: null,
     minutesWithData: total,
     minutesDbDown: 0,
     minutesUp: up,
@@ -74,6 +76,7 @@ describe("fillDays", () => {
       requests: 9,
       errors: 0,
       worstP95Ms: 5,
+      worstP99Ms: null,
       minutesWithData: 10,
       minutesDbDown: 0,
       minutesUp: 10,
@@ -148,9 +151,9 @@ describe("dayFromBuckets", () => {
 
   it("sums traffic, takes the worst p95 and counts minutes", () => {
     const rows = [
-      at(0, { requests: 100, errors: 1, p95Ms: 80 }),
-      at(5, { requests: 50, errors: 5, p95Ms: 400 }),
-      at(10, { requests: 0, errors: 0, p95Ms: 0 }),
+      at(0, { requests: 100, errors: 1, p95Ms: 80, p99Ms: 120 }),
+      at(5, { requests: 50, errors: 5, p95Ms: 400, p99Ms: 900 }),
+      at(10, { requests: 0, errors: 0, p95Ms: 0, p99Ms: null }),
       at(15, { dbOk: false }),
     ];
     expect(dayFromBuckets(rows, DAY)).toEqual({
@@ -158,11 +161,17 @@ describe("dayFromBuckets", () => {
       requests: 250,
       errors: 6,
       worstP95Ms: 400,
+      worstP99Ms: 900,
       minutesWithData: 20,
       minutesDbDown: 5,
       // 5 of 50 is 10%, over the limit; the db-down bucket is not up either
       minutesUp: 10,
     });
+  });
+
+  it("leaves the worst p99 empty when no bucket recorded one", () => {
+    const rows = [at(0, { p99Ms: null }), at(5, { p99Ms: null })];
+    expect(dayFromBuckets(rows, DAY)?.worstP99Ms).toBeNull();
   });
 
   it("agrees with isUp at the error-rate boundary", () => {

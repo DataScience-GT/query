@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { HOUR, VENUE_TZ } from "@query/core";
-import { uptimePercent } from "@/lib/status";
+import { uptimePercent, worstOf } from "@/lib/status";
 import type { Bucket, Day } from "@/lib/status";
 
 // Hand-built SVG. The chart width is measured, not scaled from a viewBox, so
@@ -214,6 +214,7 @@ export function UptimeStrip({
                   value={day.errors.toLocaleString("en-US")}
                 />
                 <TipRow label="Worst p95" value={`${day.worstP95Ms} ms`} />
+                <TipRow label="Worst p99" value={msText(day.worstP99Ms)} />
                 <TipRow
                   label="Database down"
                   value={`${day.minutesDbDown} min`}
@@ -287,13 +288,14 @@ export function DayTable({ days }: { days: Day[] }) {
               <th className="py-1 pr-3 font-medium">Uptime</th>
               <th className="py-1 pr-3 font-medium">Requests</th>
               <th className="py-1 pr-3 font-medium">Errors</th>
-              <th className="py-1 font-medium">Worst p95</th>
+              <th className="py-1 pr-3 font-medium">Worst p95</th>
+              <th className="py-1 font-medium">Worst p99</th>
             </tr>
           </thead>
           <tbody>
             {shown.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-2">
+                <td colSpan={6} className="py-2">
                   No days with data yet.
                 </td>
               </tr>
@@ -308,7 +310,8 @@ export function DayTable({ days }: { days: Day[] }) {
                 <td className="py-1 pr-3">
                   {d.errors.toLocaleString("en-US")}
                 </td>
-                <td className="py-1">{d.worstP95Ms} ms</td>
+                <td className="py-1 pr-3">{d.worstP95Ms} ms</td>
+                <td className="py-1">{msText(d.worstP99Ms)}</td>
               </tr>
             ))}
           </tbody>
@@ -335,7 +338,16 @@ const MARGIN = { l: 52, r: 6, t: 8, b: 22 };
 // The last 24 hours plus the one in progress, on clock hours.
 const SLOTS = 25;
 
-type Hour = { t: number; requests: number; errors: number; p95Ms: number };
+type Hour = {
+  t: number;
+  requests: number;
+  errors: number;
+  p95Ms: number;
+  p99Ms: number | null;
+};
+
+/** "n/a" for a p99 the instance never recorded (rows from before it existed). */
+const msText = (ms: number | null) => (ms === null ? "n/a" : `${ms} ms`);
 
 const slotStart = (lastT: number, i: number) =>
   lastT - (lastT % HOUR) - (SLOTS - 1 - i) * HOUR;
@@ -356,6 +368,7 @@ function byHour(buckets: (Bucket | null)[], lastT: number): (Hour | null)[] {
       requests: data.reduce((s, b) => s + b.requests, 0),
       errors: data.reduce((s, b) => s + b.errors, 0),
       p95Ms: Math.max(...data.map((b) => b.p95Ms)),
+      p99Ms: worstOf(data.map((b) => b.p99Ms)),
     };
   });
 }
@@ -497,6 +510,7 @@ export function LatencyChart({
                 value={`${hit.p95Ms} ms`}
                 color={COLORS.accent}
               />
+              <TipRow label="Worst p99" value={msText(hit.p99Ms)} />
               <TipRow
                 label="Requests"
                 value={hit.requests.toLocaleString("en-US")}
@@ -735,13 +749,14 @@ export function HoursTable({
               <th className="py-1 pr-3 font-medium">Hour (ET)</th>
               <th className="py-1 pr-3 font-medium">Requests</th>
               <th className="py-1 pr-3 font-medium">Errors</th>
-              <th className="py-1 font-medium">Worst p95</th>
+              <th className="py-1 pr-3 font-medium">Worst p95</th>
+              <th className="py-1 font-medium">Worst p99</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-2">
+                <td colSpan={5} className="py-2">
                   No traffic sampled in the last 24 hours.
                 </td>
               </tr>
@@ -755,7 +770,8 @@ export function HoursTable({
                 <td className="py-1 pr-3">
                   {r.errors.toLocaleString("en-US")}
                 </td>
-                <td className="py-1">{r.p95Ms} ms</td>
+                <td className="py-1 pr-3">{r.p95Ms} ms</td>
+                <td className="py-1">{msText(r.p99Ms)}</td>
               </tr>
             ))}
           </tbody>
