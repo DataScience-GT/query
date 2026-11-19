@@ -1,30 +1,34 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { LogOut, Menu, X, Sun, Moon, PanelLeftClose } from "lucide-react";
 import { useTheme } from "next-themes";
-import { trpc } from "@/lib/trpc";
-import { canViewAdmin, usePortalContext } from "@/lib/use-portal-context";
 import { useIsClient } from "@/lib/use-is-client";
-import {
-  isPortalNavActive,
-  navHackathon,
-  portalNavSections,
-} from "@/lib/portal-nav";
+import { isPortalNavActive } from "@/lib/portal-nav";
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
+
+/** The nav as the server drew it: icons arrive as elements, not library code. */
+export type PortalSidebarSection = {
+  id: string;
+  label: string;
+  items: { name: string; href: string; icon: ReactNode }[];
+};
 
 interface PortalSidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  sections: PortalSidebarSection[];
 }
 
 export default function PortalSidebar({
   isOpen,
   setIsOpen,
+  sections,
 }: PortalSidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
@@ -32,18 +36,6 @@ export default function PortalSidebar({
   const { theme, setTheme } = useTheme();
   const mounted = useIsClient();
 
-  const { data: portalContext } = usePortalContext();
-  // The portal context does not say who is registered where, so "My <edition>"
-  // costs one read of the registrations the dashboard and event page use too.
-  // Staff never get the item, so they never make it.
-  const { data: myRegs } = trpc.hackathon.myRegistrations.useQuery(undefined, {
-    enabled: !!session && !!portalContext && !canViewAdmin(portalContext),
-  });
-  const sections = portalNavSections(
-    portalContext,
-    // oxlint-disable-next-line react/purity
-    navHackathon(myRegs, new Date()),
-  );
   const navHrefs = sections.flatMap((section) =>
     section.items.map((item) => item.href),
   );
@@ -56,8 +48,6 @@ export default function PortalSidebar({
       document.body.style.overflow = "unset";
     };
   }, [isMobileOpen]);
-
-  if (pathname === "/login" || pathname === "/verify") return null;
 
   const themeLabel = theme === "dark" ? "Paper edition" : "Night edition";
   const ThemeIcon = theme === "dark" ? Sun : Moon;
@@ -231,12 +221,12 @@ export default function PortalSidebar({
                       href={route.href}
                       title={!isOpen ? route.name : undefined}
                       aria-current={isActive ? "page" : undefined}
-                      className={`group relative flex items-center gap-3 rounded-[var(--radius-sm)] text-sm transition-colors ${
+                      className={`relative flex items-center gap-3 rounded-[var(--radius-sm)] text-sm transition-colors ${
                         isOpen ? "px-3 py-2" : "justify-center py-2.5"
                       } ${
                         isActive
-                          ? "text-[var(--text-primary)] font-semibold bg-[var(--bg-secondary)]"
-                          : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                          ? "text-[var(--text-primary)] font-semibold bg-[var(--bg-secondary)] [--nav-icon:var(--color-accent)]"
+                          : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] [--nav-icon:var(--text-subtle)] hover:[--nav-icon:var(--text-primary)]"
                       }`}
                     >
                       {isActive && (
@@ -245,10 +235,7 @@ export default function PortalSidebar({
                           className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full bg-accent"
                         />
                       )}
-                      <route.icon
-                        strokeWidth={1.75}
-                        className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-accent" : "text-[var(--text-subtle)] group-hover:text-[var(--text-primary)]"}`}
-                      />
+                      {route.icon}
                       {isOpen && <span className="truncate">{route.name}</span>}
                     </Link>
                   );

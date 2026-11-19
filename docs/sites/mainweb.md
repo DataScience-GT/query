@@ -81,6 +81,7 @@ Unauthenticated and authenticated product UI. `proxy.ts` marks these prefixes `p
 - `lib/trpc.tsx` — `createTRPCReact<AppRouter>()`
 - `lib/query-client.ts` — TanStack Query client
 - `lib/use-portal-context.ts` — `user.getPortalContext`
+- `components/portal/portal-sidebar-sections.tsx` — the sidebar nav, drawn on the server by the `(portal)` layout from `loadPortalBootstrap`. Icons arrive as elements, so the sidebar does not read the portal context or registrations in the browser. After a change that moves either (membership, roles, a withdrawn registration), call `useInvalidatePortalContext` or `router.refresh()`, or the nav keeps showing the old state until the next page load.
 - `(portal)/providers.tsx` — Query + tRPC providers
 - `(auth)/layout.tsx` — theme and session only, for `/login` and `/verify`
 
