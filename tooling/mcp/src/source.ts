@@ -2,7 +2,15 @@
 // TypeScript source. The scanner is not a parser. It knows strings, template
 // literals and comments well enough to match brackets and split on commas, which
 // is all the route, router and schema readers need.
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  fstatSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+} from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,6 +20,36 @@ export const ROOT = resolve(
 );
 
 export const read = (file: string) => readFileSync(file, "utf8");
+
+export interface Stamp {
+  mtime: number;
+  size: number;
+}
+
+/**
+ * Reads a file through one descriptor, so the mtime and size returned are those
+ * of the bytes read: a file edited between a stat and a read would otherwise be
+ * cached under a stamp that does not match its text. Returns null when the file
+ * still has the stamp of `prior`.
+ */
+export function readIfChanged(
+  file: string,
+  prior?: Stamp,
+): (Stamp & { text: string }) | null {
+  const fd = openSync(file, "r");
+  try {
+    const stat = fstatSync(fd);
+    if (prior && prior.mtime === stat.mtimeMs && prior.size === stat.size)
+      return null;
+    return {
+      text: readFileSync(fd, "utf8"),
+      mtime: stat.mtimeMs,
+      size: stat.size,
+    };
+  } finally {
+    closeSync(fd);
+  }
+}
 
 /** Repo-relative path with forward slashes, the form every tool reports. */
 export const rel = (file: string) => relative(ROOT, file).replaceAll("\\", "/");

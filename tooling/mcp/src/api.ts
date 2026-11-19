@@ -10,7 +10,7 @@ import {
   findClose,
   lineAt,
   parseChain,
-  read,
+  readIfChanged,
   rel,
   ROOT,
   skipLiteral,
@@ -35,15 +35,27 @@ export interface Procedure {
 interface Source {
   file: string;
   text: string;
+  mtime: number;
+  size: number;
 }
 
 const sources = new Map<string, Source>();
+let checked = new Set<string>();
 const load = (file: string): Source => {
-  let source = sources.get(file);
-  if (!source) {
-    source = { file, text: stripComments(read(file)) };
-    sources.set(file, source);
-  }
+  // Keyed on mtime and size, so an edited router is read again. Each file is
+  // checked once per procedures() run, not on every lookup.
+  const prior = sources.get(file);
+  if (prior && checked.has(file)) return prior;
+  checked.add(file);
+  const fresh = readIfChanged(file, prior);
+  if (!fresh && prior) return prior;
+  const source = {
+    file,
+    text: stripComments(fresh?.text ?? ""),
+    mtime: fresh?.mtime ?? 0,
+    size: fresh?.size ?? 0,
+  };
+  sources.set(file, source);
   return source;
 };
 
@@ -274,9 +286,10 @@ function readRef(
 }
 
 /** Every procedure reachable from appRouter, in router order. */
-export function procedures(): Procedure[] {
+export function procedures(rootFile = ROOT_FILE): Procedure[] {
   const out: Procedure[] = [];
-  readRef(ROOT_EXPORT, ROOT_FILE, "", out, new Set());
+  checked = new Set();
+  readRef(ROOT_EXPORT, rootFile, "", out, new Set());
   return out;
 }
 
