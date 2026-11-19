@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ExternalLink, Eye, EyeOff } from "lucide-react";
+import { ExternalLink, Eye, EyeOff } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { Alert } from "@query/ui/Alert";
@@ -29,6 +29,7 @@ import {
   toneText,
 } from "./desk";
 import type { ProjectSheet } from "./desk";
+import { BackButton } from "./BackButton";
 import { missingItems, onRubric, storedForm } from "./answers";
 import type { Answer } from "./answers";
 import { clearMirror, mirrorKey, readMirror } from "./draft-mirror";
@@ -38,23 +39,6 @@ import { useScreenWake } from "./use-screen-wake";
 import { useServerNow } from "./use-server-now";
 
 const MAX_RESPONSE = 2000;
-
-function BackButton({ onClose }: { onClose: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClose}
-      className="-ml-2 inline-flex min-h-11 items-center gap-1.5 px-2 text-[13px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
-    >
-      <ArrowLeft
-        className="h-4 w-4"
-        strokeWidth={ICON_STROKE}
-        aria-hidden="true"
-      />
-      Projects
-    </button>
-  );
-}
 
 /** One project, opened for evaluation. */
 export function EvaluationSheet({

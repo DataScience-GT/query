@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -9,6 +9,7 @@ import { ArrowLeft } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { loginHref } from "@/lib/safe-callback";
+import { useIsClient } from "@/lib/use-is-client";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
   body,
@@ -26,6 +27,7 @@ import { DEFAULT_FILTERS, NO_SKIPS, ProjectQueue } from "./ProjectQueue";
 import type { QueueFilters, SkipState } from "./ProjectQueue";
 import { RoomSwitcher } from "./RoomSwitcher";
 import { useHeartbeat } from "./use-heartbeat";
+import { BackButton } from "./BackButton";
 import { ICON_STROKE, deskMeta, deskPage, deskStatus } from "./desk";
 import type { DeskContext } from "./desk";
 
@@ -40,13 +42,25 @@ const loadEvaluationSheet = () => import("./EvaluationSheet").then((m) => m.Eval
 const loadMySubmissions = () => import("./MySubmissions").then((m) => m.MySubmissions);
 const loadShortlist = () => import("./Shortlist").then((m) => m.Shortlist);
 
-const EvaluationSheet = dynamic(loadEvaluationSheet, {
-  loading: () => (
-    <p role="status" className={`mt-8 ${deskMeta}`}>
-      Opening the project…
-    </p>
-  ),
-});
+// React.lazy rather than next/dynamic: the fallback needs onClose, so a judge
+// waiting on the chunk (a refresh on ?project=, or a click before the idle
+// preload lands) can still get back to the list. The sheet mounts only after
+// hydration: rendered on the server, its markup could not respond until the
+// chunk arrived, the back control inside it included.
+const EvaluationSheet = lazy(() =>
+  loadEvaluationSheet().then((Sheet) => ({ default: Sheet })),
+);
+
+function SheetPending({ onClose }: { onClose: () => void }) {
+  return (
+    <>
+      <BackButton onClose={onClose} />
+      <p role="status" className={`mt-8 ${deskMeta}`}>
+        Opening the project…
+      </p>
+    </>
+  );
+}
 const MySubmissions = dynamic(loadMySubmissions, {
   loading: () => (
     <p role="status" className={`mt-8 ${deskMeta}`}>
@@ -256,6 +270,7 @@ function Desk({
   context: DeskContext;
 }) {
   const router = useRouter();
+  const hydrated = useIsClient();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [view, setView] = useState<View>("projects");
@@ -306,22 +321,28 @@ function Desk({
     return (
       <main className={deskPage}>
         <DeskAnnouncements hackathonId={hackathonId} urgentOnly />
-        <EvaluationSheet
-          hackathonId={hackathonId}
-          judgeId={context.judge?.id ?? null}
-          entryId={projectId}
-          challengeId={projectChallenge}
-          onClose={close}
-          onGraded={() => setSkips(NO_SKIPS)}
-          onPickRoom={
-            isMember
-              ? () => {
-                  setPickingRoom(true);
-                  close();
-                }
-              : undefined
-          }
-        />
+        {hydrated ? (
+          <Suspense fallback={<SheetPending onClose={close} />}>
+            <EvaluationSheet
+              hackathonId={hackathonId}
+              judgeId={context.judge?.id ?? null}
+              entryId={projectId}
+              challengeId={projectChallenge}
+              onClose={close}
+              onGraded={() => setSkips(NO_SKIPS)}
+              onPickRoom={
+                isMember
+                  ? () => {
+                      setPickingRoom(true);
+                      close();
+                    }
+                  : undefined
+              }
+            />
+          </Suspense>
+        ) : (
+          <SheetPending onClose={close} />
+        )}
       </main>
     );
   }
