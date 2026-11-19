@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { PortalContext } from "@query/api";
 import { trpc } from "@/lib/trpc";
@@ -16,10 +17,17 @@ export function usePortalContext() {
   });
 }
 
-/** Call after mutations that change admin, judge, or member status. */
+/**
+ * Call after mutations that change admin, judge, or member status. The portal
+ * layout reads the same context on the server, so this refreshes the route too.
+ */
 export function useInvalidatePortalContext() {
   const utils = trpc.useUtils();
-  return () => utils.user.getPortalContext.invalidate();
+  const router = useRouter();
+  return () => {
+    router.refresh();
+    return utils.user.getPortalContext.invalidate();
+  };
 }
 
 /**
