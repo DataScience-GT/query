@@ -34,8 +34,13 @@ const reply = (produce: () => string): Result => {
   }
 };
 
+// The repo's one version, from this package's package.json.
+const { version } = JSON.parse(
+  read(resolve(ROOT, "tooling/mcp/package.json")),
+) as { version: string };
+
 export function createServer(): McpServer {
-  const server = new McpServer({ name: "query", version: "0.0.0" });
+  const server = new McpServer({ name: "query", version });
   const readOnly = { readOnlyHint: true, openWorldHint: false };
 
   server.registerTool(
