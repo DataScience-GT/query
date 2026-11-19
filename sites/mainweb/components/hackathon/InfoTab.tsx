@@ -43,6 +43,7 @@ import { InterestForm } from "@/components/hackathon/InterestForm";
 import { ResumeSection } from "@/components/portal/ResumeSection";
 import { hackathonSlug } from "@/lib/hackathon-slug";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type RegistrationStep = 0 | 1 | 2 | 3;
 
@@ -328,6 +329,7 @@ export function InfoTab({
   }, [showForm, step]);
 
   const utils = trpc.useUtils();
+  const router = useRouter();
   const registerMutation = trpc.hackathon.register.useMutation({
     onSuccess: () => {
       try {
@@ -358,6 +360,8 @@ export function InfoTab({
       });
       utils.hackathon.list.invalidate();
       utils.hackathon.getById.invalidate({ id: hackathon.id });
+      // The portal layout reads the registrations on the server.
+      router.refresh();
     },
     onError: (e) => setWithdrawError(e.message),
   });
