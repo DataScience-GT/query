@@ -1,0 +1,27 @@
+{
+  "name": "@query/mcp",
+  "version": "3.6.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.ts",
+    "lint": "oxlint .",
+    "typecheck": "tsrs --noEmit"
+  },
+  "dependencies": {
+    "@babel/parser": "catalog:",
+    "@modelcontextprotocol/sdk": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@query/oxlint-config": "workspace:*",
+    "@query/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "tsrs": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

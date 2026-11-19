@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "query": {
+      "command": "node",
+      "args": ["tooling/mcp/src/server.ts"]
+    }
+  }
+}
