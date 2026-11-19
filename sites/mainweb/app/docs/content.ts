@@ -86,14 +86,18 @@ export const TREE = `query/
   sites/
     mainweb/          public site and member portal (workspace "web")
       app/(portal)/   signed-in routes, admin, judge, API handlers
+      app/(auth)/     sign-in and sign-in error pages, without the portal data stack
       app/docs/       this page
+    hacklytics2026/   static site for the 2026 edition
     hacklytics2027/   static marketing site for the hackathon
   packages/
     api/              tRPC routers, middleware, pricing
     auth/             NextAuth config, providers, mailer
+    core/             club identity and shared constants, no dependencies
     db/               Drizzle schema, client, membership rules
+    event-kit/        typed event config and components for Hacklytics sites
     ui/               shared React components
-  tooling/            shared oxlint, Prettier, Tailwind, TypeScript configs
+  tooling/            shared oxlint, Prettier, TypeScript configs and repo scripts
   docs/               reference docs
   apphosting.yaml     Firebase App Hosting config for mainweb`;
 
