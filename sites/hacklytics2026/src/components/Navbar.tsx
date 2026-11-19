@@ -40,19 +40,16 @@ export default function Navbar() {
     };
 
     window.addEventListener('scroll', handleScrollEvent);
-    window.addEventListener('mousemove', (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       if (e.clientY < 50) {
         setNavVisible(true);
       }
-    });
-    
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+
     return () => {
       window.removeEventListener('scroll', handleScrollEvent);
-      window.removeEventListener('mousemove', (e) => {
-        if (e.clientY < 50) {
-          setNavVisible(true);
-        }
-      });
+      window.removeEventListener('mousemove', handleMouseMove);
       if (scrollTimeout.current) {
         clearTimeout(scrollTimeout.current);
       }
