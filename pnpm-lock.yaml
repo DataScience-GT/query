@@ -213,6 +213,9 @@ catalogs:
     drizzle-orm:
       specifier: 0.45.4
       version: 0.45.4
+    eslint-plugin-turbo:
+      specifier: 2.11.10
+      version: 2.11.10
     next:
       specifier: 16.4.5
       version: 16.4.5
@@ -246,6 +249,9 @@ catalogs:
     tsrs:
       specifier: 0.20.1-ts7.1.0-beta
       version: 0.20.1-ts7.1.0-beta
+    turbo:
+      specifier: 2.11.10
+      version: 2.11.10
     typescript:
       specifier: 7.0.2
       version: 7.0.2
@@ -297,7 +303,7 @@ importers:
         specifier: workspace:*
         version: link:tooling/scripts
       turbo:
-        specifier: ^2.11.10
+        specifier: 'catalog:'
         version: 2.11.10
       vite:
         specifier: 'catalog:'
@@ -865,7 +871,7 @@ importers:
         specifier: workspace:*
         version: link:../prettier
       eslint-plugin-turbo:
-        specifier: 2.11.10
+        specifier: 'catalog:'
         version: 2.11.10(turbo@2.11.10)
       prettier:
         specifier: 'catalog:'
