@@ -19,7 +19,7 @@ pnpm --filter hacklytics2027 typecheck  # tsc --noEmit
 
 `astro check` is not used: it needs the TypeScript JavaScript API, and the repo's TypeScript 7 ships only the native compiler. `tsc --noEmit` covers `.ts` and `.tsx`; `.astro` files are checked by the build.
 
-Astro 7 needs Vite 8 while the root `package.json` overrides `vite` to 7 for the rest of the repo, so two scoped overrides (`astro>vite`, `@astrojs/react>vite`) give this site Vite 8 and leave every other workspace on Vite 7. Astro 6 is not an option: GHSA-26w7-cxv4-gfx2 (AVIF RCE) affects every version below 7.2.8.
+Astro 7 needs Vite 8 while the rest of the repo stays on Vite 7. This site and `hacklytics2026` list `vite` from the `astro` catalog (8.3.5), because `@astrojs/react` takes Vite as a peer from the site. The scoped overrides `astro>vite` and `@vitejs/plugin-react>vite` keep Astro's own copies on the same version, and the repo-wide `vite@<7.3.7` override is only a floor, so it does not pull the sites back to 7. Astro 6 is not an option: GHSA-26w7-cxv4-gfx2 (AVIF RCE) affects every version below 7.2.8.
 
 ## Structure
 
