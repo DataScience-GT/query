@@ -2,6 +2,7 @@
 
 import React from "react";
 import { trpc } from "@/lib/trpc";
+import { venueFormat } from "@/lib/venue-time";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { Alert } from "@query/ui/Alert";
 import {
@@ -21,6 +22,17 @@ import {
   toInputDate,
 } from "@/components/admin/hackathons/constants";
 import type { HackathonStatus } from "@/components/admin/hackathons/constants";
+
+// What toLocaleString() prints for en-US, on the venue's clock so the server
+// and the browser agree on it.
+const DEADLINE_FORMAT = {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  second: "2-digit",
+} as const;
 
 /**
  * Registration status + deadline controls for one hackathon.
@@ -141,7 +153,7 @@ export function RegistrationControls({
               <dd
                 className={`mt-1 text-[15px] tabular-nums ${deadlinePassed ? "text-[var(--danger)]" : "text-[var(--text-primary)]"}`}
               >
-                {regDeadline ? regDeadline.toLocaleString() : "No deadline set"}
+                {regDeadline ? venueFormat(regDeadline, DEADLINE_FORMAT) : "No deadline set"}
                 {deadlinePassed ? " (passed)" : ""}
               </dd>
             </div>

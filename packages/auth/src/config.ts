@@ -8,7 +8,7 @@ import { siteOrigin } from "@query/core/server";
 import { linkPaidPaymentByVerifiedEmail } from "@query/db/services/membership";
 import { sql } from "drizzle-orm";
 import { randomInt } from "node:crypto";
-import { verifiedGitHubEmail } from "./github";
+import { fetchGitHubProfile, verifiedGitHubEmail } from "./github";
 import type { GitHubEmail } from "./github";
 
 function html(params: { code: string; host: string }) {
@@ -118,9 +118,7 @@ export const authConfig: NextAuthConfig = {
                   Authorization: `Bearer ${tokens.access_token}`,
                   "User-Agent": "authjs",
                 };
-                const profile = await fetch("https://api.github.com/user", {
-                  headers,
-                }).then((res) => res.json());
+                const profile = await fetchGitHubProfile(headers);
                 const res = await fetch("https://api.github.com/user/emails", {
                   headers,
                 });

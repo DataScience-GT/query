@@ -68,6 +68,7 @@ export function InitiativeFields({
       <input
         required
         maxLength={200}
+        aria-label="Title"
         placeholder="Title"
         value={draft.title}
         onChange={(e) => set("title")(e.target.value)}
@@ -75,6 +76,7 @@ export function InitiativeFields({
       />
       <input
         maxLength={300}
+        aria-label="Summary"
         placeholder="One line — what a member reads before opening it"
         value={draft.summary}
         onChange={(e) => set("summary")(e.target.value)}
@@ -83,6 +85,7 @@ export function InitiativeFields({
       <div className="grid gap-3 sm:grid-cols-2">
         <input
           maxLength={120}
+          aria-label="Time commitment"
           placeholder="Time commitment, e.g. 3-4 hrs/week"
           value={draft.commitment}
           onChange={(e) => set("commitment")(e.target.value)}
@@ -91,6 +94,7 @@ export function InitiativeFields({
         <input
           type="number"
           min={1}
+          aria-label="Team size"
           placeholder="Team size (blank = no limit)"
           value={draft.maxMembers}
           onChange={(e) => set("maxMembers")(e.target.value)}
@@ -100,6 +104,7 @@ export function InitiativeFields({
       <textarea
         rows={5}
         maxLength={4000}
+        aria-label="Description"
         placeholder="What you want to build, and who you need"
         value={draft.description}
         onChange={(e) => set("description")(e.target.value)}
