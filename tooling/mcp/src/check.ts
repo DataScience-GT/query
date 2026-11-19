@@ -1,6 +1,7 @@
 // run_check: `pnpm turbo run <task> [--filter=<workspace>]` from the repo root,
 // for the four tasks CI runs. Nothing else is runnable through the server.
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { resolve } from "node:path";
 
 import { ROOT } from "./source.ts";
 import { workspaceNames } from "./workspace.ts";
@@ -36,6 +37,29 @@ export function dbRefusal(task: Task, env: Env): string | null {
       return `Refusing to run ${task}: ${name} points at ${host ?? "an unparseable URL"}, not a local database. Unset it or use a disposable local Postgres.`;
   }
   return null;
+}
+
+const GUARD = resolve(ROOT, "tooling/scripts/src/guard-local.ts");
+
+/**
+ * Runs the repo's own guard, the one `pnpm test` runs first. It also reads the
+ * root .env, sites/mainweb/.env and .env.local, which Next and drizzle load,
+ * so a remote URL in a file is caught as well as one in the environment.
+ * `guardFile` is a parameter so a test can run a copy rooted in a temp folder.
+ */
+export function guardRefusal(
+  task: Task,
+  env: Env,
+  guardFile = GUARD,
+): string | null {
+  if (task !== "test" && task !== "build") return null;
+  const run = spawnSync(process.execPath, [guardFile], {
+    env: env as NodeJS.ProcessEnv,
+    encoding: "utf8",
+  });
+  if (run.status === 0) return null;
+  const output = `${run.stderr ?? ""}${run.stdout ?? ""}`.trim();
+  return `Refusing to run ${task}: ${output || run.error?.message || "the local-services guard failed"}`;
 }
 
 export function checkArgs(task: string, filter?: string): string[] {
@@ -84,6 +108,8 @@ export async function runCheck(
   const args = checkArgs(task, filter);
   const refusal = dbRefusal(task as Task, env);
   if (refusal) throw new Error(refusal);
+  const guard = guardRefusal(task as Task, env);
+  if (guard) throw new Error(guard);
   const command = `pnpm ${args.join(" ")}`;
   const started = Date.now();
   return new Promise<{ ok: boolean; text: string }>((done) => {
