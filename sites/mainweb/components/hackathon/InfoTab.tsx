@@ -360,7 +360,8 @@ export function InfoTab({
       });
       utils.hackathon.list.invalidate();
       utils.hackathon.getById.invalidate({ id: hackathon.id });
-      // The portal layout reads the registrations on the server.
+      // An accepted hacker has "My <edition>" in the sidebar, which the portal
+      // layout draws on the server from these registrations.
       router.refresh();
     },
     onError: (e) => setWithdrawError(e.message),

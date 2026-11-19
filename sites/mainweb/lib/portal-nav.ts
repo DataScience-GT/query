@@ -1,32 +1,32 @@
-import type { LucideIcon } from "lucide-react";
-import {
-  LayoutDashboard,
-  Code,
-  ClipboardList,
-  Users,
-  BarChart3,
-  QrCode,
-  Zap,
-  Home,
-  Rocket,
-  Upload,
-  FolderGit2,
-  CreditCard,
-  ShieldCheck,
-  BookOpen,
-  GraduationCap,
-  UserCircle,
-  Calendar,
-  UsersRound,
-} from "lucide-react";
 import type { PortalContext } from "@query/api";
 import { hackathonPathSegment } from "./hackathon-slug";
 import { isWithinEditionDates } from "./hackathon-next-step";
 
+/** Lucide icon names; `portal-sidebar-sections.tsx` draws them. */
+export type PortalNavIcon =
+  | "LayoutDashboard"
+  | "Code"
+  | "ClipboardList"
+  | "Users"
+  | "BarChart3"
+  | "QrCode"
+  | "Zap"
+  | "Home"
+  | "Rocket"
+  | "Upload"
+  | "FolderGit2"
+  | "CreditCard"
+  | "ShieldCheck"
+  | "BookOpen"
+  | "GraduationCap"
+  | "UserCircle"
+  | "Calendar"
+  | "UsersRound";
+
 export type PortalNavItem = {
   name: string;
   href: string;
-  icon: LucideIcon;
+  icon: PortalNavIcon;
 };
 
 export type PortalNavSection = {
@@ -132,32 +132,32 @@ export function portalNavSections(
         id: "hackathon",
         label: "Hackathon",
         items: [
-          { name: "Hackathons", href: "/admin/hackathons", icon: Code },
-          { name: "Judging", href: "/admin/judging", icon: ClipboardList },
-          { name: "Projects", href: "/admin/projects", icon: FolderGit2 },
+          { name: "Hackathons", href: "/admin/hackathons", icon: "Code" },
+          { name: "Judging", href: "/admin/judging", icon: "ClipboardList" },
+          { name: "Projects", href: "/admin/projects", icon: "FolderGit2" },
         ],
       },
       {
         id: "portal",
         label: "Portal",
         items: [
-          { name: "Club Hub", href: "/admin", icon: LayoutDashboard },
-          { name: "Club Attendees", href: "/admin/attendees", icon: Users },
-          { name: "Club Attendance", href: "/scan/club", icon: Calendar },
-          { name: "Club Projects", href: "/admin/initiatives", icon: Rocket },
+          { name: "Club Hub", href: "/admin", icon: "LayoutDashboard" },
+          { name: "Club Attendees", href: "/admin/attendees", icon: "Users" },
+          { name: "Club Attendance", href: "/scan/club", icon: "Calendar" },
+          { name: "Club Projects", href: "/admin/initiatives", icon: "Rocket" },
           {
             name: "Club Project Applications",
             href: "/lead",
-            icon: Rocket,
+            icon: "Rocket",
           },
-          { name: "Subteams", href: "/admin/subteams", icon: UsersRound },
-          { name: "Bootcamp", href: "/admin/bootcamp", icon: GraduationCap },
-          { name: "Memberships", href: "/admin/members", icon: CreditCard },
-          { name: "Resume Book", href: "/admin/resumes", icon: BookOpen },
-          { name: "Staff & Roles", href: "/admin/staff", icon: ShieldCheck },
-          { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-          { name: "Docs", href: "/docs", icon: BookOpen },
-          { name: "Settings", href: "/settings", icon: UserCircle },
+          { name: "Subteams", href: "/admin/subteams", icon: "UsersRound" },
+          { name: "Bootcamp", href: "/admin/bootcamp", icon: "GraduationCap" },
+          { name: "Memberships", href: "/admin/members", icon: "CreditCard" },
+          { name: "Resume Book", href: "/admin/resumes", icon: "BookOpen" },
+          { name: "Staff & Roles", href: "/admin/staff", icon: "ShieldCheck" },
+          { name: "Analytics", href: "/admin/analytics", icon: "BarChart3" },
+          { name: "Docs", href: "/docs", icon: "BookOpen" },
+          { name: "Settings", href: "/settings", icon: "UserCircle" },
         ],
       },
     ];
@@ -175,50 +175,62 @@ export function portalNavSections(
           {
             name: `My ${hackathon.name}`,
             href: `/hackathons/${hackathonPathSegment(hackathon.name, hackathon.id)}`,
-            icon: Zap,
+            icon: "Zap" as const,
           },
         ]
       : []),
     // Non-members land on the hackathon half of /dashboard; members get the
     // same home link under Portal so the default section matches the default view.
     ...(!f.isMember
-      ? [{ name: "Dashboard", href: "/dashboard", icon: Home }]
+      ? [{ name: "Dashboard", href: "/dashboard", icon: "Home" as const }]
       : []),
-    { name: "Hackathons", href: "/hackathons", icon: Zap },
+    { name: "Hackathons", href: "/hackathons", icon: "Zap" },
     {
       name: "Submit Project",
       href: "/submit",
-      icon: Upload,
+      icon: "Upload",
     },
     ...(f.isJudge
-      ? [{ name: "Judge Portal", href: "/judge", icon: ClipboardList }]
+      ? [
+          {
+            name: "Judge Portal",
+            href: "/judge",
+            icon: "ClipboardList" as const,
+          },
+        ]
       : []),
     ...(f.isScanner
-      ? [{ name: "Check-In Desk", href: "/scan", icon: QrCode }]
+      ? [{ name: "Check-In Desk", href: "/scan", icon: "QrCode" as const }]
       : []),
   ];
 
   const portal: PortalNavItem[] = [
     ...(f.isMember
       ? [
-          { name: "Dashboard", href: "/dashboard", icon: Home },
-          { name: "Club Portal", href: "/club", icon: QrCode },
+          { name: "Dashboard", href: "/dashboard", icon: "Home" as const },
+          { name: "Club Portal", href: "/club", icon: "QrCode" as const },
         ]
       : []),
     // Attendance is open to everyone; the Club Portal's scanner is not.
-    { name: "Club Check-In", href: "/checkin", icon: QrCode },
+    { name: "Club Check-In", href: "/checkin", icon: "QrCode" },
     ...(f.isScanner
-      ? [{ name: "Club Attendance", href: "/scan/club", icon: Calendar }]
+      ? [
+          {
+            name: "Club Attendance",
+            href: "/scan/club",
+            icon: "Calendar" as const,
+          },
+        ]
       : []),
-    { name: "Bootcamp", href: "/club/bootcamp", icon: GraduationCap },
-    { name: "Club Projects", href: "/initiatives", icon: Rocket },
+    { name: "Bootcamp", href: "/club/bootcamp", icon: "GraduationCap" },
+    { name: "Club Projects", href: "/initiatives", icon: "Rocket" },
     ...(f.isMember
-      ? [{ name: "Subteams", href: "/subteams", icon: UsersRound }]
+      ? [{ name: "Subteams", href: "/subteams", icon: "UsersRound" as const }]
       : []),
     ...(f.isProjectLeader
-      ? [{ name: "My Club Projects", href: "/lead", icon: Rocket }]
+      ? [{ name: "My Club Projects", href: "/lead", icon: "Rocket" as const }]
       : []),
-    { name: "Settings", href: "/settings", icon: UserCircle },
+    { name: "Settings", href: "/settings", icon: "UserCircle" },
   ];
 
   return [
