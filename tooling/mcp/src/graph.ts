@@ -4,6 +4,7 @@
 // import specifiers are resolved to files. The result is cached in memory and
 // refreshed from file mtimes, so a repeat call costs a directory walk and a
 // stat per file.
+import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, posix, resolve } from "node:path";
 import { parse } from "@babel/parser";
@@ -707,7 +708,45 @@ class Resolver {
 const infos = new Map<string, FileInfo>();
 let cached: { graph: Graph; signature: string } | null = null;
 
+// Files git knows about or would add: tracked plus untracked, minus whatever
+// .gitignore excludes, so generated files (next-env.d.ts, .next, .astro) are
+// never indexed. Null when git is not available.
+function listFilesWithGit(): string[] | null {
+  const run = spawnSync(
+    "git",
+    [
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      ...ROOTS,
+    ],
+    { cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  );
+  if (run.error || run.status !== 0) return null;
+  return (
+    run.stdout
+      .split("\0")
+      .filter(
+        (name) =>
+          name &&
+          CODE_EXT.includes(extname(name)) &&
+          !name
+            .split("/")
+            .slice(0, -1)
+            .some((dir) => SKIP_DIRS.has(dir)),
+      )
+      .map((name) => resolve(ROOT, name))
+      // A tracked file deleted from the working tree is still listed.
+      .filter((file) => existsSync(file))
+  );
+}
+
 function listFiles(): string[] {
+  const viaGit = listFilesWithGit();
+  if (viaGit) return viaGit;
   const out: string[] = [];
   const visit = (dir: string) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
