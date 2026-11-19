@@ -181,10 +181,14 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
               onClick={() => {
                 // writeText rejects when the page lacks clipboard permission,
                 // and an organiser must still be able to read the link.
-                const fail = () =>
-                  setError(`Couldn't copy. The link is ${applyLink}`);
+                const copyFailed = `Couldn't copy. The link is ${applyLink}`;
+                const fail = () => setError(copyFailed);
                 if (!navigator.clipboard) return fail();
                 void navigator.clipboard.writeText(applyLink).then(() => {
+                  // Clear an earlier copy failure, but not some other error.
+                  setError((current) =>
+                    current === copyFailed ? null : current,
+                  );
                   setLinkCopied(true);
                   setTimeout(() => setLinkCopied(false), 2000);
                 }, fail);
