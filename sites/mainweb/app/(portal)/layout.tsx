@@ -10,6 +10,7 @@ import "@query/ui/portal.css";
 import "./liquid-glass.css";
 import PortalWrapper from "@/components/portal/PortalWrapper";
 import { portalSidebarSections } from "@/components/portal/portal-sidebar-sections";
+import { RetryPortalNav } from "@/components/portal/RetryPortalNav";
 import { FONT_PRELOADS } from "@/lib/fonts.generated";
 
 // Headlines in a newspaper serif, everything else in a grotesque with a voice.
@@ -26,12 +27,13 @@ export default async function PortalLayout({
     preload(href, { as: "font", type: "font/woff2", crossOrigin: "" }),
   );
 
-  const { session, state, portal, registrations } =
+  const { session, state, portal, registrations, navFailed } =
     await loadPortalBootstrap();
 
   return (
     <Providers session={session} state={state}>
       <div className="portal-type">
+        {navFailed && <RetryPortalNav />}
         <PortalWrapper sections={portalSidebarSections(portal, registrations)}>
           {children}
         </PortalWrapper>
