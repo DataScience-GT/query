@@ -51,6 +51,10 @@ Hacklytics end-to-end:
 pnpm --filter hacklytics2027 e2e
 ```
 
+## Coding agents
+
+[Conventions](./conventions.md) is the short version of these rules for a coding agent. The repo ships an MCP server for them, registered in `.mcp.json`, that lists workspaces, tRPC procedures, tables and routes from the source and runs `lint`, `typecheck`, `test` and `build`. See [Tooling](./tooling.md#repo-mcp-server).
+
 ## Never commit
 
 Enable the hooks once per clone:
