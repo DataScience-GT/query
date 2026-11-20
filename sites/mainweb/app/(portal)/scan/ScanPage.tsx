@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { trpc } from "@/lib/trpc";
 import { usePortalContext } from "@/lib/use-portal-context";
 import {
@@ -13,7 +14,14 @@ import {
   pageTitle,
 } from "@query/ui/classes";
 import { ScanAccess } from "@/components/portal/ScanAccess";
-import { ScannerTab } from "@/components/admin/hackathons/ScannerTab";
+
+// Only scanners use the desk, so the page ships without it. It starts loading
+// as soon as the role is known, alongside the hackathon list it waits on.
+const loadScannerTab = () =>
+  import("@/components/admin/hackathons/ScannerTab").then((m) => m.ScannerTab);
+const ScannerTab = dynamic(loadScannerTab, {
+  loading: () => <p className={meta}>Loading scanner…</p>,
+});
 
 /**
  * Hackathon badge check-in.
@@ -24,12 +32,16 @@ import { ScannerTab } from "@/components/admin/hackathons/ScannerTab";
  */
 export default function ScanPage() {
   const { data: portalContext } = usePortalContext();
+  const isScanner = !!portalContext?.isScanner;
+  useEffect(() => {
+    if (isScanner) void loadScannerTab();
+  }, [isScanner]);
   // null until the volunteer picks one, so a single live edition can stand in.
   const [pickedId, setPickedId] = useState<string | null>(null);
 
   const { data: hackathons, isLoading } = trpc.hackathon.list.useQuery(
     {},
-    { enabled: !!portalContext?.isScanner },
+    { enabled: isScanner },
   );
 
   // The desk is for the edition running now. With exactly one, there is
