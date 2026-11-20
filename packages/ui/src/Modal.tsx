@@ -11,6 +11,9 @@ interface ModalProps {
   label?: string;
 }
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 const maxWidthClasses = {
   sm: "max-w-sm",
   md: "max-w-md",
@@ -21,8 +24,9 @@ const maxWidthClasses = {
 
 /**
  * The dialog behaviour people expect lives here: Escape closes it, focus moves
- * inside and comes back on close, the page behind stops scrolling, and a
- * screen reader is told a dialog opened rather than reading it as more page
+ * inside and comes back on close, Tab cycles through the dialog's own controls
+ * instead of walking out to the page behind it, the page stops scrolling, and
+ * a screen reader is told a dialog opened rather than reading it as more page
  * content.
  */
 export function Modal({
@@ -65,8 +69,25 @@ export function Modal({
     };
   }, []);
 
+  // Tab must not walk out to the page behind. A guard sits at each end of the
+  // dialog: the browser's own Tab order reaches one only when focus is about
+  // to leave, so a disabled or radio-group last control is covered too, and
+  // the guard hands focus to the other end. Each dialog has its own guards,
+  // so one opened over another wraps only within itself.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const wrapTo = (end: "first" | "last") => () => {
+    const controls = [
+      ...(rootRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []),
+    ].filter((el) => !el.closest("[hidden], [inert], [data-focus-guard]"));
+    (end === "first" ? controls[0] : controls[controls.length - 1])?.focus();
+  };
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div
+      ref={rootRef}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+    >
+      <span data-focus-guard tabIndex={0} onFocus={wrapTo("last")} />
       {/* A real button, so closing by backdrop is reachable from the keyboard
           too rather than being mouse-only. */}
       <button
@@ -85,6 +106,7 @@ export function Modal({
       >
         {children}
       </div>
+      <span data-focus-guard tabIndex={0} onFocus={wrapTo("first")} />
     </div>
   );
 }

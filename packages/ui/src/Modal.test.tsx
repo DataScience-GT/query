@@ -113,6 +113,66 @@ describe("Modal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  // jsdom has no Tab order, so these focus the guard the browser's Tab would
+  // reach next, which is what happens when focus is about to leave.
+  function guards() {
+    const [start, end] = document.querySelectorAll<HTMLElement>(
+      "[data-focus-guard]",
+    );
+    return { start, end };
+  }
+
+  it("wraps Tab past the last control back to the first", () => {
+    render(
+      <Modal onClose={() => undefined}>
+        <input aria-label="Name" />
+        <button type="button">Save</button>
+      </Modal>,
+    );
+
+    guards().end.focus();
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Close dialog" }),
+    );
+  });
+
+  it("wraps Shift+Tab before the first control to the last", () => {
+    render(
+      <Modal onClose={() => undefined}>
+        <input aria-label="Name" />
+        <button type="button">Save</button>
+      </Modal>,
+    );
+
+    guards().start.focus();
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Save" }),
+    );
+  });
+
+  it("still wraps when the last button is disabled while saving", () => {
+    render(
+      <Modal onClose={() => undefined}>
+        <input aria-label="Name" />
+        <button type="button">Cancel</button>
+        <button type="button" disabled>
+          Saving…
+        </button>
+      </Modal>,
+    );
+
+    guards().start.focus();
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Cancel" }),
+    );
+    guards().end.focus();
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Close dialog" }),
+    );
+  });
+
   it("keeps focus where it is and uses the newest onClose when the handler changes", () => {
     const first = vi.fn();
     const second = vi.fn();
