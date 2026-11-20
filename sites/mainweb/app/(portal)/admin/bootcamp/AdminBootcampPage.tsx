@@ -1,15 +1,15 @@
 "use client";
 
 import { venueFormat } from "@/lib/venue-time";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { DialogLoading } from "@/components/portal/DialogLoading";
 import { useSession } from "next-auth/react";
 import { Check, Copy, Mail } from "lucide-react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { BootcampMaterialsTable } from "@/components/portal/BootcampMaterialsTable";
 import type { BootcampMaterialRow } from "@/components/portal/BootcampMaterialsTable";
-import { BootcampWorkshopModal } from "@/components/portal/BootcampWorkshopModal";
 import type { BootcampWorkshopFormData } from "@/components/portal/BootcampWorkshopModal";
-import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
 import { useEventQR } from "@/components/portal/EventQR";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
@@ -120,8 +120,23 @@ function CohortEmails({ emails }: { emails: string[] }) {
   );
 }
 
+// The workshop and attendance dialogs open only on a click, so they load then.
+// The browser fetches them once the page settles, so the click finds them ready.
+const loadWorkshopModal = () => import("@/components/portal/BootcampWorkshopModal").then((m) => m.BootcampWorkshopModal);
+const BootcampWorkshopModal = dynamic(loadWorkshopModal, { loading: () => <DialogLoading /> });
+const loadAttendanceModal = () => import("@/components/portal/EventAttendanceModal").then((m) => m.EventAttendanceModal);
+const EventAttendanceModal = dynamic(loadAttendanceModal, { loading: () => <DialogLoading /> });
+const preloadModals = () => {
+  void loadWorkshopModal();
+  void loadAttendanceModal();
+};
+
 export default function AdminBootcampPage() {
   const { data: session, status } = useSession();
+  useEffect(() => {
+    const id = window.setTimeout(preloadModals, 1000);
+    return () => window.clearTimeout(id);
+  }, []);
   const [term, setTerm] = useState<string | undefined>(undefined);
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState<BootcampMaterialRow | null>(null);
