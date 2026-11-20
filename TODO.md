@@ -1,12 +1,9 @@
 # TODO
 
-Open items as of 2026-09-06. Delete a line when it is done.
+Open items as of 2026-11-19. Delete a line when it is done.
 
 ## Deploy
 
-- [ ] **Roll out.** The last successful rollout predates the pnpm 10 revert, the
-      resume error handling, and the p99 work below. Everything here is
-      committed but not live.
 - [ ] **Point Prometheus at production.** `METRICS_TOKEN` now exists in Secret
       Manager and is wired into `apphosting.yaml`, so `/api/metrics` answers
       after the next rollout. Read the value with
@@ -16,11 +13,14 @@ Open items as of 2026-09-06. Delete a line when it is done.
 
 ## p99
 
-- [ ] **Decide on `minInstances`.** Held at 0 deliberately: one always-warm
-      instance at `cpu: 2` / 1 GiB is roughly $30-50/month. The boot-time pool
-      warmup in `sites/mainweb/instrumentation.ts` shortens a cold start; only
-      min-instances removes it. Revisit if the scrape shows cold starts
-      dominating the tail.
+- [ ] **Decide on `minInstances` and Neon's suspend delay before Hacklytics.**
+      Held until then on purpose (decided 2026-11-19). `/status` now records
+      p99, and the worst buckets (0.8 to 1.3 s p95) line up with Neon waking
+      after 5 idle minutes, not with cold starts: `/api/ping`, which never
+      touches the database, stays at 300 to 550 ms. A longer suspend delay on a
+      paid Neon plan is the cheapest fix; `minInstances: 1` (roughly
+      $30-50/month at `cpu: 2` / 1 GiB) and `DB_POOL_MIN` (keeps Neon awake)
+      cost more.
 - [ ] **Read the histogram before optimising further.** `dsgt_trpc_duration_seconds`
       is bucketed for the tail. Everything below is a guess until it is scraped.
 - [ ] **Stripe reconcile N+1** (`routers/stripe.ts`, `reconcileMyPayments`).
