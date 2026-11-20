@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 interface ModalProps {
   children: ReactNode;
@@ -69,32 +69,25 @@ export function Modal({
     };
   }, []);
 
-  // Only the edges need help: between controls the browser's own Tab order is
-  // right. Wrapping at the first and last keeps focus inside the dialog, the
-  // backdrop's close button included. Handled on this element, not the
-  // document, so a dialog opened over another traps only its own controls.
-  const onTab = (e: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== "Tab") return;
+  // Tab must not walk out to the page behind. A guard sits at each end of the
+  // dialog: the browser's own Tab order reaches one only when focus is about
+  // to leave, so a disabled or radio-group last control is covered too, and
+  // the guard hands focus to the other end. Each dialog has its own guards,
+  // so one opened over another wraps only within itself.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const wrapTo = (end: "first" | "last") => () => {
     const controls = [
-      ...e.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE),
-    ].filter((el) => !el.closest("[hidden], [inert]"));
-    if (controls.length === 0) return;
-    const first = controls[0];
-    const last = controls[controls.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
+      ...(rootRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []),
+    ].filter((el) => !el.closest("[hidden], [inert], [data-focus-guard]"));
+    (end === "first" ? controls[0] : controls[controls.length - 1])?.focus();
   };
 
   return (
     <div
-      onKeyDown={onTab}
+      ref={rootRef}
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
     >
+      <span data-focus-guard tabIndex={0} onFocus={wrapTo("last")} />
       {/* A real button, so closing by backdrop is reachable from the keyboard
           too rather than being mouse-only. */}
       <button
@@ -113,6 +106,7 @@ export function Modal({
       >
         {children}
       </div>
+      <span data-focus-guard tabIndex={0} onFocus={wrapTo("first")} />
     </div>
   );
 }
