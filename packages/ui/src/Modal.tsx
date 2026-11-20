@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { ReactNode } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 
 interface ModalProps {
   children: ReactNode;
@@ -10,6 +10,9 @@ interface ModalProps {
   /** Names the dialog for screen readers when the content has no heading. */
   label?: string;
 }
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 const maxWidthClasses = {
   sm: "max-w-sm",
@@ -21,8 +24,9 @@ const maxWidthClasses = {
 
 /**
  * The dialog behaviour people expect lives here: Escape closes it, focus moves
- * inside and comes back on close, the page behind stops scrolling, and a
- * screen reader is told a dialog opened rather than reading it as more page
+ * inside and comes back on close, Tab cycles through the dialog's own controls
+ * instead of walking out to the page behind it, the page stops scrolling, and
+ * a screen reader is told a dialog opened rather than reading it as more page
  * content.
  */
 export function Modal({
@@ -65,8 +69,32 @@ export function Modal({
     };
   }, []);
 
+  // Only the edges need help: between controls the browser's own Tab order is
+  // right. Wrapping at the first and last keeps focus inside the dialog, the
+  // backdrop's close button included. Handled on this element, not the
+  // document, so a dialog opened over another traps only its own controls.
+  const onTab = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Tab") return;
+    const controls = [
+      ...e.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE),
+    ].filter((el) => !el.closest("[hidden], [inert]"));
+    if (controls.length === 0) return;
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div
+      onKeyDown={onTab}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+    >
       {/* A real button, so closing by backdrop is reachable from the keyboard
           too rather than being mouse-only. */}
       <button
