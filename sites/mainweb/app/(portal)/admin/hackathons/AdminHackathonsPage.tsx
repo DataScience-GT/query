@@ -7,17 +7,32 @@ import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { adminHackathonPath } from "@/lib/hackathon-slug";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { Alert } from "@query/ui/Alert";
 import { Skeleton } from "@query/ui/Skeleton";
-import { body, btnPrimary, btnSecondary, pageDek } from "@query/ui/classes";
+import { body, btnPrimary, btnSecondary, meta, pageDek } from "@query/ui/classes";
 
 // Extracted Components
 
 import { HackathonCard } from "@/components/admin/hackathons/HackathonCard";
-import { CreateHackathonForm } from "@/components/admin/hackathons/CreateHackathonForm";
-import { EditHackathonForm } from "@/components/admin/hackathons/EditHackathonForm";
 import { HackathonBans } from "@/components/admin/hackathons/HackathonBans";
+
+// The create and edit forms open only on a click, so they load then. The
+// browser fetches them once the page settles, so the click finds them ready.
+// The wait shows in the page, where the create form will appear and where the
+// edit form shows its own loading line.
+function FormLoading() {
+  return <p className={`mt-6 ${meta}`}>Loading…</p>;
+}
+const loadCreateForm = () => import("@/components/admin/hackathons/CreateHackathonForm").then((m) => m.CreateHackathonForm);
+const CreateHackathonForm = dynamic(loadCreateForm, { loading: FormLoading });
+const loadEditForm = () => import("@/components/admin/hackathons/EditHackathonForm").then((m) => m.EditHackathonForm);
+const EditHackathonForm = dynamic(loadEditForm, { loading: FormLoading });
+const preloadForms = () => {
+  void loadCreateForm();
+  void loadEditForm();
+};
 
 const adminTitle =
   "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text-primary)]";
@@ -30,6 +45,11 @@ export default function AdminHackathonsPage() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = window.setTimeout(preloadForms, 1000);
+    return () => window.clearTimeout(id);
+  }, []);
 
   const {
     data: hackathons,
