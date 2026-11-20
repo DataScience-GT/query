@@ -23,9 +23,6 @@ Open items as of 2026-11-19. Delete a line when it is done.
       cost more.
 - [ ] **Read the histogram before optimising further.** `dsgt_trpc_duration_seconds`
       is bucketed for the tail. Everything below is a guess until it is scraped.
-- [ ] **Stripe reconcile N+1** (`routers/stripe.ts`, `reconcileMyPayments`).
-      One `stripePayments` lookup per intent, bounded at 20, on a user-triggered
-      backstop — low value, and the surrounding grant logic is delicate.
 - [ ] **Metrics are per-instance.** In-memory registry, `maxInstances: 10`,
       scale to zero: a scrape samples one instance and counters reset when it
       dies. Fleet-wide numbers need aggregation.
