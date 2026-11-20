@@ -9,11 +9,10 @@ import {
   usePortalContext,
   useReadOnly,
 } from "@/lib/use-portal-context";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEventQR } from "@/components/portal/EventQR";
-import { EventFormModal } from "@/components/portal/EventFormModal";
-import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
 import { Skeleton } from "@query/ui/Skeleton";
 import {
   body,
@@ -49,8 +48,24 @@ type Event = {
   maxCheckIns: number | null;
 };
 
+// The event form and attendance dialogs open only on a click, so they load
+// then. The browser fetches them once the page settles, so the click finds
+// them ready.
+const loadEventForm = () => import("@/components/portal/EventFormModal").then((m) => m.EventFormModal);
+const EventFormModal = dynamic(loadEventForm);
+const loadAttendanceModal = () => import("@/components/portal/EventAttendanceModal").then((m) => m.EventAttendanceModal);
+const EventAttendanceModal = dynamic(loadAttendanceModal);
+const preloadModals = () => {
+  void loadEventForm();
+  void loadAttendanceModal();
+};
+
 export default function AdminPage() {
   const { data: session } = useSession();
+  useEffect(() => {
+    const id = window.setTimeout(preloadModals, 1000);
+    return () => window.clearTimeout(id);
+  }, []);
   const utils = trpc.useUtils();
 
   const [showCreateEvent, setShowCreateEvent] = useState(false);
