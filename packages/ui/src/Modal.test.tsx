@@ -113,6 +113,56 @@ describe("Modal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("wraps Tab from the last control back to the first", () => {
+    render(
+      <Modal onClose={() => undefined}>
+        <input aria-label="Name" />
+        <button type="button">Save</button>
+      </Modal>,
+    );
+    const save = screen.getByRole("button", { name: "Save" });
+    save.focus();
+
+    fireEvent.keyDown(save, { key: "Tab" });
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Close dialog" }),
+    );
+  });
+
+  it("wraps Shift+Tab from the first control to the last", () => {
+    render(
+      <Modal onClose={() => undefined}>
+        <input aria-label="Name" />
+        <button type="button">Save</button>
+      </Modal>,
+    );
+    const close = screen.getByRole("button", { name: "Close dialog" });
+    close.focus();
+
+    fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Save" }),
+    );
+  });
+
+  it("leaves Tab alone between controls in the middle", () => {
+    render(
+      <Modal onClose={() => undefined}>
+        <input aria-label="Name" />
+        <button type="button">Save</button>
+      </Modal>,
+    );
+    const field = screen.getByLabelText("Name");
+    field.focus();
+
+    const allowed = fireEvent.keyDown(field, { key: "Tab" });
+
+    expect(allowed).toBe(true);
+    expect(document.activeElement).toBe(field);
+  });
+
   it("keeps focus where it is and uses the newest onClose when the handler changes", () => {
     const first = vi.fn();
     const second = vi.fn();
