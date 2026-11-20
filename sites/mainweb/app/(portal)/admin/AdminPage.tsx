@@ -11,6 +11,7 @@ import {
 } from "@/lib/use-portal-context";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { DialogLoading } from "@/components/portal/DialogLoading";
 import Link from "next/link";
 import { useEventQR } from "@/components/portal/EventQR";
 import { Skeleton } from "@query/ui/Skeleton";
@@ -52,9 +53,9 @@ type Event = {
 // then. The browser fetches them once the page settles, so the click finds
 // them ready.
 const loadEventForm = () => import("@/components/portal/EventFormModal").then((m) => m.EventFormModal);
-const EventFormModal = dynamic(loadEventForm);
+const EventFormModal = dynamic(loadEventForm, { loading: () => <DialogLoading /> });
 const loadAttendanceModal = () => import("@/components/portal/EventAttendanceModal").then((m) => m.EventAttendanceModal);
-const EventAttendanceModal = dynamic(loadAttendanceModal);
+const EventAttendanceModal = dynamic(loadAttendanceModal, { loading: () => <DialogLoading /> });
 const preloadModals = () => {
   void loadEventForm();
   void loadAttendanceModal();

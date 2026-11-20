@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { DialogLoading } from "@/components/portal/DialogLoading";
 import { trpc } from "@/lib/trpc";
 import { canViewAdmin, usePortalContext } from "@/lib/use-portal-context";
 import {
@@ -20,7 +21,7 @@ import { EventOptions } from "@/components/portal/EventOptions";
 
 // Only staff open the attendance list, from the metrics, so it loads then.
 const loadAttendanceModal = () => import("@/components/portal/EventAttendanceModal").then((m) => m.EventAttendanceModal);
-const EventAttendanceModal = dynamic(loadAttendanceModal);
+const EventAttendanceModal = dynamic(loadAttendanceModal, { loading: () => <DialogLoading /> });
 
 /** Staff pages carry a smaller headline than member pages. */
 const adminTitle =

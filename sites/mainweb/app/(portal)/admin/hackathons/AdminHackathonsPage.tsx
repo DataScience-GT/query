@@ -9,6 +9,7 @@ import { adminHackathonPath } from "@/lib/hackathon-slug";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { DialogLoading } from "@/components/portal/DialogLoading";
 import { Alert } from "@query/ui/Alert";
 import { Skeleton } from "@query/ui/Skeleton";
 import { body, btnPrimary, btnSecondary, pageDek } from "@query/ui/classes";
@@ -21,9 +22,9 @@ import { HackathonBans } from "@/components/admin/hackathons/HackathonBans";
 // The create and edit forms open only on a click, so they load then. The
 // browser fetches them once the page settles, so the click finds them ready.
 const loadCreateForm = () => import("@/components/admin/hackathons/CreateHackathonForm").then((m) => m.CreateHackathonForm);
-const CreateHackathonForm = dynamic(loadCreateForm);
+const CreateHackathonForm = dynamic(loadCreateForm, { loading: () => <DialogLoading /> });
 const loadEditForm = () => import("@/components/admin/hackathons/EditHackathonForm").then((m) => m.EditHackathonForm);
-const EditHackathonForm = dynamic(loadEditForm);
+const EditHackathonForm = dynamic(loadEditForm, { loading: () => <DialogLoading /> });
 const preloadForms = () => {
   void loadCreateForm();
   void loadEditForm();

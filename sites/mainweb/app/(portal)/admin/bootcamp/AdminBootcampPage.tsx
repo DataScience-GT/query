@@ -3,6 +3,7 @@
 import { venueFormat } from "@/lib/venue-time";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { DialogLoading } from "@/components/portal/DialogLoading";
 import { useSession } from "next-auth/react";
 import { Check, Copy, Mail } from "lucide-react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
@@ -122,9 +123,9 @@ function CohortEmails({ emails }: { emails: string[] }) {
 // The workshop and attendance dialogs open only on a click, so they load then.
 // The browser fetches them once the page settles, so the click finds them ready.
 const loadWorkshopModal = () => import("@/components/portal/BootcampWorkshopModal").then((m) => m.BootcampWorkshopModal);
-const BootcampWorkshopModal = dynamic(loadWorkshopModal);
+const BootcampWorkshopModal = dynamic(loadWorkshopModal, { loading: () => <DialogLoading /> });
 const loadAttendanceModal = () => import("@/components/portal/EventAttendanceModal").then((m) => m.EventAttendanceModal);
-const EventAttendanceModal = dynamic(loadAttendanceModal);
+const EventAttendanceModal = dynamic(loadAttendanceModal, { loading: () => <DialogLoading /> });
 const preloadModals = () => {
   void loadWorkshopModal();
   void loadAttendanceModal();
