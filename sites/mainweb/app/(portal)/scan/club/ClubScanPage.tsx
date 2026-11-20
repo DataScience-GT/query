@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { DialogLoading } from "@/components/portal/DialogLoading";
 import { trpc } from "@/lib/trpc";
 import { canViewAdmin, usePortalContext } from "@/lib/use-portal-context";
 import {
@@ -15,8 +17,11 @@ import {
 import { ScanAccess } from "@/components/portal/ScanAccess";
 import { ClubScannerTab } from "@/components/portal/ClubScannerTab";
 import { ClubAttendanceMetrics } from "@/components/portal/ClubAttendanceMetrics";
-import { EventAttendanceModal } from "@/components/portal/EventAttendanceModal";
 import { EventOptions } from "@/components/portal/EventOptions";
+
+// Only staff open the attendance list, from the metrics, so it loads then.
+const loadAttendanceModal = () => import("@/components/portal/EventAttendanceModal").then((m) => m.EventAttendanceModal);
+const EventAttendanceModal = dynamic(loadAttendanceModal, { loading: () => <DialogLoading /> });
 
 /** Staff pages carry a smaller headline than member pages. */
 const adminTitle =
@@ -42,6 +47,11 @@ export default function ClubScanPage() {
   // Staff and read-only bug testers; the server refuses volunteers either way.
   const canViewMetrics = canViewAdmin(portalContext);
   const scannerOpen = scannerToggle ?? !canViewMetrics;
+  useEffect(() => {
+    if (!canViewMetrics) return;
+    const id = window.setTimeout(() => void loadAttendanceModal(), 1000);
+    return () => window.clearTimeout(id);
+  }, [canViewMetrics]);
 
   const { data: clubEvents } = trpc.events.list.useQuery(undefined, {
     enabled: !!portalContext?.isScanner,
