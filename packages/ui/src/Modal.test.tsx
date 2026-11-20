@@ -113,54 +113,64 @@ describe("Modal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("wraps Tab from the last control back to the first", () => {
+  // jsdom has no Tab order, so these focus the guard the browser's Tab would
+  // reach next, which is what happens when focus is about to leave.
+  function guards() {
+    const [start, end] = document.querySelectorAll<HTMLElement>(
+      "[data-focus-guard]",
+    );
+    return { start, end };
+  }
+
+  it("wraps Tab past the last control back to the first", () => {
     render(
       <Modal onClose={() => undefined}>
         <input aria-label="Name" />
         <button type="button">Save</button>
       </Modal>,
     );
-    const save = screen.getByRole("button", { name: "Save" });
-    save.focus();
 
-    fireEvent.keyDown(save, { key: "Tab" });
+    guards().end.focus();
 
     expect(document.activeElement).toBe(
       screen.getByRole("button", { name: "Close dialog" }),
     );
   });
 
-  it("wraps Shift+Tab from the first control to the last", () => {
+  it("wraps Shift+Tab before the first control to the last", () => {
     render(
       <Modal onClose={() => undefined}>
         <input aria-label="Name" />
         <button type="button">Save</button>
       </Modal>,
     );
-    const close = screen.getByRole("button", { name: "Close dialog" });
-    close.focus();
 
-    fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
+    guards().start.focus();
 
     expect(document.activeElement).toBe(
       screen.getByRole("button", { name: "Save" }),
     );
   });
 
-  it("leaves Tab alone between controls in the middle", () => {
+  it("still wraps when the last button is disabled while saving", () => {
     render(
       <Modal onClose={() => undefined}>
         <input aria-label="Name" />
-        <button type="button">Save</button>
+        <button type="button">Cancel</button>
+        <button type="button" disabled>
+          Saving…
+        </button>
       </Modal>,
     );
-    const field = screen.getByLabelText("Name");
-    field.focus();
 
-    const allowed = fireEvent.keyDown(field, { key: "Tab" });
-
-    expect(allowed).toBe(true);
-    expect(document.activeElement).toBe(field);
+    guards().start.focus();
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Cancel" }),
+    );
+    guards().end.focus();
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Close dialog" }),
+    );
   });
 
   it("keeps focus where it is and uses the newest onClose when the handler changes", () => {
