@@ -181,15 +181,15 @@ export default function SettingsPage() {
     // The club member profile: school, major, skills, interests, socials. The
     // columns and the procedures existed with no screen behind them.
     { id: "membership", label: "Membership", desc: "Status, school and links" },
-    { id: "appearance", label: "Appearance", desc: "Paper or night" },
+    { id: "appearance", label: "Appearance", desc: "Light or dark" },
     { id: "account", label: "Account", desc: "Google sign-in and sign out" },
   ] as const;
 
-  // Each swatch sets its own theme class so it is drawn with that edition's
-  // tokens, whichever edition the page is in.
+  // Each swatch sets its own theme class so it is drawn with that theme's
+  // tokens, whichever theme the page is in.
   const themes = [
-    { id: "light", name: "Paper", desc: "Bone ground, near-black ink", scope: "light" },
-    { id: "dark", name: "Night", desc: "Deep ground, soft ink", scope: "dark" },
+    { id: "light", name: "Light", desc: "Light ground, dark text", scope: "light" },
+    { id: "dark", name: "Dark", desc: "Dark ground, light text", scope: "dark" },
   ] as const;
 
   return (
@@ -410,7 +410,7 @@ export default function SettingsPage() {
               <div>
                 <h2 className={sectionTitle}>Appearance</h2>
                 <p className={`${body} mt-2`}>
-                  Choose the edition the portal is printed in.
+                  Choose how the portal looks.
                 </p>
               </div>
 
