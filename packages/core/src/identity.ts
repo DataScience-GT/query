@@ -1,5 +1,11 @@
-export const ORG_NAME = "Data Science @ Georgia Tech";
+export const ORG_NAME = "Data Science at Georgia Tech";
 export const ORG_NAME_SPOKEN = "Data Science at Georgia Tech";
+
+/** The club name for logos and short mentions. */
+export const ORG_SHORT = "DS@GT";
+
+/** Shown beside the member count on the home and history pages. */
+export const VERIFIED_MEMBERS_LABEL = "550+";
 export const ORG_TAGLINE =
   "The largest student-run data science organization at Georgia Tech.";
 

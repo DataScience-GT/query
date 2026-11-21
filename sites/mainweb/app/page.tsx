@@ -18,10 +18,19 @@ import { loadClubProjects } from "@/lib/club-projects.server";
 import { splitByDay } from "@/lib/public-events";
 
 import { startOfEasternDay } from "@query/api/eastern-time";
-import { HACKLYTICS_URL } from "@query/core";
+import { HACKLYTICS_URL, VERIFIED_MEMBERS_LABEL } from "@query/core";
 import { currentTerm } from "@query/db/services/membership";
 
-export const metadata: Metadata = { alternates: { canonical: "/" } };
+export const metadata: Metadata = {
+  description:
+    "DS@GT is the largest student-run data science organization at Georgia Tech: a weekly bootcamp, club projects, and Hacklytics, our annual datathon.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "DS@GT | Data Science at Georgia Tech",
+    description:
+      "The largest student-run data science organization at Georgia Tech: a weekly bootcamp, club projects, and Hacklytics.",
+  },
+};
 
 export const revalidate = 300;
 
@@ -57,13 +66,13 @@ export default async function HomePage() {
         className="relative z-10 scroll-mt-20 pt-16 pb-12 md:scroll-mt-0 md:pt-24 md:pb-20"
       >
         <div className="mx-auto max-w-7xl px-6 lg:px-12">
-          <h2 className="max-w-5xl text-3xl leading-[1.05] font-bold tracking-tighter text-white sm:text-4xl md:text-5xl lg:text-6xl">
+          <h2 className="max-w-5xl text-5xl leading-[1.05] font-bold tracking-tighter text-white md:text-6xl">
             Learn it in the bootcamp. Build it in a club project. Ship it at
             Hacklytics.
           </h2>
           <Image
             src={squad}
-            alt="DSGT Executive Board"
+            alt="DS@GT executive board"
             className="mt-10 h-64 w-full rounded-lg object-cover object-[50%_40%] sm:h-80 md:mt-14 lg:h-[28rem]"
             sizes="(min-width: 1280px) 1184px, 100vw"
             placeholder="blur"
@@ -94,18 +103,18 @@ export default async function HomePage() {
       {/* STATS SECTION */}
       <Section
         id="stats"
-        className="glass-section relative z-10 border-y border-white/5 py-14 md:py-20"
+        className="relative z-10 border-y border-white/5 py-14 md:py-20"
       >
         <div className="mx-auto max-w-7xl px-6 lg:px-12">
-          <div className="mb-8 space-y-3 text-center md:mb-12">
-            <h2 className="text-4xl leading-none font-bold tracking-tight text-white md:text-5xl">
+          <div className="mb-8 space-y-3 md:mb-12">
+            <h2 className="text-5xl leading-none font-bold tracking-tighter text-white md:text-6xl">
               Our club.
             </h2>
             <p className="text-dsgt-teal font-mono text-xs tracking-[0.4em] uppercase">
-              550+ Verified Members
+              {VERIFIED_MEMBERS_LABEL} Verified Members
             </p>
           </div>
-          <div className="mx-auto grid max-w-5xl gap-12 lg:grid-cols-2 lg:gap-16">
+          <div className="grid max-w-5xl gap-12 lg:grid-cols-2 lg:gap-16">
             <ShareBar title="Class year" shares={classYears} />
             <ShareBar title="Major" shares={majors} />
           </div>
@@ -158,7 +167,7 @@ export default async function HomePage() {
       >
         <Image
           src={slide6}
-          alt="Hacklytics 2024 attendees under the balloon sign"
+          alt="Hacklytics attendees under the balloon sign"
           fill
           sizes="100vw"
           className="-z-10 object-cover object-[50%_25%]"
@@ -231,8 +240,8 @@ export default async function HomePage() {
       >
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-6 lg:grid-cols-[3fr_2fr] lg:gap-20 lg:px-12">
           <div>
-            <h2 className="text-5xl leading-none font-bold tracking-tighter text-white md:text-7xl">
-              Join DSGT.
+            <h2 className="text-5xl leading-none font-bold tracking-tighter text-white md:text-6xl">
+              Join DS@GT.
             </h2>
             <p className="mt-5 max-w-md text-lg leading-relaxed text-gray-300">
               Make an account to get weekly updates, sign up for the bootcamp,
@@ -242,7 +251,7 @@ export default async function HomePage() {
               href="/login"
               className="bg-dsgt-teal mt-8 inline-flex min-h-14 w-full items-center justify-center rounded-sm px-12 text-sm font-bold tracking-widest text-black uppercase transition-colors hover:bg-white sm:w-auto"
             >
-              Join DSGT
+              Join DS@GT
             </Link>
             <ul className="mt-12 max-w-md divide-y divide-white/10 border-y border-white/10">
               {[
@@ -283,7 +292,7 @@ export default async function HomePage() {
           </div>
           <Image
             src={slide1}
-            alt="Members working on laptops at a DSGT workshop"
+            alt="Members working on laptops at a DS@GT workshop"
             className="h-56 w-full rounded-lg object-cover sm:h-72 lg:h-[30rem]"
             sizes="(min-width: 1024px) 480px, 100vw"
             placeholder="blur"
