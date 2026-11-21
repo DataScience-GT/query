@@ -1,9 +1,9 @@
 /**
- * Class strings for the member portal's "club newsletter" look, so every page
+ * Class strings for the member portal's look, so every page
  * draws buttons, fields and headings the same way. Colours come from the
  * tokens in portal.css; nothing here hardcodes a hue.
  *
- * - Headlines are Newsreader (--font-display); everything else is the UI face.
+ * - Headlines are bold Geist with tight tracking, as on the public site.
  * - One accent: the next action, and "you are here". Not decoration.
  * - Group with space and hairline rules first. A bordered box is for an object
  *   you could hold (a pass, a listing), never for a section.
@@ -11,7 +11,7 @@
 
 /** Page headline. One per page, sentence case. */
 export const pageTitle =
-  "font-[family-name:var(--font-display)] text-[40px] md:text-[56px] font-semibold leading-[1.02] tracking-[-0.025em] text-[var(--text-primary)] text-balance";
+  "font-[family-name:var(--font-display)] text-[40px] md:text-[56px] font-bold leading-[1.02] tracking-tighter text-[var(--text-primary)] text-balance";
 
 /** The dek under a page headline. */
 export const pageDek =
@@ -22,11 +22,11 @@ export const kicker = "text-[13px] font-semibold text-accent";
 
 /** Section heading inside a page. */
 export const sectionTitle =
-  "font-[family-name:var(--font-display)] text-[28px] font-semibold leading-tight tracking-[-0.015em] text-[var(--text-primary)]";
+  "font-[family-name:var(--font-display)] text-[28px] font-bold leading-tight tracking-tighter text-[var(--text-primary)]";
 
-/** Smaller serif heading for an item in a list or a column. */
+/** Smaller heading for an item in a list or a column. */
 export const itemTitle =
-  "font-[family-name:var(--font-display)] text-[22px] font-semibold leading-snug tracking-[-0.01em] text-[var(--text-primary)]";
+  "font-[family-name:var(--font-display)] text-[22px] font-bold leading-snug tracking-tight text-[var(--text-primary)]";
 
 /** Quiet label above a group or column. Sentence case, not caps. */
 export const label = "text-[13px] font-medium text-[var(--text-subtle)]";
