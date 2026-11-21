@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import { Alert } from "@query/ui/Alert";
 import {
   ApplicationChip,
   InitiativeChip,
@@ -536,9 +537,18 @@ export default function InitiativesPage() {
       </header>
 
       {loadError && (
-        <p className={`${errorText} mt-6`}>
-          {loadError.message} Refresh the page to try again.
-        </p>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <Alert size={14}>{loadError.message}</Alert>
+          <button
+            type="button"
+            onClick={() => {
+              void Promise.all([open.refetch(), mine.refetch(), proposals.refetch()]);
+            }}
+            className={btnSecondary}
+          >
+            Retry
+          </button>
+        </div>
       )}
 
       <section className="mt-10">
