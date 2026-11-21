@@ -8,7 +8,6 @@ import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { Alert } from "@query/ui/Alert";
 import {
   btnPrimary,
-  mastRule,
   pageDek,
   pageTitle,
   textLink,
@@ -206,19 +205,9 @@ function VerifyContent() {
   };
 
   return (
-    <main className="min-h-screen flex items-start md:items-center px-5 sm:px-8">
+    <main className="min-h-[calc(100vh-4rem)] flex items-start md:items-center px-5 sm:px-8">
       <div className="mx-auto w-full max-w-lg py-10 md:py-16">
-        <div className={`flex items-center gap-3 ${mastRule}`}>
-          <img
-            src="/images/dsgt/apple-touch-icon.png"
-            alt=""
-            className="h-8 w-8 shrink-0 object-contain"
-          />
-          <p className="text-[13px] font-semibold text-[var(--text-primary)]">
-            DS@GT
-          </p>
-        </div>
-        <h1 className={`mt-10 ${pageTitle}`}>Check your email</h1>
+        <h1 className={pageTitle}>Check your email</h1>
         {email ? (
           <p className={pageDek}>
             We sent a 6-digit code to
