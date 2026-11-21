@@ -14,5 +14,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE}/events`, changeFrequency: "weekly", priority: 0.6 },
     { url: `${SITE}/bootcamp`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE}/history`, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE}/status`, changeFrequency: "daily", priority: 0.3 },
   ];
 }
