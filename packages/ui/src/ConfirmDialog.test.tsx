@@ -52,6 +52,17 @@ describe("confirmDialog", () => {
     return answer;
   }
 
+  it("names the button after a known action verb, else Confirm", async () => {
+    render(<ConfirmHost />);
+    void ask("Delete Room 101?");
+    expect(screen.getByRole("button", { name: "Delete" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await act(async () => {});
+
+    void ask("Are you sure?");
+    expect(screen.getByRole("button", { name: "Confirm" })).toBeTruthy();
+  });
+
   it("resolves true when confirmed", async () => {
     render(<ConfirmHost />);
     const answer = ask({ body: "Remove Sam?", confirmLabel: "Remove" });

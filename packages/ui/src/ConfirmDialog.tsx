@@ -65,6 +65,15 @@ const DANGER_VERBS = new Set([
   "turn",
   "end",
 ]);
+const DEFAULT_VERBS = new Set([
+  "accept",
+  "admit",
+  "approve",
+  "issue",
+  "mark",
+  "publish",
+  "reload",
+]);
 const LABELS: Record<string, string> = {
   take: "Remove",
   turn: "Turn on",
@@ -72,10 +81,11 @@ const LABELS: Record<string, string> = {
   lift: "Lift ban",
 };
 
-/** A bare message names the action in its first word; reuse it as the button. */
+/** A bare message that starts with a known action verb reuses it as the button; anything else reads "Confirm". */
 function fromMessage(message: string): ConfirmOptions {
   const verb = (message.split(/\s/, 1)[0] ?? "").toLowerCase();
-  const word = /^[a-z]{3,}$/.test(verb)
+  const known = DANGER_VERBS.has(verb) || DEFAULT_VERBS.has(verb);
+  const word = known
     ? verb.charAt(0).toUpperCase() + verb.slice(1)
     : "Confirm";
   return {
