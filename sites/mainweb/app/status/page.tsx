@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import Section from "@/components/Section";
+import PublicPage, { SectionHeading } from "@/components/PublicPage";
 import {
   DayTable,
   HoursTable,
@@ -24,7 +22,14 @@ import AutoRefresh from "./AutoRefresh";
 import { loadStatus } from "./load";
 import { loadUptime } from "./uptime";
 
-export const metadata: Metadata = { title: "Status" };
+const DESCRIPTION =
+  "Live uptime and response times for the DS@GT website, read from real traffic and an outside check.";
+
+export const metadata: Metadata = {
+  title: "Status",
+  description: DESCRIPTION,
+  openGraph: { title: "Status | DS@GT", description: DESCRIPTION },
+};
 
 /**
  * Uptime and latency from real traffic.
@@ -41,12 +46,20 @@ const LEVELS: Record<
   { label: string; color: string; Icon: typeof CircleCheck }
 > = {
   operational: { label: "Operational", color: "#00a8a8", Icon: CircleCheck },
-  degraded: { label: "Degraded", color: "#e0a030", Icon: TriangleAlert },
-  down: { label: "Down", color: "#e5484d", Icon: CircleX },
+  degraded: { label: "Degraded", color: "#d1d5db", Icon: TriangleAlert },
+  down: { label: "Down", color: "#f87171", Icon: CircleX },
 };
 
 const pct = (value: number | null) =>
   value === null ? "No data" : `${value.toFixed(value >= 99.995 ? 0 : 2)}%`;
+
+const sinceLabel = (day: string) =>
+  new Date(`${day}T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 
 export default async function StatusPage() {
   const [data, uptime] = await Promise.all([loadStatus(), loadUptime()]);
@@ -56,135 +69,119 @@ export default async function StatusPage() {
   const lastT = data.generatedAt - (data.generatedAt % BUCKET_MS);
   const uptime90 = uptimePercent(data.days);
   const uptime30 = uptimePercent(data.days.slice(-30));
+  const firstDay = data.days.find((d) => d.minutesWithData > 0)?.day;
   const windows = uptime ? uptimeWindows(uptime, data.generatedAt) : null;
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-white">
+    <PublicPage
+      eyebrow="Status"
+      title="System status"
+      lede="Uptime and response times for this site, read from real traffic."
+      action={
+        <div aria-live="polite" className="space-y-3">
+          <p
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#0a0a0a] px-4 py-2 text-sm font-semibold"
+            style={{ color }}
+          >
+            <Icon strokeWidth={2.25} className="size-4 shrink-0" aria-hidden />
+            {label}
+          </p>
+          {level !== "operational" && (
+            <p className="text-gray-300">{reason}</p>
+          )}
+        </div>
+      }
+    >
       <AutoRefresh />
-      <Navbar />
-      <main className="pt-20">
-        <Section className="py-32">
-          <div className="max-w-4xl mx-auto px-6">
-            <h1 className="mb-3 text-lg font-semibold text-gray-300">Status</h1>
-
-            <div
-              className="flex items-center gap-4 sm:gap-6"
-              aria-live="polite"
-            >
-              <Icon
-                strokeWidth={2.25}
-                color={color}
-                className="size-12 shrink-0 sm:size-20"
-                aria-hidden
-              />
-              <p
-                className="text-5xl font-black tracking-tighter sm:text-8xl"
-                style={{ color }}
-              >
-                {label}
-              </p>
-            </div>
-            {level !== "operational" && (
-              <p className="mt-3 text-gray-300">{reason}</p>
-            )}
-
-            <section className="mt-20" aria-labelledby="uptime-heading">
-              <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 mb-5">
-                <h2 id="uptime-heading" className="text-xl font-bold">
-                  Uptime, last 90 days
-                </h2>
-                <p className="flex gap-8 tabular-nums">
-                  <span>
-                    <span className="block text-3xl font-black leading-none">
-                      {pct(uptime90)}
-                    </span>
-                    <span className="mt-1 block text-xs text-gray-400">
-                      90 days
-                    </span>
-                  </span>
-                  <span>
-                    <span className="block text-3xl font-black leading-none">
-                      {pct(uptime30)}
-                    </span>
-                    <span className="mt-1 block text-xs text-gray-400">
-                      30 days
-                    </span>
-                  </span>
-                </p>
-              </div>
-              <UptimeStrip days={data.days} />
-              <div className="mt-2 flex justify-between text-xs text-gray-400">
-                <span>90 days ago</span>
-                <span>Today</span>
-              </div>
-              <div className="mt-4">
-                <UptimeLegend />
-              </div>
-              <DayTable days={data.days} />
-            </section>
-
-            {uptime && windows && (
-              <section className="mt-20" aria-labelledby="outside-heading">
-                <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 mb-5">
-                  <h2 id="outside-heading" className="text-xl font-bold">
-                    Outside check, last 90 days
-                  </h2>
-                  <p className="flex gap-8 tabular-nums">
-                    {(
-                      [
-                        [windows.d90, "90 days"],
-                        [windows.d30, "30 days"],
-                        [windows.h24, "24 hours"],
-                      ] as const
-                    ).map(([value, name]) => (
-                      <span key={name}>
-                        <span className="block text-3xl font-black leading-none">
-                          {pct(value)}
-                        </span>
-                        <span className="mt-1 block text-xs text-gray-400">
-                          {name}
-                        </span>
-                      </span>
-                    ))}
-                  </p>
-                </div>
-                <UptimeStrip days={probeDays(uptime, data.generatedAt)} probe />
-                <div className="mt-2 flex justify-between text-xs text-gray-400">
-                  <span>90 days ago</span>
-                  <span>Today</span>
-                </div>
-              </section>
-            )}
-
-            <section className="mt-20" aria-labelledby="latency-heading">
-              <h2 id="latency-heading" className="mb-4 text-xl font-bold">
-                Response time, last 24 hours
-              </h2>
-              <LatencyChart hours={data.hours} lastT={lastT} />
-            </section>
-
-            <section className="mt-20" aria-labelledby="traffic-heading">
-              <h2 id="traffic-heading" className="mb-4 text-xl font-bold">
-                Requests and errors, last 24 hours
-              </h2>
-              <RequestsChart hours={data.hours} lastT={lastT} />
-              <div className="mt-3">
-                <RequestsLegend />
-              </div>
-              <HoursTable hours={data.hours} lastT={lastT} />
-            </section>
-
-            {!data.historyOk && (
-              <p className="mt-14 max-w-2xl border-t border-white/5 pt-6 text-sm text-gray-500 leading-relaxed">
-                The history could not be read just now, so the charts are empty.
-                This is a limit of the status page and says nothing about
-                earlier uptime.
-              </p>
-            )}
+      <div className="max-w-4xl space-y-24">
+        <section aria-labelledby="uptime-heading">
+          <SectionHeading id="uptime-heading">
+            Uptime, last 90 days
+          </SectionHeading>
+          <p className="mb-5 flex gap-8 tabular-nums">
+            <span>
+              <span className="block text-3xl leading-none font-black text-white">
+                {pct(uptime90)}
+              </span>
+              <span className="mt-1 block text-xs text-gray-400">
+                {firstDay ? `90 days, since ${sinceLabel(firstDay)}` : "90 days"}
+              </span>
+            </span>
+            <span>
+              <span className="block text-3xl leading-none font-black text-white">
+                {pct(uptime30)}
+              </span>
+              <span className="mt-1 block text-xs text-gray-400">30 days</span>
+            </span>
+          </p>
+          <UptimeStrip days={data.days} />
+          <div className="mt-2 flex justify-between text-xs text-gray-400">
+            <span>90 days ago</span>
+            <span>Today</span>
           </div>
-        </Section>
-      </main>
-      <Footer />
-    </div>
+          <div className="mt-4">
+            <UptimeLegend />
+          </div>
+          <DayTable days={data.days} />
+        </section>
+
+        {uptime && windows && (
+          <section aria-labelledby="outside-heading">
+            <SectionHeading id="outside-heading">
+              Outside check, last 90 days
+            </SectionHeading>
+            <p className="mb-5 flex gap-8 tabular-nums">
+              {(
+                [
+                  [windows.d90, "90 days"],
+                  [windows.d30, "30 days"],
+                  [windows.h24, "24 hours"],
+                ] as const
+              ).map(([value, name]) => (
+                <span key={name}>
+                  <span className="block text-3xl leading-none font-black text-white">
+                    {pct(value)}
+                  </span>
+                  <span className="mt-1 block text-xs text-gray-400">
+                    {name}
+                  </span>
+                </span>
+              ))}
+            </p>
+            <UptimeStrip days={probeDays(uptime, data.generatedAt)} probe />
+            <div className="mt-2 flex justify-between text-xs text-gray-400">
+              <span>90 days ago</span>
+              <span>Today</span>
+            </div>
+          </section>
+        )}
+
+        <section aria-labelledby="latency-heading">
+          <SectionHeading id="latency-heading">
+            Response time, last 24 hours
+          </SectionHeading>
+          <LatencyChart hours={data.hours} lastT={lastT} />
+        </section>
+
+        <section aria-labelledby="traffic-heading">
+          <SectionHeading id="traffic-heading">
+            Requests and errors, last 24 hours
+          </SectionHeading>
+          <RequestsChart hours={data.hours} lastT={lastT} />
+          <div className="mt-3">
+            <RequestsLegend />
+          </div>
+          <HoursTable hours={data.hours} lastT={lastT} />
+        </section>
+
+        {!data.historyOk && (
+          <p className="max-w-2xl border-t border-white/5 pt-6 text-sm leading-relaxed text-gray-400">
+            The history could not be read just now, so the charts are empty.
+            This is a limit of the status page and says nothing about earlier
+            uptime.
+          </p>
+        )}
+      </div>
+    </PublicPage>
   );
 }
