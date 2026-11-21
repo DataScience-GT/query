@@ -253,21 +253,48 @@ export function StripePaymentModal({
   const { resolvedTheme } = useTheme();
   const isLight = resolvedTheme === "light";
 
-  const options: StripeElementsOptions = useMemo(
-    () => ({
+  // Stripe draws inside an iframe that cannot read CSS variables, so these are
+  // the portal tokens (portal.css) for the active theme, written out.
+  const options: StripeElementsOptions = useMemo(() => {
+    const c = isLight
+      ? {
+          accent: "#00797A",
+          card: "#FBFCFC",
+          input: "#FFFFFF",
+          text: "#0A0A0A",
+          muted: "#4B5563",
+          subtle: "#5B6471",
+          border: "rgba(10,10,10,0.18)",
+          danger: "#B42318",
+          ring: "rgba(0,168,168,0.18)",
+          tabOn: "rgba(0,168,168,0.08)",
+        }
+      : {
+          accent: "#00A8A8",
+          card: "#0A0A0A",
+          input: "#111111",
+          text: "#FFFFFF",
+          muted: "#9CA3AF",
+          subtle: "#8B93A0",
+          border: "rgba(255,255,255,0.14)",
+          danger: "#F87171",
+          ring: "rgba(0,168,168,0.25)",
+          tabOn: "rgba(0,168,168,0.12)",
+        };
+    return {
       clientSecret,
       appearance: {
         theme: isLight ? "stripe" : "night",
         variables: {
-          colorPrimary: isLight ? "#007a7a" : "#00A8A8",
-          colorBackground: isLight ? "#ffffff" : "#121212",
-          colorText: isLight ? "#09090b" : "#ededed",
-          colorTextSecondary: isLight ? "#71717a" : "#a1a1aa",
-          colorDanger: "#ef4444",
-          fontFamily: "'Inter', 'Geist Sans', system-ui, sans-serif",
+          colorPrimary: c.accent,
+          colorBackground: c.card,
+          colorText: c.text,
+          colorTextSecondary: c.muted,
+          colorDanger: c.danger,
+          fontFamily: "'Geist Sans', 'Inter', system-ui, sans-serif",
           borderRadius: "4px",
           spacingUnit: "4px",
-          colorIconCardError: "#ef4444",
+          colorIconCardError: c.danger,
         },
         rules: {
           /**
@@ -279,45 +306,40 @@ export function StripePaymentModal({
            * and unreadable once you clicked into a field.
            */
           ".Input": {
-            border: isLight ? "1px solid #e4e4e7" : "1px solid #2e2e2e",
-            backgroundColor: isLight ? "#f9fafb" : "#0a0a0a",
-            color: isLight ? "#09090b" : "#ffffff",
+            border: `1px solid ${c.border}`,
+            backgroundColor: c.input,
+            color: c.text,
             boxShadow: "none",
           },
           ".Input:focus": {
-            border: isLight ? "1px solid #007a7a" : "1px solid #00A8A8",
-            backgroundColor: isLight ? "#ffffff" : "#0a0a0a",
-            color: isLight ? "#09090b" : "#ffffff",
-            boxShadow: isLight
-              ? "0 0 0 2px rgba(0,122,122,0.12)"
-              : "0 0 0 2px rgba(0,168,168,0.15)",
+            border: `1px solid ${c.accent}`,
+            backgroundColor: c.input,
+            color: c.text,
+            boxShadow: `0 0 0 2px ${c.ring}`,
           },
           ".Input--invalid": {
-            color: isLight ? "#09090b" : "#ffffff",
+            color: c.text,
           },
           ".Input::placeholder": {
-            color: isLight ? "#a1a1aa" : "#6b6b6b",
+            color: c.subtle,
           },
           ".Label": {
             fontWeight: "500",
             fontSize: "13px",
-            color: isLight ? "#71717a" : "#a1a1a1",
+            color: c.muted,
           },
           ".Tab": {
-            border: isLight ? "1px solid #e4e4e7" : "1px solid #2e2e2e",
-            backgroundColor: isLight ? "#ffffff" : "#121212",
+            border: `1px solid ${c.border}`,
+            backgroundColor: c.card,
           },
           ".Tab--selected": {
-            border: isLight ? "1px solid #007a7a" : "1px solid #00A8A8",
-            backgroundColor: isLight
-              ? "rgba(0,122,122,0.06)"
-              : "rgba(0,168,168,0.08)",
+            border: `1px solid ${c.accent}`,
+            backgroundColor: c.tabOn,
           },
         },
       },
-    }),
-    [clientSecret, isLight],
-  );
+    } satisfies StripeElementsOptions;
+  }, [clientSecret, isLight]);
 
   // Early returns must stay below every hook call so the hook order is stable.
   // Mock mode — skip real Stripe Elements
@@ -425,7 +447,7 @@ function ModalShell({
         {/* Header */}
         <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-[var(--border-subtle)]">
           <div>
-            <p className={itemTitle}>DSGT membership</p>
+            <p className={itemTitle}>DS@GT membership</p>
             <p className={`mt-0.5 ${meta}`}>
               {formatCents(amountCents)} · Secure checkout
             </p>

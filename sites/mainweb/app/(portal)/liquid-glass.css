@@ -14,42 +14,6 @@ body:has(.portal-type),
   box-sizing: border-box;
 }
 
-/* ===== AMBIENT BACKGROUND (CLEAN & MINIMALIST) ===== */
-.glass-bg {
-  display: none;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
-}
-
-.shimmer {
-  background: linear-gradient(
-    90deg,
-    var(--border-subtle) 25%,
-    var(--border-medium) 37%,
-    var(--border-subtle) 63%
-  );
-  background-size: 400% 100%;
-  animation: shimmer 1.4s ease infinite;
-}
-.pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -105,7 +69,6 @@ a {
   color: var(--text-primary);
 }
 
-
 .light input:focus,
 .light textarea:focus,
 .light select:focus {
@@ -118,32 +81,9 @@ a {
   box-shadow: var(--shadow-md);
 }
 
-/* ===== COMMON GROUND INSPIRATION STYLES ===== */
-
-.font-bebas {
-  font-family: var(--font-bebas), sans-serif;
-}
-
 .font-oswald {
   font-family: var(--font-oswald), sans-serif;
 }
-
-.font-barlow {
-  font-family: var(--font-barlow), sans-serif;
-}
-
-.font-cormorant {
-  font-family: var(--font-cormorant), serif;
-}
-
-.font-sora {
-  font-family: var(--font-sora), sans-serif;
-}
-
-.font-teko {
-  font-family: var(--font-teko), sans-serif;
-}
-
 
 /* ===== HACKLYTICS (the public /hacklytics page) =====
    The page people reach from hacklytics.io, so it wears that site's look,
@@ -168,18 +108,16 @@ a {
   --border-hover: #5a625c;
   --border-accent: #ff4f8b;
   --accent: #ff4f8b;
-  --accent-primary: #ff4f8b;
   --accent-secondary: #ff6a9d;
   --accent-hover: #ff6a9d;
   --accent-dim: rgba(255, 79, 139, 0.12);
-  /* The ground is always dark here, so the states take the night edition's
-     values whichever theme the portal is in; the paper ones fall to 3:1. */
+  /* The ground is always dark here, so the states take the dark values
+     whichever theme the portal is in; the light ones fall to 3:1. */
   --success: #7CC79A;
-  --success-glow: rgba(124, 199, 154, 0.12);
-  --warning: #E2B865;
-  --warning-glow: rgba(226, 184, 101, 0.12);
-  --danger: #F08C82;
-  --danger-glow: rgba(240, 140, 130, 0.12);
+  --warning: #FDA4AF;
+  --warning-glow: rgba(253, 164, 175, 0.12);
+  --danger: #F87171;
+  --danger-glow: rgba(248, 113, 113, 0.12);
   --font-display: var(--font-hl-pixel), ui-monospace, monospace;
   --font-ui: var(--font-hl-sans), ui-sans-serif, system-ui, sans-serif;
   color-scheme: dark;
@@ -189,8 +127,8 @@ a {
   font-family: var(--font-ui);
 }
 
-/* Pixel glyphs carry their own spacing; the serif's negative tracking would
-   run them together. */
+/* Pixel glyphs carry their own spacing; the portal headings' negative tracking
+   would run them together. */
 .hl-theme h1,
 .hl-theme h2,
 .hl-theme h3 {

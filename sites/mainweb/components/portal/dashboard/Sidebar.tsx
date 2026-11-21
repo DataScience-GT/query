@@ -46,7 +46,7 @@ export function Sidebar({
       {/* User Profile Header */}
       <div className="flex items-center gap-5 border-b border-[var(--border-subtle)] pb-8 mb-8">
         <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-accent to-blue-600 rounded-sm opacity-50 blur group-hover:opacity-75 transition duration-1000 group-hover:duration-200" />
+          <div className="absolute -inset-0.5 bg-accent rounded-sm opacity-50 blur group-hover:opacity-75 transition duration-1000 group-hover:duration-200" />
           <Image
             src={user.image || "/avatar-placeholder.png"}
             alt="Avatar"
