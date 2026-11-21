@@ -191,7 +191,7 @@ export default function JudgeRegisterPage() {
           <h1 className={pageTitle}>Application received</h1>
           {/* judge.setActive sends the approval email on the transition. */}
           <p className={pageDek}>
-            An organiser will review it. You&apos;ll get an email once
+            An organizer will review it. You&apos;ll get an email once
             you&apos;re approved.
           </p>
           <Link href="/judge" className={`mt-8 ${btnPrimary}`}>
@@ -218,8 +218,8 @@ export default function JudgeRegisterPage() {
           <p className={pageDek}>
             {application
               ? application.approved
-                ? "An organiser approved your application. Open your edition on judging day."
-                : `An organiser will review your application to judge ${selectedHackathon.name}. You'll get an email once you're approved.`
+                ? "An organizer approved your application. Open your edition on judging day."
+                : `An organizer will review your application to judge ${selectedHackathon.name}. You'll get an email once you're approved.`
               : "People registered as participants can't judge the same event."}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -327,7 +327,7 @@ export default function JudgeRegisterPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <FormInput
-                label="Company or organisation"
+                label="Company or organization"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="Acme Corp"
