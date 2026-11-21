@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import Section from "@/components/Section";
+import PublicPage from "@/components/PublicPage";
 
 export const metadata: Metadata = {
   title: "History",
@@ -13,43 +11,37 @@ const YEARS = [
   { year: "2021-2022", note: "First major sponsorship partnerships secured." },
   { year: "2022-2023", note: "Expanded to include AI/ML workshops." },
   { year: "2023-2024", note: "Record-breaking member growth." },
+  { year: "2024-2025", note: "Innovation and community building." },
   {
-    year: "2024-2025",
-    note: "Current era of innovation and community building.",
+    year: "2025-2026",
+    note: "Hacklytics 2026, February 20-22. The member portal opens for dues, event check-in, and judging.",
   },
-  { year: "Future", note: "Building toward Hacklytics 2027 and beyond." },
+  {
+    year: "2026-2027",
+    note: "550+ verified members, a weekly Python bootcamp, and member-run club projects.",
+  },
+  { year: "Next", note: "Building toward Hacklytics 2027 and beyond." },
 ];
 
 export default function HistoryPage() {
   return (
-    <div className="relative min-h-screen bg-[#050505] text-white">
-      <Navbar page="history" />
-      <main className="pt-20">
-        <Section className="py-24 sm:py-32">
-          <div className="max-w-4xl mx-auto px-6">
-            <h1 className="text-5xl font-bold tracking-tighter sm:text-6xl">
-              History
-            </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-gray-300">
-              Five years of DSGT, one school year at a time.
-            </p>
-            <ol className="mt-16 border-t border-white/10">
-              {YEARS.map(({ year, note }) => (
-                <li
-                  key={year}
-                  className="grid gap-x-12 gap-y-1 border-b border-white/10 py-8 sm:grid-cols-[11rem_1fr] sm:items-baseline"
-                >
-                  <h2 className="font-mono text-sm uppercase tracking-[0.2em] text-dsgt-teal">
-                    {year}
-                  </h2>
-                  <p className="text-xl leading-snug text-gray-200">{note}</p>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </Section>
-      </main>
-      <Footer />
-    </div>
+    <PublicPage
+      title="History"
+      lede="DSGT since 2020, one school year at a time."
+    >
+      <ol className="max-w-4xl border-t border-white/10">
+        {YEARS.map(({ year, note }) => (
+          <li
+            key={year}
+            className="grid gap-x-12 gap-y-1 border-b border-white/10 py-8 sm:grid-cols-[11rem_1fr] sm:items-baseline"
+          >
+            <h2 className="text-dsgt-teal font-mono text-sm tracking-[0.2em] uppercase">
+              {year}
+            </h2>
+            <p className="text-xl leading-snug text-gray-200">{note}</p>
+          </li>
+        ))}
+      </ol>
+    </PublicPage>
   );
 }

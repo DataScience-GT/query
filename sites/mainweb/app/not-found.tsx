@@ -8,7 +8,6 @@ export default function NotFound() {
     <div className="relative min-h-screen flex flex-col bg-[#050505] text-gray-400 font-sans selection:bg-indigo-500/30">
       <Navbar
         className="fixed top-0 left-0 w-full z-30 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md"
-        page="other"
       />
 
       <main className="relative z-10 flex-grow pt-40 pb-32 flex items-center justify-center px-6">
