@@ -9,9 +9,7 @@ Not part of the build: the output is committed, so CI needs no Python.
 Rerun when:
 - a page starts using a weight that has no file. Geist Sans has 400, 500, 600,
   700 and 900, Geist Mono 400 to 700, Silkscreen 700, and a browser picks the
-  nearest. New italic Newsreader needs its italic file adding back: there is
-  none, so the browser would slant it.
-- a font-display element goes below 18px: opsz stops there.
+  nearest.
 - --check reports a character outside the core, or one no font file has. New
   copy can do that: add it to `used` below, or accept the extended download.
 - an OpenType feature in use changes (`features`).
@@ -59,7 +57,6 @@ FEATURES = ["calt", "ccmp", "clig", "kern", "liga", "mark", "mkmk", "rlig", "rvr
 
 SCOPES = {
     "root": SITE / "app" / "fonts.generated.css",
-    "portal": SITE / "app" / "(portal)" / "fonts.generated.css",
     "hacklytics": SITE / "app" / "(portal)" / "hacklytics" / "fonts.generated.css",
 }
 
@@ -124,46 +121,6 @@ FONTS = [
         stack='"GeistMono", ui-monospace, SFMono-Regular, Roboto Mono, Menlo, Monaco, Liberation Mono, DejaVu Sans Mono, Courier New, monospace',
     ),
     {
-        "key": "schibsted-grotesk",
-        "scope": "portal",
-        "family": "Schibsted Grotesk",
-        "css_var": "--font-schibsted",
-        "stack": '"Schibsted Grotesk", "Schibsted Grotesk Fallback"',
-        "source": "SchibstedGrotesk[wght].ttf",
-        "url": f"{UPSTREAM}/cc054e5ee906ac9b9024971b64d821aa2561c582/ofl/schibstedgrotesk",
-        "sha256": "6ceeadf6be8e1fd7687011c7fa38ed0edd1abe967a0b73d97caec183552e823d",
-        # The whole axis. Narrowing to 700 saves 1.8 KB but moves 58 advances.
-        "axes": None,
-        "weights": ["font-weight:400 900"],
-        "checks": [{"wght": w} for w in (400, 500, 600, 700)],
-        "used": {0xB7, 0x2193},
-        # In the font, but in no subset Google serves, so a system font draws
-        # them today. Adding them would redraw every back link.
-        "exclude": {0x2190, 0x2192},
-        "fallback": "src:local(Arial);ascent-override:93.46%;descent-override:24.67%;line-gap-override:0.0%;size-adjust:104.49%",
-    },
-    {
-        "key": "newsreader",
-        "scope": "portal",
-        "family": "Newsreader",
-        "css_var": "--font-newsreader",
-        "stack": '"Newsreader", "Newsreader Fallback"',
-        "source": "Newsreader[opsz,wght].ttf",
-        "url": f"{UPSTREAM}/991ce1de6075188e6b8977a5aa9fcd3610a4e946/ofl/newsreader",
-        "sha256": "8a08d13f8a6c0d51be379a60af84f945f65369a67e509ee3c3bdcc421254d7c1",
-        # Headlines are 600 and the submit error screen is 700, but the range
-        # keeps the 400 master: 600-700 saves 3.6 KB and moves 1719 advances.
-        # opsz follows the font size, and the smallest headline is 18px.
-        "axes": {"wght": (400, 800), "opsz": (18, 72)},
-        "weights": ["font-weight:400 800"],
-        "checks": [
-            {"wght": w, "opsz": o}
-            for w, o in itertools.product((600, 700), (18, 20, 22, 26, 28, 32, 36, 40, 56, 72))
-        ],
-        "used": set(),
-        "fallback": "src:local(Times New Roman);ascent-override:69.68%;descent-override:25.12%;line-gap-override:0.0%;size-adjust:105.48%",
-    },
-    {
         "key": "instrument-sans",
         "scope": "hacklytics",
         "family": "Instrument Sans",
@@ -178,7 +135,7 @@ FONTS = [
         "checks": [{"wght": w} for w in (400, 500, 600, 700)],
         "pin_in_source": {"wdth": 100},
         "used": set(),
-        "exclude": {0x2190, 0x2192},  # As Schibsted Grotesk.
+        "exclude": {0x2190, 0x2192},  # Left to a system font.
         "fallback": "src:local(Arial);ascent-override:94.42%;descent-override:24.33%;line-gap-override:0.0%;size-adjust:102.74%",
     },
     {
