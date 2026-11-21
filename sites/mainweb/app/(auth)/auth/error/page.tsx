@@ -33,7 +33,7 @@ function AuthErrorContent() {
     (error && errorMessages[error]) || errorMessages.Default;
 
   return (
-    <main className="min-h-screen flex items-center px-5 sm:px-8">
+    <main className="min-h-[calc(100vh-4rem)] flex items-center px-5 sm:px-8">
       <div className="mx-auto w-full max-w-lg py-16">
         <p className={kicker}>Sign-in</p>
         <h1 className={`mt-2 ${pageTitle}`}>{title}</h1>
