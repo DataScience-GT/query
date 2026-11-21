@@ -21,6 +21,7 @@ const MENU_ITEMS = [
   { name: "Hacklytics", to: "/hacklytics" },
   { name: "Team", to: "/team" },
   { name: "History", to: "/history" },
+  { name: "Status", to: "/status" },
 ];
 
 export default function Navbar({ className = "" }: NavbarProps) {
