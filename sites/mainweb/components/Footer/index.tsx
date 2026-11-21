@@ -21,11 +21,11 @@ const Footer = ({ className = "" }: FooterProps) => {
             <div className="group flex items-center gap-3">
               <Image
                 src={logo}
-                alt="DSGT Logo"
+                alt="DS@GT logo"
                 className="shadow-dsgt-teal/10 h-8 w-8 rounded shadow-lg transition-transform group-hover:rotate-12"
               />
               <span className="text-xl font-bold tracking-tighter text-white uppercase">
-                DSGT
+                DS@GT
               </span>
             </div>
             <p className="max-w-[240px] text-sm leading-relaxed text-gray-400">
@@ -35,9 +35,9 @@ const Footer = ({ className = "" }: FooterProps) => {
 
           {/* NAVIGATION COLUMN */}
           <div className="flex flex-col space-y-4">
-            <h2 className="font-mono text-[10px] font-bold tracking-[0.3em] text-white uppercase">
+            <p className="font-mono text-[11px] font-bold tracking-[0.3em] text-white uppercase">
               Navigation
-            </h2>
+            </p>
             <nav className="flex flex-col space-y-2 text-sm font-medium">
               <Link
                 href="/bootcamp"
@@ -57,12 +57,14 @@ const Footer = ({ className = "" }: FooterProps) => {
               >
                 Events
               </Link>
-              <Link
+              <a
                 href={HACKLYTICS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
               >
                 Hacklytics
-              </Link>
+              </a>
               <Link
                 href="/team"
                 className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
@@ -86,9 +88,9 @@ const Footer = ({ className = "" }: FooterProps) => {
 
           {/* SOCIAL COLUMN */}
           <div className="flex flex-col space-y-4">
-            <h2 className="font-mono text-[10px] font-bold tracking-[0.3em] text-white uppercase">
+            <p className="font-mono text-[11px] font-bold tracking-[0.3em] text-white uppercase">
               Network
-            </h2>
+            </p>
             <nav className="flex flex-col space-y-2 text-sm font-medium">
               <a
                 href={SOCIAL_LINKS.github}

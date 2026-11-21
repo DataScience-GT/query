@@ -10,7 +10,14 @@ import { db, events } from "@query/db";
 
 export const metadata: Metadata = {
   title: "Events",
+  description:
+    "Upcoming DS meetings, workshops and talks at Georgia Tech, open to members.",
   alternates: { canonical: "/events" },
+  openGraph: {
+    title: "Events | DS@GT",
+    description:
+      "Upcoming DS meetings, workshops and talks at Georgia Tech, open to members.",
+  },
 };
 
 /**
@@ -147,7 +154,7 @@ export default async function EventsPage() {
       title="Club events"
       lede={
         <>
-          Meetings, workshops and talks open to DSGT members. The weekly
+          Meetings, workshops and talks open to DS@GT members. The weekly
           bootcamp sessions are on the{" "}
           <Link
             href="/bootcamp"

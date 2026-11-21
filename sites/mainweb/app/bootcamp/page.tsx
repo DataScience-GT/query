@@ -24,7 +24,14 @@ import { currentTerm } from "@query/db/services/membership";
 
 export const metadata: Metadata = {
   title: "Bootcamp",
+  description:
+    "The DS bootcamp: weekly Python and data science sessions at Georgia Tech, with the schedule, location and how to join.",
   alternates: { canonical: "/bootcamp" },
+  openGraph: {
+    title: "Bootcamp | DS@GT",
+    description:
+      "The DS bootcamp: weekly Python and data science sessions at Georgia Tech, with the schedule, location and how to join.",
+  },
 };
 
 /**
@@ -178,7 +185,7 @@ export default async function BootcampPage() {
           </h2>
           <p className="mt-4 max-w-xl leading-relaxed text-gray-300">
             The bootcamp is a {formatCents(BOOTCAMP_ADDON_CENTS)} add-on to a
-            DSGT membership and covers one semester. Sign in to the portal to
+            DS@GT membership and covers one semester. Sign in to the portal to
             add it, or become a member first.
           </p>
           <Link

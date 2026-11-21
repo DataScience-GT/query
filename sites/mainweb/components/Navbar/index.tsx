@@ -87,13 +87,13 @@ export default function Navbar({ className = "" }: NavbarProps) {
             >
               <Image
                 src={logo}
-                alt="DSGT Logo"
+                alt="DS@GT logo"
                 className="h-8 w-auto transition-transform duration-500 group-hover:rotate-[360deg]"
                 width={32}
                 height={32}
               />
               <span className="text-xl font-bold tracking-tighter text-white uppercase">
-                DSGT
+                DS@GT
               </span>
             </Link>
           </div>

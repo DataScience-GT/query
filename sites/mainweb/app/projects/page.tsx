@@ -9,7 +9,14 @@ import { CONTACT_EMAIL } from "@query/core";
 
 export const metadata: Metadata = {
   title: "Projects",
+  description:
+    "Club projects DS members are building this term, and the past projects they shipped.",
   alternates: { canonical: "/projects" },
+  openGraph: {
+    title: "Projects | DS@GT",
+    description:
+      "Club projects DS members are building this term, and the past projects they shipped.",
+  },
 };
 
 export const revalidate = 300;
@@ -23,7 +30,7 @@ export default async function ProjectsPage() {
   return (
     <PublicPage
       title="Club projects"
-      lede="What DSGT members are building right now. Apply through the portal, or take one of the projects that still needs a lead."
+      lede="What DS@GT members are building right now. Apply through the portal, or take one of the projects that still needs a lead."
       action={
         <a
           href={INTEREST_FORM_URL}
