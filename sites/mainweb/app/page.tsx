@@ -18,6 +18,7 @@ import { loadClubProjects } from "@/lib/club-projects.server";
 import { splitByDay } from "@/lib/public-events";
 
 import { startOfEasternDay } from "@query/api/eastern-time";
+import { HACKLYTICS_URL } from "@query/core";
 import { currentTerm } from "@query/db/services/membership";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
@@ -175,7 +176,7 @@ export default async function HomePage() {
               students, a weekend of data science challenges and workshops.
             </p>
             <Link
-              href="/hacklytics"
+              href={HACKLYTICS_URL}
               className="hover:text-dsgt-teal hover:border-dsgt-teal inline-flex min-h-11 items-center border-b border-white/40 pb-1 font-mono text-xs tracking-[0.2em] text-white uppercase transition-colors md:min-h-0"
             >
               About Hacklytics →
@@ -251,7 +252,7 @@ export default async function HomePage() {
                   note: "Join the executive board.",
                 },
                 {
-                  href: "/hacklytics",
+                  href: HACKLYTICS_URL,
                   title: "Attend Hacklytics",
                   note: "Our 36-hour flagship datathon.",
                 },

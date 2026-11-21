@@ -12,6 +12,9 @@ export const SOCIAL_LINKS = {
   instagram: "https://www.instagram.com/datasciencegt/",
 } as const;
 
+/** Hacklytics, the club's datathon, has its own site. */
+export const HACKLYTICS_URL = "https://hacklytics.io";
+
 /** The short form used in event copy and bylines. */
 export const ORG_NAME_SHORT = "Data Science @ GT";
 

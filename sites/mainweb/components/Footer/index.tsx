@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import logo from "@/assets/images/dsgt/apple-touch-icon.png";
 
-import { CONTACT_EMAIL, SOCIAL_LINKS } from "@query/core";
+import { CONTACT_EMAIL, HACKLYTICS_URL, SOCIAL_LINKS } from "@query/core";
 
 interface FooterProps {
   className?: string;
@@ -58,7 +58,7 @@ const Footer = ({ className = "" }: FooterProps) => {
                 Events
               </Link>
               <Link
-                href="/hacklytics"
+                href={HACKLYTICS_URL}
                 className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
               >
                 Hacklytics

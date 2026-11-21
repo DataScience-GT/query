@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { HACKLYTICS_URL } from "@query/core";
 
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
 
@@ -16,9 +17,7 @@ const MENU_ITEMS = [
   { name: "Bootcamp", to: "/bootcamp" },
   { name: "Projects", to: "/projects" },
   { name: "Events", to: "/events" },
-  // The public announcement page, not /hackathons — that one is the
-  // signed-in participant's list and answers a stranger with a login screen.
-  { name: "Hacklytics", to: "/hacklytics" },
+  { name: "Hacklytics", to: HACKLYTICS_URL },
   { name: "Team", to: "/team" },
   { name: "History", to: "/history" },
   { name: "Status", to: "/status" },
