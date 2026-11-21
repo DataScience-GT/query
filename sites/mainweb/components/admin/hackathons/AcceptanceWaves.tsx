@@ -13,6 +13,7 @@ import {
   sectionTitle,
 } from "@query/ui/classes";
 import { MASS_EMAIL_BATCH } from "@query/api/email-limits";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 /**
  * Accept applicants in numbered waves: take the oldest N pending, approve them,
@@ -46,7 +47,7 @@ export function AcceptanceWaves({ hackathonId }: { hackathonId: string }) {
   const runWave = async () => {
     if (!validSize || willTake === 0) return;
     if (
-      !window.confirm(
+      !await confirmDialog(
         `Accept the ${willTake} oldest pending application(s) as wave ${status?.nextWave ?? 1} and email them?\n\nAcceptance emails cannot be unsent.`,
       )
     )

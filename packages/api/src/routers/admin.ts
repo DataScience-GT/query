@@ -476,6 +476,17 @@ export const adminRouter = createTRPCRouter({
           message: "Cannot deactivate your own admin account",
         });
       }
+      if (
+        targetAdmin.userId === ctx.userId &&
+        input.role !== undefined &&
+        input.role !== targetAdmin.role
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Cannot change your own role. Ask another super admin to do it.",
+        });
+      }
 
       // Only a super admin can hand the role back out, so losing the last one
       // locks the org out of admin management with no in-app recovery. Demoting

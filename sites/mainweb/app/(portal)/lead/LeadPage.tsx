@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import { Alert } from "@query/ui/Alert";
 import {
   InitiativeChip,
   initiativeState,
@@ -277,11 +278,23 @@ export default function LeadPage() {
             ? "This page is for project leaders"
             : "Your projects did not load"}
         </h1>
-        <p className={pageDek}>
-          {forbidden
-            ? "Pitch a project from the projects page. If it is approved, you lead it and manage it here."
-            : `${listing.error.message} Refresh the page to try again.`}
-        </p>
+        {forbidden ? (
+          <p className={pageDek}>
+            Pitch a project from the projects page. If it is approved, you lead
+            it and manage it here.
+          </p>
+        ) : (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <Alert>{listing.error.message}</Alert>
+            <button
+              type="button"
+              onClick={() => void listing.refetch()}
+              className={btnSecondary}
+            >
+              Retry
+            </button>
+          </div>
+        )}
         <Link href="/initiatives" className={`${textLink} mt-6`}>
           Browse projects instead
         </Link>

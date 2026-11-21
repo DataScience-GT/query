@@ -25,6 +25,7 @@ import {
   textLink,
 } from "@query/ui/classes";
 import { FormInput } from "@query/ui/FormInput";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 /**
  * The judge roster for one edition: who applied, who is approved, adding a
@@ -270,9 +271,9 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                             ? "Only a super admin can remove a judge. Suspend them instead."
                             : undefined
                       }
-                      onClick={() => {
+                      onClick={async () => {
                         if (
-                          !window.confirm(
+                          !await confirmDialog(
                             `Remove ${name} from this edition's judges? Their application is deleted.`,
                           )
                         )

@@ -15,6 +15,7 @@ import {
   sectionTitle,
 } from "@query/ui/classes";
 import { FormInput } from "@query/ui/FormInput";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 /**
  * People barred from hackathons. A ban stops registering, the interest list,
@@ -75,11 +76,11 @@ export function HackathonBans() {
 
       <form
         className="mt-6 grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-[1fr_1.4fr_auto] sm:items-end"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
           if (!canBan) return;
           if (
-            !window.confirm(
+            !await confirmDialog(
               `Ban ${email.trim()} from all hackathons? They will be refused at registration, teams and submission.`,
             )
           )
@@ -167,9 +168,9 @@ export function HackathonBans() {
                   type="button"
                   disabled={readOnly || lift.isPending}
                   title={readOnly ? READ_ONLY_TITLE : undefined}
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      window.confirm(`Lift the hackathon ban for ${b.email}?`)
+                      await confirmDialog(`Lift the hackathon ban for ${b.email}?`)
                     ) {
                       lift.mutate({ email: b.email });
                     }
