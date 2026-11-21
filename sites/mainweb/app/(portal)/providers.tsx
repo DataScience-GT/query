@@ -12,6 +12,7 @@ import { useState } from "react";
 import superjson from "superjson";
 import { trpc } from "@/lib/trpc";
 import { createAppQueryClient } from "@/lib/query-client";
+import { ConfirmHost } from "@query/ui/ConfirmDialog";
 import { AppThemeProvider } from "@/components/portal/AppThemeProvider";
 
 export function Providers({
@@ -42,6 +43,7 @@ export function Providers({
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
           <QueryClientProvider client={queryClient}>
             <HydrationBoundary state={state}>{children}</HydrationBoundary>
+            <ConfirmHost />
           </QueryClientProvider>
         </trpc.Provider>
       </SessionProvider>

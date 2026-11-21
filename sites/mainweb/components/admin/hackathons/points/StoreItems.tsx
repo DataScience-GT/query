@@ -23,6 +23,7 @@ import { FormInput } from "@query/ui/FormInput";
 import { FormTextarea } from "@query/ui/FormTextarea";
 import { pointsLabel } from "@/components/hackathon/points/format";
 import { Checkbox } from "@query/ui/Checkbox";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 type Item = RouterOutputs["points"]["store"]["items"][number];
 
@@ -462,9 +463,9 @@ export function StoreItems({ hackathonId }: { hackathonId: string }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       if (
-                        !window.confirm(
+                        !await confirmDialog(
                           `Delete ${item.name}? This cannot be undone. Items that have sold can only be archived.`,
                         )
                       )

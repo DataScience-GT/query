@@ -32,6 +32,7 @@ import {
   useRefreshJudging,
 } from "@/components/admin/judging/shared";
 import type { Challenge, Overview } from "@/components/admin/judging/shared";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 type Mode = Challenge["mode"];
 
@@ -168,8 +169,8 @@ export function ChallengesSection({
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (!window.confirm(`Delete ${c.label}?`)) return;
+              onClick={async () => {
+                if (!await confirmDialog(`Delete ${c.label}?`)) return;
                 remove.mutate({ challengeId: c.id });
               }}
               disabled={readOnly || inUse || remove.isPending}

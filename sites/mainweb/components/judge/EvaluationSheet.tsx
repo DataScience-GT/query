@@ -37,6 +37,7 @@ import { useDraftAutosave } from "./use-draft-autosave";
 import type { SaveStatus } from "./use-draft-autosave";
 import { useScreenWake } from "./use-screen-wake";
 import { useServerNow } from "./use-server-now";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 const MAX_RESPONSE = 2000;
 
@@ -755,9 +756,9 @@ function EvaluationForm({
                   <button
                     type="button"
                     className={`${textLink} min-h-11`}
-                    onClick={() => {
+                    onClick={async () => {
                       if (
-                        !window.confirm(
+                        !await confirmDialog(
                           "Reload the saved answers? Anything on this screen that has not saved will be lost.",
                         )
                       ) {

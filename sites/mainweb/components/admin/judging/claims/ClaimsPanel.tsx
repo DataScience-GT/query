@@ -19,6 +19,7 @@ import {
 } from "@query/ui/classes";
 import type { Tone } from "@query/ui/classes";
 import { eventMoment } from "@/components/hackathon/judging/event-time";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 /** Delays a fast-changing value so it can drive a query without firing one per
  *  keystroke. */
@@ -119,11 +120,11 @@ export function ClaimsPanel({ hackathonId }: { hackathonId: string }) {
   const linksClosed = linksExpireAt.getTime() <= overview.dataUpdatedAt;
   const nextBatch = Math.min(5, summary.unsent);
 
-  const sendNext = () => {
+  const sendNext = async () => {
     // The first email locks the project list for good; say so once.
     if (
       !claimsStartedAt &&
-      !window.confirm(
+      !await confirmDialog(
         "Sending the first claim emails locks the project list: Devpost imports can only add projects from now on. Send them?",
       )
     ) {
