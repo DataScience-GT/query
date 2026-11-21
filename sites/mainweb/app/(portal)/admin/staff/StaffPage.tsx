@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { isStaffRole } from "@query/api/portal-context";
 import { Alert } from "@query/ui/Alert";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 import {
   body,
   btnDanger,
@@ -75,6 +77,8 @@ const termDate = (value: string | Date) =>
 export default function StaffPage() {
   const utils = trpc.useUtils();
   const { data: portalContext, isLoading: contextLoading } = usePortalContext();
+  const { data: session } = useSession();
+  const myUserId = session?.user?.id;
 
   const [email, setEmail] = useState("");
   const [searchedEmail, setSearchedEmail] = useState("");
@@ -133,6 +137,7 @@ export default function StaffPage() {
 
   const heldRole = lookup.data?.existingRole?.role;
   const locked = !!heldRole && !mayChange(heldRole);
+  const isSelf = !!myUserId && lookup.data?.id === myUserId;
 
   return (
     <div className={page}>
@@ -235,10 +240,19 @@ export default function StaffPage() {
 
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 const target = lookup.data;
                 if (!target) return;
                 if (target.existingRole) {
+                  if (
+                    !(await confirmDialog({
+                      title: "Change role",
+                      body: `Change ${target.name ?? target.email} from ${roleLabel(target.existingRole.role)} to ${roleLabel(role)}?`,
+                      confirmLabel: "Change role",
+                    }))
+                  ) {
+                    return;
+                  }
                   updateStaff.mutate({
                     adminId: target.existingRole.id,
                     role,
@@ -249,10 +263,17 @@ export default function StaffPage() {
                 }
               }}
               disabled={
-                locked || createStaff.isPending || updateStaff.isPending
+                locked ||
+                isSelf ||
+                createStaff.isPending ||
+                updateStaff.isPending
               }
               title={
-                locked ? "Only a super admin can change this role." : undefined
+                isSelf
+                  ? "You cannot change your own role."
+                  : locked
+                    ? "Only a super admin can change this role."
+                    : undefined
               }
               className={btnPrimary}
             >
@@ -262,6 +283,11 @@ export default function StaffPage() {
                   ? "Grant role"
                   : "Grant volunteer role"}
             </button>
+            {isSelf && (
+              <p className={fieldHint}>
+                You cannot change your own role. Ask another super admin.
+              </p>
+            )}
             {locked && (
               <p className={fieldHint}>
                 Only a super admin can change the{" "}
@@ -326,22 +352,38 @@ export default function StaffPage() {
                       : ""}
                   </p>
                 </div>
-                {mayChange(row.role) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNotice(null);
-                      setError(null);
-                      updateStaff.mutate({
-                        adminId: row.id,
-                        isActive: !row.isActive,
-                      });
-                    }}
-                    disabled={updateStaff.isPending}
-                    className={`${row.isActive ? btnDanger : btnSecondary} shrink-0`}
-                  >
-                    {row.isActive ? "Deactivate" : "Reactivate"}
-                  </button>
+                {row.userId === myUserId ? (
+                  <span className={`${meta} shrink-0`}>You</span>
+                ) : (
+                  mayChange(row.role) && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setNotice(null);
+                        setError(null);
+                        const who = row.user?.name ?? row.user?.email ?? "this person";
+                        if (
+                          row.isActive &&
+                          !(await confirmDialog({
+                            title: "Deactivate staff member",
+                            body: `Deactivate ${who} (${roleLabel(row.role)})? They lose this role straight away.`,
+                            confirmLabel: "Deactivate",
+                            tone: "danger",
+                          }))
+                        ) {
+                          return;
+                        }
+                        updateStaff.mutate({
+                          adminId: row.id,
+                          isActive: !row.isActive,
+                        });
+                      }}
+                      disabled={updateStaff.isPending}
+                      className={`${row.isActive ? btnDanger : btnSecondary} shrink-0`}
+                    >
+                      {row.isActive ? "Deactivate" : "Reactivate"}
+                    </button>
+                  )
                 )}
               </div>
             ))}

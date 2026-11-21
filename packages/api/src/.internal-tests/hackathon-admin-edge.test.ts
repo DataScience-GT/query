@@ -1991,6 +1991,20 @@ describe("Hackathon admin management edge cases", () => {
       ).rejects.toThrow(/Cannot deactivate your own admin account/);
     });
 
+    it("refuses to let a super admin change their own role", async () => {
+      const caller = adminCaller({}, "super_admin");
+      mockFindMany.mockReturnValue([
+        adminRow("super_admin"),
+        { id: "other_admin_row", role: "super_admin", isActive: true },
+      ]);
+      mockUpdate.mockReturnValue([{ id: ADMIN_ROW, role: "moderator" }]);
+
+      await expect(
+        caller.admin.update({ adminId: ADMIN_ROW, role: "moderator" }),
+      ).rejects.toThrow(/Cannot change your own role/);
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
     // BUG: the only self-protection is on isActive===false. Demoting your own
     // row is allowed and there is no "last super admin" invariant, so the org
     // can be locked out of admin management with no in-app recovery.
