@@ -74,9 +74,9 @@ const LABELS: Record<string, string> = {
 
 /** A bare message names the action in its first word; reuse it as the button. */
 function fromMessage(message: string): ConfirmOptions {
-  const verb = message.split(/\s/, 1)[0]!.toLowerCase();
+  const verb = (message.split(/\s/, 1)[0] ?? "").toLowerCase();
   const word = /^[a-z]{3,}$/.test(verb)
-    ? verb[0]!.toUpperCase() + verb.slice(1)
+    ? verb.charAt(0).toUpperCase() + verb.slice(1)
     : "Confirm";
   return {
     body: message,
