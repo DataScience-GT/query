@@ -52,6 +52,7 @@ import type { RegistrationStatus } from "./attendee-status";
 import type { HackathonStatus } from "./constants";
 import { venueFormat } from "@/lib/venue-time";
 import { useIsClient } from "@/lib/use-is-client";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 // What toLocaleString() prints in en-US, on the venue's clock.
 const DATE_TIME = { year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" } as const;
@@ -326,7 +327,7 @@ export function AttendeesTab({
   const handleMassAccept = async () => {
     const ids = Array.from(selectedIds);
     if (
-      !window.confirm(
+      !await confirmDialog(
         `Approve ${ids.length} applicant(s) and send each an acceptance email?\n\nAcceptance emails cannot be unsent.`,
       )
     )
@@ -378,7 +379,7 @@ export function AttendeesTab({
    */
   const handleAcceptAndEmail = async (participantId: string, email?: string) => {
     if (
-      !window.confirm(
+      !await confirmDialog(
         `Approve ${email ?? "this applicant"} and send an acceptance email?\n\nAcceptance emails cannot be unsent.`,
       )
     )

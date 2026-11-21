@@ -14,6 +14,7 @@ import {
 import { FormInput } from "@query/ui/FormInput";
 import { pointsLabel } from "@/components/hackathon/points/format";
 import { useDebounced } from "./use-debounced";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 const rowClass =
   "flex min-h-11 w-full items-center justify-between gap-3 border-b border-[var(--border-subtle)] px-1 py-2.5";
@@ -204,9 +205,9 @@ export function ManualCheckIn({
                         type="button"
                         disabled={readOnly || admit.isPending}
                         title={readOnly ? READ_ONLY_TITLE : undefined}
-                        onClick={() => {
+                        onClick={async () => {
                           if (
-                            !window.confirm(
+                            !await confirmDialog(
                               `Admit ${person.name}?\n\nOnly do this after checking their photo ID. It checks them into the hackathon and into this event.`,
                             )
                           )

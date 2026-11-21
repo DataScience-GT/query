@@ -30,6 +30,7 @@ import {
 } from "@/components/admin/judging/shared";
 import type { Overview } from "@/components/admin/judging/shared";
 import { EntriesList } from "@/components/admin/judging/EntriesList";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 // The API refuses anything larger; checking here saves uploading it first.
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -129,7 +130,7 @@ function DevpostImport({
     );
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!file) return;
     // Automatic replaces too while nothing depends on the list. A typed
     // name already stands in for this question.
@@ -138,7 +139,7 @@ function DevpostImport({
       replaces &&
       !needsName &&
       counts.entries.devpost > 0 &&
-      !window.confirm(
+      !await confirmDialog(
         `Replace deletes the ${plural(counts.entries.devpost, "Devpost project")} in judging and loads ${file.name} instead. Portal submissions stay. Continue?`,
       )
     ) {

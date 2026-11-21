@@ -9,6 +9,7 @@ import { READ_ONLY_TITLE } from "@/lib/use-portal-context";
 import { Alert } from "@query/ui/Alert";
 import { btnSecondary, meta, status, textLink } from "@query/ui/classes";
 import { Checkbox } from "@query/ui/Checkbox";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 type AdminEvent = RouterOutputs["hackathon"]["adminGetEvents"][number];
 
@@ -77,9 +78,9 @@ export function EventCheckInControls({
               type="button"
               disabled={readOnly || pending}
               title={readOnly ? READ_ONLY_TITLE : undefined}
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  !window.confirm(
+                  !await confirmDialog(
                     `Replace the code for ${event.name}? ${event.checkInCode} stops working straight away, and the door screen and poster QR need the new one.`,
                   )
                 )
@@ -94,9 +95,9 @@ export function EventCheckInControls({
               type="button"
               disabled={readOnly || pending}
               title={readOnly ? READ_ONLY_TITLE : undefined}
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  !window.confirm(
+                  !await confirmDialog(
                     `Remove the code for ${event.name}? Nobody can self check in until a new one is made.`,
                   )
                 )

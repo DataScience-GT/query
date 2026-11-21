@@ -11,6 +11,7 @@ import {
   meta,
   status,
 } from "@query/ui/classes";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 const closeButton =
   "shrink-0 rounded-[var(--radius-sm)] px-2 py-1 text-sm font-semibold text-[var(--text-subtle)] transition-colors hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]";
@@ -50,9 +51,9 @@ export function QRCodeModal({
     alert("Check-in code copied.");
   };
 
-  const handleRegenerate = () => {
+  const handleRegenerate = async () => {
     if (
-      confirm(
+      await confirmDialog(
         "Replace this QR code? The current code, and anything printed with it, stops working.",
       )
     ) {

@@ -23,6 +23,7 @@ import {
 import { QRScannerModal } from "@/components/portal/QRScannerModal";
 import { ScanResultModal } from "@/components/portal/ScanResultModal";
 import { ManualCheckIn } from "@/components/admin/hackathons/points/ManualCheckIn";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 // How a roster row was made, for the volunteer reading the list.
 const METHOD_LABEL: Record<string, string> = {
@@ -292,8 +293,8 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
           )}
           {!isLoading && !isError && (events?.length ?? 0) === 0 && (
             <p className={fieldHint}>
-              Create a check-in event under Events first; scans are recorded
-              against an event.
+              No check-in event yet. An admin creates one on the edition's Events tab
+              under Admin, Hackathons; scans are recorded against an event.
             </p>
           )}
           {!isLoading && (events?.length ?? 0) > 0 && !selectableEvents?.length && (
@@ -411,10 +412,10 @@ export function ScannerTab({ hackathonId }: { hackathonId: string }) {
                       type="button"
                       disabled={readOnly || removeAttendance.isPending}
                       title={readOnly ? READ_ONLY_TITLE : undefined}
-                      onClick={() => {
+                      onClick={async () => {
                         if (!row.participant?.id) return;
                         if (
-                          !window.confirm(
+                          !await confirmDialog(
                             `Remove ${name}'s check-in from this event?`,
                           )
                         )
