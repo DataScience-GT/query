@@ -47,6 +47,68 @@ describe("shared Redis: configuration", () => {
   });
 });
 
+// The real Upstash client over a stubbed fetch, so the reply shapes are the
+// ones the REST API sends, not the fake's.
+describe("shared Redis: the real client's replies", () => {
+  const replies: unknown[] = [];
+  const sent: { url: string; body: unknown }[] = [];
+
+  beforeEach(() => {
+    replies.length = 0;
+    sent.length = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init: RequestInit) => {
+        sent.push({ url: String(url), body: JSON.parse(String(init.body)) });
+        return new Response(JSON.stringify(replies.shift()), {
+          headers: { "content-type": "application/json" },
+        });
+      }),
+    );
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  const client = () =>
+    createRedis({
+      UPSTASH_REDIS_REST_URL: "https://redis.example",
+      UPSTASH_REDIS_REST_TOKEN: "t",
+    })!;
+
+  it("reads XRANGE keyed by entry id", async () => {
+    replies.push({
+      result: [
+        ["1700000000000-0", ["n", "abc", "p", "member:1"]],
+        ["1700000000001-0", ["n", "def", "p", "events:*"]],
+      ],
+    });
+    const entries = await client().xrange("s", "(0-0", "+", 200);
+    expect(sent[0]!.body).toEqual(["XRANGE", "s", "(0-0", "+", "COUNT", 200]);
+    expect(entries).toEqual({
+      "1700000000000-0": { n: "abc", p: "member:1" },
+      "1700000000001-0": { n: "def", p: "events:*" },
+    });
+    expect(Object.keys(entries)).toEqual([
+      "1700000000000-0",
+      "1700000000001-0",
+    ]);
+  });
+
+  it("reads an empty XRANGE", async () => {
+    replies.push({ result: [] });
+    expect(await client().xrange("s", "(0-0", "+", 200)).toEqual({});
+  });
+
+  it("reads the INCRBY count from a pipeline", async () => {
+    replies.push([{ result: 3 }, { result: 1 }]);
+    const results = await client()
+      .pipeline()
+      .incrby("k", 1)
+      .pexpire("k", 1000)
+      .exec();
+    expect(Number(results[0])).toBe(3);
+  });
+});
+
 describe("shared Redis: cache without Redis", () => {
   it("behaves as the plain in-memory cache", async () => {
     const cache = new CacheService(300, 100);
