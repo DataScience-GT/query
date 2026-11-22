@@ -593,7 +593,16 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       const participants = await (
         ctx.db as DrizzleDB
       ).query.hackathonParticipants.findMany({
-        where: eq(hackathonParticipants.hackathonId, input.hackathonId),
+        // Only people actually in: a pending, rejected or waitlisted applicant
+        // is not listed on a page anyone can open. A status change evicts this
+        // key (CACHE_INVALIDATION_MAP), so the roster follows decisions.
+        where: and(
+          eq(hackathonParticipants.hackathonId, input.hackathonId),
+          inArray(hackathonParticipants.registrationStatus, [
+            "approved",
+            "checked_in",
+          ]),
+        ),
         // Anyone can read this roster, so it carries neither the decision made on
         // each application (registrationStatus names everyone rejected or waitlisted)
         // nor the participant id, which is the whole content of that participant's
