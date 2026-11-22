@@ -1,6 +1,8 @@
 import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import SubmitPage from "./SubmitPage";
 
+export const metadata = { title: "Submit your project" };
+
 const GRACE_MS = 12 * 60 * 60 * 1000;
 
 export default async function Page({

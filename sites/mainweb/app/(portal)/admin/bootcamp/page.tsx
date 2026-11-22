@@ -1,6 +1,8 @@
 import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import AdminBootcampPage from "./AdminBootcampPage";
 
+export const metadata = { title: "Bootcamp" };
+
 export default function Page() {
   return (
     <PrefetchedPage

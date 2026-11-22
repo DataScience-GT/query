@@ -1,6 +1,8 @@
 import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import HackathonsPage from "./HackathonsPage";
 
+export const metadata = { title: "Hackathons" };
+
 export default function Page() {
   return (
     <PrefetchedPage

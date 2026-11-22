@@ -7,6 +7,8 @@ import {
   textLink,
 } from "@query/ui/classes";
 
+export const metadata = { title: "QR code no longer works" };
+
 // Where a room QR code with a bad signature, a revoked link or an archived
 // room ends up.
 export default function InvalidRoomLinkPage() {

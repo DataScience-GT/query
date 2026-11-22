@@ -1,6 +1,8 @@
 import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import SubteamsPage from "./SubteamsPage";
 
+export const metadata = { title: "Subteams" };
+
 export default function Page() {
   return (
     <PrefetchedPage
