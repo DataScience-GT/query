@@ -2,6 +2,7 @@ import { db, auditLogs } from "@query/db";
 import {
   redis,
   redisKeyPrefix,
+  redisStartsAt,
   reportRedisFailure,
   withTimeout,
 } from "../lib/redis";
@@ -176,6 +177,8 @@ export class SharedRateLimiter {
     private readonly client: RedisClient | null,
     private readonly prefix: string,
     private readonly fallback: TokenBucketLimiter,
+    /** Epoch ms before which Redis is not used (see redisStartsAt). */
+    private readonly startsAt: number = 0,
   ) {}
 
   async consume(
@@ -185,7 +188,7 @@ export class SharedRateLimiter {
     tokensToConsume = 1,
   ): Promise<{ allowed: boolean; retryAfter?: number }> {
     const client = this.client;
-    if (!client) {
+    if (!client || Date.now() < this.startsAt) {
       return this.fallback.consume(
         identifier,
         maxTokens,
@@ -586,6 +589,7 @@ export const sharedRateLimiter = new SharedRateLimiter(
   redis,
   redisKeyPrefix(),
   rateLimiter,
+  redisStartsAt(),
 );
 
 /**

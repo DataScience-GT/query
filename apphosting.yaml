@@ -65,6 +65,12 @@ env:
     secret: upstash-redis-rest-token
     availability:
       - RUNTIME
+  # Redis stays unused until Hacklytics 2027 check-in opens: cross-instance
+  # staleness only matters under event load. Delete this to turn it on now.
+  - variable: UPSTASH_REDIS_FROM
+    value: "2027-02-26T17:00:00-05:00"
+    availability:
+      - RUNTIME
   # Optional: raises the judging repo check from 60 to 5000 GitHub requests an
   # hour. Left commented out because a reference to a secret that does not exist
   # breaks the rollout. Create it first (a token with no scopes is enough), then

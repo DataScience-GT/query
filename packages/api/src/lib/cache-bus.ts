@@ -42,6 +42,8 @@ export class CacheInvalidationBus {
     /** Drops everything local, after a gap in what we could see. */
     private readonly clearAll: () => void,
     private readonly pollMs: number = DEFAULT_POLL_MS,
+    /** Epoch ms before which the bus sends nothing (see redisStartsAt). */
+    private readonly startsAt: number = 0,
   ) {
     this.stream = `${prefix}cache:inv`;
   }
@@ -59,6 +61,7 @@ export class CacheInvalidationBus {
 
   /** Fire and forget: the local delete already happened; failure is logged. */
   publish(pattern: string) {
+    if (Date.now() < this.startsAt) return;
     void withTimeout(
       this.redis.xadd(
         this.stream,
@@ -78,7 +81,8 @@ export class CacheInvalidationBus {
   }
 
   poll(): Promise<void> {
-    this.polling ??= this.pollOnce().finally(() => {
+    if (Date.now() < this.startsAt) return Promise.resolve();
+    this.polling ??=this.pollOnce().finally(() => {
       this.polling = null;
     });
     return this.polling;

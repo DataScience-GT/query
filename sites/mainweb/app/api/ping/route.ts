@@ -17,9 +17,11 @@ export function GET() {
       commit: process.env.NEXT_PUBLIC_APP_COMMIT,
       // Whether shared Redis is configured, read from env: no network call, and
       // not an import of @query/api, which would pull the database in here.
+      // Mirrors redisStartsAt: before UPSTASH_REDIS_FROM, still memory.
       cache:
         process.env.UPSTASH_REDIS_REST_URL &&
-        process.env.UPSTASH_REDIS_REST_TOKEN
+        process.env.UPSTASH_REDIS_REST_TOKEN &&
+        Date.now() >= Date.parse(process.env.UPSTASH_REDIS_FROM || "1970")
           ? "redis"
           : "memory",
     },

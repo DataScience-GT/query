@@ -6,7 +6,7 @@
 // Redis nothing changes: one process, one cache.
 
 import { CacheInvalidationBus } from "../lib/cache-bus";
-import { redis, redisKeyPrefix } from "../lib/redis";
+import { redis, redisKeyPrefix, redisStartsAt } from "../lib/redis";
 import type { RedisClient } from "../lib/redis";
 
 interface CacheEntry<T> {
@@ -33,7 +33,12 @@ export class CacheService {
   constructor(
     private defaultTTL: number = 300,
     maxCacheSize: number = 10000,
-    shared?: { redis: RedisClient; prefix: string; pollMs?: number } | null,
+    shared?: {
+      redis: RedisClient;
+      prefix: string;
+      pollMs?: number;
+      startsAt?: number;
+    } | null,
   ) {
     this.maxCacheSize = maxCacheSize;
     if (shared) {
@@ -43,6 +48,7 @@ export class CacheService {
         (pattern) => this.evict(pattern),
         () => this.cache.clear(),
         shared.pollMs,
+        shared.startsAt,
       );
       this.bus.start();
     }
@@ -254,7 +260,9 @@ const globalForCache = globalThis as unknown as {
 export const cache = (globalForCache.queryCache ??= new CacheService(
   300,
   10000,
-  redis ? { redis, prefix: redisKeyPrefix() } : null,
+  redis
+    ? { redis, prefix: redisKeyPrefix(), startsAt: redisStartsAt() }
+    : null,
 ));
 
 // No exported `cacheStats` snapshot: one existed, taken once at module load,
