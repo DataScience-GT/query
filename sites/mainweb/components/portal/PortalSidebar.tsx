@@ -53,7 +53,7 @@ export default function PortalSidebar({
   const ThemeIcon = theme === "dark" ? Sun : Moon;
 
   const brand = (
-    <Link href="/" className="group flex items-center gap-2.5">
+    <Link href="/dashboard" className="group flex items-center gap-2.5">
       <Image
         src={logo}
         alt=""
