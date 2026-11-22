@@ -59,21 +59,22 @@ export function splitByDay<T extends { eventDate: Date }>(rows: T[], from: Date)
   };
 }
 
-type SummarySession = { eventDate: Date; location: string | null };
+type SummarySession = { eventDate: Date };
 const TBA = "To be announced";
+/** The bootcamp is paid, so the room is only shown in the portal to people enrolled. */
+export const BOOTCAMP_ROOM_PUBLIC = "Shared once you join";
 
 /**
- * The facts row at the top of /bootcamp. Time and room come from the session
- * the date comes from, since officers can move any one session. The constants
- * only stand in before a schedule is posted. Once every posted session is
- * behind us the row says so rather than showing a date that has passed.
+ * The facts row at the top of /bootcamp. Time comes from the session the date
+ * comes from, since officers can move any one session. The constants only
+ * stand in before a schedule is posted. Once every posted session is behind us
+ * the row says so rather than showing a date that has passed.
  */
 export function bootcampSummary(
   { upcoming, past }: { upcoming: SummarySession[]; past: SummarySession[] },
   fallback: {
     startDate?: string | null;
     time?: string | null;
-    room?: string | null;
   },
 ) {
   const next = upcoming[0];
@@ -82,7 +83,7 @@ export function bootcampSummary(
     return [
       { label: "Next session", value: `${month} ${day}` },
       { label: "Time", value: time },
-      { label: "Room", value: next.location ?? fallback.room ?? TBA },
+      { label: "Room", value: BOOTCAMP_ROOM_PUBLIC },
     ];
   }
 
@@ -98,6 +99,6 @@ export function bootcampSummary(
   return [
     { label: "First session", value: fallback.startDate ?? TBA },
     { label: "Time", value: fallback.time ?? TBA },
-    { label: "Room", value: fallback.room ?? TBA },
+    { label: "Room", value: BOOTCAMP_ROOM_PUBLIC },
   ];
 }

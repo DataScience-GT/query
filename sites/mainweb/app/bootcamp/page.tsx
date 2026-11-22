@@ -5,7 +5,6 @@ import PublicPage from "@/components/PublicPage";
 import {
   BOOTCAMP_CURRICULUM,
   BOOTCAMP_MEETING_TIME,
-  BOOTCAMP_ROOM,
   BOOTCAMP_START_DATE,
 } from "@/lib/bootcamp-schedule";
 import { loadBootcampSessions } from "@/lib/bootcamp-sessions.server";
@@ -25,12 +24,12 @@ import { currentTerm } from "@query/db/services/membership";
 export const metadata: Metadata = {
   title: "Bootcamp",
   description:
-    "The DS bootcamp: weekly Python and data science sessions at Georgia Tech, with the schedule, location and how to join.",
+    "The DS bootcamp: weekly Python and data science sessions at Georgia Tech, with the schedule and how to join.",
   alternates: { canonical: "/bootcamp" },
   openGraph: {
     title: "Bootcamp | DS@GT",
     description:
-      "The DS bootcamp: weekly Python and data science sessions at Georgia Tech, with the schedule, location and how to join.",
+      "The DS bootcamp: weekly Python and data science sessions at Georgia Tech, with the schedule and how to join.",
   },
 };
 
@@ -68,7 +67,8 @@ function SessionRow({
           {sessionTitle(session.title)}
         </h3>
         <p className="mt-1 text-sm text-gray-400">
-          {eventWhenWhere(session.eventDate, session.location)}
+          {/* No room: the bootcamp is paid, enrolled members see it in the portal. */}
+          {eventWhenWhere(session.eventDate, null)}
         </p>
       </div>
     </li>
@@ -88,7 +88,6 @@ export default async function BootcampPage() {
     {
       startDate: BOOTCAMP_START_DATE,
       time: BOOTCAMP_MEETING_TIME,
-      room: BOOTCAMP_ROOM,
     },
   );
 
