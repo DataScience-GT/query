@@ -10,6 +10,7 @@ export { createContext, type Context } from "./context";
 export { createTRPCRouter, publicProcedure, protectedProcedure } from "./trpc";
 export {
   rateLimit,
+  rateLimitShared,
   RATE_LIMITS,
   BURST_LIMITS,
   resolveClientIp,

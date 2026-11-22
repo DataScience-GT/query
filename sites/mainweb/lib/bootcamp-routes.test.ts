@@ -78,6 +78,7 @@ vi.mock("@/lib/bootcamp-storage", () => {
 
 vi.mock("@query/api", () => ({
   rateLimit: () => ({ allowed: true }),
+  rateLimitShared: async () => ({ allowed: true }),
 }));
 
 vi.mock("@query/db/services/membership", () => ({

@@ -50,6 +50,21 @@ env:
     secret: AUTH_GITHUB_ID
   - variable: GITHUB_CLIENT_SECRET
     secret: AUTH_GITHUB_SECRET
+  # Shared cache invalidation and rate limits (Upstash Redis, REST). Leave these
+  # two out and every instance falls back to its own in-memory state, which is
+  # correct but stale across instances. Create the secrets first, or the rollout
+  # breaks on a reference to a secret that does not exist (docs/operations/
+  # environment.md, "Shared Redis"):
+  #   firebase apphosting:secrets:set upstash-redis-rest-url
+  #   firebase apphosting:secrets:set upstash-redis-rest-token
+  - variable: UPSTASH_REDIS_REST_URL
+    secret: upstash-redis-rest-url
+    availability:
+      - RUNTIME
+  - variable: UPSTASH_REDIS_REST_TOKEN
+    secret: upstash-redis-rest-token
+    availability:
+      - RUNTIME
   # Optional: raises the judging repo check from 60 to 5000 GitHub requests an
   # hour. Left commented out because a reference to a secret that does not exist
   # breaks the rollout. Create it first (a token with no scopes is enough), then

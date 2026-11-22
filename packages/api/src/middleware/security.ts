@@ -1,4 +1,11 @@
 import { db, auditLogs } from "@query/db";
+import {
+  redis,
+  redisKeyPrefix,
+  reportRedisFailure,
+  withTimeout,
+} from "../lib/redis";
+import type { RedisClient } from "../lib/redis";
 
 interface RateLimitRecord {
   tokens: number;
@@ -147,6 +154,82 @@ export class TokenBucketLimiter {
   /** For tests and shutdown; the process singleton never stops sweeping. */
   dispose() {
     clearInterval(this.sweepTimer);
+  }
+}
+
+/** Longest window the shared limiter uses, for buckets that never refill. */
+const SHARED_MAX_WINDOW_SECONDS = 3600;
+
+// Rate limiting that holds across instances. App Hosting runs up to 10, and a
+// per-instance bucket multiplies every limit by however many are up.
+//
+// Redis cannot run the bucket above atomically without a script, so this
+// approximates it with a fixed window: `maxTokens` per window of
+// maxTokens / refillRate seconds (capped at an hour). That is the same
+// sustained rate and burst size; the differences are a boundary burst of up to
+// 2x, and no exponential backoff, a denied caller simply waits out the window.
+//
+// Fail open: if Redis errors or times out, the request is judged by the
+// in-memory limiter instead. Never throws.
+export class SharedRateLimiter {
+  constructor(
+    private readonly client: RedisClient | null,
+    private readonly prefix: string,
+    private readonly fallback: TokenBucketLimiter,
+  ) {}
+
+  async consume(
+    identifier: string,
+    maxTokens: number,
+    refillRatePerSecond: number,
+    tokensToConsume = 1,
+  ): Promise<{ allowed: boolean; retryAfter?: number }> {
+    const client = this.client;
+    if (!client) {
+      return this.fallback.consume(
+        identifier,
+        maxTokens,
+        refillRatePerSecond,
+        tokensToConsume,
+      );
+    }
+
+    const windowMs =
+      Math.min(
+        SHARED_MAX_WINDOW_SECONDS,
+        refillRatePerSecond > 0
+          ? Math.max(1, Math.ceil(maxTokens / refillRatePerSecond))
+          : SHARED_MAX_WINDOW_SECONDS,
+      ) * 1000;
+    const now = Date.now();
+    const windowIndex = Math.floor(now / windowMs);
+    const key = `${this.prefix}rl:${identifier}:${windowIndex}`;
+
+    try {
+      const results = await withTimeout(
+        client
+          .pipeline()
+          .incrby(key, tokensToConsume)
+          .pexpire(key, windowMs * 2)
+          .exec(),
+      );
+      const used = Number(results[0]);
+      if (!Number.isFinite(used)) throw new Error("unexpected INCRBY reply");
+      if (used <= maxTokens) return { allowed: true };
+      const windowEnd = (windowIndex + 1) * windowMs;
+      return {
+        allowed: false,
+        retryAfter: Math.max(1, Math.ceil((windowEnd - now) / 1000)),
+      };
+    } catch (err) {
+      reportRedisFailure("rate limit", err);
+      return this.fallback.consume(
+        identifier,
+        maxTokens,
+        refillRatePerSecond,
+        tokensToConsume,
+      );
+    }
   }
 }
 
@@ -492,6 +575,32 @@ export function rateLimit(
   tokensToConsume: number = 1,
 ): { allowed: boolean; retryAfter?: number } {
   return rateLimiter.consume(
+    identifier,
+    maxTokens,
+    refillRatePerSecond,
+    tokensToConsume,
+  );
+}
+
+export const sharedRateLimiter = new SharedRateLimiter(
+  redis,
+  redisKeyPrefix(),
+  rateLimiter,
+);
+
+/**
+ * rateLimit, shared across instances when Redis is configured. Use for
+ * low-volume, abuse-prone endpoints. The per-request tRPC middleware stays on
+ * the synchronous in-memory rateLimit: it runs on every call, and one Redis
+ * round trip each is not worth a coarse flood limit.
+ */
+export function rateLimitShared(
+  identifier: string,
+  maxTokens: number,
+  refillRatePerSecond: number,
+  tokensToConsume: number = 1,
+): Promise<{ allowed: boolean; retryAfter?: number }> {
+  return sharedRateLimiter.consume(
     identifier,
     maxTokens,
     refillRatePerSecond,

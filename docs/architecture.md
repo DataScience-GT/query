@@ -202,7 +202,19 @@ The webhook is `sites/mainweb/app/(portal)/api/webhooks/stripe/route.ts`. Linkin
 
 ## Caching
 
-`packages/api/src/middleware/cache.ts` is an **in-memory TTL cache** per Node process (not Redis). Role lookups and portal context are cached ~60s. Mutations evict by a path → glob map in `trpc.ts`; unmapped mutations fall back to namespace eviction. This is per-instance: Cloud Run concurrency 80 shares one cache; extra instances do not share it.
+`packages/api/src/middleware/cache.ts` is an **in-memory TTL cache** per Node process. Role lookups and portal context are cached ~60s. Mutations evict by a path → glob map in `trpc.ts`; unmapped mutations fall back to namespace eviction. Cloud Run concurrency 80 shares one cache within an instance.
+
+### Shared Redis (optional)
+
+With `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` set (`packages/api/src/lib/redis.ts`), two things become shared across the up-to-10 App Hosting instances. Unset, nothing below applies and behaviour is the in-memory one above.
+
+- **Cache invalidation.** Values stay in each instance's memory (they hold Dates and are read synchronously in ~60 places, so they are not stored in Redis). A `delete` or `deletePattern` is also appended to a Redis stream (`query:<prefix>:cache:inv`); every instance polls it every 2 seconds and applies the same delete. A write on one instance is visible on all within about 2 seconds, and async reads (`getOrSet`) catch up first if an instance has not polled lately. TTLs still bound everything else. Code: `lib/cache-bus.ts`.
+- **Rate limits.** `rateLimitShared` counts in Redis (fixed window, key `query:<prefix>:rl:<id>:<window>`) instead of per instance. It guards the low-volume abuse-prone endpoints (resume and bootcamp downloads and uploads, judge interest, announcement test send, interest, points code, judging invite). The per-request tRPC limiter and flood guard stay in memory.
+- **Not in Redis:** sessions, tokens, secrets, cached rows. The admin-role caches (`loadAdminRow`, `resume-access`, `bootcamp-access`) use `cache` and gain invalidation once they call `delete` on a role change.
+
+**Failure mode.** Every Redis call has a 250 ms timeout and no retries. On error or timeout, rate limits fall back to the in-memory limiter (fail open) and the cache keeps working per instance; after a failed poll the instance drops its whole cache once Redis returns, since it may have missed deletes. One `[Redis] ... falling back to in-memory` line is logged per minute at most. The site never depends on Redis being up.
+
+**Verify.** `/api/ping` reports `"cache":"redis"` when configured. To see invalidation: change something cached (for example a member's status) on one instance and watch Upstash's data browser for a new entry in the `...:cache:inv` stream.
 
 ## Deployment split
 
