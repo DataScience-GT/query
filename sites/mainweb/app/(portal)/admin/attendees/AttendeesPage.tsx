@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
+import { csvCell } from "@/lib/csv";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { skipToken } from "@tanstack/react-query";
@@ -48,22 +49,19 @@ export default function AttendeesPage() {
   const handleDownloadCSV = () => {
     if (!attendees || attendees.length === 0) return;
 
-    const cell = (value: unknown) =>
-      `"${String(value ?? "").replace(/"/g, '""')}"`;
-
     const rows = attendees.map((a: NonNullable<typeof attendees>[number]) =>
       [
         a.member ? `${a.member.firstName} ${a.member.lastName}` : a.user?.name,
         a.user?.email,
         a.checkInMethod,
         a.checkedInAt ? new Date(a.checkedInAt).toISOString() : "",
-      ].map(cell),
+      ].map(csvCell),
     );
 
     const csv = [
       // No "Points" column: every row carried the same schema default, so the
       // export presented a constant as though it were tracked data.
-      ["Name", "Email", "Method", "Checked In At"].map(cell),
+      ["Name", "Email", "Method", "Checked In At"].map(csvCell),
       ...rows,
     ]
       .map((r) => r.join(","))

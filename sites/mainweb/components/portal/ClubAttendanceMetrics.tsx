@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import { Download } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { csvCell } from "@/lib/csv";
 import { StatTile, StatTileSkeleton } from "@query/ui/StatTile";
 import {
   body,
@@ -192,8 +193,6 @@ export function ClubAttendanceMetrics({
 
   const handleExport = () => {
     if (people.length === 0) return;
-    const cell = (value: unknown) =>
-      `"${String(value ?? "").replace(/"/g, '""')}"`;
     const csv = [
       ["Name", "Email", "Member", "Events attended", "Last attended"],
       ...people.map((p) => [
@@ -204,7 +203,7 @@ export function ClubAttendanceMetrics({
         p.lastAttended ? new Date(p.lastAttended).toISOString() : "",
       ]),
     ]
-      .map((r) => r.map(cell).join(","))
+      .map((r) => r.map(csvCell).join(","))
       .join("\n");
 
     const url = URL.createObjectURL(
