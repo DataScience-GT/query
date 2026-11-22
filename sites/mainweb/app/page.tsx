@@ -48,7 +48,7 @@ export default async function HomePage() {
       id="home-page"
       className="selection:bg-dsgt-teal/30 relative overflow-x-hidden bg-[#050505] text-gray-400"
     >
-      <Navbar className="fixed top-0 z-50 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md" />
+      <Navbar />
       <Hero nextSession={upcoming[0] ?? null} />
 
       {/* ABOUT SECTION */}
