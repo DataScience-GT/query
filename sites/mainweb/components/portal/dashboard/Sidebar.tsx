@@ -48,6 +48,7 @@ export function Sidebar({
         <div className="relative group">
           <div className="absolute -inset-0.5 bg-accent rounded-sm opacity-50 blur group-hover:opacity-75 transition duration-1000 group-hover:duration-200" />
           <Image
+            unoptimized
             src={user.image || "/avatar-placeholder.png"}
             alt="Avatar"
             width={56}

@@ -261,6 +261,7 @@ export function TeamsTab({
                 <li key={p.userId} className="flex items-center gap-2.5">
                   {p.user.image ? (
                     <Image
+                      unoptimized
                       src={p.user.image}
                       alt=""
                       width={28}
@@ -632,6 +633,7 @@ export function TeamsTab({
                           p.user.image ? (
                             <Image
                               key={p.userId}
+                              unoptimized
                               src={p.user.image}
                               alt=""
                               width={28}
