@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ORG_NAME_SHORT } from "@query/core";
+import { ORG_SHORT } from "@query/core";
 import { headers } from "next/headers";
 import { appRouter, createContext, resolveClientIp } from "@query/api";
 import type { RouterOutputs } from "@query/api";
@@ -73,7 +73,7 @@ const formatDeadline = (deadline: Date) =>
  * The sidebar is suppressed here, so the page carries its own masthead: the
  * Hacklytics wordmark (linking to the event site) and who runs it.
  */
-function Masthead() {
+function Masthead({ signedIn }: { signedIn: boolean }) {
   return (
     <div className={`flex items-baseline justify-between gap-4 ${mastRule}`}>
       <a
@@ -82,7 +82,15 @@ function Masthead() {
       >
         Hacklytics
       </a>
-      <span className={meta}>by {ORG_NAME_SHORT}</span>
+      <span className={`flex items-baseline gap-4 ${meta}`}>
+        <span>by {ORG_SHORT}</span>
+        <Link
+          href={signedIn ? "/dashboard" : "/"}
+          className="font-semibold text-[var(--text-primary)] hover:underline"
+        >
+          {ORG_SHORT} portal
+        </Link>
+      </span>
     </div>
   );
 }
@@ -273,7 +281,7 @@ export default async function HacklyticsPage() {
   if (failed) {
     return (
       <main className={page}>
-        <Masthead />
+        <Masthead signedIn={Boolean(ctx.userId)} />
         <div className="mt-12">
           <p className={body}>
             We could not load the next hackathon just now. Check your
@@ -290,10 +298,10 @@ export default async function HacklyticsPage() {
   if (!event) {
     return (
       <main className={page}>
-        <Masthead />
+        <Masthead signedIn={Boolean(ctx.userId)} />
         <h1 className={`mt-12 ${pageTitle}`}>Nothing announced yet</h1>
         <p className={pageDek}>
-          The next Hacklytics has not been announced. Follow {ORG_NAME_SHORT}
+          The next Hacklytics has not been announced. Follow {ORG_SHORT}
           and it will show up here first.
         </p>
         <FlowerBed />
@@ -308,7 +316,7 @@ export default async function HacklyticsPage() {
 
   return (
     <main className={page}>
-      <Masthead />
+      <Masthead signedIn={Boolean(ctx.userId)} />
 
       <header className="mt-12">
         <p className={kicker}>
@@ -351,7 +359,15 @@ export default async function HacklyticsPage() {
             <MyRegistration event={event}>{offer}</MyRegistration>
           </PrefetchedPage>
         ) : (
-          offer
+          <>
+            {offer}
+            <Link
+              href="/login?callbackUrl=/hacklytics"
+              className={`mt-6 w-full sm:w-auto ${btnSecondary}`}
+            >
+              Sign in to see your pass
+            </Link>
+          </>
         )}
       </section>
 
