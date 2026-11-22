@@ -80,8 +80,12 @@ export const judgeInterestInput = z.object({
 
 export type JudgeInterestInput = z.infer<typeof judgeInterestInput>;
 
-/** Insert, or update the existing row for this email on this edition. */
-export async function upsertJudgeInterest(
+/**
+ * Records a submission. The first one for an email on this edition wins: the
+ * form is public and unauthenticated, so letting a later POST overwrite the row
+ * would let anyone rewrite what somebody else's address submitted.
+ */
+export async function recordJudgeInterest(
   db: DrizzleDB,
   input: Omit<JudgeInterestInput, "website">,
 ) {
@@ -98,16 +102,7 @@ export async function upsertJudgeInterest(
   await db
     .insert(judgeInterest)
     .values(values)
-    .onConflictDoUpdate({
+    .onConflictDoNothing({
       target: [judgeInterest.edition, judgeInterest.email],
-      set: {
-        name: values.name,
-        company: values.company,
-        title: values.title,
-        expertise: values.expertise,
-        linkedinUrl: values.linkedinUrl,
-        message: values.message,
-        updatedAt: new Date(),
-      },
     });
 }
