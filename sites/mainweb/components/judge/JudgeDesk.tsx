@@ -415,7 +415,7 @@ function Desk({
         (!hasProjects ? (
           <p className={`mt-10 ${body}`}>
             No projects are set up for judging in this edition yet. This page
-            refreshes on its own once organisers add them.
+            refreshes on its own once organizers add them.
           </p>
         ) : (
           <DeskViews

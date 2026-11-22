@@ -140,8 +140,8 @@ export const checkoutProcedures = {
                 currency: "usd",
                 product_data: {
                   name: input.bootcamp
-                    ? "DSGT Membership + Bootcamp"
-                    : "DSGT Membership",
+                    ? "DS@GT Membership + Bootcamp"
+                    : "DS@GT Membership",
                   description: input.bootcamp
                     ? `Membership to Data Science at Georgia Tech for ${planLabel(input.plan)}, including bootcamp access`
                     : `Membership to Data Science at Georgia Tech for ${planLabel(input.plan)}`,
@@ -285,10 +285,10 @@ export const checkoutProcedures = {
           currency: "usd",
           receipt_email: user.email,
           description: addOnOnly
-            ? `DSGT Bootcamp — one semester (${formatCents(amount)})`
+            ? `DS@GT Bootcamp — one semester (${formatCents(amount)})`
             : input.bootcamp
-              ? `DSGT Membership (${planLabel(input.plan)}) + Bootcamp (${formatCents(amount)})`
-              : `DSGT Membership — ${planLabel(input.plan)} (${formatCents(amount)})`,
+              ? `DS@GT Membership (${planLabel(input.plan)}) + Bootcamp (${formatCents(amount)})`
+              : `DS@GT Membership — ${planLabel(input.plan)} (${formatCents(amount)})`,
           metadata: {
             userId: ctx.userId!,
             userEmail: user.email,

@@ -289,7 +289,7 @@ export default function AdminHackathonDashboard() {
       {/* MOBILE BOTTOM NAVIGATION */}
       {/* Scrolls horizontally rather than a fixed 5-column grid: there are
           eight tabs, so the last ones would be laid out off the right edge of
-          the phone an organiser actually carries — unreachable, with nothing
+          the phone an organizer actually carries — unreachable, with nothing
           to suggest they existed. */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)] border-t border-[var(--border-subtle)] z-40 flex overflow-x-auto pb-safe [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => (

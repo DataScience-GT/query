@@ -101,7 +101,7 @@ function ProposeSection({ canPropose }: { canPropose: boolean }) {
       >
         <h2 className={sectionTitle}>Propose a project</h2>
         <p className={`${body} mt-2 mb-5 max-w-xl`}>
-          An organiser reviews it. If it is approved you lead it and pick who
+          An organizer reviews it. If it is approved you lead it and pick who
           joins.
         </p>
         <InitiativeFields draft={draft} onChange={setDraft} />

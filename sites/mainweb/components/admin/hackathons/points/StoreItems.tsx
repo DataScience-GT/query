@@ -311,7 +311,7 @@ export function StoreItems({ hackathonId }: { hackathonId: string }) {
             {changedUnderneath && !formError && (
               <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--warning)]">
                 This item changed since you opened it, by a sale or another
-                organiser. Saving will be refused; reload it first.
+                organizer. Saving will be refused; reload it first.
               </p>
             )}
 

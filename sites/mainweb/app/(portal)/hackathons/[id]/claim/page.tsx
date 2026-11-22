@@ -88,7 +88,7 @@ function ClaimContent() {
           ? "This link no longer works"
           : "This link did not open";
     const message = !token
-      ? "The claim code is missing from the address. Open the link from the email again, or ask an organiser at the help desk for a new one."
+      ? "The claim code is missing from the address. Open the link from the email again, or ask an organizer at the help desk for a new one."
       : trpcErrorMessage(
           preview.error,
           "Something went wrong opening this link. Try it again in a moment.",
@@ -187,7 +187,7 @@ function ClaimContent() {
             </button>
             <p className={`mt-3 ${meta}`}>
               Not {data.place.name}? Leave this place for them and ask an
-              organiser at the help desk for your own link.
+              organizer at the help desk for your own link.
             </p>
           </div>
         )}

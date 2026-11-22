@@ -227,7 +227,7 @@ export default function HackathonsPage() {
               <h2 className={sectionTitle}>Judge a hackathon</h2>
               <p className={`mt-2 max-w-xl ${body}`}>
                 Industry professionals and experienced students score projects
-                at the expo. You apply per event, and an organiser reviews each
+                at the expo. You apply per event, and an organizer reviews each
                 application.
               </p>
             </div>

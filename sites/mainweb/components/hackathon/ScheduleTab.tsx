@@ -131,7 +131,7 @@ export function ScheduleTab({
   const passPlaceholder = !isRegistered
     ? "Register to get a pass"
     : myRecord?.registrationStatus === "waitlisted"
-      ? "Waitlisted. Organisers may offer you a spot if one opens."
+      ? "Waitlisted. Organizers may offer you a spot if one opens."
       : myRecord?.registrationStatus === "rejected"
         ? "Registration not accepted"
         : "Waiting on review. Your pass appears once you're accepted.";
@@ -245,7 +245,7 @@ export function ScheduleTab({
         ) : !events || events.length === 0 ? (
           <p className={`border-t border-[var(--border-subtle)] pt-5 ${body}`}>
             The schedule hasn&apos;t been posted yet. Events will be listed here
-            by day once organisers publish them.
+            by day once organizers publish them.
           </p>
         ) : (
           <div className="space-y-8">
