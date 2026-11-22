@@ -8,10 +8,6 @@ import { HACKLYTICS_URL } from "@query/core";
 
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
 
-interface NavbarProps {
-  className?: string;
-}
-
 /** One menu for every public page; the current section is highlighted. */
 const MENU_ITEMS = [
   { name: "Bootcamp", to: "/bootcamp" },
@@ -23,7 +19,7 @@ const MENU_ITEMS = [
   { name: "Status", to: "/status" },
 ];
 
-export default function Navbar({ className = "" }: NavbarProps) {
+export default function Navbar() {
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -75,7 +71,7 @@ export default function Navbar({ className = "" }: NavbarProps) {
   return (
     <>
       <nav
-        className={`glass-navbar transition-ui fixed top-0 left-0 z-130 h-20 w-full ${className}`}
+        className="glass-navbar transition-ui fixed top-0 left-0 z-130 h-20 w-full"
       >
         <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-6 lg:px-12">
           {/* Logo Section */}
