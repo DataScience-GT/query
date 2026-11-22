@@ -7,6 +7,7 @@ import {
 import {
   createRedis,
   redisKeyPrefix,
+  redisStartsAt,
   resetRedisFailureLog,
 } from "../lib/redis";
 import { FakeRedis } from "./_fake-redis";
@@ -270,5 +271,60 @@ describe("shared Redis: rate limiting", () => {
     expect((await l.consume("u", 5, 1)).allowed).toBe(true);
     expect(Date.now() - started).toBeLessThan(1000);
     log.mockRestore();
+  });
+});
+
+describe("shared Redis: off until UPSTASH_REDIS_FROM", () => {
+  const START = Date.parse("2027-02-26T17:00:00-05:00");
+
+  afterEach(() => vi.useRealTimers());
+
+  it("reads the start time", () => {
+    expect(redisStartsAt({})).toBe(0);
+    expect(redisStartsAt({ UPSTASH_REDIS_FROM: "2027-02-26T17:00:00-05:00" })).toBe(
+      START,
+    );
+    expect(redisStartsAt({ UPSTASH_REDIS_FROM: "soon" })).toBe(
+      Number.POSITIVE_INFINITY,
+    );
+  });
+
+  it("sends the cache nothing before the start, then shares deletes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(START - 10_000);
+    const redis = new FakeRedis();
+    const shared = { redis, prefix: PREFIX, startsAt: START };
+    const a = new CacheService(300, 100, shared);
+    const b = new CacheService(300, 100, shared);
+
+    b.set("k", 1);
+    a.delete("k");
+    await vi.advanceTimersByTimeAsync(4100);
+    expect(await b.getOrSet("k", () => 2)).toBe(1);
+    expect(redis.commands).toBe(0);
+
+    vi.setSystemTime(START);
+    a.delete("k");
+    await vi.advanceTimersByTimeAsync(2100);
+    expect(b.get("k")).toBeNull();
+
+    a.destroy();
+    b.destroy();
+  });
+
+  it("rate limits in memory before the start, in Redis after", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(START - 1000);
+    const redis = new FakeRedis();
+    const local = new TokenBucketLimiter(100, 60_000);
+    const l = new SharedRateLimiter(redis, PREFIX, local, START);
+
+    expect((await l.consume("u", 5, 0.01)).allowed).toBe(true);
+    expect(redis.commands).toBe(0);
+
+    vi.setSystemTime(START);
+    expect((await l.consume("u", 5, 0.01)).allowed).toBe(true);
+    expect(redis.commands).toBe(1);
+    local.dispose();
   });
 });

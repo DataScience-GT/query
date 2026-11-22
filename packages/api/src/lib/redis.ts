@@ -82,6 +82,21 @@ export function streamEntries(
 export const redis: RedisClient | null = createRedis();
 
 /**
+ * When shared Redis starts being used, in epoch ms. UPSTASH_REDIS_FROM is an
+ * ISO time; before it every caller keeps its in-memory behaviour and sends
+ * nothing to Redis. Checked per call, so a running instance switches on time.
+ * Unset means now. A value that does not parse keeps Redis off.
+ */
+export function redisStartsAt(
+  env: Record<string, string | undefined> = process.env,
+): number {
+  const from = env.UPSTASH_REDIS_FROM;
+  if (!from) return 0;
+  const at = Date.parse(from);
+  return Number.isNaN(at) ? Number.POSITIVE_INFINITY : at;
+}
+
+/**
  * Prefix for every key, so a preview and production backend sharing one
  * database never read each other's data. K_SERVICE is the Cloud Run service
  * (one per App Hosting backend); CACHE_PREFIX overrides it.
