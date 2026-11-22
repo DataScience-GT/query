@@ -13,6 +13,7 @@ import type { DrizzleDB } from "@query/db";
 import { compareTerms, currentTerm } from "@query/db/services/membership";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { isAdmin } from "../middleware/procedures";
+import { isBugTesterRole } from "../types/portal-context";
 import { isUniqueViolation } from "../middleware/db-errors";
 import { withCheckInCounts } from "../services/derived-counts";
 
@@ -519,6 +520,8 @@ export const bootcampRouter = createTRPCRouter({
         .sort((a, b) => compareTerms(b, a)),
       sessions: sessions.map((session) => ({
         ...session,
+        // The door QR checks anyone in from anywhere; bug testers do not get it.
+        qrCode: isBugTesterRole(ctx.admin.role) ? "" : session.qrCode,
         attendance: perSession.get(session.id) ?? 0,
         past: session.eventDate <= now,
       })),
