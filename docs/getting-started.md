@@ -31,7 +31,7 @@ pnpm local:up
 pnpm dev
 ```
 
-`local:up` copies `.env.example` to `.env` and `sites/mainweb/.env.local` (never overwriting), starts `docker-compose.local.yml` (Postgres on **5434** and [Mailpit](https://mailpit.axllent.org)), pushes the schema and seeds fake data. Nothing in it reaches an outside service. `pnpm local:down` stops the containers and keeps the data; `pnpm local:reset` also deletes it.
+`local:up` copies `.env.example` to `.env` and `sites/mainweb/.env.local` (never overwriting), starts `docker/compose.local.yml` (Postgres on **5434** and [Mailpit](https://mailpit.axllent.org)), pushes the schema and seeds fake data. Nothing in it reaches an outside service. `pnpm local:down` stops the containers and keeps the data; `pnpm local:reset` also deletes it.
 
 **Signing in.** Google and GitHub need real OAuth apps, so use the email code instead. Enter `admin@example.test` (super admin) on `/login`, open Mailpit at [http://localhost:8025](http://localhost:8025) and type the 6-digit code from the message. Any address works; it is delivered to Mailpit and nowhere else. Other seeded accounts, all at `example.test`: `member-new`, `member-cont`, `member-lapsed`, `visitor-1`, `visitor-2`, `hacker-1` to `hacker-8` and `judge`.
 
@@ -43,10 +43,10 @@ pnpm dev
 
 ## Local database
 
-Production uses Neon (serverless Postgres). Locally, `docker-compose.yml` starts Postgres 18.6, the version Neon runs, with the same database name (`neondb`) so only `DATABASE_URL` changes.
+Production uses Neon (serverless Postgres). Locally, `docker/compose.yml` starts Postgres 18.6, the version Neon runs, with the same database name (`neondb`) so only `DATABASE_URL` changes.
 
 ```bash
-docker compose up -d
+docker compose -f docker/compose.yml up -d
 ```
 
 It listens on host port **5433** so it does not collide with a system Postgres on 5432. Wait for the healthcheck (`pg_isready`) before pushing schema.
@@ -72,7 +72,7 @@ NEXTAUTH_URL=http://localhost:3001
 
 Google / GitHub OAuth, SMTP, and Stripe are optional for browsing public pages. Login, membership checkout, and email codes need the corresponding secrets.
 
-If you have GCP access to project `dsgt-website`, you can pull secrets instead of typing them. See [GCP_SETUP.md](../GCP_SETUP.md) and [Deployment](./operations/deployment.md).
+If you have GCP access to project `dsgt-website`, you can pull secrets instead of typing them. See [GCP setup](./operations/gcp-setup.md) and [Deployment](./operations/deployment.md).
 
 ## Run
 

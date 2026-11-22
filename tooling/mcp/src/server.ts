@@ -57,7 +57,7 @@ export function createServer(): McpServer {
     "docs_search",
     {
       description:
-        "Search docs/**, the root README and CONTRIBUTING, and package READMEs. Returns the best files with matching lines as path:line.",
+        "Search docs/**, the root README, .github/CONTRIBUTING, and package READMEs. Returns the best files with matching lines as path:line.",
       inputSchema: { query: z.string().min(1).describe("Words to look for") },
       annotations: readOnly,
     },

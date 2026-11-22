@@ -5,7 +5,7 @@
 #
 # Nothing here talks to an outside service. Every message the app sends lands in
 # Mailpit (http://localhost:8025) and never leaves this machine. Separate from
-# docker-compose.yml so it has its own project, volume and ports and cannot
+# docker/compose.yml so it has its own project, volume and ports and cannot
 # disturb a database you already run from that file.
 #
 # Ports are bound to 127.0.0.1 only. Override LOCAL_DB_PORT, LOCAL_SMTP_PORT and

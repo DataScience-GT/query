@@ -186,7 +186,7 @@ Details: [docs/architecture.md](./docs/architecture.md). Schema and the club/hac
 | `hacklytics2027` | Firebase Hosting target `hacklytics` | `firebase.json` |
 | `hacklytics2026` | Firebase Hosting target `hacklytics2026` (site `hacklyticss2026`) | `firebase.json` |
 
-GCP project: `dsgt-website`. Local secret sync: [GCP_SETUP.md](./GCP_SETUP.md). Operations: [docs/operations/deployment.md](./docs/operations/deployment.md).
+GCP project: `dsgt-website`. Local secret sync: [docs/operations/gcp-setup.md](./docs/operations/gcp-setup.md). Operations: [docs/operations/deployment.md](./docs/operations/deployment.md).
 
 ## License
 
