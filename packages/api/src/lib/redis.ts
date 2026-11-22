@@ -46,12 +46,37 @@ export function createRedis(
   if (!url || !token) return null;
   // retry: false — the client's default of five backed-off retries would blow
   // far past REDIS_TIMEOUT_MS. We fail open instead of waiting.
-  return new Redis({
+  const client = new Redis({
     url,
     token,
     retry: false,
     automaticDeserialization: false,
-  }) as unknown as RedisClient;
+  });
+  return {
+    pipeline: () => client.pipeline() as unknown as RedisPipeline,
+    xadd: (key, id, entries, opts) => client.xadd(key, id, entries, opts),
+    xrange: async (key, start, end, count) =>
+      streamEntries(await client.xrange(key, start, end, count)),
+  };
+}
+
+/**
+ * XRANGE keyed by entry id. With automaticDeserialization off the client
+ * returns the reply as Redis sends it, `[[id, [field, value, ...]], ...]`.
+ */
+export function streamEntries(
+  reply: unknown,
+): Record<string, Record<string, unknown>> {
+  if (!Array.isArray(reply)) throw new Error("unexpected XRANGE reply");
+  const out: Record<string, Record<string, unknown>> = {};
+  for (const [id, fields] of reply as [string, unknown[]][]) {
+    const message: Record<string, unknown> = {};
+    for (let i = 0; i + 1 < fields.length; i += 2) {
+      message[String(fields[i])] = fields[i + 1];
+    }
+    out[id] = message;
+  }
+  return out;
 }
 
 export const redis: RedisClient | null = createRedis();
