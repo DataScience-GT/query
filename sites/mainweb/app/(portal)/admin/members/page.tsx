@@ -5,6 +5,8 @@ import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { Alert } from "@query/ui/Alert";
 import {
+  adminPage,
+  adminTitle,
   btnDanger,
   btnPrimary,
   btnSecondary,
@@ -13,15 +15,12 @@ import {
   itemTitle,
   label,
   meta,
-  page,
   pageDek,
 } from "@query/ui/classes";
 import { FormInput } from "@query/ui/FormInput";
 import { venueFormat } from "@/lib/venue-time";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
-
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
+import { EmptyState } from "@query/ui/EmptyState";
 
 const HISTORY_ACTIONS: Record<string, string> = {
   joined: "Joined",
@@ -90,7 +89,7 @@ export default function AdminMembersPage() {
   const selectedRow = results.data?.find((row) => row.userId === selected);
 
   return (
-    <div className={page}>
+    <div className={adminPage}>
       <h1 className={adminTitle}>Memberships</h1>
       <p className={pageDek}>
         Grant, extend or end a membership. Every change is recorded in the
@@ -265,9 +264,9 @@ export default function AdminMembersPage() {
           <div className="border-t border-[var(--border-subtle)] pt-6">
             <h3 className={`${label} mb-2`}>History</h3>
             {(history.data?.length ?? 0) === 0 ? (
-              <p className={meta}>
+              <EmptyState>
                 Nothing recorded yet. Grants and endings will be listed here.
-              </p>
+              </EmptyState>
             ) : (
               <ul className="divide-y divide-[var(--border-subtle)]">
                 {history.data?.map((row) => (

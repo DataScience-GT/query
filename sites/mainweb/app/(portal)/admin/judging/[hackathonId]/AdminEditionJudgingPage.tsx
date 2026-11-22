@@ -7,6 +7,8 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import {
+  adminPage,
+  adminTitle,
   body,
   btnSecondary,
   kicker,
@@ -129,7 +131,7 @@ export default function AdminEditionJudgingPage() {
   const data = overview.data;
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className={adminPage}>
       <Link
         href="/admin/judging"
         className="text-[13px] text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors"
@@ -138,7 +140,7 @@ export default function AdminEditionJudgingPage() {
       </Link>
       <header className="mt-4 mb-8">
         {data && <p className={`${kicker} mb-2`}>{data.hackathon.name}</p>}
-        <h1 className="font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text-primary)]">
+        <h1 className={adminTitle}>
           Judging
         </h1>
         {data ? (

@@ -99,7 +99,7 @@ export function decideClaim(
       ok: false,
       code: "NOT_FOUND",
       message:
-        "That project is no longer in judging. Ask an organiser at the help desk.",
+        "That project is no longer in judging. Ask an organizer at the help desk.",
     };
   }
   // A second tap on the same button, or a link opened twice.
@@ -109,14 +109,14 @@ export function decideClaim(
       ok: false,
       code: "CONFLICT",
       message:
-        "Someone has already claimed this place. If that was not you, tell an organiser.",
+        "Someone has already claimed this place. If that was not you, tell an organizer.",
     };
   }
   if (heldElsewhere) {
     return {
       ok: false,
       code: "CONFLICT",
-      message: `You already claimed ${heldElsewhere}. Each person is on one project per event; an organiser can move you.`,
+      message: `You already claimed ${heldElsewhere}. Each person is on one project per event; an organizer can move you.`,
     };
   }
   if (target.teamSize > MAX_TEAM_SIZE) {
@@ -124,7 +124,7 @@ export function decideClaim(
       ok: false,
       code: "PRECONDITION_FAILED",
       message:
-        "This team lists more than four people. An organiser has to fix the team list before anyone can claim it.",
+        "This team lists more than four people. An organizer has to fix the team list before anyone can claim it.",
     };
   }
   return { ok: true, alreadyYours: false };

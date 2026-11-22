@@ -224,13 +224,13 @@ export function hackathonNextStep(
       ? {
           step: "review",
           label: "Waiting on a decision",
-          detail: "An organiser is reviewing your application.",
+          detail: "An organizer is reviewing your application.",
           href: tab("INFO"),
         }
       : {
           step: "status",
           label: "Waitlisted",
-          detail: "An organiser may offer you a spot if one opens. Watch your email.",
+          detail: "An organizer may offer you a spot if one opens. Watch your email.",
           href: tab("INFO"),
         };
   }
@@ -249,7 +249,7 @@ export function hackathonNextStep(
   const waitingOnResults: HackathonNextStep = {
     step: "results",
     label: "Waiting on results",
-    detail: "Organisers publish them on the Results tab.",
+    detail: "Organizers publish them on the Results tab.",
     href: tab("RESULTS"),
   };
   if (over) {
@@ -332,7 +332,7 @@ export function hackathonNextStep(
   return {
     step: "judging",
     label: "Wait for your judging time",
-    detail: "It shows on the Judging tab once organisers publish the schedule.",
+    detail: "It shows on the Judging tab once organizers publish the schedule.",
     href: tab("JUDGING"),
   };
 }

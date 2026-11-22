@@ -202,7 +202,7 @@ export function HackerJudgingTab({ hackathonId }: { hackathonId: string }) {
     <div className="space-y-10">
       {state.emergency && (
         <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
-          Organisers have switched judging to emergency mode. Team lists,
+          Organizers have switched judging to emergency mode. Team lists,
           invites and feedback are off until it ends; the times and places
           here still apply.
         </p>
@@ -317,7 +317,7 @@ function ClaimPrompt({
         <section className="max-w-xl">
           <h3 className={sectionTitle}>Your project</h3>
           <p className={`mt-3 ${body}`}>
-            {submitted.name} is submitted; it appears here once organisers move
+            {submitted.name} is submitted; it appears here once organizers move
             submissions into judging.
           </p>
         </section>
@@ -329,15 +329,15 @@ function ClaimPrompt({
         <h3 className={sectionTitle}>Claim your project</h3>
         <p className={`mt-3 ${body}`}>
           {claimsStarted
-            ? "Organisers emailed a claim link to the address each teammate used on Devpost. Open it while signed in to the portal."
-            : "Claim links have not gone out yet. Organisers email one to the address each teammate used on Devpost."}
+            ? "Organizers emailed a claim link to the address each teammate used on Devpost. Open it while signed in to the portal."
+            : "Claim links have not gone out yet. Organizers email one to the address each teammate used on Devpost."}
         </p>
         <p className={`mt-3 ${body}`}>
           A teammate who has already claimed can add you instead, using the
           email you sign in here with.
         </p>
         <p className={`mt-3 ${meta}`}>
-          Used another email on Devpost, or nothing arrived? Ask an organiser at
+          Used another email on Devpost, or nothing arrived? Ask an organizer at
           the help desk for your link.
         </p>
       </section>
@@ -366,7 +366,7 @@ function ClaimPrompt({
             <p className={`mt-1 ${meta}`}>Listed as {offer.name}</p>
             {offer.teamTooLarge ? (
               <p className="mt-4 border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
-                This team lists more than four people. Ask an organiser at the
+                This team lists more than four people. Ask an organizer at the
                 help desk to fix the list.
               </p>
             ) : (

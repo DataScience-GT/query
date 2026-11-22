@@ -93,7 +93,7 @@ async function assertNotPulledByOrganiser(tx: Tx, project: Project) {
     new TRPCError({
       code: "FORBIDDEN",
       message:
-        "An organiser withdrew this project, so it can no longer be resubmitted.",
+        "An organizer withdrew this project, so it can no longer be resubmitted.",
     });
 
   if (project.withdrawnByAdminAt) throw withdrawn();
@@ -374,7 +374,7 @@ export const submissionProcedures = {
             throw new TRPCError({
               code: "FORBIDDEN",
               message:
-                "Judging has started for this project. Ask an organiser if it needs to be pulled.",
+                "Judging has started for this project. Ask an organizer if it needs to be pulled.",
             });
           }
 

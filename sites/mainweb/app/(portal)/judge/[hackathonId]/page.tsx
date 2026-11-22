@@ -2,6 +2,8 @@ import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import { JudgeDesk } from "@/components/judge/JudgeDesk";
 import type { Prefetch } from "@/lib/portal-bootstrap.server";
 
+export const metadata = { title: "Judging" };
+
 // The judge desk for one edition, for a judge signed in with a portal account.
 export default async function JudgeDeskPage({
   params,

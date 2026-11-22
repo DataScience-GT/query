@@ -68,7 +68,7 @@ export function ScanResultModal({
             </p>
             <p className="mt-2 text-[13px] text-[var(--text-subtle)]">
               {onScanAgain
-                ? "If this looks wrong, send them to an organiser."
+                ? "If this looks wrong, send them to an organizer."
                 : "Close this and scan the code again."}
             </p>
           </div>

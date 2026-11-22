@@ -9,6 +9,8 @@ import { isStaffRole } from "@query/api/portal-context";
 import { Alert } from "@query/ui/Alert";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
 import {
+  adminPage,
+  adminTitle,
   body,
   btnDanger,
   btnPrimary,
@@ -18,14 +20,10 @@ import {
   input,
   meta,
   object,
-  page,
   pageDek,
   sectionTitle,
   status,
 } from "@query/ui/classes";
-
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
 
 /**
  * Staff and roles.
@@ -125,7 +123,7 @@ export default function StaffPage() {
   // form whose every button is refused.
   if (!canManage) {
     return (
-      <div className={page}>
+      <div className={adminPage}>
         <h1 className={adminTitle}>Staff &amp; roles</h1>
         <p className={pageDek}>
           Only staff can grant roles. Ask an admin to add you or the person
@@ -140,7 +138,7 @@ export default function StaffPage() {
   const isSelf = !!myUserId && lookup.data?.id === myUserId;
 
   return (
-    <div className={page}>
+    <div className={adminPage}>
       <h1 className={adminTitle}>Staff &amp; roles</h1>
       <p className={pageDek}>
         Grant the volunteer role before the event, not at the door.

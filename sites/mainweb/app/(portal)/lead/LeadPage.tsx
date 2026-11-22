@@ -31,6 +31,7 @@ import {
   pageTitle,
   textLink,
 } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 import { trpc } from "@/lib/trpc";
 import { loginHref } from "@/lib/safe-callback";
 import type { RouterOutputs } from "@query/api";
@@ -358,19 +359,21 @@ export default function LeadPage() {
         </ul>
       ) : (
         !creating && (
-          <div className="mt-10 border-t border-[var(--border-subtle)] pt-6">
-            <p className={`${body} max-w-xl`}>
-              You have no projects yet. A new one starts as a draft, so you can
-              write it up now and open it to members when you are ready.
-            </p>
-            <button
-              type="button"
-              onClick={() => setCreating(true)}
-              className={`${textLink} mt-4`}
-            >
-              Start a draft
-            </button>
-          </div>
+          <EmptyState
+            className="mt-10 max-w-xl border-t border-[var(--border-subtle)] pt-6"
+            action={
+              <button
+                type="button"
+                onClick={() => setCreating(true)}
+                className={textLink}
+              >
+                Start a draft
+              </button>
+            }
+          >
+            You have no projects yet. A new one starts as a draft, so you can
+            write it up now and open it to members when you are ready.
+          </EmptyState>
         )
       )}
     </div>

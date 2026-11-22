@@ -3,6 +3,8 @@ import { decodeHackathonParam } from "@/lib/hackathon-slug";
 import type { Prefetch } from "@/lib/portal-bootstrap.server";
 import AdminHackathonDashboard from "./AdminHackathonPage";
 
+export const metadata = { title: "Hackathon" };
+
 // The Applications tab is what the dashboard opens on; a link to another tab
 // carries it in the hash, which the server never sees, so that tab fetches for
 // itself as before.

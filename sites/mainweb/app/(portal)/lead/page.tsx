@@ -1,6 +1,8 @@
 import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import LeadPage from "./LeadPage";
 
+export const metadata = { title: "Projects you lead" };
+
 export default function Page() {
   return (
     <PrefetchedPage

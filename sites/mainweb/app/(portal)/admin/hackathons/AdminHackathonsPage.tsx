@@ -10,8 +10,16 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Alert } from "@query/ui/Alert";
+import { EmptyState } from "@query/ui/EmptyState";
 import { Skeleton } from "@query/ui/Skeleton";
-import { body, btnPrimary, btnSecondary, meta, pageDek } from "@query/ui/classes";
+import {
+  adminPage,
+  adminTitle,
+  btnPrimary,
+  btnSecondary,
+  meta,
+  pageDek,
+} from "@query/ui/classes";
 
 // Extracted Components
 
@@ -33,9 +41,6 @@ const preloadForms = () => {
   void loadCreateForm();
   void loadEditForm();
 };
-
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text-primary)]";
 
 export default function AdminHackathonsPage() {
   const { data: session, status } = useSession();
@@ -70,7 +75,7 @@ export default function AdminHackathonsPage() {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-5xl py-4 md:py-8">
+      <div className={adminPage}>
         <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className={adminTitle}>Hackathons</h1>
@@ -140,20 +145,22 @@ export default function AdminHackathonsPage() {
               ))}
             </div>
           ) : hackathons.length === 0 ? (
-            <div className="flex flex-col items-start gap-4 border-t border-[var(--border-subtle)] pt-6">
-              <p className={body}>
-                No hackathons yet. Each edition you create will be listed here.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowCreate(true)}
-                disabled={readOnly}
-                title={readOnly ? READ_ONLY_TITLE : undefined}
-                className={btnSecondary}
-              >
-                Create the first one
-              </button>
-            </div>
+            <EmptyState
+              className="border-t border-[var(--border-subtle)] pt-6"
+              action={
+                <button
+                  type="button"
+                  onClick={() => setShowCreate(true)}
+                  disabled={readOnly}
+                  title={readOnly ? READ_ONLY_TITLE : undefined}
+                  className={btnSecondary}
+                >
+                  Create the first one
+                </button>
+              }
+            >
+              No hackathons yet. Each edition you create will be listed here.
+            </EmptyState>
           ) : (
             <div className="space-y-8">
               {hackathons.map((h: NonNullable<typeof hackathons>[number]) => {

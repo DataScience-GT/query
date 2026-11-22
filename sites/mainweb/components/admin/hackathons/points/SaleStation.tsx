@@ -16,6 +16,7 @@ import {
   meta,
   status,
 } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 import { QRScannerModal } from "@/components/portal/QRScannerModal";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { pointsLabel } from "@/components/hackathon/points/format";
@@ -235,9 +236,9 @@ export function SaleStation({ hackathonId }: { hackathonId: string }) {
         {items.isLoading ? (
           <p className={meta}>Loading the catalog…</p>
         ) : catalog.length === 0 ? (
-          <p className={body}>
+          <EmptyState>
             Nothing to sell yet. Add items under Items below.
-          </p>
+          </EmptyState>
         ) : (
           <ul className="border-t border-[var(--border-subtle)]">
             {catalog.map((row) => {

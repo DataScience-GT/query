@@ -83,7 +83,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased bg-[#050505] text-gray-400">
         {/* Identifies the publisher behind every page, which is what a crawler
-            needs before it will attribute an event to an organisation. */}
+            needs before it will attribute an event to an organization. */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

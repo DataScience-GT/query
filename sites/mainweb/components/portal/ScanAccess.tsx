@@ -38,7 +38,7 @@ export function ScanAccess({ children }: { children: React.ReactNode }) {
         <div className="w-full max-w-md">
           <h1 className={sectionTitle}>You&apos;re not on event staff</h1>
           <p className={`${body} mt-3`}>
-            This is the event check-in desk. Ask an organiser to add you as
+            This is the event check-in desk. Ask an organizer to add you as
             event staff.
           </p>
           <Link href="/dashboard" className={`${textLink} mt-6`}>

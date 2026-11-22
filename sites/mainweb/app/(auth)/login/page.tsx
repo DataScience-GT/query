@@ -6,6 +6,8 @@ import { safeCallback } from "@/lib/safe-callback";
 import { kicker, pageDek, pageTitle } from "@query/ui/classes";
 import LoginActions from "./LoginActions";
 
+export const metadata = { title: "Sign in" };
+
 /**
  * In-app browsers (Instagram, Facebook, TikTok, Line) that Google refuses to
  * sign anybody into: its OAuth page rejects embedded webviews with

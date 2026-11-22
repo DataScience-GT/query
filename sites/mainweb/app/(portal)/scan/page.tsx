@@ -2,6 +2,8 @@ import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import type { Prefetch } from "@/lib/portal-bootstrap.server";
 import ScanPage from "./ScanPage";
 
+export const metadata = { title: "Check-in desk" };
+
 export default function Page() {
   return (
     <PrefetchedPage

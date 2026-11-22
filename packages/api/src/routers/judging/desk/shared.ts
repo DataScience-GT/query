@@ -27,7 +27,7 @@ import type { ChallengeRow } from "../../../services/judging/evaluation-store";
 import { effectiveMode } from "../../../services/judging/scope";
 
 export const NOT_A_JUDGE =
-  "Judge access needed. Sign in with the account an organiser approved as a judge, or scan the QR code at your judging room or table.";
+  "Judge access needed. Sign in with the account an organizer approved as a judge, or scan the QR code at your judging room or table.";
 
 // Every desk call names its edition. A member's judge access is per edition;
 // a guest's cookie only opens the edition its room belongs to.
@@ -76,7 +76,7 @@ export const sectionTitle = z
 export const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
 
 export const NOT_OPEN_YET =
-  "Judging has not opened yet. You can start once organisers open it.";
+  "Judging has not opened yet. You can start once organizers open it.";
 export const CLOSED = "Judging is closed. Your submitted evaluations are read-only.";
 
 /** The (judge, project, challenge) an evaluation or draft is keyed by. */
