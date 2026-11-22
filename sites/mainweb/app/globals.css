@@ -69,7 +69,14 @@ body {
    so the dense admin tables keep their density under a mouse, where a 12px
    target is fine, and only grow where a fingertip has to find them. */
 @media (pointer: coarse) {
-  :where(button, [role="button"], a[href], summary, input[type="checkbox"], input[type="radio"]) {
+  :where(
+    button,
+    [role="button"],
+    a[href],
+    summary,
+    input[type="checkbox"],
+    input[type="radio"]
+  ) {
     min-height: 44px;
     min-width: 44px;
   }
@@ -123,13 +130,6 @@ body {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  .glass-dark {
-    background: rgba(10, 10, 10, 0.6);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .glass-card {

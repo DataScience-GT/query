@@ -1,19 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { HACKLYTICS_URL } from "@query/core";
+
 import logo from "../../assets/images/dsgt/apple-touch-icon.png";
 
-interface NavbarProps {
-  page?: string;
-  className?: string;
-}
+/** One menu for every public page; the current section is highlighted. */
+const MENU_ITEMS = [
+  { name: "Bootcamp", to: "/bootcamp" },
+  { name: "Projects", to: "/projects" },
+  { name: "Events", to: "/events" },
+  { name: "Hacklytics", to: HACKLYTICS_URL },
+  { name: "Team", to: "/team" },
+  { name: "History", to: "/history" },
+  { name: "Status", to: "/status" },
+];
 
-export default function Navbar({ page, className = "" }: NavbarProps) {
+export default function Navbar() {
   const WIDTH_THRESHOLD = 1000;
   const [menuOpen, setMenuOpen] = useState(false);
-  const isHomePage = !page || page === "home";
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleResize = () => {
@@ -28,41 +37,10 @@ export default function Navbar({ page, className = "" }: NavbarProps) {
     document.body.style.overflow = menuOpen ? "hidden" : "auto";
   }, [menuOpen]);
 
-  /**
-   * `link: false` renders a plain `<a href="#to">`, so `to` has to be the id
-   * of an element on THIS page. Anything starting with a slash is a
-   * destination, not an anchor. Smooth scrolling and the fixed-nav offset live
-   * in CSS (`html:has(#home-page)` and `scroll-mt-20 md:scroll-mt-0` on each section, the md padding already clears the nav).
-   */
-  const homeMenuItems = [
-    { name: "About", to: "about", link: false },
-    { name: "Bootcamp", to: "bootcamp", link: false },
-    // The public announcement page, not /hackathons — that one is the
-    // signed-in participant's list and answers a stranger with a login screen.
-    { name: "Hacklytics", to: "/hacklytics", link: true },
-    { name: "Projects", to: "projects", link: false },
-    { name: "Get Involved", to: "getinvolved", link: false },
-    { name: "Team", to: "/team", link: true },
-    { name: "Events", to: "/events", link: true },
-    { name: "History", to: "/history", link: true },
-    { name: "Status", to: "/status", link: true },
-  ];
-
-  const otherPageMenuItems = [
-    { name: "Home", to: "/", link: true },
-    { name: "Bootcamp", to: "/bootcamp", link: true },
-    { name: "Team", to: "/team", link: true },
-    { name: "Projects", to: "/projects", link: true },
-    { name: "Events", to: "/events", link: true },
-    { name: "History", to: "/history", link: true },
-    { name: "Status", to: "/status", link: true },
-  ];
-
-  const menuItems = isHomePage ? homeMenuItems : otherPageMenuItems;
-
-  type MenuItem = { name: string; to: string; link: boolean };
+  type MenuItem = (typeof MENU_ITEMS)[number];
 
   const renderMenuItem = (item: MenuItem, isMobile: boolean = false) => {
+    const current = pathname === item.to || pathname.startsWith(`${item.to}/`);
     /**
      * `min-h-11` is the tap target, not a visual change.
      *
@@ -71,48 +49,36 @@ export default function Navbar({ page, className = "" }: NavbarProps) {
      * than the type keeps the design identical and makes the link hittable;
      * `inline-flex items-center` keeps the label centred in the taller box.
      */
-    const baseClass = `inline-flex items-center min-h-11 text-[11px] font-mono uppercase whitespace-nowrap transition-ui duration-300 cursor-pointer ${
+    const baseClass = `inline-flex items-center min-h-11 font-mono uppercase whitespace-nowrap transition-ui duration-300 cursor-pointer ${
       isMobile
-        ? "tracking-[0.2em] text-gray-300 hover:text-white text-xl font-bold"
-        : "tracking-[0.14em] min-[1200px]:tracking-[0.2em] text-gray-400 hover:text-dsgt-teal"
+        ? `tracking-[0.2em] text-xl font-bold ${current ? "text-dsgt-teal" : "text-gray-300 hover:text-white"}`
+        : `text-[11px] tracking-[0.14em] min-[1200px]:tracking-[0.2em] ${current ? "text-white" : "text-gray-400 hover:text-dsgt-teal"}`
     }`;
 
-    if (item.link) {
-      return (
-        <Link
-          key={item.name}
-          href={item.to}
-          className={baseClass}
-          onClick={() => setMenuOpen(false)}
-        >
-          {item.name}
-        </Link>
-      );
-    }
-
     return (
-      <a
+      <Link
         key={item.name}
-        href={`#${item.to}`}
+        href={item.to}
         className={baseClass}
+        aria-current={current ? "page" : undefined}
         onClick={() => setMenuOpen(false)}
       >
         {item.name}
-      </a>
+      </Link>
     );
   };
 
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 w-full h-20 z-130 glass-navbar transition-ui ${className}`}
+        className="glass-navbar transition-ui fixed top-0 left-0 z-130 h-20 w-full"
       >
-        <div className="max-w-7xl mx-auto h-full flex justify-between items-center px-6 lg:px-12">
+        <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-6 lg:px-12">
           {/* Logo Section */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex shrink-0 items-center gap-3">
             <Link
               href="/"
-              className="flex items-center gap-3 group"
+              className="group flex items-center gap-3"
               onClick={() => setMenuOpen(false)}
             >
               <Image
@@ -122,58 +88,58 @@ export default function Navbar({ page, className = "" }: NavbarProps) {
                 width={32}
                 height={32}
               />
-              <span className="text-white text-xl font-bold tracking-tighter uppercase">
+              <span className="text-xl font-bold tracking-tighter text-white uppercase">
                 DSGT
               </span>
             </Link>
           </div>
 
           {/* Desktop Links */}
-          <div className="hidden min-[1000px]:flex items-center gap-4 min-[1200px]:gap-8 ml-6">
-            {menuItems.map((item) => renderMenuItem(item))}
+          <div className="ml-6 hidden items-center gap-4 min-[1000px]:flex min-[1200px]:gap-8">
+            {MENU_ITEMS.map((item) => renderMenuItem(item))}
             <Link
               href="/login"
               rel="noopener noreferrer"
-              className="px-5 py-2 bg-white text-black text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm hover:bg-dsgt-teal hover:text-white transition-ui duration-300"
+              className="hover:bg-dsgt-teal transition-ui rounded-sm bg-white px-5 py-2 font-mono text-[10px] font-bold tracking-widest text-black uppercase duration-300 hover:text-white"
               onClick={() => setMenuOpen(false)}
             >
               Portal
             </Link>
           </div>
           <button
-            className="min-[1000px]:hidden relative w-12 h-12 flex flex-col justify-center items-end gap-1.5 z-[140] -mr-2"
+            className="relative z-[140] -mr-2 flex h-12 w-12 flex-col items-end justify-center gap-1.5 min-[1000px]:hidden"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle Menu"
           >
             <span
-              className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 rotate-45 translate-y-2" : "w-8"}`}
+              className={`transition-ui block h-0.5 bg-white duration-300 ${menuOpen ? "w-8 translate-y-2 rotate-45" : "w-8"}`}
             />
             <span
-              className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "opacity-0" : "w-5"}`}
+              className={`transition-ui block h-0.5 bg-white duration-300 ${menuOpen ? "opacity-0" : "w-5"}`}
             />
             <span
-              className={`block h-0.5 bg-white transition-ui duration-300 ${menuOpen ? "w-8 -rotate-45 -translate-y-2" : "w-8"}`}
+              className={`transition-ui block h-0.5 bg-white duration-300 ${menuOpen ? "w-8 -translate-y-2 -rotate-45" : "w-8"}`}
             />
           </button>
         </div>
       </nav>
 
       <div
-        className={`fixed inset-0 glass-dark z-[120] flex flex-col items-center justify-center pt-20 transition-ui duration-500 ease-in-out ${
+        className={`transition-ui fixed inset-0 z-[120] flex flex-col items-center justify-center bg-[#050505] pt-20 duration-500 ease-in-out ${
           menuOpen
             ? "translate-y-0 opacity-100"
-            : "-translate-y-full opacity-0 pointer-events-none"
+            : "pointer-events-none -translate-y-full opacity-0"
         }`}
       >
         {/* Subtle grid pattern for better aesthetic on the full-screen mobile menu */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]"></div>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)] [background-size:20px_20px] opacity-10"></div>
 
-        <div className="flex flex-col items-center gap-8 text-center relative z-10">
-          {menuItems.map((item) => renderMenuItem(item, true))}
+        <div className="relative z-10 flex flex-col items-center gap-8 text-center">
+          {MENU_ITEMS.map((item) => renderMenuItem(item, true))}
           <Link
             href="/login"
             rel="noopener noreferrer"
-            className="mt-4 px-10 py-4 bg-white text-black text-sm font-mono font-bold uppercase tracking-[0.3em] rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            className="mt-4 rounded-sm bg-white px-10 py-4 font-mono text-sm font-bold tracking-[0.3em] text-black uppercase shadow-[0_0_20px_rgba(255,255,255,0.1)]"
             onClick={() => setMenuOpen(false)}
           >
             Portal
