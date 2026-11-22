@@ -76,7 +76,7 @@ export default function DocsPageClient() {
 
   return (
     <div className="selection:bg-dsgt-teal/30 relative min-h-screen overflow-x-hidden bg-[#050505] pt-20 font-sans text-gray-400">
-      <Navbar className="fixed top-0 z-30 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md" />
+      <Navbar />
 
       {/* Phones: a native select is the most usable switcher for six items. */}
       <div className="sticky top-20 z-40 border-b border-white/10 bg-[#050505]/95 px-6 py-2 backdrop-blur lg:hidden">
