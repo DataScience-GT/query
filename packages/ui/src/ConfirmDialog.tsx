@@ -69,10 +69,13 @@ const DEFAULT_VERBS = new Set([
   "accept",
   "admit",
   "approve",
+  "close",
   "issue",
   "mark",
+  "open",
   "publish",
   "reload",
+  "send",
 ]);
 const LABELS: Record<string, string> = {
   take: "Remove",

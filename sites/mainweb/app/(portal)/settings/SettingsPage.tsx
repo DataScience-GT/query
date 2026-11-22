@@ -78,7 +78,7 @@ export default function SettingsPage() {
     try {
       // 1. Read file as Data URL
       const reader = new FileReader();
-      reader.onloadend = async () => {
+      reader.onload = async () => {
         try {
           const originalBase64 = reader.result as string;
 
