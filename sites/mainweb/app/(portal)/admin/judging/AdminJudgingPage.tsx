@@ -16,6 +16,7 @@ import {
   status,
   textLink,
 } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 
 // Judging is run per edition. AdminLayout gates this page to staff.
 export default function AdminJudgingPage() {
@@ -55,7 +56,7 @@ export default function AdminJudgingPage() {
             </button>
           </p>
         ) : !hackathons || hackathons.length === 0 ? (
-          <p className={body}>
+          <EmptyState>
             No editions yet. Create one from{" "}
             <Link
               href="/admin/hackathons"
@@ -64,7 +65,7 @@ export default function AdminJudgingPage() {
               Hackathons
             </Link>{" "}
             first.
-          </p>
+          </EmptyState>
         ) : (
           <ul className="border-t border-[var(--border-subtle)]">
             {hackathons.map((h) => {

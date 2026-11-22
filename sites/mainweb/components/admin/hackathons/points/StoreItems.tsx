@@ -24,6 +24,7 @@ import { FormTextarea } from "@query/ui/FormTextarea";
 import { pointsLabel } from "@/components/hackathon/points/format";
 import { Checkbox } from "@query/ui/Checkbox";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
+import { EmptyState } from "@query/ui/EmptyState";
 
 type Item = RouterOutputs["points"]["store"]["items"][number];
 
@@ -373,10 +374,10 @@ export function StoreItems({ hackathonId }: { hackathonId: string }) {
           retries every few seconds.
         </p>
       ) : all.length === 0 ? (
-        <p className={`border-t border-[var(--border-subtle)] pt-5 ${body}`}>
+        <EmptyState className="border-t border-[var(--border-subtle)] pt-5">
           No items yet. Add the first one; hackers see it once the catalog is
           shown.
-        </p>
+        </EmptyState>
       ) : (
         <ul className="border-t border-[var(--border-subtle)]">
           {all.map((item) => (

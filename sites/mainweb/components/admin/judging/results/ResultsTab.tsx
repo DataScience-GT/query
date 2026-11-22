@@ -36,6 +36,7 @@ import {
 } from "@/components/admin/judging/results/calibration";
 import type { CalibrationChallenge } from "@/components/admin/judging/results/calibration";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
+import { EmptyState } from "@query/ui/EmptyState";
 
 // Officer screens poll every 10 seconds while judges are still submitting.
 const POLL_MS = 10_000;
@@ -656,10 +657,10 @@ function EvaluationAudit({
           </button>
         </div>
       ) : rows.length === 0 ? (
-        <p className={`mt-4 ${body}`}>
+        <EmptyState className="mt-4">
           No evaluations yet. They appear here as judges submit from their
           desks.
-        </p>
+        </EmptyState>
       ) : (
         <>
           <ul className="mt-4 border-t border-[var(--border-subtle)]">

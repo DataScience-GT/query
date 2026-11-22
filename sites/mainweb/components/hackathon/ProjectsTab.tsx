@@ -10,6 +10,7 @@ import {
   status,
   textLink,
 } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 
 export function ProjectsTab({ hackathonId }: { hackathonId: string }) {
   const {
@@ -41,10 +42,10 @@ export function ProjectsTab({ hackathonId }: { hackathonId: string }) {
 
   if (!projects || projects.length === 0) {
     return (
-      <p className={body}>
+      <EmptyState>
         No projects have been submitted yet. Submitted projects will be listed
         here.
-      </p>
+      </EmptyState>
     );
   }
 

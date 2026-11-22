@@ -20,6 +20,7 @@ import {
 import { FormInput } from "@query/ui/FormInput";
 import { venueFormat } from "@/lib/venue-time";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
+import { EmptyState } from "@query/ui/EmptyState";
 
 const HISTORY_ACTIONS: Record<string, string> = {
   joined: "Joined",
@@ -263,9 +264,9 @@ export default function AdminMembersPage() {
           <div className="border-t border-[var(--border-subtle)] pt-6">
             <h3 className={`${label} mb-2`}>History</h3>
             {(history.data?.length ?? 0) === 0 ? (
-              <p className={meta}>
+              <EmptyState>
                 Nothing recorded yet. Grants and endings will be listed here.
-              </p>
+              </EmptyState>
             ) : (
               <ul className="divide-y divide-[var(--border-subtle)]">
                 {history.data?.map((row) => (

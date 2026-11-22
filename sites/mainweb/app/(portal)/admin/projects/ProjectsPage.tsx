@@ -23,6 +23,7 @@ import {
   status as statusClass,
 } from "@query/ui/classes";
 import type { Tone } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 
 export default function ProjectsPage() {
   const { data: session, status } = useSession();
@@ -141,10 +142,10 @@ export default function ProjectsPage() {
           ) : isLoading ? (
             <p className={meta}>Loading projects…</p>
           ) : !projects || projects.length === 0 ? (
-            <p className={body}>
+            <EmptyState>
               No projects yet. They will appear here once participants submit
               them.
-            </p>
+            </EmptyState>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
