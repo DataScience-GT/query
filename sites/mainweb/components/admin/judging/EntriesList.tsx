@@ -27,6 +27,7 @@ import {
   useRefreshJudging,
 } from "@/components/admin/judging/shared";
 import type { Challenge } from "@/components/admin/judging/shared";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 type Entry =
   RouterOutputs["judging"]["admin"]["listEntries"]["entries"][number];
@@ -474,9 +475,9 @@ function EntryRow({
             !removed && (
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (
-                    !window.confirm(
+                    !await confirmDialog(
                       `Pull ${entry.title} from prizes? Judges still score it. It leaves the public Results tab at once and the placings when you compute again.`,
                     )
                   )
@@ -508,9 +509,9 @@ function EntryRow({
           ) : (
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  !window.confirm(
+                  !await confirmDialog(
                     `Take ${entry.title} out of judging? ${
                       entry.source === "portal"
                         ? "The team cannot resubmit it from the portal while it is removed."

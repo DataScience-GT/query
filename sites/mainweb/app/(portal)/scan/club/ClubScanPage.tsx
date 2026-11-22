@@ -6,6 +6,7 @@ import { DialogLoading } from "@/components/portal/DialogLoading";
 import { trpc } from "@/lib/trpc";
 import { canViewAdmin, usePortalContext } from "@/lib/use-portal-context";
 import {
+  adminTitle,
   body,
   btnSecondary,
   fieldLabel,
@@ -24,9 +25,6 @@ const loadAttendanceModal = () => import("@/components/portal/EventAttendanceMod
 const EventAttendanceModal = dynamic(loadAttendanceModal, { loading: () => <DialogLoading /> });
 
 /** Staff pages carry a smaller headline than member pages. */
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
-
 /**
  * Club meeting attendance, with the pass scanner one click away.
  *

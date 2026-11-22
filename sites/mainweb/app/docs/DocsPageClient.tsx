@@ -75,8 +75,8 @@ export default function DocsPageClient() {
   const Body = SECTION_BODY[active];
 
   return (
-    <div className="relative min-h-screen bg-[#050505] pt-20 text-white">
-      <Navbar page="docs" />
+    <div className="selection:bg-dsgt-teal/30 relative min-h-screen overflow-x-hidden bg-[#050505] pt-20 font-sans text-gray-400">
+      <Navbar />
 
       {/* Phones: a native select is the most usable switcher for six items. */}
       <div className="sticky top-20 z-40 border-b border-white/10 bg-[#050505]/95 px-6 py-2 backdrop-blur lg:hidden">
@@ -142,14 +142,14 @@ export default function DocsPageClient() {
           <p className="font-mono text-xs tracking-[0.3em] text-dsgt-teal uppercase">
             Developer docs
           </p>
-          <h1 className="mt-4 text-5xl font-bold tracking-tighter sm:text-6xl">
+          <h1 className="mt-4 text-5xl leading-none font-bold tracking-tighter text-white md:text-7xl">
             {current.id === "overview" ? "Query" : current.label}
           </h1>
           <Body />
         </article>
       </main>
 
-      <Footer />
+      <Footer className="relative z-10 border-t border-white/5" />
     </div>
   );
 }

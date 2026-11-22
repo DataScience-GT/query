@@ -49,13 +49,22 @@ export default function PortalSidebar({
     };
   }, [isMobileOpen]);
 
-  const themeLabel = theme === "dark" ? "Paper edition" : "Night edition";
+  const themeLabel = theme === "dark" ? "Light theme" : "Dark theme";
   const ThemeIcon = theme === "dark" ? Sun : Moon;
 
-  const wordmark = (
-    <span className="font-[family-name:var(--font-display)] text-[26px] font-semibold leading-none tracking-[-0.01em] text-[var(--text-primary)]">
-      Query<span className="text-accent">.</span>
-    </span>
+  const brand = (
+    <Link href="/dashboard" className="group flex items-center gap-2.5">
+      <Image
+        src={logo}
+        alt=""
+        className="h-7 w-7 transition-transform duration-500 group-hover:rotate-[360deg]"
+        width={28}
+        height={28}
+      />
+      <span className="text-xl font-bold leading-none tracking-tighter text-[var(--text-primary)]">
+        DS@GT
+      </span>
+    </Link>
   );
 
   const textButton =
@@ -65,10 +74,7 @@ export default function PortalSidebar({
     <>
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] z-40 flex items-center justify-between px-4">
-        <Link href="/dashboard" className="flex items-center gap-2.5">
-          <Image src={logo} alt="" className="h-6 w-6" width={24} height={24} />
-          {wordmark}
-        </Link>
+        {brand}
         <button
           type="button"
           onClick={() => setIsMobileOpen(true)}
@@ -83,7 +89,7 @@ export default function PortalSidebar({
       {isMobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-[var(--bg-primary)] flex flex-col px-6 pt-4 pb-8 overflow-y-auto">
           <div className="flex h-12 items-center justify-between">
-            {wordmark}
+            {brand}
             <button
               type="button"
               onClick={() => setIsMobileOpen(false)}
@@ -172,10 +178,7 @@ export default function PortalSidebar({
           className={`flex h-20 items-center ${isOpen ? "justify-between px-6" : "justify-center"}`}
         >
           {isOpen ? (
-            <Link href="/dashboard" className="flex items-center gap-2.5">
-              <Image src={logo} alt="" className="h-6 w-6" width={24} height={24} />
-              {wordmark}
-            </Link>
+            brand
           ) : (
             <button
               type="button"

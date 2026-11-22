@@ -5,6 +5,8 @@ import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { Alert } from "@query/ui/Alert";
 import {
+  adminPage,
+  adminTitle,
   btnDanger,
   btnPrimary,
   btnSecondary,
@@ -13,13 +15,19 @@ import {
   itemTitle,
   label,
   meta,
-  page,
   pageDek,
 } from "@query/ui/classes";
 import { FormInput } from "@query/ui/FormInput";
+import { venueFormat } from "@/lib/venue-time";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
+import { EmptyState } from "@query/ui/EmptyState";
 
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
+const HISTORY_ACTIONS: Record<string, string> = {
+  joined: "Joined",
+  renewed: "Renewed",
+  expired: "Expired",
+  cancelled: "Ended",
+};
 
 /**
  * Membership operations for staff.
@@ -59,7 +67,7 @@ export default function AdminMembersPage() {
     onSuccess: (result) => {
       setError(null);
       setNotice(
-        `Done. Membership now ${result.isActive ? "runs to" : "ended"} ${result.membershipEndDate.toLocaleDateString()}.`,
+        `Done. Membership now ${result.isActive ? "runs to" : "ended"} ${venueFormat(result.membershipEndDate)}.`,
       );
       setNote("");
       refresh();
@@ -81,7 +89,7 @@ export default function AdminMembersPage() {
   const selectedRow = results.data?.find((row) => row.userId === selected);
 
   return (
-    <div className={page}>
+    <div className={adminPage}>
       <h1 className={adminTitle}>Memberships</h1>
       <p className={pageDek}>
         Grant, extend or end a membership. Every change is recorded in the
@@ -150,7 +158,7 @@ export default function AdminMembersPage() {
                 <p className={meta}>
                   {row.email} ·{" "}
                   {row.isCurrentMember
-                    ? `member until ${row.membershipEndDate?.toLocaleDateString()}`
+                    ? `member until ${row.membershipEndDate && venueFormat(row.membershipEndDate)}`
                     : row.memberId
                       ? "lapsed"
                       : "not a member"}
@@ -167,7 +175,7 @@ export default function AdminMembersPage() {
             <h2 className={`${itemTitle} break-all`}>{selectedRow.email}</h2>
             <p className={`${meta} mt-1`}>
               {selectedRow.isCurrentMember
-                ? `Active until ${selectedRow.membershipEndDate?.toLocaleDateString()} · renewed ${selectedRow.renewalCount ?? 0}×`
+                ? `Active until ${selectedRow.membershipEndDate && venueFormat(selectedRow.membershipEndDate)} · renewed ${selectedRow.renewalCount ?? 0}×`
                 : "No current membership"}
             </p>
           </div>
@@ -193,7 +201,7 @@ export default function AdminMembersPage() {
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Paid $15 cash at the fall kickoff"
+                placeholder="Comped for running the fall workshop"
                 maxLength={500}
                 className={input}
               />
@@ -214,14 +222,16 @@ export default function AdminMembersPage() {
               title={readOnly ? READ_ONLY_TITLE : undefined}
               className={btnPrimary}
             >
-              {months >= 0 ? `Add ${months} month(s)` : `Remove ${-months} month(s)`}
+              {months >= 0
+                ? `Add ${months} ${months === 1 ? "month" : "months"}`
+                : `Remove ${-months} ${months === -1 ? "month" : "months"}`}
             </button>
             {selectedRow.isCurrentMember && (
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (
-                    !window.confirm(
+                    !await confirmDialog(
                       `End ${selectedRow.email}'s membership now?\n\nTheir history is kept.`,
                     )
                   )
@@ -254,9 +264,9 @@ export default function AdminMembersPage() {
           <div className="border-t border-[var(--border-subtle)] pt-6">
             <h3 className={`${label} mb-2`}>History</h3>
             {(history.data?.length ?? 0) === 0 ? (
-              <p className={meta}>
+              <EmptyState>
                 Nothing recorded yet. Grants and endings will be listed here.
-              </p>
+              </EmptyState>
             ) : (
               <ul className="divide-y divide-[var(--border-subtle)]">
                 {history.data?.map((row) => (
@@ -264,9 +274,9 @@ export default function AdminMembersPage() {
                     key={row.id}
                     className="py-2 text-[14px] text-[var(--text-muted)] tabular-nums"
                   >
-                    {row.createdAt.toLocaleDateString()} · {row.action} ·{" "}
-                    {row.startDate.toLocaleDateString()} to{" "}
-                    {row.endDate ? row.endDate.toLocaleDateString() : "—"}
+                    {venueFormat(row.createdAt)} · {HISTORY_ACTIONS[row.action] ?? row.action} ·{" "}
+                    {venueFormat(row.startDate)} to{" "}
+                    {row.endDate ? venueFormat(row.endDate) : "—"}
                     {row.notes ? ` · ${row.notes}` : ""}
                   </li>
                 ))}

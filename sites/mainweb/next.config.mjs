@@ -145,6 +145,11 @@ const nextConfig = {
     "@query/ui",
   ],
   outputFileTracingRoot: path.join(__dirname, "../../"),
+  // The CP-SAT runner finds its script at runtime, which the tracer cannot
+  // follow; tRPC is the only route that runs it.
+  outputFileTracingIncludes: {
+    "/api/trpc/*": ["../../packages/api/scripts/judging-schedule/cpsat.py"],
+  },
   // Native/dynamic requires that a bundler mangles. Left external so the
   // standalone output loads them from node_modules at runtime.
   serverExternalPackages: ["@google-cloud/storage", "archiver"],

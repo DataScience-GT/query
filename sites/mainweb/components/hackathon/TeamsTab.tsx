@@ -25,6 +25,7 @@ import {
 } from "@query/ui/classes";
 import { FormInput } from "@query/ui/FormInput";
 import { FormTextarea } from "@query/ui/FormTextarea";
+import { EmptyState } from "@query/ui/EmptyState";
 
 type TeamMember = {
   userId: string;
@@ -542,9 +543,9 @@ export function TeamsTab({
         </div>
 
         {otherTeams.length === 0 && !myTeam && (
-          <p className={body}>
+          <EmptyState>
             No teams yet. Create one above, or wait for others to form.
-          </p>
+          </EmptyState>
         )}
 
         {otherTeams.length > 0 && (

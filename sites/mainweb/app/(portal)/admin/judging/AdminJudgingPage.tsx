@@ -6,6 +6,8 @@ import { ChevronRight } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { hackathonStatus } from "@/lib/hackathon-status";
 import {
+  adminPage,
+  adminTitle,
   body,
   itemTitle,
   meta,
@@ -14,6 +16,7 @@ import {
   status,
   textLink,
 } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 
 // Judging is run per edition. AdminLayout gates this page to staff.
 export default function AdminJudgingPage() {
@@ -21,9 +24,9 @@ export default function AdminJudgingPage() {
     trpc.hackathon.list.useQuery({ limit: 50 });
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className={adminPage}>
       <header className="mb-8">
-        <h1 className="font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text-primary)]">
+        <h1 className={adminTitle}>
           Judging
         </h1>
         <p className={pageDek}>
@@ -53,7 +56,7 @@ export default function AdminJudgingPage() {
             </button>
           </p>
         ) : !hackathons || hackathons.length === 0 ? (
-          <p className={body}>
+          <EmptyState>
             No editions yet. Create one from{" "}
             <Link
               href="/admin/hackathons"
@@ -62,7 +65,7 @@ export default function AdminJudgingPage() {
               Hackathons
             </Link>{" "}
             first.
-          </p>
+          </EmptyState>
         ) : (
           <ul className="border-t border-[var(--border-subtle)]">
             {hackathons.map((h) => {

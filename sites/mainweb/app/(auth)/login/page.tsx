@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@query/auth";
 import { appRouter, createContext } from "@query/api";
 import { safeCallback } from "@/lib/safe-callback";
-import { mastRule, pageDek, pageTitle } from "@query/ui/classes";
+import { kicker, pageDek, pageTitle } from "@query/ui/classes";
 import LoginActions from "./LoginActions";
+
+export const metadata = { title: "Sign in" };
 
 /**
  * In-app browsers (Instagram, Facebook, TikTok, Line) that Google refuses to
@@ -56,29 +58,12 @@ export default async function LoginPage({
   );
 
   return (
-    <main className="min-h-screen flex items-center px-5 sm:px-8 md:px-12">
+    <main className="min-h-[calc(100vh-4rem)] flex items-center px-5 sm:px-8 md:px-12">
       <div className="mx-auto grid w-full max-w-4xl grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 py-10 lg:py-14 items-center">
         <div>
-          <div className={`flex items-center justify-between gap-4 ${mastRule}`}>
-            <div className="flex min-w-0 items-center gap-3">
-              <img
-                src="/images/dsgt/apple-touch-icon.png"
-                alt=""
-                className="h-8 w-8 shrink-0 object-contain"
-              />
-              <p className="truncate text-[13px] font-semibold text-[var(--text-primary)]">
-                DS@GT
-              </p>
-            </div>
-            {forHackers && (
-              <p className="shrink-0 text-[13px] text-[var(--text-muted)]">
-                For hackers
-              </p>
-            )}
-          </div>
-          <h1 className={`mt-10 ${pageTitle}`}>
-            {forHacklytics ? "Hacklytics" : forHackers ? "Hackathons" : "Query"}
-            <span className="text-accent">.</span>
+          {forHackers && <p className={kicker}>For hackers</p>}
+          <h1 className={`${forHackers ? "mt-2" : ""} ${pageTitle}`}>
+            {forHacklytics ? "Hacklytics" : forHackers ? "Hackathons" : "Sign in"}
           </h1>
           <p className={pageDek}>
             {forHackers

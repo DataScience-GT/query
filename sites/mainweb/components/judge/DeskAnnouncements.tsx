@@ -28,7 +28,7 @@ export function DeskAnnouncements({
 
   return (
     <section
-      aria-label="Announcements from organisers"
+      aria-label="Announcements from organizers"
       aria-live="polite"
       className={urgentOnly ? "mb-6 space-y-4" : "mt-6 space-y-5"}
     >

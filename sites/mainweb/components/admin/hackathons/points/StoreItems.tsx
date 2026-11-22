@@ -23,6 +23,8 @@ import { FormInput } from "@query/ui/FormInput";
 import { FormTextarea } from "@query/ui/FormTextarea";
 import { pointsLabel } from "@/components/hackathon/points/format";
 import { Checkbox } from "@query/ui/Checkbox";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
+import { EmptyState } from "@query/ui/EmptyState";
 
 type Item = RouterOutputs["points"]["store"]["items"][number];
 
@@ -310,7 +312,7 @@ export function StoreItems({ hackathonId }: { hackathonId: string }) {
             {changedUnderneath && !formError && (
               <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--warning)]">
                 This item changed since you opened it, by a sale or another
-                organiser. Saving will be refused; reload it first.
+                organizer. Saving will be refused; reload it first.
               </p>
             )}
 
@@ -372,10 +374,10 @@ export function StoreItems({ hackathonId }: { hackathonId: string }) {
           retries every few seconds.
         </p>
       ) : all.length === 0 ? (
-        <p className={`border-t border-[var(--border-subtle)] pt-5 ${body}`}>
+        <EmptyState className="border-t border-[var(--border-subtle)] pt-5">
           No items yet. Add the first one; hackers see it once the catalog is
           shown.
-        </p>
+        </EmptyState>
       ) : (
         <ul className="border-t border-[var(--border-subtle)]">
           {all.map((item) => (
@@ -462,9 +464,9 @@ export function StoreItems({ hackathonId }: { hackathonId: string }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       if (
-                        !window.confirm(
+                        !await confirmDialog(
                           `Delete ${item.name}? This cannot be undone. Items that have sold can only be archived.`,
                         )
                       )

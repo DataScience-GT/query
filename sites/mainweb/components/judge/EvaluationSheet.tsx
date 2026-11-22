@@ -37,6 +37,7 @@ import { useDraftAutosave } from "./use-draft-autosave";
 import type { SaveStatus } from "./use-draft-autosave";
 import { useScreenWake } from "./use-screen-wake";
 import { useServerNow } from "./use-server-now";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 const MAX_RESPONSE = 2000;
 
@@ -527,10 +528,10 @@ function EvaluationForm({
 
       {entry.flagged && (
         <div className="mt-6">
-          <p className={deskStatus("warning")}>Flagged by organisers</p>
+          <p className={deskStatus("warning")}>Flagged by organizers</p>
           <p className={`mt-1 ${body}`}>
             This team was flagged for a check-in rule. Judge the project as you
-            normally would. Organisers decide whether the team stays in the
+            normally would. Organizers decide whether the team stays in the
             prize running.
           </p>
         </div>
@@ -692,7 +693,7 @@ function EvaluationForm({
                       )}
                       {shared
                         ? "The team reads this, without your name."
-                        : "Only organisers and judges read this."}
+                        : "Only organizers and judges read this."}
                     </p>
                   </div>
                 );
@@ -755,9 +756,9 @@ function EvaluationForm({
                   <button
                     type="button"
                     className={`${textLink} min-h-11`}
-                    onClick={() => {
+                    onClick={async () => {
                       if (
-                        !window.confirm(
+                        !await confirmDialog(
                           "Reload the saved answers? Anything on this screen that has not saved will be lost.",
                         )
                       ) {

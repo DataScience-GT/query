@@ -1,6 +1,8 @@
 import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import AdminEditionJudgingPage from "./AdminEditionJudgingPage";
 
+export const metadata = { title: "Judging" };
+
 export default async function Page({
   params,
 }: {

@@ -6,7 +6,6 @@ import { trpcErrorMessage } from "@/lib/trpc-error";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { Alert } from "@query/ui/Alert";
 import {
-  body,
   btnDanger,
   btnSecondary,
   fieldLabel,
@@ -17,6 +16,7 @@ import {
 } from "@query/ui/classes";
 import { pointsLabel } from "@/components/hackathon/points/format";
 import { Checkbox } from "@query/ui/Checkbox";
+import { EmptyState } from "@query/ui/EmptyState";
 
 const PAGE_SIZE = 25;
 
@@ -76,9 +76,9 @@ export function StorePurchases({ hackathonId }: { hackathonId: string }) {
           every few seconds.
         </p>
       ) : rows.length === 0 ? (
-        <p className={`border-t border-[var(--border-subtle)] pt-4 ${body}`}>
+        <EmptyState className="border-t border-[var(--border-subtle)] pt-4">
           No sales yet. Each one recorded at the table appears here.
-        </p>
+        </EmptyState>
       ) : (
         <ul className="border-t border-[var(--border-subtle)]">
           {rows.map((sale) => (

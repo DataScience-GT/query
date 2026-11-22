@@ -207,7 +207,7 @@ export function evaluatedChallenge(
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
       message:
-        "This hackathon has no judging challenges yet. Ask an organiser to import projects first.",
+        "This hackathon has no judging challenges yet. Ask an organizer to import projects first.",
     });
   }
   if (judge.kind === "member" && !memberMayGrade(root, seat)) {
@@ -260,7 +260,7 @@ export async function assertJudgingOpen(tx: JudgingTx, hackathonId: string) {
     message:
       config?.state === "closed"
         ? "Judging is closed. Your submitted evaluations are read-only now."
-        : "Judging has not opened yet. Your answers can be saved once organisers open it.",
+        : "Judging has not opened yet. Your answers can be saved once organizers open it.",
   });
 }
 

@@ -1,6 +1,8 @@
 import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import LeadInitiativePage from "./LeadInitiativePage";
 
+export const metadata = { title: "Project" };
+
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (
     <PrefetchedPage

@@ -35,6 +35,8 @@ import {
   judgeNumbers,
 } from "@/components/admin/judging/results/calibration";
 import type { CalibrationChallenge } from "@/components/admin/judging/results/calibration";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
+import { EmptyState } from "@query/ui/EmptyState";
 
 // Officer screens poll every 10 seconds while judges are still submitting.
 const POLL_MS = 10_000;
@@ -223,9 +225,9 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
           {published ? (
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  !window.confirm(
+                  !await confirmDialog(
                     "Take the placings off the hackathon's public Results tab?",
                   )
                 )
@@ -243,9 +245,9 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
             computedAt && (
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (
-                    !window.confirm(
+                    !await confirmDialog(
                       "Publish these placings? Everyone can see them on the hackathon's Results tab.",
                     )
                   )
@@ -266,9 +268,9 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
             edition.data.status !== "completed" && (
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (
-                    !window.confirm(
+                    !await confirmDialog(
                       "Mark this edition completed?",
                     )
                   )
@@ -397,10 +399,10 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
                               )}
                               <button
                                 type="button"
-                                onClick={() => {
+                                onClick={async () => {
                                   if (
                                     !row.prizeIneligible &&
-                                    !window.confirm(
+                                    !await confirmDialog(
                                       `Pull ${row.title} from prizes? Judges still score it. It leaves the public Results tab at once and the placings when you compute again.`,
                                     )
                                   )
@@ -655,10 +657,10 @@ function EvaluationAudit({
           </button>
         </div>
       ) : rows.length === 0 ? (
-        <p className={`mt-4 ${body}`}>
+        <EmptyState className="mt-4">
           No evaluations yet. They appear here as judges submit from their
           desks.
-        </p>
+        </EmptyState>
       ) : (
         <>
           <ul className="mt-4 border-t border-[var(--border-subtle)]">
@@ -680,9 +682,9 @@ function EvaluationAudit({
                 reopening={
                   reopen.isPending && reopen.variables?.evaluationId === row.id
                 }
-                onReopen={() => {
+                onReopen={async () => {
                   if (
-                    !window.confirm(
+                    !await confirmDialog(
                       `Reopen ${row.title} for grading? ${row.judgeName}'s grade is deleted, with its ratings, responses and history, and another judge can grade the project. The draft placings are cleared until you compute results again. This cannot be undone.`,
                     )
                   )

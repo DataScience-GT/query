@@ -945,7 +945,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
           name: "Awesome Project",
           description: "This is a long description of the awesome project.",
         }),
-      ).rejects.toThrowError(/organiser withdrew this project/);
+      ).rejects.toThrowError(/organizer withdrew this project/);
     });
 
     it("should prevent project submissions more than 36 hours after hacking starts", async () => {

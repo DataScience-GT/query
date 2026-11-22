@@ -2,6 +2,8 @@ import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import { decodeHackathonParam } from "@/lib/hackathon-slug";
 import CheckInPage from "./CheckInPage";
 
+export const metadata = { title: "Check in" };
+
 export default async function Page({
   params,
 }: {

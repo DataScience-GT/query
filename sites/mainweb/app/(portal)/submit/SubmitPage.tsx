@@ -384,7 +384,7 @@ function SubmitPortalContent() {
                   >
                     Judging tab
                   </Link>{" "}
-                  shows where and when once organisers publish the schedule.
+                  shows where and when once organizers publish the schedule.
                 </p>
               )}
 
@@ -510,7 +510,7 @@ function SubmitPortalContent() {
               </div>
 
               {/* Tracks, challenges and CreateX — what judge assignment
-                  routes on. Rendered only when the organisers configured
+                  routes on. Rendered only when the organizers configured
                   them, so an event without tracks shows nothing rather
                   than an empty box. */}
               {(availableTracks.length > 0 ||

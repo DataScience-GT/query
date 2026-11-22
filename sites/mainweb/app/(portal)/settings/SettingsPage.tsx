@@ -34,6 +34,9 @@ import {
 import { FormInput } from "@query/ui/FormInput";
 import { FormTextarea } from "@query/ui/FormTextarea";
 
+const AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+
 const readOnlyInput =
   "w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-3.5 py-2.5 text-[15px] text-[var(--text-muted)] cursor-not-allowed focus:outline-none";
 
@@ -48,6 +51,7 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   const { data: userData } = trpc.user.me.useQuery(undefined, { enabled: !!session });
   const updateProfile = trpc.user.updateProfile.useMutation();
@@ -56,14 +60,25 @@ export default function SettingsPage() {
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
 
+    if (!AVATAR_TYPES.includes(file.type)) {
+      setAvatarError("Use a JPG, PNG or WebP image.");
+      return;
+    }
+    if (file.size > AVATAR_MAX_BYTES) {
+      setAvatarError("That image is over 2 MB. Pick a smaller one.");
+      return;
+    }
+
+    setAvatarError(null);
     setIsUploadingImage(true);
 
     try {
       // 1. Read file as Data URL
       const reader = new FileReader();
-      reader.onloadend = async () => {
+      reader.onload = async () => {
         try {
           const originalBase64 = reader.result as string;
 
@@ -106,7 +121,7 @@ export default function SettingsPage() {
           await utils.user.me.invalidate();
         } catch (err) {
           console.error("Failed to process and upload image:", err);
-          // Optional: show a toast notification here
+          setAvatarError("Couldn't upload that photo. Try again.");
         } finally {
           setIsUploadingImage(false);
         }
@@ -114,12 +129,14 @@ export default function SettingsPage() {
 
       reader.onerror = () => {
         console.error("FileReader failed");
+        setAvatarError("Couldn't read that file. Try another image.");
         setIsUploadingImage(false);
       };
 
       reader.readAsDataURL(file);
     } catch (e) {
       console.error(e);
+      setAvatarError("Couldn't upload that photo. Try again.");
       setIsUploadingImage(false);
     }
   };
@@ -181,15 +198,15 @@ export default function SettingsPage() {
     // The club member profile: school, major, skills, interests, socials. The
     // columns and the procedures existed with no screen behind them.
     { id: "membership", label: "Membership", desc: "Status, school and links" },
-    { id: "appearance", label: "Appearance", desc: "Paper or night" },
+    { id: "appearance", label: "Appearance", desc: "Light or dark" },
     { id: "account", label: "Account", desc: "Google sign-in and sign out" },
   ] as const;
 
-  // Each swatch sets its own theme class so it is drawn with that edition's
-  // tokens, whichever edition the page is in.
+  // Each swatch sets its own theme class so it is drawn with that theme's
+  // tokens, whichever theme the page is in.
   const themes = [
-    { id: "light", name: "Paper", desc: "Bone ground, near-black ink", scope: "light" },
-    { id: "dark", name: "Night", desc: "Deep ground, soft ink", scope: "dark" },
+    { id: "light", name: "Light", desc: "Light ground, dark text", scope: "light" },
+    { id: "dark", name: "Dark", desc: "Dark ground, light text", scope: "dark" },
   ] as const;
 
   return (
@@ -245,12 +262,12 @@ export default function SettingsPage() {
 
               {/* Avatar */}
               <div className="flex items-center gap-5">
-                <label htmlFor="avatar-upload" className="relative flex-shrink-0 cursor-pointer group">
+                <label htmlFor="avatar-upload" className="relative flex-shrink-0 cursor-pointer group rounded-full has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent">
                   <input
                   id="avatar-upload"
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
+                    className="sr-only"
                     onChange={handleImageUpload}
                     disabled={isUploadingImage}
                   />
@@ -272,9 +289,6 @@ export default function SettingsPage() {
                       </div>
                     )}
                   </div>
-                  <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border-2 border-[var(--bg-primary)] bg-[var(--success)] flex items-center justify-center z-10">
-                    <Check className="w-3 h-3 text-[var(--text-on-accent)]" strokeWidth={2.5} />
-                  </span>
                 </label>
                 <div className="min-w-0">
                   <p className="text-[15px] font-semibold text-[var(--text-primary)]">
@@ -284,6 +298,11 @@ export default function SettingsPage() {
                   <p className={`${meta} mt-1.5`}>
                     Click your photo to upload a new one. JPG, PNG or WebP, up to 2 MB.
                   </p>
+                  {avatarError && (
+                    <Alert size={13} className="mt-1.5">
+                      {avatarError}
+                    </Alert>
+                  )}
                 </div>
               </div>
 
@@ -410,7 +429,7 @@ export default function SettingsPage() {
               <div>
                 <h2 className={sectionTitle}>Appearance</h2>
                 <p className={`${body} mt-2`}>
-                  Choose the edition the portal is printed in.
+                  Choose how the portal looks.
                 </p>
               </div>
 

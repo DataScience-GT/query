@@ -1,8 +1,9 @@
 // components/Footer/Footer.tsx
-import { CONTACT_EMAIL, SOCIAL_LINKS } from "@query/core";
 import Image from "next/image";
 import Link from "next/link";
 import logo from "@/assets/images/dsgt/apple-touch-icon.png";
+
+import { CONTACT_EMAIL, HACKLYTICS_URL, SOCIAL_LINKS } from "@query/core";
 
 interface FooterProps {
   className?: string;
@@ -11,66 +12,74 @@ interface FooterProps {
 const Footer = ({ className = "" }: FooterProps) => {
   return (
     <footer
-      className={`relative w-full py-14 md:py-20 bg-[#050505] border-t border-white/5 text-gray-400 font-sans ${className}`}
+      className={`relative w-full border-t border-white/5 bg-[#050505] py-14 font-sans text-gray-400 md:py-20 ${className}`}
     >
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-8">
+      <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-12">
+        <div className="grid grid-cols-1 gap-12 md:grid-cols-3 lg:gap-8">
           {/* BRANDING COLUMN */}
           <div className="space-y-6">
-            <div className="flex items-center gap-3 group">
+            <div className="group flex items-center gap-3">
               <Image
                 src={logo}
-                alt="DSGT Logo"
-                className="h-8 w-8 rounded shadow-lg shadow-dsgt-teal/10 transition-transform group-hover:rotate-12"
+                alt="DS@GT logo"
+                className="shadow-dsgt-teal/10 h-8 w-8 rounded shadow-lg transition-transform group-hover:rotate-12"
               />
-              <span className="text-white text-xl font-bold tracking-tighter uppercase">
-                DSGT
+              <span className="text-xl font-bold tracking-tighter text-white uppercase">
+                DS@GT
               </span>
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed max-w-[240px]">
+            <p className="max-w-[240px] text-sm leading-relaxed text-gray-400">
               The largest student-run data science organization at Georgia Tech.
             </p>
           </div>
 
           {/* NAVIGATION COLUMN */}
           <div className="flex flex-col space-y-4">
-            <h2 className="text-white font-mono text-[10px] uppercase tracking-[0.3em] font-bold">
+            <p className="font-mono text-[11px] font-bold tracking-[0.3em] text-white uppercase">
               Navigation
-            </h2>
+            </p>
             <nav className="flex flex-col space-y-2 text-sm font-medium">
               <Link
-                href="/team"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
-              >
-                Meet the Team
-              </Link>
-              <Link
-                href={`mailto:${CONTACT_EMAIL}`}
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
-              >
-                Contact
-              </Link>
-              <Link
                 href="/bootcamp"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
+                className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
               >
                 Bootcamp
               </Link>
               <Link
+                href="/projects"
+                className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
+              >
+                Projects
+              </Link>
+              <Link
                 href="/events"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
+                className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
               >
                 Events
               </Link>
+              <a
+                href={HACKLYTICS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
+              >
+                Hacklytics
+              </a>
+              <Link
+                href="/team"
+                className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
+              >
+                Team
+              </Link>
               <Link
                 href="/history"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
+                className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
               >
                 History
               </Link>
               <Link
                 href="/status"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
+                className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
               >
                 Status
               </Link>
@@ -79,23 +88,23 @@ const Footer = ({ className = "" }: FooterProps) => {
 
           {/* SOCIAL COLUMN */}
           <div className="flex flex-col space-y-4">
-            <h2 className="text-white font-mono text-[10px] uppercase tracking-[0.3em] font-bold">
+            <p className="font-mono text-[11px] font-bold tracking-[0.3em] text-white uppercase">
               Network
-            </h2>
+            </p>
             <nav className="flex flex-col space-y-2 text-sm font-medium">
               <a
                 href={SOCIAL_LINKS.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
+                className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
               >
-                Github
+                GitHub
               </a>
               <a
                 href={SOCIAL_LINKS.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
+                className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
               >
                 LinkedIn
               </a>
@@ -103,25 +112,25 @@ const Footer = ({ className = "" }: FooterProps) => {
                 href={SOCIAL_LINKS.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
+                className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
               >
                 Instagram
               </a>
               <a
                 href={`mailto:${CONTACT_EMAIL}`}
-                className="inline-flex items-center min-h-11 md:min-h-0 hover:text-dsgt-teal transition-colors"
+                className="hover:text-dsgt-teal inline-flex min-h-11 items-center transition-colors md:min-h-0"
               >
-                Email List
+                Email
               </a>
             </nav>
           </div>
         </div>
 
         {/* BOTTOM COPYRIGHT */}
-        <div className="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between gap-4">
-          <p className="text-[11px] font-mono text-gray-400 uppercase tracking-widest">
-            {/* oxlint-disable-next-line react/purity */}
-            © {new Date().getFullYear()} Data Science at Georgia Tech
+        <div className="mt-20 flex flex-col justify-between gap-4 border-t border-white/5 pt-8 md:flex-row">
+          <p className="font-mono text-[11px] tracking-widest text-gray-400 uppercase">
+            {/* oxlint-disable-next-line react/purity */}©{" "}
+            {new Date().getFullYear()} Data Science at Georgia Tech
           </p>
         </div>
       </div>

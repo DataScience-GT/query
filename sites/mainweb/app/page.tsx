@@ -1,40 +1,36 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import type { StaticImageData } from "next/image";
 import Link from "next/link";
-
-import {
-  STATUS_CLASSES,
-  STATUS_LABELS,
-  groupClubProjects,
-  isExternalJoin,
-  joinHref,
-  joinLabel,
-} from "@/lib/club-projects";
-import { loadClubProjects } from "@/lib/club-projects.server";
+import { classYears, majors } from "@/assets/Data/demographics";
+import squad from "@/assets/images/2025/squad.jpg";
+import slide1 from "@/assets/images/slides/slide1.jpg";
+import slide6 from "@/assets/images/slides/slide6.jpg";
+import Footer from "@/components/Footer";
+import Hero from "@/components/Hero";
+import Navbar from "@/components/Navbar";
+import ProjectCard from "@/components/ProjectCard";
+import Section from "@/components/Section";
+import ShareBar from "@/components/ShareBar";
 import { BOOTCAMP_CURRICULUM } from "@/lib/bootcamp-schedule";
 import { loadBootcampSessions } from "@/lib/bootcamp-sessions.server";
+import { groupClubProjects } from "@/lib/club-projects";
+import { loadClubProjects } from "@/lib/club-projects.server";
 import { splitByDay } from "@/lib/public-events";
-import { currentTerm } from "@query/db/services/membership";
+
 import { startOfEasternDay } from "@query/api/eastern-time";
+import { HACKLYTICS_URL, VERIFIED_MEMBERS_LABEL } from "@query/core";
+import { currentTerm } from "@query/db/services/membership";
 
-import Navbar from "@/components/Navbar";
-import Hero from "@/components/Hero";
-import Section from "@/components/Section";
-import Card from "@/components/Card";
-import Footer from "@/components/Footer";
-import ShareBar from "@/components/ShareBar";
-import { classYears, majors } from "@/assets/Data/demographics";
-
-import slide1 from "@/assets/images/slides/slide1.jpg";
-import squad from "@/assets/images/2025/squad.jpg";
-import slide6 from "@/assets/images/slides/slide6.jpg";
-import arc from "@/assets/images/logos/arc-logo-v3.png";
-import gtaa from "@/assets/images/logos/gtaa.png";
-import stock from "@/assets/images/logos/stock.png";
-import trading from "@/assets/images/logos/trading.png";
-
-export const metadata: Metadata = { alternates: { canonical: "/" } };
+export const metadata: Metadata = {
+  description:
+    "DS@GT is the largest student-run data science organization at Georgia Tech: a weekly bootcamp, club projects, and Hacklytics, our annual datathon.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "DS@GT | Data Science at Georgia Tech",
+    description:
+      "The largest student-run data science organization at Georgia Tech: a weekly bootcamp, club projects, and Hacklytics.",
+  },
+};
 
 export const revalidate = 300;
 
@@ -46,13 +42,6 @@ const BOOTCAMP_ARC = BOOTCAMP_CURRICULUM.reduce<
   else arc.push({ first: week, last: week, title });
   return arc;
 }, []);
-
-const PROJECT_LOGOS: Record<string, StaticImageData> = {
-  arc,
-  roboinvesting: stock,
-  "sports-analytics": gtaa,
-  "dsgt-website": trading,
-};
 
 export default async function HomePage() {
   const [projects, sessions] = await Promise.all([
@@ -66,45 +55,43 @@ export default async function HomePage() {
   return (
     <div
       id="home-page"
-      className="relative bg-[#1A1A1A] text-gray-400 selection:bg-dsgt-teal/30 overflow-x-hidden"
+      className="selection:bg-dsgt-teal/30 relative overflow-x-hidden bg-[#050505] text-gray-400"
     >
-      <Navbar
-        page="home"
-        className="fixed top-0 z-50 border-b border-white/5 bg-[#1A1A1A]/80 backdrop-blur-md"
-      />
+      <Navbar />
       <Hero nextSession={upcoming[0] ?? null} />
 
       {/* ABOUT SECTION */}
       <Section
         id="about"
-        className="scroll-mt-20 md:scroll-mt-0 pt-16 pb-12 md:pt-24 md:pb-20 relative z-10"
+        className="relative z-10 scroll-mt-20 pt-16 pb-12 md:scroll-mt-0 md:pt-24 md:pb-20"
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <h2 className="max-w-5xl text-white text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter leading-[1.05]">
-            The largest student-run data science organization at Georgia Tech.
+        <div className="mx-auto max-w-7xl px-6 lg:px-12">
+          <h2 className="max-w-5xl text-5xl leading-[1.05] font-bold tracking-tighter text-white md:text-6xl">
+            Learn it in the bootcamp. Build it in a club project. Ship it at
+            Hacklytics.
           </h2>
           <Image
             src={squad}
-            alt="DSGT Executive Board"
-            className="mt-10 md:mt-14 h-64 w-full rounded-lg object-cover object-[50%_40%] sm:h-80 lg:h-[28rem]"
+            alt="DS@GT executive board"
+            className="mt-10 h-64 w-full rounded-lg object-cover object-[50%_40%] sm:h-80 md:mt-14 lg:h-[28rem]"
             sizes="(min-width: 1280px) 1184px, 100vw"
             placeholder="blur"
           />
-          <div className="mt-8 md:mt-10 flex flex-col gap-6 md:flex-row md:items-start md:justify-between md:gap-16">
-            <p className="max-w-xl text-lg text-gray-300 leading-relaxed">
+          <div className="mt-8 flex flex-col gap-6 md:mt-10 md:flex-row md:items-start md:justify-between md:gap-16">
+            <p className="max-w-xl text-lg leading-relaxed text-gray-300">
               We build technical skill through club projects, workshops, and
               guest speakers.
             </p>
             <div className="flex shrink-0 gap-x-8">
               <Link
                 href="/team"
-                className="inline-flex items-center min-h-11 md:min-h-0 text-dsgt-teal font-mono text-xs uppercase tracking-[0.2em] border-b border-dsgt-teal/30 pb-1 hover:text-white transition-colors"
+                className="text-dsgt-teal border-dsgt-teal/30 inline-flex min-h-11 items-center border-b pb-1 font-mono text-xs tracking-[0.2em] uppercase transition-colors hover:text-white md:min-h-0"
               >
                 Meet the Team →
               </Link>
               <Link
                 href="/events"
-                className="inline-flex items-center min-h-11 md:min-h-0 text-dsgt-teal font-mono text-xs uppercase tracking-[0.2em] border-b border-dsgt-teal/30 pb-1 hover:text-white transition-colors"
+                className="text-dsgt-teal border-dsgt-teal/30 inline-flex min-h-11 items-center border-b pb-1 font-mono text-xs tracking-[0.2em] uppercase transition-colors hover:text-white md:min-h-0"
               >
                 Club events →
               </Link>
@@ -116,18 +103,18 @@ export default async function HomePage() {
       {/* STATS SECTION */}
       <Section
         id="stats"
-        className="py-14 md:py-20 border-y border-white/5 glass-section relative z-10"
+        className="relative z-10 border-y border-white/5 py-14 md:py-20"
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="text-center mb-8 md:mb-12 space-y-3">
-            <h2 className="text-white text-4xl md:text-5xl font-bold tracking-tight leading-none">
+        <div className="mx-auto max-w-7xl px-6 lg:px-12">
+          <div className="mb-8 space-y-3 md:mb-12">
+            <h2 className="text-5xl leading-none font-bold tracking-tighter text-white md:text-6xl">
               Our club.
             </h2>
-            <p className="font-mono text-xs text-dsgt-teal uppercase tracking-[0.4em]">
-              550+ Verified Members
+            <p className="text-dsgt-teal font-mono text-xs tracking-[0.4em] uppercase">
+              {VERIFIED_MEMBERS_LABEL} Verified Members
             </p>
           </div>
-          <div className="mx-auto grid max-w-5xl gap-12 lg:grid-cols-2 lg:gap-16">
+          <div className="grid max-w-5xl gap-12 lg:grid-cols-2 lg:gap-16">
             <ShareBar title="Class year" shares={classYears} />
             <ShareBar title="Major" shares={majors} />
           </div>
@@ -137,20 +124,20 @@ export default async function HomePage() {
       {/* BOOTCAMP SECTION */}
       <Section
         id="bootcamp"
-        className="scroll-mt-20 md:scroll-mt-0 pt-16 pb-14 md:pt-24 md:pb-20 relative z-10"
+        className="relative z-10 scroll-mt-20 pt-16 pb-14 md:scroll-mt-0 md:pt-24 md:pb-20"
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-[2fr_3fr] gap-10 lg:gap-24">
+        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-[2fr_3fr] lg:gap-24 lg:px-12">
           <div className="space-y-5 md:space-y-6">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
+            <h2 className="text-5xl leading-none font-bold tracking-tighter text-white md:text-6xl">
               Bootcamp.
             </h2>
-            <p className="max-w-md text-gray-300 leading-relaxed">
+            <p className="max-w-md leading-relaxed text-gray-300">
               One session a week, from data wrangling to deep learning. The last
               weeks are yours to spend on a project of your own.
             </p>
             <Link
               href="/bootcamp"
-              className="inline-flex items-center min-h-11 md:min-h-0 text-dsgt-teal font-mono text-xs uppercase tracking-[0.2em] border-b border-dsgt-teal/30 pb-1 hover:text-white transition-colors"
+              className="text-dsgt-teal border-dsgt-teal/30 inline-flex min-h-11 items-center border-b pb-1 font-mono text-xs tracking-[0.2em] uppercase transition-colors hover:text-white md:min-h-0"
             >
               See the bootcamp →
             </Link>
@@ -161,7 +148,7 @@ export default async function HomePage() {
                 key={step.first}
                 className="grid grid-cols-[4.5rem_1fr] items-baseline gap-x-4 py-3.5 md:py-4"
               >
-                <span className="font-mono text-xs uppercase tracking-[0.2em] text-gray-400 tabular-nums">
+                <span className="font-mono text-xs tracking-[0.2em] text-gray-400 uppercase tabular-nums">
                   {step.first === step.last
                     ? `Wk ${step.first}`
                     : `Wk ${step.first}–${step.last}`}
@@ -176,30 +163,30 @@ export default async function HomePage() {
       {/* HACKLYTICS SECTION */}
       <section
         id="golden-byte"
-        className="scroll-mt-20 relative z-10 isolate flex min-h-[26rem] items-end overflow-hidden md:min-h-[34rem]"
+        className="relative isolate z-10 flex min-h-[26rem] scroll-mt-20 items-end overflow-hidden md:min-h-[34rem]"
       >
         <Image
           src={slide6}
-          alt="Hacklytics 2024 attendees under the balloon sign"
+          alt="Hacklytics attendees under the balloon sign"
           fill
           sizes="100vw"
           className="-z-10 object-cover object-[50%_25%]"
           placeholder="blur"
         />
-        <div className="absolute inset-0 -z-10 bg-linear-to-t from-[#1A1A1A] via-[#1A1A1A]/70 to-[#1A1A1A]/20 md:bg-linear-to-r md:from-[#1A1A1A]/95 md:via-[#1A1A1A]/70 md:to-transparent" />
-        <div className="relative mx-auto w-full max-w-7xl px-6 py-14 lg:px-12 md:py-20">
+        <div className="absolute inset-0 -z-10 bg-linear-to-t from-[#050505] via-[#050505]/70 to-[#050505]/20 md:bg-linear-to-r md:from-[#050505]/95 md:via-[#050505]/70 md:to-transparent" />
+        <div className="relative mx-auto w-full max-w-7xl px-6 py-14 md:py-20 lg:px-12">
           <div className="max-w-md space-y-5">
-            <h2 className="text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
+            <h2 className="text-5xl leading-none font-bold tracking-tighter text-white md:text-6xl">
               Hacklytics.
             </h2>
-            <p className="text-gray-200 leading-relaxed">
+            <p className="leading-relaxed text-gray-200">
               Georgia Tech&apos;s premier{" "}
               <span className="text-white">36-hour datathon</span>. Hundreds of
               students, a weekend of data science challenges and workshops.
             </p>
             <Link
-              href="/hacklytics"
-              className="inline-flex items-center min-h-11 md:min-h-0 text-white font-mono text-xs uppercase tracking-[0.2em] border-b border-white/40 pb-1 hover:text-dsgt-teal hover:border-dsgt-teal transition-colors"
+              href={HACKLYTICS_URL}
+              className="hover:text-dsgt-teal hover:border-dsgt-teal inline-flex min-h-11 items-center border-b border-white/40 pb-1 font-mono text-xs tracking-[0.2em] text-white uppercase transition-colors md:min-h-0"
             >
               About Hacklytics →
             </Link>
@@ -210,106 +197,37 @@ export default async function HomePage() {
       {/* PROJECTS SECTION */}
       <Section
         id="projects"
-        className="scroll-mt-20 md:scroll-mt-0 pt-24 pb-14 md:pt-36 md:pb-20 relative z-10"
+        className="relative z-10 scroll-mt-20 pt-24 pb-14 md:scroll-mt-0 md:pt-36 md:pb-20"
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <h2 className="mb-8 md:mb-12 text-white text-5xl md:text-6xl font-bold tracking-tighter leading-none">
-            Projects.
-          </h2>
+        <div className="mx-auto max-w-7xl px-6 lg:px-12">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-x-8 gap-y-4 md:mb-12">
+            <h2 className="text-5xl leading-none font-bold tracking-tighter text-white md:text-6xl">
+              Projects.
+            </h2>
+            <Link
+              href="/projects"
+              className="text-dsgt-teal border-dsgt-teal/30 inline-flex min-h-11 items-center border-b pb-1 font-mono text-xs tracking-[0.2em] uppercase transition-colors hover:text-white md:min-h-0"
+            >
+              All club projects →
+            </Link>
+          </div>
 
           {currentProjects.length === 0 ? (
             <p className="text-gray-300">
               The project roster is being updated —{" "}
               <Link
                 href="/projects"
-                className="text-dsgt-teal hover:text-white transition-colors"
+                className="text-dsgt-teal transition-colors hover:text-white"
               >
                 see all club projects
               </Link>
               .
             </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {currentProjects.map((project) => {
-                const logo = PROJECT_LOGOS[project.slug];
-                const href = joinHref(project);
-                const label = joinLabel(project);
-
-                return (
-                  <Card
-                    key={project.id}
-                    className="flex flex-col h-full bg-[#0a0a0a] border border-white/5 p-6 md:p-8 rounded-xl hover:border-dsgt-teal/40 transition-all group shadow-2xl"
-                  >
-                    {logo && (
-                      <div className="w-full flex justify-center mb-4 md:mb-6">
-                        <div className="p-4 bg-white/5 rounded-xl group-hover:bg-dsgt-teal/10 transition-all">
-                          <Image
-                            src={logo}
-                            alt={project.name}
-                            width={80}
-                            height={80}
-                            className="w-20 h-20 object-contain"
-                            placeholder="blur"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    <h3 className="text-white text-xl font-bold text-center mb-2">
-                      {project.name}
-                    </h3>
-                    <div className="flex justify-center mb-4">
-                      <span
-                        className={`px-2 py-0.5 text-[11px] font-mono rounded border uppercase tracking-widest ${STATUS_CLASSES[project.status]}`}
-                      >
-                        {STATUS_LABELS[project.status]}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-400 text-center mb-4 leading-relaxed">
-                      {project.summary}
-                    </p>
-                    <p className="text-xs font-mono text-gray-400 text-center mb-6">
-                      {project.leadName
-                        ? `Lead: ${project.leadName}`
-                        : "Lead: open"}
-                    </p>
-                    {isExternalJoin(project) ? (
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-dsgt-teal font-mono text-xs uppercase mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
-                      >
-                        {label} →
-                      </a>
-                    ) : (
-                      <Link
-                        href={href}
-                        className="inline-flex items-center justify-center min-h-11 md:min-h-0 text-dsgt-teal font-mono text-xs uppercase mt-auto text-center hover:text-white transition-colors tracking-[0.2em]"
-                      >
-                        {label} →
-                      </Link>
-                    )}
-                  </Card>
-                );
-              })}
-
-              <Link
-                href="/projects"
-                className="bg-dsgt-teal p-6 md:p-8 rounded-xl flex flex-col justify-between hover:bg-[#008f8f] transition-all shadow-xl shadow-dsgt-teal/10 group"
-              >
-                <div className="space-y-4">
-                  <h3 className="text-black text-2xl font-bold tracking-tight">
-                    All projects.
-                  </h3>
-                  <p className="text-black/80 text-sm font-medium leading-relaxed">
-                    Every project running this term, what each one needs, and
-                    the archive of what members built before.
-                  </p>
-                </div>
-                <span className="text-black font-mono text-[10px] uppercase tracking-[0.3em] pt-4 font-bold group-hover:translate-x-2 transition-transform">
-                  Browse Projects →
-                </span>
-              </Link>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {currentProjects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
             </div>
           )}
         </div>
@@ -318,22 +236,22 @@ export default async function HomePage() {
       {/* GET INVOLVED */}
       <Section
         id="getinvolved"
-        className="scroll-mt-20 md:scroll-mt-0 pt-16 pb-14 md:pt-24 md:pb-20 bg-[#080808] relative z-10"
+        className="relative z-10 scroll-mt-20 pt-16 pb-14 md:scroll-mt-0 md:pt-24 md:pb-20"
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid items-center gap-10 lg:grid-cols-[3fr_2fr] lg:gap-20">
+        <div className="mx-auto grid max-w-7xl items-center gap-10 px-6 lg:grid-cols-[3fr_2fr] lg:gap-20 lg:px-12">
           <div>
-            <h2 className="text-white text-5xl md:text-7xl font-bold tracking-tighter leading-none">
-              Join DSGT.
+            <h2 className="text-5xl leading-none font-bold tracking-tighter text-white md:text-6xl">
+              Join DS@GT.
             </h2>
-            <p className="mt-5 max-w-md text-lg text-gray-300 leading-relaxed">
+            <p className="mt-5 max-w-md text-lg leading-relaxed text-gray-300">
               Make an account to get weekly updates, sign up for the bootcamp,
               and find a club project.
             </p>
             <Link
               href="/login"
-              className="mt-8 inline-flex min-h-14 w-full items-center justify-center rounded-sm bg-dsgt-teal px-12 text-sm font-bold uppercase tracking-widest text-black transition-colors hover:bg-white sm:w-auto"
+              className="bg-dsgt-teal mt-8 inline-flex min-h-14 w-full items-center justify-center rounded-sm px-12 text-sm font-bold tracking-widest text-black uppercase transition-colors hover:bg-white sm:w-auto"
             >
-              Join DSGT
+              Join DS@GT
             </Link>
             <ul className="mt-12 max-w-md divide-y divide-white/10 border-y border-white/10">
               {[
@@ -343,7 +261,7 @@ export default async function HomePage() {
                   note: "Join the executive board.",
                 },
                 {
-                  href: "/hacklytics",
+                  href: HACKLYTICS_URL,
                   title: "Attend Hacklytics",
                   note: "Our 36-hour flagship datathon.",
                 },
@@ -374,7 +292,7 @@ export default async function HomePage() {
           </div>
           <Image
             src={slide1}
-            alt="Members working on laptops at a DSGT workshop"
+            alt="Members working on laptops at a DS@GT workshop"
             className="h-56 w-full rounded-lg object-cover sm:h-72 lg:h-[30rem]"
             sizes="(min-width: 1024px) 480px, 100vw"
             placeholder="blur"

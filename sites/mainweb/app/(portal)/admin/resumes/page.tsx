@@ -1,6 +1,8 @@
 import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import AdminResumesPage from "./AdminResumesPage";
 
+export const metadata = { title: "Resume book" };
+
 // The members scope, first page: what the page opens on.
 const OPENING_LIST = { scope: "members", limit: 100, offset: 0 } as const;
 

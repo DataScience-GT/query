@@ -42,7 +42,7 @@ export function GuestNameGate({
         {room
           ? `You are judging ${room.challengeLabel} ${inOrAt(room.kind)} this ${room.kind}${room.buildingName ? ` in ${room.buildingName}` : ""}. `
           : ""}
-        Enter your name so organisers can match your scores to you.
+        Enter your name so organizers can match your scores to you.
       </p>
 
       <form
@@ -67,7 +67,7 @@ export function GuestNameGate({
           onChange={(e) => setName(e.target.value)}
         />
         <p className={`mt-1.5 ${deskMeta}`}>
-          Organisers see it beside your scores. Teams never see judge names.
+          Organizers see it beside your scores. Teams never see judge names.
         </p>
         {setGuestName.error && (
           <Alert size={13} className="mt-3">

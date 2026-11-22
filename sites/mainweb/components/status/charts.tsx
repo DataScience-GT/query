@@ -12,7 +12,7 @@ import type { Bucket, Day } from "@/lib/status";
 export const COLORS = {
   accent: "#00a8a8",
   good: "#00a8a8",
-  warn: "#e0a030",
+  warn: "#d1d5db",
   bad: "#e5484d",
   none: "#2b2f33",
   surface: "#050505",

@@ -25,6 +25,8 @@ import {
   textLink,
 } from "@query/ui/classes";
 import { FormInput } from "@query/ui/FormInput";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
+import { EmptyState } from "@query/ui/EmptyState";
 
 /**
  * The judge roster for one edition: who applied, who is approved, adding a
@@ -204,9 +206,9 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
 
       <section className={sectionRule}>
         {roster.length === 0 ? (
-          <p className={body}>
+          <EmptyState>
             No judges yet. Add one by email, or send the application link.
-          </p>
+          </EmptyState>
         ) : (
           <ul className="border-t border-[var(--border-subtle)]">
             {roster.map((judge) => {
@@ -270,9 +272,9 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                             ? "Only a super admin can remove a judge. Suspend them instead."
                             : undefined
                       }
-                      onClick={() => {
+                      onClick={async () => {
                         if (
-                          !window.confirm(
+                          !await confirmDialog(
                             `Remove ${name} from this edition's judges? Their application is deleted.`,
                           )
                         )

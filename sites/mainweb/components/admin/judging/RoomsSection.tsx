@@ -40,6 +40,7 @@ import {
   useRefreshJudging,
 } from "@/components/admin/judging/shared";
 import type { Challenge, Overview } from "@/components/admin/judging/shared";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 type RoomList = RouterOutputs["judging"]["admin"]["listRooms"];
 type Room = RoomList["rooms"][number];
@@ -460,8 +461,8 @@ function Buildings({
                     {building.rooms === 0 && (
                       <button
                         type="button"
-                        onClick={() => {
-                          if (!window.confirm(`Delete ${building.name}?`)) return;
+                        onClick={async () => {
+                          if (!await confirmDialog(`Delete ${building.name}?`)) return;
                           remove.mutate({ buildingId: building.id });
                         }}
                         disabled={readOnly || remove.isPending}
@@ -1130,10 +1131,10 @@ function RoomRow({
       ? ` ${plural(room.guestSessions, "guest judge")} signed in through it ${room.guestSessions === 1 ? "is" : "are"} signed out.`
       : "";
 
-  const issueLink = () => {
+  const issueLink = async () => {
     if (
       room.link &&
-      !window.confirm(
+      !await confirmDialog(
         `Issue a new QR link for ${room.name}? The printed code stops working.${guests}`,
       )
     ) {
@@ -1295,9 +1296,9 @@ function RoomRow({
               <>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      !window.confirm(
+                      !await confirmDialog(
                         `Archive ${room.name}? Its QR link is retired, judges ${inOrAt(room.kind)} it are stood up and its message is cleared.${guests}`,
                       )
                     )
@@ -1312,8 +1313,8 @@ function RoomRow({
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!window.confirm(`Delete ${room.name}? This cannot be undone.`))
+                  onClick={async () => {
+                    if (!await confirmDialog(`Delete ${room.name}? This cannot be undone.`))
                       return;
                     remove.mutate({ roomId: room.id });
                   }}
@@ -1366,9 +1367,9 @@ function RoomRow({
               </button>
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (
-                    !window.confirm(
+                    !await confirmDialog(
                       `Retire ${room.name}'s QR link? The printed code stops working.${guests}`,
                     )
                   )
@@ -1431,8 +1432,8 @@ function ArchivedRoomRow({ room }: { room: Room }) {
           </button>
           <button
             type="button"
-            onClick={() => {
-              if (!window.confirm(`Delete ${room.name}? This cannot be undone.`))
+            onClick={async () => {
+              if (!await confirmDialog(`Delete ${room.name}? This cannot be undone.`))
                 return;
               remove.mutate({ roomId: room.id });
             }}

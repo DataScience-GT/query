@@ -44,7 +44,7 @@ async function assertTrackExists(
       code: "BAD_REQUEST",
       message:
         allowed.length === 1
-          ? "This hackathon has no tracks or challenges configured yet. Leave the track empty and an organiser will place you."
+          ? "This hackathon has no tracks or challenges configured yet. Leave the track empty and an organizer will place you."
           : `"${track}" is not a track or challenge on this hackathon. Choose one of: ${allowed.join(", ")}.`,
     });
   }

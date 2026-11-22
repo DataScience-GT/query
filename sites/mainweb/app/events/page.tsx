@@ -1,17 +1,23 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import Section from "@/components/Section";
-import { db, events } from "@query/db";
-import { and, eq, gte, lt } from "drizzle-orm";
-import { startOfEasternDay } from "@query/api/eastern-time";
-import { withCheckInCounts } from "@query/api/derived-counts";
 import Link from "next/link";
+import PublicPage from "@/components/PublicPage";
 import { eventDateParts, eventWhenWhere } from "@/lib/public-events";
+import { and, eq, gte, lt } from "drizzle-orm";
+
+import { withCheckInCounts } from "@query/api/derived-counts";
+import { startOfEasternDay } from "@query/api/eastern-time";
+import { db, events } from "@query/db";
 
 export const metadata: Metadata = {
   title: "Events",
+  description:
+    "Upcoming DS meetings, workshops and talks at Georgia Tech, open to members.",
   alternates: { canonical: "/events" },
+  openGraph: {
+    title: "Events | DS@GT",
+    description:
+      "Upcoming DS meetings, workshops and talks at Georgia Tech, open to members.",
+  },
 };
 
 /**
@@ -81,10 +87,7 @@ async function loadPast() {
 
   try {
     const rows = await db.query.events.findMany({
-      where: and(
-        eq(events.kind, "club"),
-        lt(events.eventDate, startOfToday()),
-      ),
+      where: and(eq(events.kind, "club"), lt(events.eventDate, startOfToday())),
       orderBy: (event, { desc }) => [desc(event.eventDate)],
       limit: 20,
       columns: listedColumns,
@@ -106,8 +109,8 @@ function EventRow({ event, past }: { event: ListedEvent; past?: boolean }) {
   return (
     <li className="grid grid-cols-[3.5rem_1fr] gap-x-5 py-6 first:pt-0 last:pb-0 sm:grid-cols-[4.5rem_1fr] sm:gap-x-8">
       <div className={past ? "text-gray-500" : "text-dsgt-teal"}>
-        <p className="font-mono text-xs uppercase tracking-[0.2em]">{month}</p>
-        <p className="text-3xl font-bold leading-none tabular-nums sm:text-4xl">
+        <p className="font-mono text-xs tracking-[0.2em] uppercase">{month}</p>
+        <p className="text-3xl leading-none font-bold tabular-nums sm:text-4xl">
           {day}
         </p>
       </div>
@@ -119,7 +122,7 @@ function EventRow({ event, past }: { event: ListedEvent; past?: boolean }) {
             {event.title}
           </h3>
           {full && (
-            <span className="border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-mono text-[11px] uppercase tracking-widest text-amber-300">
+            <span className="border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-mono text-[11px] tracking-widest text-amber-300 uppercase">
               Full
             </span>
           )}
@@ -147,72 +150,66 @@ export default async function EventsPage() {
   const [upcoming, past] = await Promise.all([loadUpcoming(), loadPast()]);
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-white">
-      <Navbar page="events" />
-      <main className="pt-20">
-        <Section className="py-24 sm:py-32">
-          <div className="max-w-4xl mx-auto px-6">
-            <h1 className="text-5xl font-bold tracking-tighter sm:text-6xl">
-              Club events
-            </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-gray-300">
-              Meetings, workshops and talks open to DSGT members. The weekly
-              bootcamp sessions are on the{" "}
+    <PublicPage
+      title="Club events"
+      lede={
+        <>
+          Meetings, workshops and talks open to DS@GT members. The weekly
+          bootcamp sessions are on the{" "}
+          <Link
+            href="/bootcamp"
+            className="text-dsgt-teal underline-offset-4 hover:underline"
+          >
+            bootcamp page
+          </Link>
+          , and Hacklytics has its own.
+        </>
+      }
+    >
+      <div className="max-w-4xl text-white">
+        <section aria-labelledby="upcoming">
+          <h2
+            id="upcoming"
+            className="mb-8 border-b border-white/10 pb-3 font-mono text-xs tracking-[0.3em] text-gray-300 uppercase"
+          >
+            Upcoming
+          </h2>
+          {upcoming.length === 0 ? (
+            <p className="max-w-xl text-gray-300">
+              Nothing is scheduled right now. The{" "}
               <Link
                 href="/bootcamp"
                 className="text-dsgt-teal underline-offset-4 hover:underline"
               >
-                bootcamp page
-              </Link>
-              , and Hacklytics has its own.
+                bootcamp
+              </Link>{" "}
+              meets weekly during the semester.
             </p>
+          ) : (
+            <ul className="divide-y divide-white/5">
+              {upcoming.map((event) => (
+                <EventRow key={event.id} event={event} />
+              ))}
+            </ul>
+          )}
+        </section>
 
-            <section className="mt-20" aria-labelledby="upcoming">
-              <h2
-                id="upcoming"
-                className="mb-8 border-b border-white/10 pb-3 font-mono text-xs uppercase tracking-[0.3em] text-gray-300"
-              >
-                Upcoming
-              </h2>
-              {upcoming.length === 0 ? (
-                <p className="max-w-xl text-gray-300">
-                  Nothing is scheduled right now. The{" "}
-                  <Link
-                    href="/bootcamp"
-                    className="text-dsgt-teal underline-offset-4 hover:underline"
-                  >
-                    bootcamp
-                  </Link>{" "}
-                  meets weekly during the semester.
-                </p>
-              ) : (
-                <ul className="divide-y divide-white/5">
-                  {upcoming.map((event) => (
-                    <EventRow key={event.id} event={event} />
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            {past.length > 0 && (
-              <section className="mt-24" aria-labelledby="past">
-                <h2
-                  id="past"
-                  className="mb-8 border-b border-white/10 pb-3 font-mono text-xs uppercase tracking-[0.3em] text-gray-400"
-                >
-                  Past
-                </h2>
-                <ul className="divide-y divide-white/5">
-                  {past.map((event) => (
-                    <EventRow key={event.id} event={event} past />
-                  ))}
-                </ul>
-              </section>
-            )}
-          </div>
-        </Section>
-      </main>
-      <Footer />
-    </div>
+        {past.length > 0 && (
+          <section className="mt-24" aria-labelledby="past">
+            <h2
+              id="past"
+              className="mb-8 border-b border-white/10 pb-3 font-mono text-xs tracking-[0.3em] text-gray-400 uppercase"
+            >
+              Past
+            </h2>
+            <ul className="divide-y divide-white/5">
+              {past.map((event) => (
+                <EventRow key={event.id} event={event} past />
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+    </PublicPage>
   );
 }

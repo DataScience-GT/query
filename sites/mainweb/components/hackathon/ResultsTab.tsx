@@ -105,7 +105,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
       <div>
         <h3 className={itemTitle}>Results not published yet</h3>
         <p className={`mt-1 ${body}`}>
-          They will appear here once judging is finished and the organisers
+          They will appear here once judging is finished and the organizers
           release them.
           {inProgress && " This tab checks every 30 seconds."}
         </p>

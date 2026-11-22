@@ -1,6 +1,6 @@
 # Main website (`web`)
 
-Public DSGT site and the authenticated portal (Next.js App Router on port 3001).
+Public DS@GT site and the authenticated portal (Next.js App Router on port 3001).
 
 **Full reference:** [docs/sites/mainweb.md](../../docs/sites/mainweb.md)
 

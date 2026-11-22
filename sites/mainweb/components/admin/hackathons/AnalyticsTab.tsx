@@ -3,13 +3,13 @@
 import React from "react";
 import { trpc } from "@/lib/trpc";
 import {
-  body,
   itemTitle,
   label,
   meta,
   sectionRule,
   sectionTitle,
 } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 
 const statValue =
   "mt-1 font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tabular-nums text-[var(--text-primary)]";
@@ -23,9 +23,9 @@ export function AnalyticsTab({ hackathonId }: { hackathonId: string }) {
     return <p className={`py-20 ${meta}`}>Calculating stats…</p>;
   if (!analytics)
     return (
-      <p className={`py-20 ${body}`}>
+      <EmptyState className="py-20">
         No analytics for this edition yet.
-      </p>
+      </EmptyState>
     );
 
   const row =

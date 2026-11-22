@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { skipToken } from "@tanstack/react-query";
 import {
+  adminPage,
+  adminTitle,
   body,
   btnDanger,
   btnPrimary,
@@ -17,14 +19,11 @@ import {
   itemTitle,
   meta,
   object,
-  page,
   pageDek,
   status as statusClass,
 } from "@query/ui/classes";
 import type { Tone } from "@query/ui/classes";
-
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
+import { EmptyState } from "@query/ui/EmptyState";
 
 export default function ProjectsPage() {
   const { data: session, status } = useSession();
@@ -102,7 +101,7 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className={page}>
+    <div className={adminPage}>
       <h1 className={adminTitle}>Hackathon projects</h1>
       <p className={pageDek}>
         Browse the projects participants submitted, fix their details, or
@@ -143,10 +142,10 @@ export default function ProjectsPage() {
           ) : isLoading ? (
             <p className={meta}>Loading projects…</p>
           ) : !projects || projects.length === 0 ? (
-            <p className={body}>
+            <EmptyState>
               No projects yet. They will appear here once participants submit
               them.
-            </p>
+            </EmptyState>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (

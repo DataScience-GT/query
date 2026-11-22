@@ -1,6 +1,8 @@
 import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import JudgePage from "./JudgePage";
 
+export const metadata = { title: "Judging" };
+
 export default function Page() {
   return (
     <PrefetchedPage

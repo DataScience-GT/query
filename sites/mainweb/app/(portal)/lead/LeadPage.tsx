@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import { Alert } from "@query/ui/Alert";
 import {
   InitiativeChip,
   initiativeState,
@@ -30,6 +31,7 @@ import {
   pageTitle,
   textLink,
 } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 import { trpc } from "@/lib/trpc";
 import { loginHref } from "@/lib/safe-callback";
 import type { RouterOutputs } from "@query/api";
@@ -277,11 +279,23 @@ export default function LeadPage() {
             ? "This page is for project leaders"
             : "Your projects did not load"}
         </h1>
-        <p className={pageDek}>
-          {forbidden
-            ? "Pitch a project from the projects page. If it is approved, you lead it and manage it here."
-            : `${listing.error.message} Refresh the page to try again.`}
-        </p>
+        {forbidden ? (
+          <p className={pageDek}>
+            Pitch a project from the projects page. If it is approved, you lead
+            it and manage it here.
+          </p>
+        ) : (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <Alert>{listing.error.message}</Alert>
+            <button
+              type="button"
+              onClick={() => void listing.refetch()}
+              className={btnSecondary}
+            >
+              Retry
+            </button>
+          </div>
+        )}
         <Link href="/initiatives" className={`${textLink} mt-6`}>
           Browse projects instead
         </Link>
@@ -345,19 +359,21 @@ export default function LeadPage() {
         </ul>
       ) : (
         !creating && (
-          <div className="mt-10 border-t border-[var(--border-subtle)] pt-6">
-            <p className={`${body} max-w-xl`}>
-              You have no projects yet. A new one starts as a draft, so you can
-              write it up now and open it to members when you are ready.
-            </p>
-            <button
-              type="button"
-              onClick={() => setCreating(true)}
-              className={`${textLink} mt-4`}
-            >
-              Start a draft
-            </button>
-          </div>
+          <EmptyState
+            className="mt-10 max-w-xl border-t border-[var(--border-subtle)] pt-6"
+            action={
+              <button
+                type="button"
+                onClick={() => setCreating(true)}
+                className={textLink}
+              >
+                Start a draft
+              </button>
+            }
+          >
+            You have no projects yet. A new one starts as a draft, so you can
+            write it up now and open it to members when you are ready.
+          </EmptyState>
         )
       )}
     </div>
