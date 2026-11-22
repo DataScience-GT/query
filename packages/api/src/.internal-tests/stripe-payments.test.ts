@@ -474,6 +474,18 @@ describe("Membership payments", () => {
       ).rejects.toThrow();
     });
 
+    it.each([
+      "https://evil.example/portal",
+      "https://datasciencegt.org.evil.example/portal",
+      "http://datasciencegt.org/portal",
+    ])("refuses a return URL on another origin: %s", async (returnUrl) => {
+      process.env.STRIPE_MOCK_MODE = "true";
+
+      await expect(
+        caller().stripe.createCheckoutSession({ returnUrl }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    });
+
     it("refuses checkout for a user with no email on file", async () => {
       process.env.STRIPE_MOCK_MODE = "true";
       mockFindFirst.mockImplementation((table) =>
