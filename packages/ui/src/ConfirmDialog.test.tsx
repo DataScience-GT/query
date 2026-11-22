@@ -59,6 +59,11 @@ describe("confirmDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await act(async () => {});
 
+    void ask('Send "Doors open" to 40 recipient(s)?');
+    expect(screen.getByRole("button", { name: "Send" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await act(async () => {});
+
     void ask("Are you sure?");
     expect(screen.getByRole("button", { name: "Confirm" })).toBeTruthy();
   });
