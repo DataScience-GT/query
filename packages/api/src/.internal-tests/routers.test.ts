@@ -663,6 +663,51 @@ describe("Router Integration and Access Control Verification Suite", () => {
       ).rejects.toThrowError("Invalid Content-Type for mutation request");
     });
 
+    it("should block a mutation sent from another site's Origin", async () => {
+      const ctx = createMockCtx(
+        "admin_user_id",
+        {},
+        { "content-type": "application/json", origin: "https://evil.example" },
+      );
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.admin.create({ userId: "target_user", role: "admin" }),
+      ).rejects.toThrowError("Cross-origin mutation requests are not allowed");
+    });
+
+    it("should let a mutation through from the site's own Origin", async () => {
+      const ctx = createMockCtx(
+        "admin_user_id",
+        {},
+        {
+          "content-type": "application/json",
+          origin: "https://datasciencegt.org",
+        },
+      );
+      mockFindFirst.mockImplementation((table, query) => {
+        if (table === "admins") {
+          if (query && JSON.stringify(query).includes("target_user")) {
+            return null;
+          }
+          return {
+            id: "admin_1",
+            userId: "admin_user_id",
+            role: "super_admin",
+            isActive: true,
+          };
+        }
+        if (table === "users") return { id: "target_user" };
+        return null;
+      });
+      mockInsert.mockReturnValue([{ id: "new_admin" }]);
+
+      const caller = appRouter.createCaller(ctx);
+      await expect(
+        caller.admin.create({ userId: "target_user", role: "admin" }),
+      ).resolves.toBeDefined();
+    });
+
     it("should allow queries even with text/plain Content-Type (safe side-effect free requests)", async () => {
       const ctx = createMockCtx(
         "admin_user_id",
