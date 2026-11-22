@@ -11,7 +11,15 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Alert } from "@query/ui/Alert";
 import { Skeleton } from "@query/ui/Skeleton";
-import { body, btnPrimary, btnSecondary, meta, pageDek } from "@query/ui/classes";
+import {
+  adminPage,
+  adminTitle,
+  body,
+  btnPrimary,
+  btnSecondary,
+  meta,
+  pageDek,
+} from "@query/ui/classes";
 
 // Extracted Components
 
@@ -33,9 +41,6 @@ const preloadForms = () => {
   void loadCreateForm();
   void loadEditForm();
 };
-
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text-primary)]";
 
 export default function AdminHackathonsPage() {
   const { data: session, status } = useSession();
@@ -70,7 +75,7 @@ export default function AdminHackathonsPage() {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-5xl py-4 md:py-8">
+      <div className={adminPage}>
         <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className={adminTitle}>Hackathons</h1>

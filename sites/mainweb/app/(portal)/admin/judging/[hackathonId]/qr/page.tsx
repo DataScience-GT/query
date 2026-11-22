@@ -10,6 +10,8 @@ import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { useIsClient } from "@/lib/use-is-client";
 import {
+  adminPage,
+  adminTitle,
   body,
   btnPrimary,
   btnSecondary,
@@ -53,7 +55,7 @@ export default function RoomQrSheetPage() {
   const edition = overview.data?.hackathon.name ?? "";
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className={adminPage}>
       <style>{PRINT_CSS}</style>
       <Link
         href={`/admin/judging/${hackathonId}#rooms`}
@@ -63,7 +65,7 @@ export default function RoomQrSheetPage() {
       </Link>
       <header className="mt-4 mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text-primary)]">
+          <h1 className={adminTitle}>
             Judging QR codes
           </h1>
           <p className={pageDek}>

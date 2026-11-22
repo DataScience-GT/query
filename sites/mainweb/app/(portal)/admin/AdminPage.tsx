@@ -16,6 +16,8 @@ import Link from "next/link";
 import { useEventQR } from "@/components/portal/EventQR";
 import { Skeleton } from "@query/ui/Skeleton";
 import {
+  adminPage,
+  adminTitle,
   body,
   btnDanger,
   btnPrimary,
@@ -24,16 +26,12 @@ import {
   itemTitle,
   meta,
   object,
-  page,
   pageDek,
   sectionRule,
   status,
   textLink,
 } from "@query/ui/classes";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
-
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
 
 const inlineLink =
   "font-semibold text-[var(--text-primary)] underline decoration-accent underline-offset-4 hover:decoration-[var(--text-primary)]";
@@ -211,7 +209,7 @@ export default function AdminPage() {
 
       {qr.modal}
 
-      <div className={page}>
+      <div className={adminPage}>
         <header>
           <h1 className={adminTitle}>Club check-ins</h1>
           <p className={pageDek}>

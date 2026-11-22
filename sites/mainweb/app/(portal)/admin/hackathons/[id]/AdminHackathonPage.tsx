@@ -199,7 +199,7 @@ export default function AdminHackathonDashboard() {
   return (
     <div className="relative min-h-screen bg-[var(--bg-primary)] text-[var(--text-muted)] flex flex-col pb-32 md:pb-12">
       <header className="relative sticky top-0 z-30 bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] md:border-b-0">
-        <div className="max-w-7xl mx-auto px-4 pt-4 pb-4 md:pb-0">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-12 pt-4 pb-4 md:pb-0">
           <div className="flex items-end justify-between gap-4">
             <div className="flex-1 min-w-0">
               <Link
@@ -258,7 +258,7 @@ export default function AdminHackathonDashboard() {
       </header>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 px-4 py-6 md:py-8 min-h-[calc(100vh-200px)]">
+      <main className="flex-1 px-5 sm:px-8 md:px-12 py-6 md:py-8 min-h-[calc(100vh-200px)]">
         <div className="max-w-7xl mx-auto w-full">
           {activeTab === "events" && <EventsTab hackathonId={hackathon.id} />}
           {activeTab === "scanner" && <ScannerTab hackathonId={hackathon.id} />}
