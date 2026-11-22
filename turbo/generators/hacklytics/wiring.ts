@@ -172,7 +172,8 @@ function withYear(
 /**
  * Makes the live jobs build `next`, and gives `prev` the artifact upload and
  * the preview and deploy jobs it needs as an archive, copied from the newest
- * archive already in the file.
+ * archive already in the file. With no archive jobs in the file, `prev` gets
+ * none either: it keeps serving its last release.
  */
 export function wireCi(
   text: string,
@@ -202,12 +203,8 @@ export function wireCi(
   });
   if (archives.includes(prev)) return lines.join(eol);
   const model = Math.max(...archives.filter((year) => year < prev));
-  if (!Number.isFinite(model)) {
-    throw new Error(
-      `ci.yml has no preview-${live}<year> job to copy for ${archiveTarget(live, prev)}. ` +
-        `Add the archive jobs by hand.`,
-    );
-  }
+  // No archive jobs to copy: archives are frozen and CI deploys only the live site.
+  if (!Number.isFinite(model)) return lines.join(eol);
 
   const modelArtifact = artifact(archiveTarget(live, model));
   const nameLine = lines.findIndex((line) => line.trim() === modelArtifact);
