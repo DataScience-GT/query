@@ -21,6 +21,7 @@ import {
   useRefreshJudging,
 } from "@/components/admin/judging/shared";
 import type { Overview } from "@/components/admin/judging/shared";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 type State = Overview["config"]["state"];
 
@@ -68,8 +69,8 @@ export function LaunchSection({
   const noRatings = counts.rubric.ratings === 0;
   const current = STATE[config.state];
 
-  const change = (to: State, question?: string) => {
-    if (question && !window.confirm(question)) return;
+  const change = async (to: State, question?: string) => {
+    if (question && !await confirmDialog(question)) return;
     setState.mutate({ hackathonId, state: to });
   };
 
@@ -225,10 +226,10 @@ export function LaunchSection({
             checked={config.emergencyMode}
             disabled={readOnly || setLaunch.isPending}
             title={writeTitle}
-            onChange={(next) => {
+            onChange={async (next) => {
               if (
                 next &&
-                !window.confirm(
+                !await confirmDialog(
                   "Turn on emergency mode? Hackers lose project search, team rosters and feedback until you turn it off.",
                 )
               )

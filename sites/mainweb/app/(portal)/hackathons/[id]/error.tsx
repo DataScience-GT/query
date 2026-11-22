@@ -1,51 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
-import Link from "next/link";
-import {
-  btnPrimary,
-  page,
-  pageDek,
-  pageTitle,
-  textLink,
-} from "@query/ui/classes";
-import { useChunkErrorRecovery } from "@/lib/chunk-error";
+import { PortalError } from "@/components/portal/PortalError";
 
-export default function Error({
-  error,
-  reset,
-}: {
+export default function Error(props: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const isChunkError = useChunkErrorRecovery(error);
-  useEffect(() => {
-    console.error("Hackathon Detail Page Error:", error);
-  }, [error]);
-
   return (
-    <main className={page}>
-      <h1 className={pageTitle}>
-        {isChunkError ? "A new version is available" : "This hackathon didn't load"}
-      </h1>
-      <p className={pageDek}>
-        {isChunkError
-          ? "The portal was updated while this tab was open. Reload to pick up the new version."
-          : "Something went wrong loading this page. Try again, and if it keeps happening, let an organiser know."}
-      </p>
-
-      <div className="mt-8 flex flex-wrap items-center gap-6">
-        <button
-          type="button"
-          onClick={() => (isChunkError ? window.location.reload() : reset())}
-          className={btnPrimary}
-        >
-          {isChunkError ? "Reload page" : "Try again"}
-        </button>
-        <Link href="/hackathons" className={textLink}>
-          Back to hackathons
-        </Link>
-      </div>
-    </main>
+    <PortalError
+      {...props}
+      title="This hackathon didn't load"
+      backHref="/hackathons"
+      backLabel="Back to hackathons"
+    />
   );
 }

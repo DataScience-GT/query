@@ -108,7 +108,7 @@ export function CreateHackathonForm({
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Hacklytics 2026"
+          placeholder="Hacklytics 2027"
         />
 
         <FormTextarea
