@@ -58,7 +58,13 @@ function cpsatCommand(): Command | null {
   const configured = process.env.JUDGING_CPSAT_SCRIPT?.trim() ?? "";
   const env = `${python}\n${configured}`;
   if (probe?.env !== env) {
-    const script = !python ? null : configured ? resolve(configured) : findScript();
+    // Ignored by the bundler: a runtime path would make it trace the whole
+    // repo into the server output. next.config.mjs includes cpsat.py instead.
+    const script = !python
+      ? null
+      : configured
+        ? resolve(/* turbopackIgnore: true */ configured)
+        : findScript();
     probe = {
       env,
       command: script && existsSync(script) ? { python, script } : null,
@@ -69,7 +75,7 @@ function cpsatCommand(): Command | null {
 
 function findScript(): string | null {
   for (let dir = process.cwd(); ; dir = dirname(dir)) {
-    const candidate = join(dir, SCRIPT_IN_REPO);
+    const candidate = join(/* turbopackIgnore: true */ dir, SCRIPT_IN_REPO);
     if (existsSync(candidate)) return candidate;
     if (dirname(dir) === dir) return null;
   }
