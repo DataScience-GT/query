@@ -391,7 +391,7 @@ describe("Participant edge cases", () => {
 
       await expect(
         caller.team.submitProject(projectInput({ name: "Renamed" })),
-      ).rejects.toThrow(/organiser withdrew/i);
+      ).rejects.toThrow(/organizer withdrew/i);
     });
 
     // BUG: team.ts:494 only looks up an existing project when input.teamId is

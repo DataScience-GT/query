@@ -8,6 +8,8 @@ import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import type { RouterOutputs } from "@query/api";
 import { Alert } from "@query/ui/Alert";
 import {
+  adminPage,
+  adminTitle,
   body,
   btnDanger,
   btnInk,
@@ -17,13 +19,10 @@ import {
   input,
   itemTitle,
   meta,
-  page,
   pageDek,
   sectionTitle,
 } from "@query/ui/classes";
-
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
+import { EmptyState } from "@query/ui/EmptyState";
 
 /**
  * Who runs club initiatives.
@@ -170,7 +169,7 @@ export default function AdminInitiativesPage() {
 
   if (leaders.error) {
     return (
-      <div className={page}>
+      <div className={adminPage}>
         <h1 className={adminTitle}>Project leaders</h1>
         <Alert className="mt-3">
           {leaders.error.message}
@@ -182,7 +181,7 @@ export default function AdminInitiativesPage() {
   const rows = leaders.data ?? [];
 
   return (
-    <div className={page}>
+    <div className={adminPage}>
       <h1 className={adminTitle}>Project leaders</h1>
       <p className={pageDek}>
         A project leader can post projects and pick who joins them. It grants
@@ -292,10 +291,10 @@ export default function AdminInitiativesPage() {
             ))}
           </div>
         ) : (
-          <p className={`${body} mt-8`}>
+          <EmptyState className="mt-8">
             No leaders yet. Grant the role above and it takes effect on their
             next request.
-          </p>
+          </EmptyState>
         )}
       </section>
     </div>

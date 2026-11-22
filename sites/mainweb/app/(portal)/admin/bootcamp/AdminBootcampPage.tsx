@@ -16,6 +16,8 @@ import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { Alert } from "@query/ui/Alert";
 import { StatTile } from "@query/ui/StatTile";
 import {
+  adminPage,
+  adminTitle,
   body,
   btnPrimary,
   btnSecondary,
@@ -33,9 +35,6 @@ import {
 import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 /** Admin pages carry a smaller headline than member pages. */
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)]";
-
 const th = "px-3 py-2.5 text-[13px] font-medium text-[var(--text-subtle)]";
 
 /** `2026-fall` is how it is stored; nobody should have to read it that way. */
@@ -372,7 +371,7 @@ export default function AdminBootcampPage() {
 
   if (attendance.error || workshops.error) {
     return (
-      <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8">
+      <div className={adminPage}>
         <Alert>
           The bootcamp did not load:{" "}
           {attendance.error?.message ?? workshops.error?.message} Reload the
@@ -387,7 +386,7 @@ export default function AdminBootcampPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-20 text-[var(--text-muted)]">
-      <main className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 md:px-12 md:py-14">
+      <main className={adminPage}>
         <header className="flex flex-wrap items-end justify-between gap-6">
           <div>
             <p className={kicker}>{termLabel(data.term)}</p>

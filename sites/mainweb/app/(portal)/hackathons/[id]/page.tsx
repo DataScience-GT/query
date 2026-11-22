@@ -4,6 +4,8 @@ import { nextStepReads } from "@/lib/next-step-reads.server";
 import type { Prefetch } from "@/lib/portal-bootstrap.server";
 import HackathonDetailPage from "./HackathonDetailPage";
 
+export const metadata = { title: "Hackathon" };
+
 export default async function Page({
   params,
 }: {

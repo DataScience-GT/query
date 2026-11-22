@@ -324,7 +324,7 @@ function FlagRow({
           className={input}
         />
         <p className={fieldHint}>
-          Kept with the decision for organisers. Hackers and the public results
+          Kept with the decision for organizers. Hackers and the public results
           never see it.
         </p>
       </div>

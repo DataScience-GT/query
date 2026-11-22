@@ -274,7 +274,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         throw new TRPCError({
           code: "FORBIDDEN",
           message:
-            "You have already checked in. Ask an organiser if you need to leave the event.",
+            "You have already checked in. Ask an organizer if you need to leave the event.",
         });
       }
       if (participant.teamId) {

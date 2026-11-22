@@ -18,6 +18,7 @@ import {
   status,
   textLink,
 } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 import {
   ErrorLine,
   NoticeLine,
@@ -40,7 +41,7 @@ type Item =
 const VISIBILITY: { id: Visibility; label: string }[] = [
   { id: "public", label: "Shown to the team" },
   { id: "optional", label: "The guest judge chooses" },
-  { id: "private", label: "Organisers only" },
+  { id: "private", label: "Organizers only" },
 ];
 
 /**
@@ -136,10 +137,10 @@ export function RubricSection({ hackathonId }: { hackathonId: string }) {
           {plural(ratings, "rating")} · {plural(items.length - ratings, "response")}
         </h3>
         {items.length === 0 ? (
-          <p className={`mt-3 ${body}`}>
+          <EmptyState className="mt-3">
             No questions yet. Add at least one rating; judging cannot open
             without one.
-          </p>
+          </EmptyState>
         ) : (
           <ol className="mt-3 border-t border-[var(--border-subtle)]">
             {items.map((item, index) => (

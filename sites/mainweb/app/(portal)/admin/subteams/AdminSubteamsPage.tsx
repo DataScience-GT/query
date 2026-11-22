@@ -14,6 +14,8 @@ import type { RouterOutputs } from "@query/api";
 import type { SubteamApplicationStatus } from "@query/db";
 import { Alert } from "@query/ui/Alert";
 import {
+  adminPage,
+  adminTitle,
   body,
   btnDanger,
   btnInk,
@@ -25,18 +27,16 @@ import {
   input,
   itemTitle,
   meta,
-  page,
   pageDek,
   sectionTitle,
 } from "@query/ui/classes";
 import { FormInput } from "@query/ui/FormInput";
+import { EmptyState } from "@query/ui/EmptyState";
 
 type SubteamRow = RouterOutputs["subteam"]["adminList"][number];
 type Applicant = RouterOutputs["subteam"]["applicants"]["applicants"][number];
 type RosterMember = RouterOutputs["subteam"]["roster"][number];
 
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
 const quietAction =
   "text-sm font-semibold text-[var(--text-subtle)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-50 disabled:cursor-not-allowed";
 const backLink =
@@ -607,7 +607,7 @@ function SubteamReview({
   const members = roster.data ?? [];
 
   return (
-    <div className={page}>
+    <div className={adminPage}>
       <button type="button" onClick={onBack} className={backLink}>
         ← All subteams
       </button>
@@ -735,7 +735,7 @@ export default function AdminSubteamsPage() {
 
   if (list.error) {
     return (
-      <div className={page}>
+      <div className={adminPage}>
         <h1 className={adminTitle}>Subteams</h1>
         <Alert className="mt-3">
           {list.error.message} Refresh the page to try again.
@@ -757,7 +757,7 @@ export default function AdminSubteamsPage() {
   const archived = rows.filter((row) => row.archivedAt !== null);
 
   return (
-    <div className={page}>
+    <div className={adminPage}>
       <h1 className={adminTitle}>Subteams</h1>
       <p className={pageDek}>
         The groups members apply to join. Write the questions, open it, then
@@ -795,10 +795,10 @@ export default function AdminSubteamsPage() {
             ))}
           </div>
         ) : (
-          <p className={`${body} max-w-xl`}>
+          <EmptyState className="max-w-xl">
             No subteams yet. Create one and open it when its questions are
             ready.
-          </p>
+          </EmptyState>
         )}
       </section>
 

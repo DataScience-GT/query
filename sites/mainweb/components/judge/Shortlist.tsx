@@ -486,7 +486,7 @@ function ShortlistRow({
           </p>
           {row.withdrawn && (
             <p className={`mt-1 ${deskStatus("neutral")}`}>
-              Withdrawn by organisers
+              Withdrawn by organizers
             </p>
           )}
 

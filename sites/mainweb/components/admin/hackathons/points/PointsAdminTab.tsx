@@ -12,6 +12,7 @@ import {
   sectionTitle,
   status,
 } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 import { PointsLedger } from "./PointsLedger";
 
 // Officer screens poll every 10s.
@@ -199,10 +200,10 @@ export function PointsAdminTab({ hackathonId }: { hackathonId: string }) {
             retries every few seconds.
           </p>
         ) : (attendance.data?.length ?? 0) === 0 ? (
-          <p className={`mt-4 ${body}`}>
+          <EmptyState className="mt-4">
             No events yet. Add them under Events, with the points each is
             worth.
-          </p>
+          </EmptyState>
         ) : (
           <div className="mt-4 overflow-x-auto border-t border-[var(--border-subtle)]">
             <table className="w-full min-w-[720px] text-left text-sm tabular-nums">

@@ -2,6 +2,8 @@ import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import type { Prefetch } from "@/lib/portal-bootstrap.server";
 import AdminHackathonsPage from "./AdminHackathonsPage";
 
+export const metadata = { title: "Hackathons" };
+
 export default function Page() {
   return (
     <PrefetchedPage

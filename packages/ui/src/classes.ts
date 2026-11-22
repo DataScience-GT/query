@@ -13,6 +13,10 @@
 export const pageTitle =
   "font-[family-name:var(--font-display)] text-[40px] md:text-[56px] font-bold leading-[1.02] tracking-tighter text-[var(--text-primary)] text-balance";
 
+/** Admin page headline: pageTitle's tone at a size that leaves room for tables. */
+export const adminTitle =
+  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-bold leading-[1.05] tracking-tighter text-[var(--text-primary)] text-balance";
+
 /** The dek under a page headline. */
 export const pageDek =
   "mt-3 max-w-2xl text-[17px] leading-relaxed text-[var(--text-muted)]";
@@ -105,3 +109,7 @@ export const status = (tone: Tone) =>
 
 /** Page container for member pages. */
 export const page = "mx-auto w-full max-w-5xl px-5 sm:px-8 md:px-12 py-10 md:py-14";
+
+/** Admin page container. Every admin page shares one width so the left edge holds between pages. */
+export const adminPage =
+  "mx-auto w-full max-w-7xl px-5 sm:px-8 md:px-12 py-10 md:py-14";

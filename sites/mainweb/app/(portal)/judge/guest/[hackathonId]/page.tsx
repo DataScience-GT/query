@@ -1,5 +1,7 @@
 import { JudgeDesk } from "@/components/judge/JudgeDesk";
 
+export const metadata = { title: "Judging" };
+
 // The desk for a guest judge, who arrives from a room's QR code with no
 // portal account: a name, then the same desk locked to that room.
 export default async function GuestJudgeDeskPage({

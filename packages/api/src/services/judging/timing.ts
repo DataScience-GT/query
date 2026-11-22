@@ -153,7 +153,7 @@ export function evaluationTiming(
     return {
       canEdit: false,
       reason:
-        "This project has no presentation slot for this challenge yet. Ask an organiser to place it on the schedule.",
+        "This project has no presentation slot for this challenge yet. Ask an organizer to place it on the schedule.",
       opensAt: null,
       ended: false,
     };

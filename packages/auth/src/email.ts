@@ -244,7 +244,7 @@ export async function sendJudgeAddedEmail({
     subject: `You've been added as a judge for ${hackathonName}`,
     heading: "You've been added as a judge",
     paragraphs: [
-      `An organiser added you as a judge for ${hackathonName}. There is nothing to apply for or wait on.`,
+      `An organizer added you as a judge for ${hackathonName}. There is nothing to apply for or wait on.`,
       "Sign in on your phone before you scan the code at your room or table, so your scores count under your account.",
       "On the day, scan the QR code at your judging room or table to take your seat, then score each project as it presents.",
     ],
@@ -354,12 +354,12 @@ export async function sendSubteamApplicationEmail({
   const paragraphs =
     outcome === "received"
       ? [
-          `Your application to ${subteamName} is in. An organiser will review it and you will hear back by email.`,
+          `Your application to ${subteamName} is in. An organizer will review it and you will hear back by email.`,
           "You can check its status, or withdraw it while it is waiting, from the subteams page.",
         ]
       : outcome === "accepted"
         ? [
-            `You've been accepted to ${subteamName}. An organiser will be in touch with what happens next.`,
+            `You've been accepted to ${subteamName}. An organizer will be in touch with what happens next.`,
           ]
         : [
             `Your application to ${subteamName} was not accepted this time.`,

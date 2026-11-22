@@ -28,6 +28,7 @@ import {
   tabList,
   textLink,
 } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 
 type Tab = "general" | "history" | "status";
 
@@ -235,10 +236,10 @@ export default function ClubPage() {
                 <section>
                   <h2 className={sectionTitle}>Upcoming events</h2>
                   {upcomingEvents.length === 0 ? (
-                    <p className={`${body} mt-3`}>
+                    <EmptyState className="mt-3">
                       Nothing scheduled yet. New events show up here as soon
                       as they are posted.
-                    </p>
+                    </EmptyState>
                   ) : (
                     <ul className="mt-3 border-t border-[var(--border-subtle)]">
                       {upcomingEvents.map((event) => (

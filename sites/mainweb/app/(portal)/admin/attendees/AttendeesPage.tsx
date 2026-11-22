@@ -8,20 +8,18 @@ import { useState } from "react";
 import { skipToken } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import {
+  adminPage,
+  adminTitle,
   body,
   btnSecondary,
   fieldLabel,
   input,
   meta,
-  page,
   pageDek,
   sectionRule,
   status as statusText,
 } from "@query/ui/classes";
 import { EventOptions } from "@/components/portal/EventOptions";
-
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
 
 const th = "px-4 py-3 text-[13px] font-medium text-[var(--text-subtle)]";
 const td = "px-4 py-3";
@@ -88,7 +86,7 @@ export default function AttendeesPage() {
   };
 
   return (
-    <div className={page}>
+    <div className={adminPage}>
       <header>
         <h1 className={adminTitle}>Club event attendees</h1>
         <p className={pageDek}>

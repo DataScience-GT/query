@@ -96,7 +96,7 @@ export async function checkWithdrawWindow(db: DrizzleDB, hackathonId: string) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message:
-        "The submission window has closed. Ask an organiser if a project needs to be pulled.",
+        "The submission window has closed. Ask an organizer if a project needs to be pulled.",
     });
   }
 

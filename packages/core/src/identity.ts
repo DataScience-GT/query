@@ -22,7 +22,7 @@ export const SOCIAL_LINKS = {
 export const HACKLYTICS_URL = "https://hacklytics.io";
 
 /** The short form used in event copy and bylines. */
-export const ORG_NAME_SHORT = "Data Science @ GT";
+export const ORG_NAME_SHORT = ORG_SHORT;
 
 /** Major League Hacking's code of conduct, which every MLH member event links. */
 export const MLH_CODE_OF_CONDUCT_URL =
