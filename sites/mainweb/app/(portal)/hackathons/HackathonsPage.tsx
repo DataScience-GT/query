@@ -28,6 +28,7 @@ import {
   tabList,
   textLink,
 } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 
 type Tab = "browse" | "registrations" | "projects";
 
@@ -163,10 +164,10 @@ export default function HackathonsPage() {
           </div>
 
           {!hackathons || hackathons.length === 0 ? (
-            <p className={`mt-8 ${body}`}>
+            <EmptyState className="mt-8">
               No hackathons are listed yet. New events show up here when
               they&apos;re announced.
-            </p>
+            </EmptyState>
           ) : filtered.length === 0 ? (
             <div className="mt-8 space-y-3">
               <p className={body}>No {filterLabel} hackathons right now.</p>

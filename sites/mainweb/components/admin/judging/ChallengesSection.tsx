@@ -33,6 +33,7 @@ import {
 } from "@/components/admin/judging/shared";
 import type { Challenge, Overview } from "@/components/admin/judging/shared";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
+import { EmptyState } from "@query/ui/EmptyState";
 
 type Mode = Challenge["mode"];
 
@@ -335,10 +336,10 @@ export function ChallengesSection({
             </button>
           </p>
         ) : roots.length === 0 ? (
-          <p className={body}>
+          <EmptyState>
             No challenges yet. Create the starter groups, or import projects
             and their Devpost prizes become challenges.
-          </p>
+          </EmptyState>
         ) : (
           <>
             <h3 className={label}>{plural(list.length, "challenge")}</h3>

@@ -10,11 +10,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Alert } from "@query/ui/Alert";
+import { EmptyState } from "@query/ui/EmptyState";
 import { Skeleton } from "@query/ui/Skeleton";
 import {
   adminPage,
   adminTitle,
-  body,
   btnPrimary,
   btnSecondary,
   meta,
@@ -145,20 +145,22 @@ export default function AdminHackathonsPage() {
               ))}
             </div>
           ) : hackathons.length === 0 ? (
-            <div className="flex flex-col items-start gap-4 border-t border-[var(--border-subtle)] pt-6">
-              <p className={body}>
-                No hackathons yet. Each edition you create will be listed here.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowCreate(true)}
-                disabled={readOnly}
-                title={readOnly ? READ_ONLY_TITLE : undefined}
-                className={btnSecondary}
-              >
-                Create the first one
-              </button>
-            </div>
+            <EmptyState
+              className="border-t border-[var(--border-subtle)] pt-6"
+              action={
+                <button
+                  type="button"
+                  onClick={() => setShowCreate(true)}
+                  disabled={readOnly}
+                  title={readOnly ? READ_ONLY_TITLE : undefined}
+                  className={btnSecondary}
+                >
+                  Create the first one
+                </button>
+              }
+            >
+              No hackathons yet. Each edition you create will be listed here.
+            </EmptyState>
           ) : (
             <div className="space-y-8">
               {hackathons.map((h: NonNullable<typeof hackathons>[number]) => {

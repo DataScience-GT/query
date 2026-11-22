@@ -31,6 +31,7 @@ import {
   sectionTitle,
 } from "@query/ui/classes";
 import { FormInput } from "@query/ui/FormInput";
+import { EmptyState } from "@query/ui/EmptyState";
 
 type SubteamRow = RouterOutputs["subteam"]["adminList"][number];
 type Applicant = RouterOutputs["subteam"]["applicants"]["applicants"][number];
@@ -794,10 +795,10 @@ export default function AdminSubteamsPage() {
             ))}
           </div>
         ) : (
-          <p className={`${body} max-w-xl`}>
+          <EmptyState className="max-w-xl">
             No subteams yet. Create one and open it when its questions are
             ready.
-          </p>
+          </EmptyState>
         )}
       </section>
 

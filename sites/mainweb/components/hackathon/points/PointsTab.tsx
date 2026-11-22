@@ -15,6 +15,7 @@ import {
   sectionRule,
   status,
 } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 import { CheckInCodeForm } from "./CheckInCodeForm";
 import {
   attendanceMethodLabel,
@@ -376,9 +377,9 @@ function StoreView({ store }: { store: RouterOutputs["points"]["me"]["store"] })
           Check in at the door to see what is on the table.
         </p>
       ) : store.items.length === 0 ? (
-        <p className={`mt-3 ${body}`}>
+        <EmptyState className="mt-3">
           Nothing in the store yet. Items appear here as organizers add them.
-        </p>
+        </EmptyState>
       ) : (
         <ul className="mt-3 border-t border-[var(--border-subtle)]">
           {store.items.map((item) => (

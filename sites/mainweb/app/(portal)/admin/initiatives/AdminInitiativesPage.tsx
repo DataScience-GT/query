@@ -22,6 +22,7 @@ import {
   pageDek,
   sectionTitle,
 } from "@query/ui/classes";
+import { EmptyState } from "@query/ui/EmptyState";
 
 /**
  * Who runs club initiatives.
@@ -290,10 +291,10 @@ export default function AdminInitiativesPage() {
             ))}
           </div>
         ) : (
-          <p className={`${body} mt-8`}>
+          <EmptyState className="mt-8">
             No leaders yet. Grant the role above and it takes effect on their
             next request.
-          </p>
+          </EmptyState>
         )}
       </section>
     </div>

@@ -22,6 +22,7 @@ import {
   textLink,
 } from "@query/ui/classes";
 import { FormTextarea } from "@query/ui/FormTextarea";
+import { EmptyState } from "@query/ui/EmptyState";
 import {
   localTimeZone,
   toInputDate,
@@ -407,10 +408,10 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
       {isLoading ? (
         <p className={`py-12 ${body}`}>Loading events…</p>
       ) : !events || events.length === 0 ? (
-        <p className={`border-t border-[var(--border-subtle)] pt-6 ${body}`}>
+        <EmptyState className="border-t border-[var(--border-subtle)] pt-6">
           No schedule yet. Add workshops, meals and ceremonies for this
           weekend; club meetings belong on Club hub.
-        </p>
+        </EmptyState>
       ) : (
         <ul className="border-t border-[var(--border-subtle)]">
           {events.map((event: NonNullable<typeof events>[number]) => {
