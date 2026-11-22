@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { preload } from "react-dom";
 import {
   ORG_NAME,
+  ORG_SHORT,
   ORG_NAME_SPOKEN,
   ORG_TAGLINE,
   SITE_ORIGIN,
@@ -18,9 +19,9 @@ export const metadata: Metadata = {
   // cards render blank.
   metadataBase: new URL(SITE_ORIGIN),
   title: {
-    default: "DSGT | Georgia Tech",
+    default: "DS@GT | Data Science at Georgia Tech",
     // Pages set their own; this keeps the organisation attached to each.
-    template: "%s | DSGT",
+    template: "%s | DS@GT",
   },
   description:
     `${ORG_TAGLINE} Home of Hacklytics, our annual data science hackathon.`,
@@ -30,10 +31,11 @@ export const metadata: Metadata = {
     "data science hackathon",
     "Georgia Tech hackathon",
     "student hackathon",
+    ORG_SHORT,
     "DSGT",
     ORG_NAME_SPOKEN,
   ],
-  authors: [{ name: "aamoghS" }],
+  authors: [{ name: ORG_NAME }],
   robots: {
     index: true,
     follow: true,
@@ -50,7 +52,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: SITE_ORIGIN,
-    siteName: ORG_NAME,
+    siteName: ORG_NAME_SPOKEN,
     title: ORG_NAME,
     description:
       `${ORG_TAGLINE} Home of Hacklytics.`,
@@ -89,7 +91,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "Organization",
               name: ORG_NAME,
-              alternateName: ["DSGT", ORG_NAME_SPOKEN],
+              alternateName: [ORG_SHORT, "DSGT"],
               url: SITE_ORIGIN,
               logo: `${SITE_ORIGIN}/logo512.png`,
               description:

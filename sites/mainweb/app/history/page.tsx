@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
 import PublicPage from "@/components/PublicPage";
+import { VERIFIED_MEMBERS_LABEL } from "@query/core";
 
 export const metadata: Metadata = {
   title: "History",
+  description:
+    "DS since 2020, one school year at a time: from the first hackathon to the member portal.",
   alternates: { canonical: "/history" },
+  openGraph: {
+    title: "History | DS@GT",
+    description:
+      "DS since 2020, one school year at a time: from the first hackathon to the member portal.",
+  },
 };
 
 const YEARS = [
@@ -18,7 +26,7 @@ const YEARS = [
   },
   {
     year: "2026-2027",
-    note: "550+ verified members, a weekly Python bootcamp, and member-run club projects.",
+    note: `${VERIFIED_MEMBERS_LABEL} verified members, a weekly Python bootcamp, and member-run club projects.`,
   },
   { year: "Next", note: "Building toward Hacklytics 2027 and beyond." },
 ];
@@ -27,7 +35,7 @@ export default function HistoryPage() {
   return (
     <PublicPage
       title="History"
-      lede="DSGT since 2020, one school year at a time."
+      lede="DS@GT since 2020, one school year at a time."
     >
       <ol className="max-w-4xl border-t border-white/10">
         {YEARS.map(({ year, note }) => (
