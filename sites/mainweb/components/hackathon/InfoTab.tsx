@@ -194,7 +194,7 @@ export function InfoTab({
         <section>
           {success && (
             <p className="border-accent mb-6 border-l-2 pl-3 text-[15px] text-[var(--text-primary)]">
-              Registration received. An organiser will review it; your status
+              Registration received. An organizer will review it; your status
               updates here.
             </p>
           )}
@@ -212,7 +212,7 @@ export function InfoTab({
                   <p className="flex flex-wrap items-center gap-x-3">
                     <span className={status("success")}>Confirmed</span>
                     <span className={meta}>
-                      Organisers know you&apos;re coming.
+                      Organizers know you&apos;re coming.
                     </span>
                   </p>
                 ) : (
@@ -228,7 +228,7 @@ export function InfoTab({
                       {confirmMutation.isPending ? "Confirming…" : "I'm coming"}
                     </button>
                     <p className={meta}>
-                      Let organisers know you&apos;ll be there.
+                      Let organizers know you&apos;ll be there.
                     </p>
                     {confirmMutation.isError && (
                       <Alert>{confirmMutation.error.message}</Alert>
@@ -247,7 +247,7 @@ export function InfoTab({
                     {loadingEdit ? "Loading…" : "Edit application"}
                   </button>
                   <p className={meta}>
-                    Fix a typo or add a link until an organiser reviews it.
+                    Fix a typo or add a link until an organizer reviews it.
                   </p>
                   {editError && <Alert>{editError}</Alert>}
                 </div>

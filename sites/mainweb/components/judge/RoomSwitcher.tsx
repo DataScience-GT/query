@@ -99,7 +99,7 @@ export function RoomSwitcher({
         </Alert>
       ) : rooms.data.rooms.length === 0 ? (
         <p className={`mt-3 ${deskMeta}`}>
-          Organisers have not opened any rooms or tables yet. You can still
+          Organizers have not opened any rooms or tables yet. You can still
           judge projects without one.
         </p>
       ) : (

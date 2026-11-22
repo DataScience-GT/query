@@ -87,7 +87,7 @@ export function MissedBanner() {
       className="border-l-2 border-[var(--danger)] pl-3 text-[15px] text-[var(--text-primary)]"
     >
       Your project missed a judging appointment, marked below. Go to the help
-      desk now so an organiser can move it to a later time.
+      desk now so an organizer can move it to a later time.
     </p>
   );
 }
@@ -110,7 +110,7 @@ export function Itinerary({
     return (
       <div className="space-y-6">
         <p className={body}>
-          Times and places are not out yet. They appear here when organisers
+          Times and places are not out yet. They appear here when organizers
           publish the judging schedule; this tab checks every 30 seconds.
         </p>
         <ChallengeList challenges={data.challenges} />
@@ -263,7 +263,7 @@ export function Itinerary({
       {unplaced.length > 0 && (
         <p className="border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]">
           No time yet for {unplaced.map((c) => c.label).join(", ")}. Ask at the
-          help desk so an organiser can schedule it.
+          help desk so an organizer can schedule it.
         </p>
       )}
 

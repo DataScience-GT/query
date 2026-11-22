@@ -71,7 +71,7 @@ const tokenInput = z.string().trim().min(20).max(128);
 const CLAIM_EMAIL_BATCH = 5;
 
 const LINK_UNUSABLE =
-  "This claim link has been used or has expired. Ask an organiser at the help desk for a new one.";
+  "This claim link has been used or has expired. Ask an organizer at the help desk for a new one.";
 
 const LINKS_CLOSED =
   "The event has ended, so claim links no longer work. Move the event's end date first if judging is still running.";
@@ -243,7 +243,7 @@ export const judgingHackerRouter = createTRPCRouter({
           throw new TRPCError({
             code: "FORBIDDEN",
             message:
-              "That place is listed under a different email. Open the claim link an organiser sent to that address instead.",
+              "That place is listed under a different email. Open the claim link an organizer sent to that address instead.",
           });
         }
 
@@ -412,7 +412,7 @@ export const judgingHackerRouter = createTRPCRouter({
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
             message:
-              "Team changes are paused while organisers run judging from the posted list. Ask at the help desk.",
+              "Team changes are paused while organizers run judging from the posted list. Ask at the help desk.",
           });
         }
         await requireCheckedIn(tx, input.hackathonId, userId);
@@ -746,7 +746,7 @@ export const judgingHackerRouter = createTRPCRouter({
         throw new TRPCError({
           code: "FORBIDDEN",
           message:
-            "Project search opens only if organisers switch judging to emergency mode.",
+            "Project search opens only if organizers switch judging to emergency mode.",
         });
       }
 

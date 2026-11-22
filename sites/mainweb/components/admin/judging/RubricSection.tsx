@@ -40,7 +40,7 @@ type Item =
 const VISIBILITY: { id: Visibility; label: string }[] = [
   { id: "public", label: "Shown to the team" },
   { id: "optional", label: "The guest judge chooses" },
-  { id: "private", label: "Organisers only" },
+  { id: "private", label: "Organizers only" },
 ];
 
 /**

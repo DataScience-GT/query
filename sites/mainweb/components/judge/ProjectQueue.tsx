@@ -301,7 +301,7 @@ export function ProjectQueue({
           {next.flagged && (
             <span
               className={deskStatus("warning")}
-              title="Organisers flagged this team for a check-in rule."
+              title="Organizers flagged this team for a check-in rule."
             >
               Flagged
             </span>
@@ -546,7 +546,7 @@ export function ProjectQueue({
                             {project.flagged && (
                               <span
                                 className={deskStatus("warning")}
-                                title="Organisers flagged this team for a check-in rule."
+                                title="Organizers flagged this team for a check-in rule."
                               >
                                 Flagged
                               </span>
@@ -656,7 +656,7 @@ function EmptyQueue({
         </p>
         <p className={`mt-1 ${body}`}>
           {judgedCount} {judgedCount === 1 ? "evaluation" : "evaluations"}{" "}
-          submitted for {challengeLabel}. Organisers post what comes next as
+          submitted for {challengeLabel}. Organizers post what comes next as
           announcements at the top of this page.
         </p>
         <button
@@ -688,7 +688,7 @@ function EmptyQueue({
   }
   return (
     <p className={body}>
-      No projects are entered in {challengeLabel} yet. Organisers add them
+      No projects are entered in {challengeLabel} yet. Organizers add them
       before judging starts; this list refreshes on its own.
     </p>
   );
