@@ -81,6 +81,7 @@ The versions before 3.4 were assigned after the fact, from the repo history.
 | 3.4 | 2026-10 | Judging scheduler (CP-SAT) |
 | 3.5 | 2026-11 | Monorepo restructure: enforced package layers, `@query/core`, the `@query/event-kit` Hacklytics kit and `pnpm turbo gen hacklytics` |
 | 3.6 | 2026-11 | Lighter portal: judging console and desk load on demand, sign-in and error pages skip the portal data stack, the sidebar nav is drawn on the server |
+| 4.0 | 2026-11 | One public site: a single nav and page frame on every public page, Team rebuilt in the projects card style, home shares the /projects cards, teal-only hero, fixed phone menu |
 
 ## Other root files
 
