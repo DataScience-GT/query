@@ -9,7 +9,14 @@ import TeamCard from "@/components/TeamCard";
 
 export const metadata: Metadata = {
   title: "Team",
+  description:
+    "The students who run DS: the bootcamp, club projects, events and Hacklytics.",
   alternates: { canonical: "/team" },
+  openGraph: {
+    title: "Team | DS@GT",
+    description:
+      "The students who run DS: the bootcamp, club projects, events and Hacklytics.",
+  },
 };
 
 const Team = () => {
@@ -17,7 +24,7 @@ const Team = () => {
     <PublicPage
       eyebrow="Executive board 2026-2027"
       title="Meet the team"
-      lede="The students who run DSGT: the bootcamp, club projects, events, and Hacklytics."
+      lede="The students who run DS@GT: the bootcamp, club projects, events, and Hacklytics."
     >
       <section className="mb-32">
         <SectionHeading>Board</SectionHeading>
@@ -28,7 +35,7 @@ const Team = () => {
             href="https://aamogh.vercel.app/"
             img={Aamogh}
           >
-            Aamogh oversees DSGT operations, leading the executive board and
+            Aamogh oversees DS@GT operations, leading the executive board and
             coordinating with faculty and industry partners to shape data
             science at Georgia Tech.
           </TeamCard>
@@ -39,13 +46,13 @@ const Team = () => {
             img={Diya}
           >
             Diya serves as Vice President and Co-Director of Hacklytics,
-            DSGT&apos;s flagship datathon, managing event organization,
+            DS@GT&apos;s flagship datathon, managing event organization,
             corporate sponsorships, and member-facing programming.
           </TeamCard>
 
           <TeamCard name="Nitya Patil" title="Director of Marketing">
             Nitya directs social media, graphic design, and outreach strategies
-            to increase engagement with DSGT both on and off campus.
+            to increase engagement with DS@GT both on and off campus.
           </TeamCard>
 
           <TeamCard
@@ -62,7 +69,7 @@ const Team = () => {
             title="Co-Director of External Affairs"
           >
             Vishal manages sponsor communications and builds industry
-            partnerships that support DSGT initiatives.
+            partnerships that support DS@GT initiatives.
           </TeamCard>
 
           <TeamCard name="Minjee Yi" title="Co-Director of Logistics">

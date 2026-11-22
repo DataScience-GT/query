@@ -1,6 +1,7 @@
 // src/components/Hero.tsx
 import Image from "next/image";
 import Link from "next/link";
+import { VERIFIED_MEMBERS_LABEL } from "@query/core";
 import Mini from "../Text/Mini";
 
 import type { BootcampSession } from "@/lib/bootcamp-sessions.server";
@@ -51,14 +52,14 @@ const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
       <div className="absolute inset-0 z-0">
         <Image
           src={hero3}
-          alt="background"
+          alt=""
           fill
           className="hidden min-[1000px]:block object-cover object-right opacity-40"
           priority
         />
         <Image
           src={hero2mobile}
-          alt="background"
+          alt=""
           fill
           className="min-[1000px]:hidden object-cover object-right opacity-40"
           priority
@@ -72,7 +73,7 @@ const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
             className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.85] text-transparent"
             style={{ WebkitTextStroke: "1.5px rgba(255,255,255,0.8)" }}
           >
-            Data Science
+            Data Science{" "}
             <br />
             <span className="text-white" style={{ WebkitTextStroke: "0" }}>
               @ GT
@@ -93,7 +94,7 @@ const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
                 Verified members
               </dt>
               <dd className="mt-2 text-3xl font-bold leading-none tracking-tight text-white tabular-nums">
-                550+
+                {VERIFIED_MEMBERS_LABEL}
               </dd>
             </div>
             <div>
@@ -115,7 +116,7 @@ const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
         <div className="hidden md:flex md:w-1/3 justify-center md:justify-end">
           <Image
             src={herologo}
-            alt="DSGT logo"
+            alt="DS@GT logo"
             width={300}
             height={300}
             className="w-48 h-48 md:w-72 md:h-72 object-contain"
