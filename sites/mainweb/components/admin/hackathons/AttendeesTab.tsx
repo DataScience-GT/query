@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { trpc } from "@/lib/trpc";
+import { csvCell } from "@/lib/csv";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import {
   ChevronDown,
@@ -251,24 +252,26 @@ export function AttendeesTab({
       "Registered At",
     ];
     type Attendee = (typeof all)[number];
+    // Every cell goes through csvCell: names, schools and answers are typed
+    // by applicants, and a leading = + - @ would run as a formula in Excel.
     const rows = all.map((a: Attendee) => [
-      `"${a.firstName || ""} ${a.lastName || ""}"`,
-      `"${a.user?.email || "Unknown"}"`,
-      `"${a.registrationStatus}"`,
-      `"${a.team?.name || "No Team"}"`,
-      `"${a.school || ""}"`,
-      `"${a.major || ""}"`,
-      `"${a.graduationYear || ""}"`,
-      `"${(a.whyAttend || "").replace(/"/g, "'")}"`,
-      `"${a.shirtSize || "None"}"`,
-      `"${(a.dietaryRestrictions || []).join(", ") || "None"}"`,
-      `"${a.emergencyContact || ""}"`,
-      `"${a.emergencyPhone || ""}"`,
-      `"${new Date(a.registeredAt).toISOString()}"`,
+      `${a.firstName || ""} ${a.lastName || ""}`,
+      a.user?.email || "Unknown",
+      a.registrationStatus,
+      a.team?.name || "No Team",
+      a.school || "",
+      a.major || "",
+      a.graduationYear || "",
+      a.whyAttend || "",
+      a.shirtSize || "None",
+      (a.dietaryRestrictions || []).join(", ") || "None",
+      a.emergencyContact || "",
+      a.emergencyPhone || "",
+      new Date(a.registeredAt).toISOString(),
     ]);
     const csvContent = [
-      headers.join(","),
-      ...rows.map((r: string[]) => r.join(",")),
+      headers.map(csvCell).join(","),
+      ...rows.map((r) => r.map(csvCell).join(",")),
     ].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

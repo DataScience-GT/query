@@ -6,6 +6,7 @@ import { db } from "@query/db";
 import { BURST_LIMITS, rateLimit } from "@query/api";
 import { listResumes, parseResumeBookIds } from "@query/api/resume-list";
 import type { DrizzleDB } from "@query/db";
+import { csvCell } from "@/lib/csv";
 import { resumeCaller } from "@/lib/resume-access";
 import { uniqueZipName } from "@/lib/resume-file";
 import { readResume, resumeBucketName } from "@/lib/resume-storage";
@@ -24,15 +25,6 @@ export const dynamic = "force-dynamic";
 // a time; the archive is fed serially so entries never queue up in memory.
 // Peak held bytes is roughly PREFETCH x the 2MB per-file cap.
 const PREFETCH = 8;
-
-const csvCell = (value: unknown) => {
-  let text = value == null ? "" : String(value);
-  // Names, schools and majors are member-typed. A leading = + - @ (or tab/CR)
-  // makes Excel and Sheets evaluate the cell as a formula when staff open the
-  // index; a leading apostrophe keeps it text.
-  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
-  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-};
 
 /** Resolves only for this entry, so index.csv cannot satisfy a PDF wait. */
 function waitForNamedEntry(archive: ZipArchive, name: string) {
