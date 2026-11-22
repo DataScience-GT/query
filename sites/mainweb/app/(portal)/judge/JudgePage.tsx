@@ -98,7 +98,7 @@ export default function JudgePage() {
         <p className={pageDek}>
           {judging.length > 0
             ? "Open your edition on judging day, then scan the QR code at your room or table to take your seat."
-            : "Apply to judge an edition. An organiser approves you before judging day."}
+            : "Apply to judge an edition. An organizer approves you before judging day."}
         </p>
       </header>
 
@@ -155,7 +155,7 @@ export default function JudgePage() {
             ))}
           </ul>
           <p className={`mt-3 ${meta}`}>
-            You will get an email when an organiser approves you.
+            You will get an email when an organizer approves you.
           </p>
         </section>
       )}

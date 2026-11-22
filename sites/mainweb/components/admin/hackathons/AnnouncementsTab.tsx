@@ -20,6 +20,7 @@ import {
 } from "@query/ui/classes";
 import { FormInput } from "@query/ui/FormInput";
 import type { HackathonStatus } from "@/components/admin/hackathons/constants";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 const AUDIENCES = [
   {
@@ -342,7 +343,7 @@ export function AnnouncementsTab({
   const handleSend = async () => {
     const audienceLabel = AUDIENCES.find((a) => a.id === audience)?.label;
     if (
-      !window.confirm(
+      !await confirmDialog(
         inAppOnly
           ? `Publish "${subject}" on the event page of ${recipientCount} recipient(s) (${audienceLabel})?\n\nNo email is sent. This cannot be unpublished.`
           : `Send "${subject}" to ${recipientCount} recipient(s) (${audienceLabel})?\n\nThis cannot be unsent.`,

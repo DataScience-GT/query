@@ -30,6 +30,7 @@ import {
   status as statusDot,
   textLink,
 } from "@query/ui/classes";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 /** Admin pages carry a smaller headline than member pages. */
 const adminTitle =
@@ -340,7 +341,7 @@ export default function AdminBootcampPage() {
 
   const deleteWorkshop = async (row: BootcampMaterialRow) => {
     if (
-      !window.confirm(
+      !await confirmDialog(
         `Delete week ${row.week}, its metadata, materials ZIP, and solution ZIP? This cannot be undone.`,
       )
     ) {

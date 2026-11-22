@@ -123,19 +123,19 @@ describe("portalNavSections", () => {
       "Projects",
     ]);
     expect(names(sections, "hackathon")).not.toContain("Attendees");
-    expect(names(sections, "hackathon")).not.toContain("Club Attendees");
+    expect(names(sections, "hackathon")).not.toContain("Event Attendees");
     expect(names(sections, "portal")).toEqual([
-      "Club Hub",
-      "Club Attendees",
+      "Club Check-Ins",
+      "Event Attendees",
       "Club Attendance",
-      "Club Projects",
-      "Club Project Applications",
+      "Project Leaders",
+      "My Club Projects",
       "Subteams",
       "Bootcamp",
       "Memberships",
       "Resume Book",
       "Staff & Roles",
-      "Analytics",
+      "Club Growth",
       "Docs",
       "Settings",
     ]);

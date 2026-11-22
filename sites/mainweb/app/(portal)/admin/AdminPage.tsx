@@ -30,6 +30,7 @@ import {
   status,
   textLink,
 } from "@query/ui/classes";
+import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 const adminTitle =
   "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
@@ -366,9 +367,9 @@ export default function AdminPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             if (
-                              confirm(
+                              await confirmDialog(
                                 event.currentCheckIns > 0
                                   ? `Delete this event? Its ${event.currentCheckIns} check-in(s) are deleted with it and cannot be recovered.`
                                   : "Delete this event?",
