@@ -25,7 +25,7 @@ export default function PublicPage({
 }: PublicPageProps) {
   return (
     <div className="selection:bg-dsgt-teal/30 relative min-h-screen overflow-x-hidden bg-[#050505] font-sans text-gray-400">
-      <Navbar className="fixed top-0 z-30 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md" />
+      <Navbar />
       <main className="relative z-10 mx-auto max-w-7xl px-6 pt-36 pb-32 md:pt-44 lg:px-12">
         <header className="mb-20 max-w-3xl space-y-6 md:mb-24">
           {eyebrow && (
@@ -62,11 +62,11 @@ export function SectionHeading({
     <div className="mb-12 flex items-center gap-4">
       <h2
         id={id}
-        className="shrink-0 text-3xl font-bold tracking-tight text-white"
+        className="text-3xl font-bold tracking-tight text-balance text-white"
       >
         {children}
       </h2>
-      <div className="from-dsgt-teal/20 h-px w-full bg-gradient-to-r to-transparent" />
+      <div className="from-dsgt-teal/20 h-px min-w-12 flex-1 bg-gradient-to-r to-transparent" />
     </div>
   );
 }

@@ -6,9 +6,7 @@ import Footer from "@/components/Footer";
 export default function NotFound() {
   return (
     <div className="relative min-h-screen flex flex-col bg-[#050505] text-gray-400 font-sans selection:bg-indigo-500/30">
-      <Navbar
-        className="fixed top-0 left-0 w-full z-30 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md"
-      />
+      <Navbar />
 
       <main className="relative z-10 flex-grow pt-40 pb-32 flex items-center justify-center px-6">
         <div className="text-center p-12 max-w-2xl w-full rounded-2xl bg-[#0a0a0a] border border-white/5 shadow-2xl space-y-8 relative overflow-hidden group">
