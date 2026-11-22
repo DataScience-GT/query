@@ -5,11 +5,12 @@ import { trpc } from "@/lib/trpc";
 import { ResumePreview } from "@/components/portal/ResumePreview";
 import { venueFormat } from "@/lib/venue-time";
 import {
+  adminPage,
+  adminTitle,
   btnPrimary,
   btnSecondary,
   label,
   meta,
-  page,
   pageDek,
   status,
   tab,
@@ -27,9 +28,6 @@ import {
 type Scope = "members" | "all";
 
 const PAGE_SIZE = 100;
-
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)] text-balance";
 
 function formatSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -102,7 +100,7 @@ export default function AdminResumesPage() {
   };
 
   return (
-    <div className={page}>
+    <div className={adminPage}>
       <h1 className={adminTitle}>Resume book</h1>
       <p className={pageDek}>
         Every resume uploaded from a profile. Download a filtered set as one

@@ -6,6 +6,8 @@ import { ChevronRight } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { hackathonStatus } from "@/lib/hackathon-status";
 import {
+  adminPage,
+  adminTitle,
   body,
   itemTitle,
   meta,
@@ -21,9 +23,9 @@ export default function AdminJudgingPage() {
     trpc.hackathon.list.useQuery({ limit: 50 });
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className={adminPage}>
       <header className="mb-8">
-        <h1 className="font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[var(--text-primary)]">
+        <h1 className={adminTitle}>
           Judging
         </h1>
         <p className={pageDek}>

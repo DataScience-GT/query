@@ -9,10 +9,12 @@ import { trpc } from "@/lib/trpc";
 import { useRouter } from "next/navigation";
 import { StatTile, StatTileSkeleton } from "@query/ui/StatTile";
 import {
+  adminPage,
+  adminTitle,
+  body,
   btnSecondary,
   itemTitle,
   meta,
-  body,
   pageDek,
   sectionTitle,
 } from "@query/ui/classes";
@@ -36,9 +38,6 @@ function ChartSkeleton() {
 }
 
 /** Admin pages carry a smaller headline than member pages. */
-const adminTitle =
-  "font-[family-name:var(--font-display)] text-[32px] md:text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)]";
-
 const th = "px-4 py-2.5 text-[13px] font-medium text-[var(--text-subtle)]";
 
 /**
@@ -277,7 +276,7 @@ export default function AnalyticsPage() {
   return (
     <div
       ref={containerRef}
-      className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 md:px-12 md:py-14"
+      className={adminPage}
     >
       <header>
         <h1 className={adminTitle}>Club growth</h1>
