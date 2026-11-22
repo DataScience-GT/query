@@ -13,7 +13,7 @@ vi.mock("@query/db", () => ({
       values: (values: unknown) => {
         mockValues(values);
         return {
-          onConflictDoUpdate: (args: unknown) => {
+          onConflictDoNothing: (args: unknown) => {
             mockConflict(args);
             return Promise.resolve();
           },
@@ -45,16 +45,18 @@ function post(
   headers: Record<string, string> = {},
   raw = false,
 ) {
+  const text = raw ? (body as string) : JSON.stringify(body);
   return POST(
     new Request("http://localhost/api/judge-interest", {
       method: "POST",
       headers: {
         "content-type": "application/json",
+        "content-length": String(Buffer.byteLength(text)),
         origin: ORIGIN,
         "x-forwarded-for": nextIp(),
         ...headers,
       },
-      body: raw ? (body as string) : JSON.stringify(body),
+      body: text,
     }) as never,
   );
 }
@@ -94,7 +96,7 @@ describe("POST /api/judge-interest", () => {
     );
   });
 
-  it("upserts on (edition, email) so a resubmit updates the row", async () => {
+  it("keeps the first submission for an (edition, email), never overwriting it", async () => {
     const first = await post(valid);
     const second = await post({ ...valid, company: "New Co" });
     expect(first.status).toBe(200);
@@ -102,10 +104,33 @@ describe("POST /api/judge-interest", () => {
     expect(mockConflict).toHaveBeenCalledTimes(2);
     const { target, set } = mockConflict.mock.calls[1][0] as {
       target: string[];
-      set: Record<string, unknown>;
+      set?: unknown;
     };
     expect(target).toEqual(["edition", "email"]);
-    expect(set.company).toBe("New Co");
+    // do-nothing on conflict: there is no update clause to rewrite the row.
+    expect(set).toBeUndefined();
+  });
+
+  it("refuses a body that declares no length, before reading it", async () => {
+    const req = new Request("http://localhost/api/judge-interest", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: ORIGIN,
+        "x-forwarded-for": nextIp(),
+      },
+      body: JSON.stringify(valid),
+    });
+    req.headers.delete("content-length");
+    const res = await POST(req as never);
+    expect(res.status).toBe(413);
+    expect(mockValues).not.toHaveBeenCalled();
+  });
+
+  it("refuses an oversized declared length without reading the body", async () => {
+    const res = await post(valid, { "content-length": "9000" });
+    expect(res.status).toBe(413);
+    expect(mockValues).not.toHaveBeenCalled();
   });
 
   it("answers a honeypot hit with success and stores nothing", async () => {
