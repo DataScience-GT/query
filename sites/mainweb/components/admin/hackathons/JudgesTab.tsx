@@ -10,7 +10,7 @@ import {
   usePortalContext,
   useReadOnly,
 } from "@/lib/use-portal-context";
-import { UserPlus, Copy } from "lucide-react";
+import { UserPlus, Copy, ChevronDown } from "lucide-react";
 import { Alert } from "@query/ui/Alert";
 import {
   body,
@@ -27,6 +27,96 @@ import {
 import { FormInput } from "@query/ui/FormInput";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
 import { EmptyState } from "@query/ui/EmptyState";
+
+type StatusFilter = "all" | "waiting" | "approved";
+
+const FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "waiting", label: "Waiting" },
+  { value: "approved", label: "Approved" },
+];
+
+type JudgeDetailsProps = {
+  judge: {
+    phone: string | null;
+    company: string | null;
+    title: string | null;
+    specialty: string | null;
+    linkedinUrl: string | null;
+    githubUrl: string | null;
+    previousExperience: string | null;
+    dietaryRestrictions: string[] | null;
+    shirtSize: string | null;
+    whyJudge: string | null;
+    createdAt: Date | string;
+  };
+  email: string | null | undefined;
+  track: string | null | undefined;
+  isLead: boolean | undefined;
+};
+
+const safeHref = (value: string) =>
+  /^https?:\/\//i.test(value) ? value : null;
+
+/** Everything the judge submitted, so an organizer reads it before approving. */
+function JudgeDetails({ judge, email, track, isLead }: JudgeDetailsProps) {
+  const link = (value: string | null) => {
+    if (!value) return null;
+    const href = safeHref(value);
+    return href ? (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={textLink}
+      >
+        {value}
+      </a>
+    ) : (
+      value
+    );
+  };
+  const rows: [string, React.ReactNode][] = [
+    [
+      "Email",
+      email ? (
+        <a href={`mailto:${email}`} className={textLink}>
+          {email}
+        </a>
+      ) : null,
+    ],
+    ["Phone", judge.phone],
+    ["Company", judge.company],
+    ["Title", judge.title],
+    ["Expertise", judge.specialty],
+    ["Preferred track", track],
+    ["Lead judge", isLead ? "Yes" : null],
+    ["LinkedIn", link(judge.linkedinUrl)],
+    ["GitHub", link(judge.githubUrl)],
+    ["Previous judging experience", judge.previousExperience],
+    ["Why they want to judge", judge.whyJudge],
+    [
+      "Dietary restrictions",
+      judge.dietaryRestrictions?.length
+        ? judge.dietaryRestrictions.join(", ")
+        : null,
+    ],
+    ["Shirt size", judge.shirtSize],
+    ["Applied", new Date(judge.createdAt).toLocaleString()],
+  ];
+  return (
+    <dl className="grid gap-x-6 gap-y-3 pb-4 sm:grid-cols-2">
+      {rows.map(([label, value]) => (
+        <div key={label} className="min-w-0">
+          <dt className={meta}>{label}</dt>
+          <dd className="whitespace-pre-line break-words text-[15px] text-[var(--text-primary)]">
+            {value || "Not given"}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 /**
  * The judge roster for one edition: who applied, who is approved, adding a
@@ -54,6 +144,8 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newJudgeEmail, setNewJudgeEmail] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
+  const [filter, setFilter] = useState<StatusFilter>("all");
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const refresh = () => {
     void utils.judge.list.invalidate({ hackathonId });
@@ -103,6 +195,10 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
 
   const roster = judges ?? [];
   const approved = roster.filter((j) => j.isActive).length;
+  const shown = roster.filter(
+    (j) =>
+      filter === "all" || (filter === "approved" ? j.isActive : !j.isActive),
+  );
 
   return (
     <div className="space-y-10">
@@ -210,18 +306,41 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
             No judges yet. Add one by email, or send the application link.
           </EmptyState>
         ) : (
+          <>
+          <div
+            role="group"
+            aria-label="Filter by status"
+            className="mb-4 flex flex-wrap gap-2"
+          >
+            {FILTERS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                aria-pressed={filter === f.value}
+                onClick={() => setFilter(f.value)}
+                className={filter === f.value ? btnInk : btnSecondary}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {shown.length === 0 && (
+            <EmptyState>No judges with this status.</EmptyState>
+          )}
           <ul className="border-t border-[var(--border-subtle)]">
-            {roster.map((judge) => {
+            {shown.map((judge) => {
               const application = judge.assignments.find(
                 (a) => a.hackathon?.id === hackathonId,
               );
               const name =
                 judge.user?.name || judge.name || judge.user?.email || "Unnamed judge";
+              const isOpen = openId === judge.id;
               return (
                 <li
                   key={judge.id}
-                  className="flex flex-col sm:flex-row sm:items-center gap-4 border-b border-[var(--border-subtle)] py-4"
+                  className="border-b border-[var(--border-subtle)]"
                 >
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 py-4">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <Image
                       src={judge.user?.image || "/avatars/default.svg"}
@@ -248,6 +367,20 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                     <span className={status(judge.isActive ? "success" : "warning")}>
                       {judge.isActive ? "Approved" : "Waiting"}
                     </span>
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      onClick={() => setOpenId(isOpen ? null : judge.id)}
+                      className={btnSecondary}
+                    >
+                      Details
+                      <ChevronDown
+                        size={16}
+                        strokeWidth={1.75}
+                        aria-hidden="true"
+                        className={isOpen ? "rotate-180" : undefined}
+                      />
+                    </button>
                     <button
                       type="button"
                       disabled={readOnly || setActive.isPending}
@@ -286,10 +419,20 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                       Remove
                     </button>
                   </div>
+                </div>
+                {isOpen && (
+                  <JudgeDetails
+                    judge={judge}
+                    email={judge.user?.email ?? judge.email}
+                    track={application?.track}
+                    isLead={application?.isLead}
+                  />
+                )}
                 </li>
               );
             })}
           </ul>
+          </>
         )}
       </section>
     </div>
