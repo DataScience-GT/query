@@ -6,6 +6,13 @@ import { db } from "@query/db";
 import { NOREPLY_EMAIL, ORG_NAME_SPOKEN } from "@query/core";
 import { siteOrigin } from "@query/core/server";
 import { linkPaidPaymentByVerifiedEmail } from "@query/db/services/membership";
+import {
+  CODES_PER_IDENTIFIER_PER_HOUR,
+  GLOBAL_CODES_PER_HOUR,
+  GLOBAL_THROTTLE_KEY,
+  isLockedOut,
+  takeCodeSlot,
+} from "@query/db/services/auth-throttle";
 import { sql } from "drizzle-orm";
 import { randomInt } from "node:crypto";
 import { fetchGitHubProfile, verifiedGitHubEmail } from "./github";
@@ -178,6 +185,20 @@ export const authConfig: NextAuthConfig = {
               LIMIT 1
             `);
             if (recent.rows.length > 0) return false;
+
+            // Database-backed caps (see auth-throttle). Beyond any of them
+            // nothing is sent and nothing says why, so the response cannot be
+            // used to probe the limits. Failed guesses carry across reissued
+            // codes, so a locked-out address gets no new code either. The
+            // deployment-wide slot goes first: a spent one keeps a loop over
+            // many addresses from draining the SMTP quota.
+            if (await isLockedOut(tx, identifier)) return false;
+            if (!(await takeCodeSlot(tx, GLOBAL_THROTTLE_KEY, GLOBAL_CODES_PER_HOUR)))
+              return false;
+            if (
+              !(await takeCodeSlot(tx, identifier, CODES_PER_IDENTIFIER_PER_HOUR))
+            )
+              return false;
 
             await tx.execute(sql`
               DELETE FROM "verificationToken"
