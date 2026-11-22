@@ -15,6 +15,13 @@ export function GET() {
       ok: true,
       version: process.env.NEXT_PUBLIC_APP_VERSION,
       commit: process.env.NEXT_PUBLIC_APP_COMMIT,
+      // Whether shared Redis is configured, read from env: no network call, and
+      // not an import of @query/api, which would pull the database in here.
+      cache:
+        process.env.UPSTASH_REDIS_REST_URL &&
+        process.env.UPSTASH_REDIS_REST_TOKEN
+          ? "redis"
+          : "memory",
     },
     { headers: { "cache-control": "no-store" } },
   );

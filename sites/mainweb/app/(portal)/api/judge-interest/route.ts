@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { db } from "@query/db";
 import {
   BURST_LIMITS,
-  rateLimit,
+  rateLimitShared,
   resolveClientIp,
 } from "@query/api/middleware/security";
 import {
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   }
 
   const ip = resolveClientIp(req.headers.get("x-forwarded-for"));
-  const limit = rateLimit(
+  const limit = await rateLimitShared(
     `judge-interest:${ip}`,
     BURST_LIMITS.tenPerHour.maxTokens,
     BURST_LIMITS.tenPerHour.refillRate,

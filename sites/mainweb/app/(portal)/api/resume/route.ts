@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { db, memberResumes } from "@query/db";
 import { eq } from "drizzle-orm";
-import { cache, rateLimit } from "@query/api";
+import { cache, rateLimitShared } from "@query/api";
 import { PDFDocument } from "pdf-lib";
 import type { DrizzleDB } from "@query/db";
 import {
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const limit = rateLimit(
+  const limit = await rateLimitShared(
     `resume-upload-${userId}`,
     UPLOAD_LIMIT.maxTokens,
     UPLOAD_LIMIT.refillRate,

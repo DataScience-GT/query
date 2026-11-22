@@ -10,7 +10,7 @@ import {
 import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { notHackathonBanned } from "../../middleware/procedures";
-import { rateLimit } from "../../middleware/security";
+import { rateLimitShared } from "../../middleware/security";
 import { flaggingRuleBreaks } from "../../services/check-in-flags";
 import {
   isSoldOut,
@@ -224,7 +224,7 @@ export const pointsMeRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       // There are 31^6 codes; this keeps anyone from walking the space. Per
       // user, because a whole venue shares one address.
-      const limit = rateLimit(`points-code:${ctx.userId}`, 10, 0.1);
+      const limit = await rateLimitShared(`points-code:${ctx.userId}`, 10, 0.1);
       if (!limit.allowed) {
         throw new TRPCError({
           code: "TOO_MANY_REQUESTS",
