@@ -6,6 +6,8 @@ import {
 import type { Prefetch } from "@/lib/portal-bootstrap.server";
 import DashboardPage from "./DashboardPage";
 
+export const metadata = { title: "Dashboard" };
+
 export default function Page() {
   return (
     <PrefetchedPage

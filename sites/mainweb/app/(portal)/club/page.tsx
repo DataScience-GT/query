@@ -1,6 +1,8 @@
 import { PrefetchedPage } from "@/components/portal/PrefetchedPage";
 import ClubPage from "./ClubPage";
 
+export const metadata = { title: "Club" };
+
 export default function Page() {
   return (
     <PrefetchedPage
