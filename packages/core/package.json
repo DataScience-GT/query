@@ -1,6 +1,6 @@
 {
   "name": "@query/core",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "license": "Apache-2.0",
   "description": "The values every Data Science at Georgia Tech workspace shares: site origin, organization identity, and time units.",
   "homepage": "https://github.com/DataScience-GT/query/blob/main/docs/packages/core.md",

@@ -59,7 +59,7 @@ The matching agent skill is installed per machine, not committed: run `pnpm --di
 - A build with no git at all reports the `package.json` version as is.
 - A turbo cache hit replays the version of the build it cached, which is the same code.
 
-To ship a release worth naming, run `pnpm version:set 4.1.0` in a PR. The patch restarts from that commit.
+To ship a release worth naming, run `pnpm version:set 4.2.0` in a PR. The patch restarts from that commit.
 
 ### Which versions mean something
 
@@ -89,6 +89,7 @@ The versions before 3.4 were assigned after the fact, from the repo history.
 | 3.6 | 2026-11 | Lighter portal: judging console and desk load on demand, sign-in and error pages skip the portal data stack, the sidebar nav is drawn on the server |
 | 4.0 | 2026-11 | One design across the public site and portal (dark teal, DS@GT logo), shared confirm dialog and error screens, per-page tab titles |
 | 4.1 | 2026-11 | Security fixes, judge application review screen with an in-person question, optional shared Redis (Upstash) for cache invalidation and rate limits, off until Hacklytics 2027 |
+| 4.2 | 2026-11 | Drizzle ORM and Kit 1.0 (rc.6) with the drizzle-kit MCP server for agents, ui-sdk, event photos across the public site at higher quality, a fuller History page |
 
 ## Other root files
 
