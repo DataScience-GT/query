@@ -27,6 +27,7 @@
     "@query/core": "workspace:*",
     "@query/db": "workspace:*",
     "@trpc/server": "catalog:",
+    "@upstash/redis": "catalog:",
     "drizzle-orm": "catalog:",
     "prom-client": "15.1.3",
     "stripe": "catalog:",

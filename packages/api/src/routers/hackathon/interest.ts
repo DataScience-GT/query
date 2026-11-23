@@ -25,7 +25,7 @@ import {
   publicProcedure,
 } from "../../trpc";
 import { isAdmin, notHackathonBanned } from "../../middleware/procedures";
-import { rateLimit } from "../../middleware/security";
+import { rateLimitShared } from "../../middleware/security";
 import { VOLATILE_TTL } from "../../middleware/cache";
 
 // The interest list for an edition announced but not yet taking
@@ -171,7 +171,7 @@ export const hackathonInterestRouter = createTRPCRouter({
 
       // Editing your answers is normal; hammering the upsert is not. Per user,
       // since the row is keyed that way and an IP is shared by a whole campus.
-      const limit = rateLimit(`interest:${ctx.userId}`, 20, 0.05);
+      const limit = await rateLimitShared(`interest:${ctx.userId}`, 20, 0.05);
       if (!limit.allowed) {
         throw new TRPCError({
           code: "TOO_MANY_REQUESTS",

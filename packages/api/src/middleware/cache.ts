@@ -1,4 +1,13 @@
 // In-memory TTL cache with automatic cleanup.
+//
+// With Redis configured (see lib/redis.ts) every delete is also published to
+// the other instances through CacheInvalidationBus, so a write served by one
+// App Hosting instance evicts the entry on all of them within ~2s. Without
+// Redis nothing changes: one process, one cache.
+
+import { CacheInvalidationBus } from "../lib/cache-bus";
+import { redis, redisKeyPrefix, redisStartsAt } from "../lib/redis";
+import type { RedisClient } from "../lib/redis";
 
 interface CacheEntry<T> {
   value: T;
@@ -19,11 +28,30 @@ export class CacheService {
   /** Factories running now, keyed as the cache is. See getOrSet. */
   private inFlight = new Map<string, Promise<unknown>>();
 
+  private bus: CacheInvalidationBus | null = null;
+
   constructor(
     private defaultTTL: number = 300,
     maxCacheSize: number = 10000,
+    shared?: {
+      redis: RedisClient;
+      prefix: string;
+      pollMs?: number;
+      startsAt?: number;
+    } | null,
   ) {
     this.maxCacheSize = maxCacheSize;
+    if (shared) {
+      this.bus = new CacheInvalidationBus(
+        shared.redis,
+        shared.prefix,
+        (pattern) => this.evict(pattern),
+        () => this.cache.clear(),
+        shared.pollMs,
+        shared.startsAt,
+      );
+      this.bus.start();
+    }
     // Cleanup expired entries every 60 seconds
     this.cleanupInterval = setInterval(() => {
       this.cleanup();
@@ -67,6 +95,7 @@ export class CacheService {
   delete(key: string): boolean {
     const result = this.cache.delete(key);
     this.stats.size = this.cache.size;
+    this.bus?.publish(key);
     return result;
   }
 
@@ -78,10 +107,19 @@ export class CacheService {
   // the scan is O(size) either way; the regex was the per-key cost stacked on
   // top of it.
   deletePattern(pattern: string): number {
+    const count = this.evict(pattern);
+    this.bus?.publish(pattern);
+    return count;
+  }
+
+  /** The local half of a delete: what a message from another instance applies. */
+  private evict(pattern: string): number {
     const star = pattern.indexOf("*");
 
     if (star === -1) {
-      return this.delete(pattern) ? 1 : 0;
+      const removed = this.cache.delete(pattern);
+      this.stats.size = this.cache.size;
+      return removed ? 1 : 0;
     }
 
     let matches: (key: string) => boolean;
@@ -133,6 +171,9 @@ export class CacheService {
     factory: () => Promise<T> | T,
     ttl?: number,
   ): Promise<T> {
+    // Catch up on other instances' deletes first if we have not lately; get()
+    // is synchronous and relies on the poll timer alone.
+    if (this.bus) await this.bus.ensureFresh();
     // Entry, not `get`: a factory returning null looked like a miss every call.
     const cached = this.entry<T>(key);
     if (cached) {
@@ -197,6 +238,7 @@ export class CacheService {
   // Clears the interval as well — otherwise it leaks on module unload.
   destroy(): void {
     clearInterval(this.cleanupInterval);
+    this.bus?.stop();
     this.cache.clear();
     this.stats = { hits: 0, misses: 0, size: 0 };
   }
@@ -218,6 +260,9 @@ const globalForCache = globalThis as unknown as {
 export const cache = (globalForCache.queryCache ??= new CacheService(
   300,
   10000,
+  redis
+    ? { redis, prefix: redisKeyPrefix(), startsAt: redisStartsAt() }
+    : null,
 ));
 
 // No exported `cacheStats` snapshot: one existed, taken once at module load,
@@ -226,7 +271,8 @@ export const cache = (globalForCache.queryCache ??= new CacheService(
 // TTL (seconds) for state an admin can flip mid-event — hackathon status,
 // deadlines, capacity. A mutation only clears the cache on the instance that
 // served it, and App Hosting runs up to 10, so short bounds how long the
-// others serve stale. Cross-instance correctness needs a shared cache.
+// others serve stale. With Redis configured, deletes propagate (see the top of
+// this file) and this only bounds the case where Redis is down.
 export const VOLATILE_TTL = 5;
 
 // Builders for the keys that are actually written. Ones for shapes nothing

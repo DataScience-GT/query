@@ -28,7 +28,7 @@ import {
 import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { isAdmin } from "../../middleware/procedures";
-import { rateLimit } from "../../middleware/security";
+import { rateLimitShared } from "../../middleware/security";
 
 // Mass announcements: "registration is open", "results are up". Separate from
 // sendMassAcceptanceEmails because an acceptance also changes a participant's
@@ -305,7 +305,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
 
     // Every test is a real SMTP message. A burst of three covers fixing a typo and
     // trying again; after that, one every ten seconds.
-    const limit = rateLimit(`announcement-test:${ctx.userId}`, 3, 0.1);
+    const limit = await rateLimitShared(`announcement-test:${ctx.userId}`, 3, 0.1);
     if (!limit.allowed) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
