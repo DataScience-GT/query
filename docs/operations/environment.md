@@ -94,8 +94,9 @@ Setup, once:
 
 1. Create a database at console.upstash.com: Redis, **Regional**, region `us-east-1` (nearest to App Hosting in `us-east4`), TLS on. The free tier is enough to start; the cache poll costs about 43,000 commands a day per instance that stays up.
 2. Copy its REST URL and REST token (the REST ones, not the `redis://` URL).
-3. `firebase apphosting:secrets:set upstash-redis-rest-url` and `firebase apphosting:secrets:set upstash-redis-rest-token`. Answer yes when asked to grant the backend access, which is what lets the rollout read them. Both are already referenced in `apphosting.yaml`.
-4. Roll out. `curl https://datasciencegt.org/api/ping` reports `"cache":"memory"` until `UPSTASH_REDIS_FROM`, then `"cache":"redis"`.
+3. `firebase apphosting:secrets:set upstash-redis-rest-url` and `firebase apphosting:secrets:set upstash-redis-rest-token`. Answer yes when asked to grant the backend access, which is what lets the rollout read them.
+4. Uncomment the two `UPSTASH_REDIS_REST_*` entries in `apphosting.yaml`. They stay commented until the secrets exist, because a reference to a missing secret breaks the rollout.
+5. Roll out. `curl https://datasciencegt.org/api/ping` reports `"cache":"memory"` until `UPSTASH_REDIS_FROM`, then `"cache":"redis"`.
 
 See [Architecture: Caching](../architecture.md#caching) for what is shared and what happens when Redis is down.
 
