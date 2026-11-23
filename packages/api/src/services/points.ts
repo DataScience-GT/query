@@ -516,41 +516,28 @@ export function attendanceConflictMessage(
 // ---------------------------------------------------------------------------
 // Balances
 
-/** One participant's balance. Inside a purchase, run it in that transaction. */
+/**
+ * One participant's balance. Inside a purchase, run it in that transaction.
+ * One statement, not three in parallel: a transaction is a single connection,
+ * and pg refuses a second query on a client that is still running one.
+ */
 export async function readBalance(
   db: PointsDb,
   participantId: string,
 ): Promise<PointsBalance> {
-  const [[awarded], [adjusted], [spent]] = await Promise.all([
-    db
-      .select({
-        total: sql<number>`coalesce(sum(${hackathonEventAttendees.pointsAwarded}), 0)::int`,
-      })
-      .from(hackathonEventAttendees)
-      .where(eq(hackathonEventAttendees.participantId, participantId)),
-    db
-      .select({
-        total: sql<number>`coalesce(sum(${hackathonPointAdjustments.delta}), 0)::int`,
-      })
-      .from(hackathonPointAdjustments)
-      .where(eq(hackathonPointAdjustments.participantId, participantId)),
-    db
-      .select({
-        total: sql<number>`coalesce(sum(${hackathonStorePurchases.total}), 0)::int`,
-      })
-      .from(hackathonStorePurchases)
-      .where(
-        and(
-          eq(hackathonStorePurchases.participantId, participantId),
-          isNull(hackathonStorePurchases.voidedAt),
-        ),
-      ),
-  ]);
+  const [row] = await db
+    .select({
+      awarded: sql<number>`(select coalesce(sum(${hackathonEventAttendees.pointsAwarded}), 0) from ${hackathonEventAttendees} where ${hackathonEventAttendees.participantId} = ${participantId})::int`,
+      adjusted: sql<number>`(select coalesce(sum(${hackathonPointAdjustments.delta}), 0) from ${hackathonPointAdjustments} where ${hackathonPointAdjustments.participantId} = ${participantId})::int`,
+      spent: sql<number>`(select coalesce(sum(${hackathonStorePurchases.total}), 0) from ${hackathonStorePurchases} where ${hackathonStorePurchases.participantId} = ${participantId} and ${hackathonStorePurchases.voidedAt} is null)::int`,
+    })
+    .from(hackathonParticipants)
+    .where(eq(hackathonParticipants.id, participantId));
 
   return pointsBalance({
-    awarded: awarded?.total ?? 0,
-    adjusted: adjusted?.total ?? 0,
-    spent: spent?.total ?? 0,
+    awarded: row?.awarded ?? 0,
+    adjusted: row?.adjusted ?? 0,
+    spent: row?.spent ?? 0,
   });
 }
 
