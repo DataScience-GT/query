@@ -44,7 +44,7 @@ export default function ProjectCard({ project }: { project: ClubProjectCard }) {
 
       {project.tech.length > 0 && (
         <p className="mb-6 font-mono text-[11px] leading-relaxed text-neutral-300">
-          {project.tech.join(" � ")}
+          {project.tech.join(" · ")}
         </p>
       )}
 
