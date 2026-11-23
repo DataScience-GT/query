@@ -2,7 +2,7 @@ import type { BootcampSession } from "@/lib/bootcamp-sessions.server";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import hacklyticsLaptops from "@/assets/images/photos/hacklytics-2026-laptops.jpg";
+import workshop from "@/assets/images/photos/hacklytics-2025-workshop.jpg";
 import PublicPage from "@/components/PublicPage";
 import {
   BOOTCAMP_CURRICULUM,
@@ -100,9 +100,9 @@ export default async function BootcampPage() {
       lede="Nine weeks, in person, from data wrangling to deep learning. The last three weeks go to a project of your own."
     >
       <Image
-        src={hacklyticsLaptops}
-        alt="Students working on laptops in a lecture hall at Hacklytics 2026"
-        className="mb-16 h-64 w-full rounded-lg object-cover object-[50%_40%] sm:h-80 md:mb-20 lg:h-[28rem]"
+        src={workshop}
+        alt="An instructor explaining a concept to a lecture hall of students at a Hacklytics 2025 workshop"
+        className="mb-16 h-64 w-full rounded-lg object-cover object-[60%_55%] sm:h-80 md:mb-20 lg:h-[28rem]"
         sizes="(min-width: 1280px) 1184px, 100vw"
         quality={90}
         placeholder="blur"

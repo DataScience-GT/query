@@ -171,8 +171,8 @@ export default async function EventsPage() {
       <Image
         src={databricksFall}
         alt="A full lecture hall at the DS@GT Databricks event, Fall 2025, with a DS@GT slide on the screen"
-        className="mb-16 h-64 w-full rounded-lg object-cover sm:h-80 md:mb-20 lg:h-[28rem]"
-        sizes="(min-width: 1280px) 1184px, 100vw"
+        className="mb-16 h-auto w-full max-w-4xl rounded-lg md:mb-20"
+        sizes="(min-width: 1024px) 896px, 100vw"
         quality={90}
         placeholder="blur"
       />
