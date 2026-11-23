@@ -209,6 +209,13 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // The nav button says "Portal", so people type /portal. Not permanent:
+      // a cached 308 would outlive any later /portal page.
+      { source: "/portal", destination: "/dashboard", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

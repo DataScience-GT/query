@@ -12,6 +12,12 @@ import type { DrizzleDB } from "@query/db";
 import { emailConcurrency, forEachWithConcurrency } from "../fanout";
 import { portalOrigin } from "./claims";
 
+/** a***@domain: enough to tell which address failed without logging it whole. */
+function maskEmail(email: string) {
+  const [local = "", domain = ""] = email.split("@");
+  return `${local.slice(0, 1)}***@${domain}`;
+}
+
 export type MemberAddress = {
   /** The address Devpost listed, or the one the portal member signed up with. */
   listedEmail: string;
@@ -211,7 +217,10 @@ export async function notifyResultsPublished(
         // Deliberate operational logging: the only record of which address the
         // provider rejected.
         // oxlint-disable-next-line no-console
-        console.error(`[Judging] Results notice to ${email} failed:`, error);
+        console.error(
+          `[Judging] Results notice to ${maskEmail(email)} failed:`,
+          error,
+        );
       }
     });
   } catch (error) {

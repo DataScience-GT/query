@@ -14,6 +14,8 @@ Object.assign(globalThis, { React });
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
+const state = vi.hoisted(() => ({ judges: [] as unknown[] }));
+
 vi.mock("@/lib/use-portal-context", () => ({
   READ_ONLY_TITLE: "Read-only",
   useReadOnly: () => false,
@@ -28,7 +30,7 @@ vi.mock("@/lib/trpc", () => {
       judge: {
         list: {
           useQuery: () => ({
-            data: [],
+            data: state.judges,
             isLoading: false,
             isError: false,
             error: null,
@@ -44,6 +46,7 @@ vi.mock("@/lib/trpc", () => {
 });
 
 afterEach(() => {
+  state.judges = [];
   vi.unstubAllGlobals();
   document.body.innerHTML = "";
 });
@@ -105,5 +108,100 @@ describe("JudgesTab apply link", () => {
 
     expect(container.textContent).toContain("Copied");
     expect(container.textContent).not.toContain("Couldn't copy");
+  });
+});
+
+const judge = (over: Record<string, unknown>) => ({
+  id: "j",
+  name: "Judge",
+  email: null,
+  phone: null,
+  company: null,
+  title: null,
+  specialty: null,
+  linkedinUrl: null,
+  githubUrl: null,
+  previousExperience: null,
+  dietaryRestrictions: null,
+  shirtSize: null,
+  whyJudge: null,
+  isActive: false,
+  createdAt: new Date("2026-11-01T12:00:00Z"),
+  user: null,
+  assignments: [],
+  ...over,
+});
+
+async function renderRoster() {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  await act(async () => root.render(<JudgesTab hackathonId="h1" />));
+  const button = (text: string) => {
+    const found = [...container.querySelectorAll("button")].find(
+      (b) => b.textContent?.trim() === text,
+    );
+    if (!found) throw new Error(`no ${text} button`);
+    return found;
+  };
+  return { container, button };
+}
+
+describe("JudgesTab review", () => {
+  const waiting = judge({
+    id: "w",
+    name: "Waiting Wendy",
+    company: "Acme Corp",
+    phone: "555-0100",
+    githubUrl: "https://github.com/wendy",
+    linkedinUrl: "javascript:alert(1)",
+    whyJudge: "I like demos",
+    dietaryRestrictions: ["vegan", "nut-free"],
+    assignments: [
+      { hackathon: { id: "h1", name: "H" }, track: "Healthcare", isLead: true },
+    ],
+  });
+  const approvedJudge = judge({
+    id: "a",
+    name: "Approved Andy",
+    isActive: true,
+  });
+
+  it("hides the submitted details until Details is opened, then shows all of them", async () => {
+    state.judges = [waiting];
+    const { container, button } = await renderRoster();
+    expect(container.textContent).not.toContain("Acme Corp");
+
+    await act(async () => button("Details").click());
+
+    const text = container.textContent ?? "";
+    for (const expected of [
+      "Acme Corp",
+      "555-0100",
+      "Healthcare",
+      "I like demos",
+      "vegan, nut-free",
+      "https://github.com/wendy",
+    ]) {
+      expect(text).toContain(expected);
+    }
+    // Unsafe schemes render as text, never as a link.
+    expect(container.querySelector('a[href^="javascript"]')).toBeNull();
+    expect(container.querySelector('a[href="https://github.com/wendy"]')).not.toBeNull();
+  });
+
+  it("filters the roster by status", async () => {
+    state.judges = [waiting, approvedJudge];
+    const { container, button } = await renderRoster();
+    expect(container.textContent).toContain("Waiting Wendy");
+    expect(container.textContent).toContain("Approved Andy");
+
+    await act(async () => button("Approved").click());
+    expect(container.textContent).not.toContain("Waiting Wendy");
+    expect(container.textContent).toContain("Approved Andy");
+
+    await act(async () => button("Waiting").click());
+    expect(container.textContent).toContain("Waiting Wendy");
+    expect(container.textContent).not.toContain("Approved Andy");
   });
 });

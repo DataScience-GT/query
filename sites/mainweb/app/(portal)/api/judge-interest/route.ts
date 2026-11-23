@@ -9,7 +9,7 @@ import {
 import {
   isAllowedJudgeInterestOrigin,
   judgeInterestInput,
-  upsertJudgeInterest,
+  recordJudgeInterest,
 } from "@query/api/judge-interest";
 
 /**
@@ -79,6 +79,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Checked before the body is read: req.text() buffers whatever is sent, so
+  // a cap on its result has already accepted it. A browser posting this form
+  // always declares a length; an absent one is refused too.
+  const header = req.headers.get("content-length");
+  const declared = header === null ? NaN : Number(header);
+  if (!Number.isFinite(declared) || declared > MAX_BODY_BYTES) {
+    return reply(origin, 413, { error: "That submission is too large." });
+  }
+
   const text = await req.text();
   if (Buffer.byteLength(text, "utf8") > MAX_BODY_BYTES) {
     return reply(origin, 413, { error: "That submission is too large." });
@@ -112,7 +121,7 @@ export async function POST(req: NextRequest) {
   try {
     // `db` is null when DATABASE_URL is not configured.
     if (!db) throw new Error("no database");
-    await upsertJudgeInterest(db, input);
+    await recordJudgeInterest(db, input);
   } catch {
     return reply(origin, 500, {
       error: "Something went wrong. Please try again or email hello@hacklytics.io.",

@@ -1,5 +1,5 @@
 // Documentation search and read over the files a contributor would open:
-// docs/**, the root README and CONTRIBUTING, and every package README.
+// docs/**, the root README, .github/CONTRIBUTING, and every package README.
 import { existsSync, realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 
@@ -9,7 +9,7 @@ const MAX_READ = 60_000;
 
 export function docFiles(): string[] {
   const files = new Set<string>();
-  for (const name of ["README.md", "CONTRIBUTING.md"]) {
+  for (const name of ["README.md", ".github/CONTRIBUTING.md"]) {
     if (existsSync(resolve(ROOT, name))) files.add(name);
   }
   for (const file of walk(resolve(ROOT, "docs"), (f) => f.endsWith(".md")))

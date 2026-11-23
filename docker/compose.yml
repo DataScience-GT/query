@@ -4,10 +4,14 @@
 # The database name here matches the Neon database so switching between them is
 # only a DATABASE_URL change, not a schema-qualified rewrite.
 #
-#   docker compose up -d
+#   docker compose -f docker/compose.yml up -d
 #   DATABASE_URL=postgresql://postgres:postgres@localhost:5433/neondb pnpm --filter @query/db migrate:push
 #
 # Port 5433 on the host so this does not collide with a system Postgres on 5432.
+
+# Pinned so the project (and its volumes) keep the name they had when this
+# file lived at the repo root.
+name: query
 
 services:
   db:
@@ -57,9 +61,9 @@ services:
       # series, and it keeps the volume from growing without bound.
       - "--storage.tsdb.retention.time=15d"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/rules:/etc/prometheus/rules:ro
-      - ./monitoring/secrets:/etc/prometheus/secrets:ro
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/rules:/etc/prometheus/rules:ro
+      - ../monitoring/secrets:/etc/prometheus/secrets:ro
       - promdata:/prometheus
     extra_hosts:
       # `next dev` runs on the host, not in this network. Linux does not resolve
@@ -84,8 +88,8 @@ services:
       # Pulled on first boot, so this container needs the network once.
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
     volumes:
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafanadata:/var/lib/grafana
     depends_on:
       - prometheus
@@ -108,7 +112,7 @@ services:
         soft: 262144
         hard: 262144
     volumes:
-      - ./monitoring/clickhouse/init:/docker-entrypoint-initdb.d:ro
+      - ../monitoring/clickhouse/init:/docker-entrypoint-initdb.d:ro
       - chdata:/var/lib/clickhouse
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping || exit 1"]

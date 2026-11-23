@@ -48,7 +48,7 @@ Service account secret: `FIREBASE_SERVICE_ACCOUNT_DSGT_WEBSITE`.
 
 ## Local GCP access
 
-See [GCP_SETUP.md](../../GCP_SETUP.md):
+See [GCP setup](./gcp-setup.md):
 
 ```bash
 gcloud auth login

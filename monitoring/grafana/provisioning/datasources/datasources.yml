@@ -13,7 +13,7 @@ datasources:
       timeInterval: 30s
 
   # Needs the grafana-clickhouse-datasource plugin, installed on first boot by
-  # GF_INSTALL_PLUGINS in docker-compose.yml. If the container came up without a
+  # GF_INSTALL_PLUGINS in docker/compose.yml. If the container came up without a
   # network, this datasource shows as unknown-type until it is restarted.
   - name: ClickHouse
     type: grafana-clickhouse-datasource

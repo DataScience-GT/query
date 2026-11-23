@@ -28,7 +28,7 @@ Root `turbo.json` defines `build`, `dev`, `lint`, `typecheck`, `test`, `format`,
 | Tool | Answers |
 | --- | --- |
 | `workspace` | Every workspace: path, scripts, internal dependencies and dependents |
-| `docs_search`, `docs_read` | Search and read `docs/**`, the root README and CONTRIBUTING, and package READMEs |
+| `docs_search`, `docs_read` | Search and read `docs/**`, the root README, .github/CONTRIBUTING, and package READMEs |
 | `api_procedures` | tRPC procedures from `packages/api`: query or mutation, `isAdmin` / `protectedProcedure` / ..., file and line. Optional router prefix |
 | `db_schema` | Drizzle tables and columns from `packages/db`. Optional table |
 | `routes` | mainweb App Router URLs, route groups, handlers and client pages |

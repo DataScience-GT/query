@@ -72,7 +72,7 @@ The Firebase target `hacklytics` serves the latest edition. Each older edition k
 | --- | --- |
 | `firebase.json` | The live entry's `public` moves to the new site's `out/`. The previous edition gets an entry of its own, a copy of the live entry as it stood, with target `hacklytics<previous year>`. It goes right after the live entry |
 | `.firebaserc` | The new archive target maps to the Hosting site id `hacklytics<previous year>-archive`, next to the live target |
-| `.github/workflows/ci.yml` | `verify` uploads the new site's `out/` as the live artifact. The previous edition gets an upload step and its own `preview-` and `deploy-` jobs, copied from the newest archive's jobs. The live jobs download the new site |
+| `.github/workflows/ci.yml` | `verify` uploads the new site's `out/` as the live artifact. The live jobs download the new site. Archives are frozen, so `ci.yml` has no archive jobs and the previous edition gets none. If `ci.yml` does hold `preview-hacklytics<year>` and `deploy-hacklytics<year>` jobs, the previous edition gets a copy of the newest pair and an upload step |
 | `pnpm-lock.yaml` | `pnpm install` adds the new workspace |
 
 The live target's name, the artifact names and the job names are read from the files, not typed. The live Hosting site keeps its id, so the custom domain stays where it is.
@@ -88,7 +88,12 @@ Create the Firebase Hosting site for the archive target. The generator prints it
 1. In the Firebase console, open the project the generator names, then Hosting, then Add another site.
 2. Use the site id the generator printed, `hacklytics<previous year>-archive`. Or put the id of a site that exists into `.firebaserc` under `hacklytics<previous year>`.
 
-Until the site exists, the `deploy-hacklytics<previous year>` job fails on `main`. The live deploy does not depend on it.
+CI does not deploy archives. Give the archive its one release by hand, before the new edition goes live on `main`:
+
+```bash
+pnpm turbo run build --filter=hacklytics<previous year>
+firebase deploy --only hosting:hacklytics<previous year>
+```
 
 ## What to edit next
 
@@ -118,7 +123,6 @@ The generator does not touch prose. A new edition leaves these stale.
 | --- | --- |
 | `<year> must be greater than the latest edition` | A directory for that year, or a later one, exists. To redo a run that stopped after creating the site, delete the site directory and restore `firebase.json`, `.firebaserc`, `ci.yml` and `pnpm-lock.yaml` with `git checkout` |
 | `With the latest edition's times, the weekend would not run in order` | The end date is too close to the start. The latest edition's clock times are laid on the dates, and hacking must begin and end inside the weekend |
-| `ci.yml has no preview-hacklytics<year> job to copy` | There is no archive in `ci.yml` to model the new one on. Add the previous edition's jobs by hand |
 | `firebase.json has no hosting entry ... under sites/hacklytics<year>/` | The live entry does not serve the latest edition's directory. Fix `firebase.json` first |
 
 ## Known limits

@@ -1372,6 +1372,38 @@ describe("Participant edge cases", () => {
       expect(cfg.columns.registrationStatus).toBeFalsy();
       expect(cfg.limit).toBeDefined();
     });
+
+    it("lists only approved and checked-in people on the public roster", async () => {
+      mockFindMany.mockReturnValue([]);
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "hackathons" ? { id: HACK_A, status: "open" } : undefined,
+      );
+
+      await callerFor().hackathon.participants({ hackathonId: HACK_A });
+
+      const cfg = mockFindMany.mock.calls.find(
+        (c) => c[0] === "hackathonParticipants",
+      )?.[1];
+      // The bound values of the where clause, however it is nested.
+      const values: unknown[] = [];
+      const seen = new Set<unknown>();
+      const walk = (node: any) => {
+        // Mocked columns are plain strings, so values arrive unwrapped.
+        if (typeof node === "string") values.push(node);
+        if (!node || typeof node !== "object" || seen.has(node)) return;
+        seen.add(node);
+        if (node.constructor?.name === "Param") values.push(node.value);
+        if (Array.isArray(node.queryChunks)) node.queryChunks.forEach(walk);
+        if (Array.isArray(node)) node.forEach(walk);
+      };
+      walk(cfg.where);
+      expect(values).toEqual(
+        expect.arrayContaining([HACK_A, "approved", "checked_in"]),
+      );
+      for (const hidden of ["pending", "rejected", "waitlisted"]) {
+        expect(values).not.toContain(hidden);
+      }
+    });
   });
 
   // =====================================================================
