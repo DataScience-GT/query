@@ -12,6 +12,7 @@ import {
   invalidatePortalContext,
 } from "../middleware/cache";
 import { isAdmin } from "../middleware/procedures";
+import { escapeLike } from "./judging/admin/shared";
 import { recordAdminAction } from "../middleware/audit";
 import { splitName } from "@query/db/services/membership";
 
@@ -415,7 +416,8 @@ export const memberRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const pattern = `%${input.query}%`;
+      // A literal search: a pasted % or _ must not turn into a wildcard.
+      const pattern = `%${escapeLike(input.query)}%`;
 
       const rows = await (ctx.db as DrizzleDB)
         .select({

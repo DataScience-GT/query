@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { rateLimit, resolveClientIp } from "@query/api";
 
 /**
  * Where Content-Security-Policy violations land while the policy is
@@ -12,15 +13,22 @@ import type { NextRequest } from "next/server";
  * allow) before CSP_ENFORCE is turned on.
  *
  * Deliberately unauthenticated: the browser sends these without credentials,
- * and the body is a report about our own pages. It is rate-limited by being
- * useless to an attacker — the worst case is noise in a log, so the size cap
- * below is the only guard that matters.
+ * and the body is a report about our own pages. The worst case is noise in a
+ * log (and the logging bill), so it carries a size cap and a per-IP limit; a
+ * report over the limit is dropped without a trace.
  */
 
 /** Reports are small. Anything larger is not a browser. */
 const MAX_REPORT_BYTES = 8 * 1024;
 
 export async function POST(request: NextRequest) {
+  // A page with one bad directive fires a burst of reports, so the allowance is
+  // generous. Per instance, which is enough to keep one host from filling logs.
+  const ip = resolveClientIp(request.headers.get("x-forwarded-for"));
+  if (!rateLimit(`csp-report:${ip}`, 30, 0.5).allowed) {
+    return new NextResponse(null, { status: 204 });
+  }
+
   try {
     /**
      * Checked BEFORE the body is read, not after.

@@ -8,6 +8,7 @@ import {
 } from "@query/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { isAdmin, isScanner } from "../../middleware/procedures";
+import { isBugTesterRole } from "../../types/portal-context";
 import { recordAdminAction } from "../../middleware/audit";
 import { assignCheckInCode } from "../../services/points";
 import { assertHackathonVisible } from "./visibility";
@@ -338,8 +339,12 @@ export const hackathonEventsRouter = createTRPCRouter({
         counts.map((row) => [row.eventId, row.count]),
       );
 
+      // A check-in code is points for anyone who reads it; bug testers see
+      // the schedule without it.
+      const hideCodes = isBugTesterRole(ctx.admin.role);
       return eventsData.map((event) => ({
         ...event,
+        checkInCode: hideCodes ? null : event.checkInCode,
         attendeeCount: countByEvent.get(event.id) ?? 0,
       }));
     }),
@@ -349,6 +354,15 @@ export const hackathonEventsRouter = createTRPCRouter({
   getEventCheckInCode: isScanner
     .input(eventScope)
     .query(async ({ ctx, input }) => {
+      // isScanner lets a bug tester through for reads; this is the one read
+      // whose whole content is the secret.
+      if (isBugTesterRole(ctx.admin.role)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Event staff access required",
+        });
+      }
+
       const event = await findScopedEvent(ctx.db as DrizzleDB, input);
 
       return {

@@ -16,7 +16,9 @@ import {
   isBootcampAddOnOnly,
   planFromMetadata,
 } from "@query/db/services/membership";
-import { eq, and, isNull, like, gte, sql } from "drizzle-orm";
+import { eq, and, isNull, like, sql } from "drizzle-orm";
+import { timingSafeEqual } from "node:crypto";
+import { isLockedOut, recordFailure } from "@query/db/services/auth-throttle";
 import { rateLimit, cache, resolveClientIp } from "@query/api";
 import type { DrizzleDB } from "@query/db";
 
@@ -35,8 +37,39 @@ import type { DrizzleDB } from "@query/db";
  */
 const MAX_CODE_ATTEMPTS = 5;
 
+/** First character kept, the rest of the local part starred: a***@domain. */
+function maskEmail(email: string) {
+  const [local = "", domain = ""] = email.replace(/[\n\r]/g, "").split("@");
+  return `${local.slice(0, 1)}***@${domain}`;
+}
+
+const TOO_MANY = {
+  success: false,
+  error: "Too many attempts. Please try again later.",
+} as const;
+
+/**
+ * Cross-site login CSRF: a page on another origin could otherwise POST an
+ * attacker's own code and sign a victim's browser into the attacker's account.
+ * Requires a JSON body (not sendable by a plain cross-site form) and a
+ * same-origin Origin, or Sec-Fetch-Site: same-origin where Origin is absent.
+ */
+function isSameOriginJson(request: NextRequest) {
+  const type = request.headers.get("content-type") ?? "";
+  if (!type.toLowerCase().startsWith("application/json")) return false;
+  const origin = request.headers.get("origin");
+  if (origin) return origin === siteOrigin();
+  return request.headers.get("sec-fetch-site") === "same-origin";
+}
+
 export async function POST(request: NextRequest) {
   try {
+    if (!isSameOriginJson(request)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden." },
+        { status: 403 },
+      );
+    }
     const body = await request.json();
     const { code, email } = body as { code?: string; email?: string };
 
@@ -68,10 +101,7 @@ export async function POST(request: NextRequest) {
     const perIp = rateLimit(`verify-ip:${ip}`, 20, 0.2);
 
     if (!perEmail.allowed || !perIp.allowed) {
-      return NextResponse.json(
-        { success: false, error: "Too many attempts. Please try again later." },
-        { status: 429 },
-      );
+      return NextResponse.json(TOO_MANY, { status: 429 });
     }
 
     if (!db) {
@@ -83,39 +113,66 @@ export async function POST(request: NextRequest) {
     }
 
     const customTokenValue = `custom:${code}`;
-    const safeEmail = email.replace(/[\n\r]/g, "");
+    const safeEmail = maskEmail(email);
 
     const result = await db.transaction(async (tx) => {
-      // Consume the token (DELETE + RETURNING)
-      const [invite] = await tx
-        .delete(verificationTokens)
-        .where(
-          and(
-            eq(verificationTokens.identifier, identifier),
-            eq(verificationTokens.token, customTokenValue),
-          ),
-        )
-        .returning();
+      // Daily failure cap per address, shared by every instance and carried
+      // across reissued codes.
+      if (await isLockedOut(tx, identifier)) return { tooMany: true as const };
 
-      if (!invite) {
-        console.warn(`[verify-email] No matching code for ${safeEmail}`);
-        // Charge the miss to the live code, and burn it once it has absorbed
-        // MAX_CODE_ATTEMPTS. Returning (not throwing) commits both.
-        const liveCode = and(
-          eq(verificationTokens.identifier, identifier),
-          like(verificationTokens.token, "custom:%"),
-        );
-        await tx
-          .update(verificationTokens)
-          .set({ attempts: sql`${verificationTokens.attempts} + 1` })
-          .where(liveCode);
-        await tx
-          .delete(verificationTokens)
-          .where(
-            and(liveCode, gte(verificationTokens.attempts, MAX_CODE_ATTEMPTS)),
-          );
+      // Lock the live code's row first: concurrent guesses queue behind it and
+      // each sees the attempts the one before left, so the cap of
+      // MAX_CODE_ATTEMPTS holds however the requests race.
+      const liveCode = and(
+        eq(verificationTokens.identifier, identifier),
+        like(verificationTokens.token, "custom:%"),
+      );
+      const [live] = await tx
+        .select()
+        .from(verificationTokens)
+        .where(liveCode)
+        .orderBy(sql`${verificationTokens.expires} desc`)
+        .limit(1)
+        .for("update");
+
+      // Failures return (not throw) so the charge commits.
+      if (!live) {
+        console.warn(`[verify-email] No live code for ${safeEmail}`);
+        await recordFailure(tx, identifier);
         return null;
       }
+
+      const ownRow = and(
+        eq(verificationTokens.identifier, identifier),
+        eq(verificationTokens.token, live.token),
+      );
+      if (live.attempts >= MAX_CODE_ATTEMPTS) {
+        await tx.delete(verificationTokens).where(ownRow);
+        await recordFailure(tx, identifier);
+        return null;
+      }
+
+      const stored = Buffer.from(live.token);
+      const submitted = Buffer.from(customTokenValue);
+      const matches =
+        stored.length === submitted.length && timingSafeEqual(stored, submitted);
+      if (!matches) {
+        console.warn(`[verify-email] Wrong code for ${safeEmail}`);
+        if (live.attempts + 1 >= MAX_CODE_ATTEMPTS) {
+          await tx.delete(verificationTokens).where(ownRow);
+        } else {
+          await tx
+            .update(verificationTokens)
+            .set({ attempts: sql`${verificationTokens.attempts} + 1` })
+            .where(ownRow);
+        }
+        await recordFailure(tx, identifier);
+        return null;
+      }
+
+      // Consume the code.
+      await tx.delete(verificationTokens).where(ownRow);
+      const invite = live;
 
       // Check expiry
       if (new Date(invite.expires) < new Date()) {
@@ -263,6 +320,10 @@ export async function POST(request: NextRequest) {
         { success: false, error: "Invalid or expired code. Please try again." },
         { status: 401 },
       );
+    }
+
+    if ("tooMany" in result) {
+      return NextResponse.json(TOO_MANY, { status: 429 });
     }
 
     if ("error" in result) {

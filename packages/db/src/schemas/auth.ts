@@ -80,3 +80,25 @@ export const verificationTokens = pgTable(
   },
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })],
 );
+
+// Sign-in code throttle, kept in the database so every instance shares one
+// count (the in-memory limiters are per Cloud Run instance). One row per
+// email address, plus one row keyed GLOBAL for the whole deployment. The two
+// windows are independent: codes issued per hour, failed guesses per day.
+export const authCodeThrottle = pgTable("auth_code_throttle", {
+  identifier: text("identifier").primaryKey(),
+  issueWindowStart: timestamp("issue_window_start", {
+    mode: "date",
+    withTimezone: true,
+  })
+    .notNull()
+    .defaultNow(),
+  codesIssued: integer("codes_issued").notNull().default(0),
+  failureWindowStart: timestamp("failure_window_start", {
+    mode: "date",
+    withTimezone: true,
+  })
+    .notNull()
+    .defaultNow(),
+  failures: integer("failures").notNull().default(0),
+});

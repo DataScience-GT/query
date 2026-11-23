@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Download } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { csvCell } from "@/lib/csv";
 import {
   adminPage,
   adminTitle,
@@ -16,16 +17,6 @@ import {
 
 const th = "px-4 py-3 text-[13px] font-medium text-[var(--text-subtle)]";
 const td = "px-4 py-3 align-top";
-
-/**
- * A spreadsheet runs a cell that starts with = + - or @ as a formula, and
- * these cells are typed by strangers. A leading apostrophe keeps them text.
- */
-const csvCell = (value: unknown) => {
-  const text = String(value ?? "");
-  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
-  return `"${safe.replace(/"/g, '""')}"`;
-};
 
 // Leads from the public form on the Hacklytics site. AdminLayout gates this
 // page to staff; the procedure is gated on the server.

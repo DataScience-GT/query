@@ -17,6 +17,7 @@ import {
 import { randomUUID } from "crypto";
 import { currentTerm } from "@query/db/services/membership";
 import { isAdmin, isScanner } from "../middleware/procedures";
+import { isBugTesterRole } from "../types/portal-context";
 import { checkInCounts, withCheckInCounts } from "../services/derived-counts";
 import type { DrizzleDB } from "@query/db";
 
@@ -235,11 +236,16 @@ export const eventRouter = createTRPCRouter({
 
     const cacheKey = `events:list:all`;
     // Same shared-key stampede as `list` below, minus the public filter.
-    return await ctx.cache.getOrSet<Awaited<ReturnType<typeof fetchEvents>>>(
+    const rows = await ctx.cache.getOrSet<Awaited<ReturnType<typeof fetchEvents>>>(
       cacheKey,
       fetchEvents,
       30,
     );
+    // The door QR checks anyone in from anywhere; bug testers do not get it.
+    // Stripped after the shared cache so one role's view never leaks to another.
+    return isBugTesterRole(ctx.admin.role)
+      ? rows.map((row) => ({ ...row, qrCode: "" }))
+      : rows;
   }),
 
   list: publicProcedure.query(async ({ ctx }) => {
@@ -333,7 +339,12 @@ export const eventRouter = createTRPCRouter({
       }
 
       // Every check-in row is loaded above, so that is the count.
-      return { ...event, currentCheckIns: event.checkIns.length };
+      return {
+        ...event,
+        // The door QR checks anyone in from anywhere; bug testers do not get it.
+        qrCode: isBugTesterRole(ctx.admin.role) ? "" : event.qrCode,
+        currentCheckIns: event.checkIns.length,
+      };
     }),
 
   toggleCheckIn: isAdmin
