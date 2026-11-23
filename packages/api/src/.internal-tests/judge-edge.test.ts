@@ -372,6 +372,8 @@ describe("Judge roster edge cases", () => {
       name: "Ada Lovelace",
       email: "ada@example.com",
       canAttendInPerson: true,
+      previousExperience: "Judged two hackathons",
+      whyJudge: "Love seeing student projects",
       preferredTrack,
     });
 
@@ -403,6 +405,37 @@ describe("Judge roster edge cases", () => {
       await expect(
         applicantCaller().judge.register(rest as never),
       ).rejects.toThrow();
+    });
+
+    it.each(["previousExperience", "whyJudge"] as const)(
+      "requires %s and rejects whitespace-only text",
+      async (field) => {
+        wireTrack({ tracks: null, challenges: null });
+        for (const value of ["", "   \n "]) {
+          await expect(
+            applicantCaller().judge.register({
+              ...application(""),
+              [field]: value,
+            }),
+          ).rejects.toThrow();
+        }
+        const { [field]: _omit, ...rest } = application("");
+        await expect(
+          applicantCaller().judge.register(rest as never),
+        ).rejects.toThrow();
+        expect(insertsInto(judges)).toHaveLength(0);
+      },
+    );
+
+    it("accepts an application without a shirt size and trims the answers", async () => {
+      wireTrack({ tracks: null, challenges: null });
+      await applicantCaller().judge.register({
+        ...application(""),
+        whyJudge: "  Love it  ",
+      });
+      const row = insertsInto(judges).find((r) => "canAttendInPerson" in r);
+      expect(row?.whyJudge).toBe("Love it");
+      expect(row?.shirtSize).toBeUndefined();
     });
 
     it("stores the edition's own spelling of a differently cased track", async () => {

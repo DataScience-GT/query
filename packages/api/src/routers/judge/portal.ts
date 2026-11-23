@@ -161,11 +161,11 @@ export const judgePortalRouter = createTRPCRouter({
         specialty: z.string().max(200).optional(),
         linkedinUrl: z.string().url().max(500).optional().or(z.literal("")),
         githubUrl: z.string().url().max(500).optional().or(z.literal("")),
-        previousExperience: z.string().max(2000).optional(),
+        previousExperience: z.string().trim().min(1).max(2000),
         dietaryRestrictions: z.array(z.string()).optional(),
         shirtSize: z.string().optional(),
         canAttendInPerson: z.boolean(),
-        whyJudge: z.string().max(2000).optional(),
+        whyJudge: z.string().trim().min(1).max(2000),
         preferredTrack: z.string().optional(),
       }),
     )
