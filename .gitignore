@@ -86,6 +86,7 @@ fix.js
 # files here left every other one showing up as untracked.
 .claude/
 .agents/
+skills-lock.json
 
 # Graphify local-only files
 graphify-out/cache/

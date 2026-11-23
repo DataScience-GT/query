@@ -3,6 +3,10 @@
     "query": {
       "command": "node",
       "args": ["tooling/mcp/src/server.ts"]
+    },
+    "drizzle": {
+      "command": "corepack",
+      "args": ["pnpm", "--dir", "packages/db", "exec", "drizzle-kit", "mcp"]
     }
   }
 }
