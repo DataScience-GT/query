@@ -133,6 +133,10 @@ const cspHeaderName =
 const nextConfig = {
   output: "standalone",
   reactCompiler: true,
+  images: {
+    formats: ["image/avif", "image/webp"],
+    qualities: [75, 90],
+  },
   env: {
     NEXT_PUBLIC_APP_VERSION: build.version,
     NEXT_PUBLIC_APP_COMMIT: build.commit,
