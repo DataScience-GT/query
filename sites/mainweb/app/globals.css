@@ -1,4 +1,6 @@
+@layer ui-sdk;
 @import "tailwindcss";
+@import "@ui-sdk/core/web.css" layer(components);
 @import "@query/ui/theme.css";
 
 /* The site is dark by default. This `body` rule is unlayered, so it outranks
