@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  BOOTCAMP_ROOM_PUBLIC,
   bootcampSummary,
   eventDateParts,
   eventWhenWhere,
@@ -96,7 +97,7 @@ describe("splitByDay", () => {
 });
 
 describe("bootcampSummary", () => {
-  const fallback = { startDate: "Oct 6", time: "6:30 PM", room: "CODA C1115" };
+  const fallback = { startDate: "Oct 6", time: "6:30 PM" };
   // 22:30 UTC is 6:30 PM EDT in October.
   const moved = { eventDate: new Date("2026-10-29T22:30:00Z"), location: "Klaus 1456" };
   const old = { eventDate: new Date("2026-10-13T22:30:00Z"), location: "Klaus 1456" };
@@ -106,25 +107,18 @@ describe("bootcampSummary", () => {
     expect(facts).toEqual([
       { label: "First session", value: "Oct 6" },
       { label: "Time", value: "6:30 PM" },
-      { label: "Room", value: "CODA C1115" },
+      { label: "Room", value: BOOTCAMP_ROOM_PUBLIC },
     ]);
   });
 
-  it("takes date, time and room from the next session itself", () => {
+  it("takes date and time from the next session but never its room", () => {
     const facts = bootcampSummary({ upcoming: [moved], past: [old] }, fallback);
     expect(facts).toEqual([
       { label: "Next session", value: "Oct 29" },
       { label: "Time", value: "6:30 PM EDT" },
-      { label: "Room", value: "Klaus 1456" },
+      { label: "Room", value: BOOTCAMP_ROOM_PUBLIC },
     ]);
-  });
-
-  it("falls back to the default room when the session has none", () => {
-    const facts = bootcampSummary(
-      { upcoming: [{ ...moved, location: null }], past: [] },
-      fallback,
-    );
-    expect(facts[2]).toEqual({ label: "Room", value: "CODA C1115" });
+    expect(JSON.stringify(facts)).not.toContain("Klaus");
   });
 
   it("says the sessions have ended instead of showing a stale date", () => {
