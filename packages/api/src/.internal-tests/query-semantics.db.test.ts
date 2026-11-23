@@ -623,6 +623,18 @@ describe.skipIf(!URL)("query semantics against a real database", () => {
   });
 
   // ---------------------------------------------------------------------
+  describe("judge.list", () => {
+    // An optional filter left out must mean "no filter": rc.6 throws on
+    // `where: undefined` instead of skipping it.
+    it("lists judges with no edition given", async () => {
+      expect(Array.isArray(await admin().judge.list())).toBe(true);
+      expect(
+        Array.isArray(await admin().judge.list({ hackathonId: hOpen })),
+      ).toBe(true);
+    });
+  });
+
+  // ---------------------------------------------------------------------
   describe("what the driver hands back", () => {
     it("decodes nested timestamps, booleans and numbers the same way", async () => {
       const row = await asUser(uid("alice")).hackathon.myParticipantRecord({

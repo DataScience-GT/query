@@ -25,9 +25,8 @@ export const judgeAdminRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const allJudges = await (ctx.db as DrizzleDB).query.judges.findMany({
-        where: input?.hackathonId
-          ? { hackathonId: input.hackathonId }
-          : undefined,
+        // {} is "no filter"; rc.6 throws on undefined.
+        where: input?.hackathonId ? { hackathonId: input.hackathonId } : {},
         with: {
           user: {
             columns: {
