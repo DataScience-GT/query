@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
+import databricksFall from "@/assets/images/photos/databricks-fall-2025.jpg";
 import PublicPage from "@/components/PublicPage";
 import { eventDateParts, eventWhenWhere } from "@/lib/public-events";
 import { and, eq, gte, lt } from "drizzle-orm";
@@ -166,6 +168,14 @@ export default async function EventsPage() {
         </>
       }
     >
+      <Image
+        src={databricksFall}
+        alt="A full lecture hall at the DS@GT Databricks event, Fall 2025, with a DS@GT slide on the screen"
+        className="mb-16 h-auto w-full max-w-4xl rounded-lg md:mb-20"
+        sizes="(min-width: 1024px) 896px, 100vw"
+        quality={90}
+        placeholder="blur"
+      />
       <div className="max-w-4xl text-white">
         <section aria-labelledby="upcoming">
           <h2
