@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { classYears, majors } from "@/assets/Data/demographics";
-import squad from "@/assets/images/2025/squad.jpg";
-import slide1 from "@/assets/images/slides/slide1.jpg";
+import hacklyticsCrowd from "@/assets/images/2026/hacklytics-crowd.jpg";
+import hacklyticsTeam from "@/assets/images/2026/hacklytics-team.jpg";
 import slide6 from "@/assets/images/slides/slide6.jpg";
 import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
@@ -71,9 +71,9 @@ export default async function HomePage() {
             Hacklytics.
           </h2>
           <Image
-            src={squad}
-            alt="DS@GT executive board"
-            className="mt-10 h-64 w-full rounded-lg object-cover object-[50%_40%] sm:h-80 md:mt-14 lg:h-[28rem]"
+            src={hacklyticsTeam}
+            alt="DS@GT executive board at Hacklytics 2026"
+            className="mt-10 h-64 w-full rounded-lg object-cover object-[50%_50%] sm:h-80 md:mt-14 lg:h-[28rem]"
             sizes="(min-width: 1280px) 1184px, 100vw"
             placeholder="blur"
           />
@@ -291,8 +291,8 @@ export default async function HomePage() {
             </ul>
           </div>
           <Image
-            src={slide1}
-            alt="Members working on laptops at a DS@GT workshop"
+            src={hacklyticsCrowd}
+            alt="A packed lecture hall at Hacklytics 2026"
             className="h-56 w-full rounded-lg object-cover sm:h-72 lg:h-[30rem]"
             sizes="(min-width: 1024px) 480px, 100vw"
             placeholder="blur"
