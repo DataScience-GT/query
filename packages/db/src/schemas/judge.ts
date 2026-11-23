@@ -42,6 +42,7 @@ export const judges = pgTable(
     previousExperience: text("previous_experience"),
     dietaryRestrictions: text("dietary_restrictions").array(),
     shirtSize: text("shirt_size"),
+    canAttendInPerson: boolean("can_attend_in_person"),
     whyJudge: text("why_judge"),
     isActive: boolean("is_active").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

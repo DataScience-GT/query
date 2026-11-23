@@ -805,6 +805,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
           hackathonId: "00000000-0000-4000-8000-000000000001",
           name: "Ada Lovelace",
           email: "ada@example.com",
+          canAttendInPerson: true,
         }),
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
     });
@@ -832,6 +833,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
           hackathonId,
           name: "John Doe",
           email: "john@example.com",
+          canAttendInPerson: true,
         }),
       ).rejects.toThrowError(
         "You cannot apply to be a judge because you are registered as a participant for this hackathon.",

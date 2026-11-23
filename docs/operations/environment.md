@@ -79,6 +79,27 @@ Without `DATABASE_URL`, `db` is null, sessions fall back to JWT, and tRPC proced
 | `DDOS_CLEANUP_INTERVAL_MS` | Code default if unset |
 | `CSP_ENFORCE` | `true` turns CSP from Report-Only into enforcing. Default is report-only |
 
+## Shared Redis
+
+Optional. Both of the first two unset (local dev, tests, CI, previews) keeps the in-memory behaviour; importing the client never throws.
+
+| Variable | Notes |
+| --- | --- |
+| `UPSTASH_REDIS_REST_URL` | Upstash REST endpoint. App Hosting secret `upstash-redis-rest-url`, RUNTIME only |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash REST token. Secret `upstash-redis-rest-token`, RUNTIME only |
+| `CACHE_PREFIX` | Key prefix. Default: Cloud Run `K_SERVICE` (one per backend), then `NODE_ENV`. Keys are `query:<prefix>:...`, so a preview and production never share keys even on one database |
+| `UPSTASH_REDIS_FROM` | ISO time. Before it, nothing is sent to Redis and every instance stays in-memory; checked per call, so running instances switch on time. Unset means now; a value that does not parse keeps Redis off. `apphosting.yaml` sets it to Hacklytics 2027 check-in, `2027-02-26T17:00:00-05:00` |
+
+Setup, once:
+
+1. Create a database at console.upstash.com: Redis, **Regional**, region `us-east-1` (nearest to App Hosting in `us-east4`), TLS on. The free tier is enough to start; the cache poll costs about 43,000 commands a day per instance that stays up.
+2. Copy its REST URL and REST token (the REST ones, not the `redis://` URL).
+3. `firebase apphosting:secrets:set upstash-redis-rest-url` and `firebase apphosting:secrets:set upstash-redis-rest-token`. Answer yes when asked to grant the backend access, which is what lets the rollout read them.
+4. Uncomment the two `UPSTASH_REDIS_REST_*` entries in `apphosting.yaml`. They stay commented until the secrets exist, because a reference to a missing secret breaks the rollout.
+5. Roll out. `curl https://datasciencegt.org/api/ping` reports `"cache":"memory"` until `UPSTASH_REDIS_FROM`, then `"cache":"redis"`.
+
+See [Architecture: Caching](../architecture.md#caching) for what is shared and what happens when Redis is down.
+
 ## Runtime (App Hosting)
 
 | Variable | Value |

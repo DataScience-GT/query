@@ -88,6 +88,7 @@ export default function JudgeRegisterPage() {
   const [whyJudge, setWhyJudge] = useState("");
   const [shirtSize, setShirtSize] = useState("");
   const [dietary, setDietary] = useState<string[]>([]);
+  const [canAttend, setCanAttend] = useState("");
 
   // judge.register is protected, so an outside professional following a shared
   // link filled in all four steps and only then got "Not authenticated".
@@ -149,6 +150,11 @@ export default function JudgeRegisterPage() {
         setError("Enter a valid email address.");
         return false;
       }
+    } else if (s === 3) {
+      if (!canAttend) {
+        setError("Tell us whether you can attend in person.");
+        return false;
+      }
     }
     return true;
   }
@@ -180,6 +186,7 @@ export default function JudgeRegisterPage() {
       whyJudge: whyJudge.trim() || undefined,
       shirtSize: shirtSize || undefined,
       dietaryRestrictions: dietary.length ? dietary : undefined,
+      canAttendInPerson: canAttend === "Yes",
       preferredTrack: preferredTrack || undefined,
     });
   }
@@ -410,6 +417,15 @@ export default function JudgeRegisterPage() {
                 without one.
               </p>
             )}
+            <div className="mt-6">
+              <FormChipSelect
+                label="Can you attend in person?"
+                required
+                options={["Yes", "No"]}
+                value={canAttend}
+                onChange={setCanAttend}
+              />
+            </div>
             <div className="mt-6">
               <FormChipSelect
                 label="T-shirt size"

@@ -4,7 +4,7 @@ import { Readable } from "node:stream";
 import { bootcampWorkshops, db } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { eq } from "drizzle-orm";
-import { rateLimit } from "@query/api";
+import { rateLimitShared } from "@query/api";
 import { bootcampCaller } from "@/lib/bootcamp-access";
 import { canDownloadBootcampFile } from "@/lib/bootcamp-route-rules";
 import {
@@ -51,7 +51,7 @@ const notFound = () =>
 
 /** All file methods are bounded per signed-in user, not per shared IP. */
 const fileRateLimit = (userId: string) =>
-  rateLimit(`bootcamp-file-${userId}`, 30, 30 / 3600, 1);
+  rateLimitShared(`bootcamp-file-${userId}`, 30, 30 / 3600, 1);
 
 async function context(
   params: Promise<{ workshopId: string; kind: string }>,
@@ -75,7 +75,7 @@ export async function POST(
   if (!isKind(kind) || !isUuid(workshopId)) return notFound();
   if (!bootcampBucketName()) return storageUnavailable(caller.isStaff);
 
-  const limit = fileRateLimit(caller.userId);
+  const limit = await fileRateLimit(caller.userId);
   if (!limit.allowed) {
     return NextResponse.json(
       { error: `Too many file requests. Try again in ${limit.retryAfter} seconds.` },
@@ -166,7 +166,7 @@ export async function DELETE(
   if (!isKind(kind) || !isUuid(workshopId)) return notFound();
   if (!bootcampBucketName()) return storageUnavailable(caller.isStaff);
 
-  const limit = fileRateLimit(caller.userId);
+  const limit = await fileRateLimit(caller.userId);
   if (!limit.allowed) {
     return NextResponse.json({ error: "Too many file requests." }, { status: 429 });
   }
@@ -219,7 +219,7 @@ export async function GET(
   if (!isKind(kind) || !isUuid(workshopId)) return notFound();
   if (!bootcampBucketName()) return storageUnavailable(caller.isStaff);
 
-  const limit = fileRateLimit(caller.userId);
+  const limit = await fileRateLimit(caller.userId);
   if (!limit.allowed) {
     return NextResponse.json({ error: "Too many file requests." }, { status: 429 });
   }
