@@ -54,7 +54,7 @@ Production currently uses consumer Gmail (~500 recipients/day, shared with accep
 
 ## Adapter
 
-`@auth/drizzle-adapter` over `user` / `account` / `session` / `verificationToken`. `createVerificationToken` and `useVerificationToken` are raw SQL to avoid Drizzle `boolin` errors on the compound primary key in this deployment.
+`@auth/drizzle-adapter` over `user` / `account` / `session` / `verificationToken`. `createVerificationToken` and `useVerificationToken` are raw SQL to avoid Drizzle `boolin` errors on the compound primary key in this deployment. `@auth/drizzle-adapter` 1.11.3 targets drizzle-orm 0.45 and imports `BaseSQLiteDatabase`, which 1.0 removed, so the bundle failed; `patches/@auth__drizzle-adapter@1.11.3.patch` drops its SQLite branch (this app only runs Postgres). Remove the patch when Auth.js ships a release for drizzle-orm 1.0.
 
 ## Sign-in event
 

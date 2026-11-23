@@ -29,7 +29,8 @@
     "@query/scripts": "workspace:*",
     "turbo": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "zod": "catalog:"
   },
   "prettier": "@query/prettier-config"
 }
