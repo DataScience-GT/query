@@ -1215,7 +1215,7 @@ describe("Participant edge cases", () => {
       const lookup = mockFindFirst.mock.calls.find(
         (c) => c[0] === "hackathonParticipants",
       );
-      expect(JSON.stringify(lookup?.[1]?.where)).toContain("user_b");
+      expect(lookup?.[1]?.where).toMatchObject({ userId: "user_b" });
       expect(mockUpdate).not.toHaveBeenCalled();
     });
 

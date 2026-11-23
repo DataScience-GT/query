@@ -216,6 +216,22 @@ describe.skipIf(!URL)("query semantics against a real database", () => {
       .returning({ id: S.hackathonProjects.id, name: S.hackathonProjects.name });
     for (const r of projects) project[r.name.split(" ")[0]!] = r.id;
 
+    // Judges: two on the open edition (alice newest registered last), one on
+    // another. alice also has an assignment, for the nested read.
+    const judgeRows = await db
+      .insert(S.judges)
+      .values([
+        { userId: uid("alice"), hackathonId: hOpen, name: "Judge Alice", createdAt: new Date(now - 2 * HOUR) },
+        { userId: uid("bob"), hackathonId: hOpen, name: "Judge Bob", createdAt: new Date(now - HOUR) },
+        { userId: uid("carol"), hackathonId: hOther, name: "Judge Carol", createdAt: new Date(now) },
+      ])
+      .returning({ id: S.judges.id, name: S.judges.name });
+    await db.insert(S.judgeAssignments).values({
+      judgeId: judgeRows.find((j) => j.name === "Judge Alice")!.id,
+      hackathonId: hOpen,
+      track: "ml",
+    });
+
     // Bans, newest last. Ban emails are lower-case; the account's is not.
     await db.insert(S.hackathonBans).values([
       {
@@ -624,13 +640,44 @@ describe.skipIf(!URL)("query semantics against a real database", () => {
 
   // ---------------------------------------------------------------------
   describe("judge.list", () => {
+    const mine = (rows: { name: string | null }[]) =>
+      rows.filter((r) => r.name?.startsWith("Judge ")).map((r) => r.name);
+
     // An optional filter left out must mean "no filter": rc.6 throws on
-    // `where: undefined` instead of skipping it.
-    it("lists judges with no edition given", async () => {
-      expect(Array.isArray(await admin().judge.list())).toBe(true);
+    // `where: undefined` instead of skipping it, so the router passes `{}`.
+    it("lists every edition's judges, newest first, when none is given", async () => {
+      expect(mine(await admin().judge.list())).toEqual([
+        "Judge Carol",
+        "Judge Bob",
+        "Judge Alice",
+      ]);
+      expect(mine(await admin().judge.list({}))).toEqual([
+        "Judge Carol",
+        "Judge Bob",
+        "Judge Alice",
+      ]);
+    });
+
+    it("scopes to one edition when it is given", async () => {
       expect(
-        Array.isArray(await admin().judge.list({ hackathonId: hOpen })),
-      ).toBe(true);
+        mine(await admin().judge.list({ hackathonId: hOpen })),
+      ).toEqual(["Judge Bob", "Judge Alice"]);
+      expect(
+        mine(await admin().judge.list({ hackathonId: hOther })),
+      ).toEqual(["Judge Carol"]);
+    });
+
+    it("nests the account and the assignment's edition", async () => {
+      const alice = (await admin().judge.list({ hackathonId: hOpen })).find(
+        (j: any) => j.name === "Judge Alice",
+      );
+      expect(alice.user).toMatchObject({ id: uid("alice") });
+      expect(alice.assignments).toHaveLength(1);
+      expect(alice.assignments[0]).toMatchObject({
+        track: "ml",
+        hackathon: { id: hOpen, name: `qs ${s} open` },
+      });
+      expect(alice.createdAt).toBeInstanceOf(Date);
     });
   });
 
