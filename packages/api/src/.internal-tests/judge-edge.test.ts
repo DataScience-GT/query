@@ -371,6 +371,7 @@ describe("Judge roster edge cases", () => {
       hackathonId: HACK_A,
       name: "Ada Lovelace",
       email: "ada@example.com",
+      canAttendInPerson: true,
       preferredTrack,
     });
 
@@ -385,6 +386,23 @@ describe("Judge roster edge cases", () => {
       ).rejects.toThrow(/not a track or challenge/i);
 
       expect(insertsInto(judgeAssignments)).toHaveLength(0);
+    });
+
+    it("stores whether the judge can attend in person", async () => {
+      wireTrack({ tracks: ["Sports"], challenges: null });
+      await applicantCaller().judge.register({
+        ...application("sports"),
+        canAttendInPerson: false,
+      });
+      const row = insertsInto(judges).find((r) => "canAttendInPerson" in r);
+      expect(row?.canAttendInPerson).toBe(false);
+    });
+
+    it("requires the in-person answer", async () => {
+      const { canAttendInPerson: _omit, ...rest } = application("");
+      await expect(
+        applicantCaller().judge.register(rest as never),
+      ).rejects.toThrow();
     });
 
     it("stores the edition's own spelling of a differently cased track", async () => {

@@ -124,6 +124,7 @@ const judge = (over: Record<string, unknown>) => ({
   previousExperience: null,
   dietaryRestrictions: null,
   shirtSize: null,
+  canAttendInPerson: null,
   whyJudge: null,
   isActive: false,
   createdAt: new Date("2026-11-01T12:00:00Z"),
@@ -188,6 +189,19 @@ describe("JudgesTab review", () => {
     // Unsafe schemes render as text, never as a link.
     expect(container.querySelector('a[href^="javascript"]')).toBeNull();
     expect(container.querySelector('a[href="https://github.com/wendy"]')).not.toBeNull();
+  });
+
+  it.each([
+    [true, "Attends in personYes"],
+    [false, "Attends in personNo"],
+    [null, "Attends in personNot asked"],
+  ])("shows canAttendInPerson=%s in the details", async (answer, expected) => {
+    state.judges = [judge({ id: "p", name: "Pat", canAttendInPerson: answer })];
+    const { container, button } = await renderRoster();
+
+    await act(async () => button("Details").click());
+
+    expect(container.textContent).toContain(expected);
   });
 
   it("filters the roster by status", async () => {
