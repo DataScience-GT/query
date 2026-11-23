@@ -22,7 +22,6 @@ import {
   hackathonAnnouncementRecipients,
   hackathonInterest,
   hackathonParticipants,
-  hackathons,
   users,
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
@@ -217,7 +216,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const hackathon = await db.query.hackathons.findFirst({
-        where: eq(hackathons.id, input.hackathonId),
+        where: { id: input.hackathonId },
         columns: { id: true },
       });
 
@@ -316,7 +315,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
     }
 
     const me = await db.query.users.findFirst({
-      where: eq(users.id, ctx.userId as string),
+      where: { id: ctx.userId as string },
       columns: { email: true },
     });
 
@@ -413,7 +412,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const announcement = await db.query.hackathonAnnouncements.findFirst({
-        where: eq(hackathonAnnouncements.id, input.announcementId),
+        where: { id: input.announcementId },
       });
 
       if (!announcement) {

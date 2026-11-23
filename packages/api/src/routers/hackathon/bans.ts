@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { desc, eq, inArray, sql } from "drizzle-orm";
-import { hackathonBans, users } from "@query/db";
+import { eq, inArray } from "drizzle-orm";
+import { hackathonBans } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter } from "../../trpc";
 import { hackathonBanCacheKey, isAdmin } from "../../middleware/procedures";
@@ -19,7 +19,7 @@ export const hackathonBansRouter = createTRPCRouter({
   listBans: isAdmin.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
     const bans = await db.query.hackathonBans.findMany({
-      orderBy: [desc(hackathonBans.createdAt)],
+      orderBy: { createdAt: "desc" },
     });
 
     // Names for the people involved, in one read rather than one per row.
@@ -31,13 +31,15 @@ export const hackathonBansRouter = createTRPCRouter({
       emails.length
         ? db.query.users.findMany({
             // Ban emails are lowercased; some older user rows are not.
-            where: inArray(sql`lower(${users.email})`, emails),
+            where: {
+              RAW: (table, { sql }) => inArray(sql`lower(${table.email})`, emails),
+            },
             columns: { email: true, name: true },
           })
         : [],
       staffIds.length
         ? db.query.users.findMany({
-            where: inArray(users.id, staffIds),
+            where: { id: { in: staffIds } },
             columns: { id: true, name: true, email: true },
           })
         : [],

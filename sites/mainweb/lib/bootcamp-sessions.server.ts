@@ -1,5 +1,4 @@
-import { db, events } from "@query/db";
-import { and, eq, isNotNull } from "drizzle-orm";
+import { db } from "@query/db";
 
 // qrCode is deliberately absent: publishing it would let anyone check
 // themselves in without being in the room.
@@ -18,11 +17,8 @@ export async function loadBootcampSessions(term: string) {
   // of failing the build or the revalidation.
   try {
     return await db.query.events.findMany({
-      where: and(
-        eq(events.bootcampTerm, term),
-        isNotNull(events.bootcampWeek),
-      ),
-      orderBy: (event, { asc }) => [asc(event.eventDate)],
+      where: { bootcampTerm: term, bootcampWeek: { isNotNull: true } },
+      orderBy: { eventDate: "asc" },
       limit: 30,
       columns: listedColumns,
     });

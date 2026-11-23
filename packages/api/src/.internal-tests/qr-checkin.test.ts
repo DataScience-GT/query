@@ -267,6 +267,8 @@ const whereStrings = (node: unknown, out: string[] = []): string[] => {
     const obj = node as Record<string, unknown>;
     if (Array.isArray(obj.queryChunks)) whereStrings(obj.queryChunks, out);
     else if (obj.value !== undefined) whereStrings(obj.value, out);
+    // A relational-query filter is a plain object of column values.
+    else for (const child of Object.values(obj)) whereStrings(child, out);
   }
   return out;
 };

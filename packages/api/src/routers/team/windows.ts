@@ -1,8 +1,6 @@
 // Hackathon clock: when teams may form and projects may be submitted.
 
 import { TRPCError } from "@trpc/server";
-import { hackathons } from "@query/db";
-import { eq } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { HOUR } from "@query/core";
 
@@ -63,7 +61,7 @@ export function computeSubmissionWindow(baseTime: Date, now: Date) {
 
 export async function loadHackathonBaseTime(db: DrizzleDB, hackathonId: string) {
   const hackathon = await db.query.hackathons.findFirst({
-    where: eq(hackathons.id, hackathonId),
+    where: { id: hackathonId },
   });
   if (!hackathon) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found." });

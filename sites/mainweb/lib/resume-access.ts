@@ -1,6 +1,7 @@
 import { auth } from "@query/auth";
-import { db, admins, memberResumes, members, users } from "@query/db";
-import { and, eq } from "drizzle-orm";
+import { db, memberResumes, members, users } from "@query/db";
+import type { admins } from "@query/db";
+import { eq } from "drizzle-orm";
 import { isStaffRole, isExpiredAdmin } from "@query/api/portal-context";
 import { cache } from "@query/api";
 import type { DrizzleDB } from "@query/db";
@@ -21,7 +22,7 @@ export async function resumeCaller() {
   if (!admin) {
     admin =
       (await (db as DrizzleDB).query.admins.findFirst({
-        where: and(eq(admins.userId, userId), eq(admins.isActive, true)),
+        where: { userId, isActive: true },
       })) ?? null;
 
     if (admin) cache.set(cacheKey, admin, 60);

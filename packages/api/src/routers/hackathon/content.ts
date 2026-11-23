@@ -1,14 +1,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../../trpc";
-import {
-  hackathonParticipants,
-  hackathonProjects,
-  hackathonResults,
-  judgingEntries,
-  judgingPlacements,
-} from "@query/db";
-import { eq, and, inArray, isNotNull, isNull } from "drizzle-orm";
+import { hackathonProjects, judgingEntries } from "@query/db";
+import { eq, and, isNull } from "drizzle-orm";
 import { callerIsAdmin, isAdmin } from "../../middleware/procedures";
 import { recordAdminAction } from "../../middleware/audit";
 import { assertHackathonVisible } from "./visibility";
@@ -62,7 +56,7 @@ export const hackathonContentRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const existing = await db.query.hackathonProjects.findFirst({
-        where: eq(hackathonProjects.id, projectId),
+        where: { id: projectId },
         columns: { id: true, hackathonId: true },
       });
 
@@ -103,7 +97,7 @@ export const hackathonContentRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const existing = await db.query.hackathonProjects.findFirst({
-        where: eq(hackathonProjects.id, input.projectId),
+        where: { id: input.projectId },
         columns: { id: true, hackathonId: true, status: true },
       });
 
@@ -117,10 +111,10 @@ export const hackathonContentRouter = createTRPCRouter({
       // In judging either by status or because it was promoted into a judging
       // entry that is still live.
       const liveEntry = await db.query.judgingEntries.findFirst({
-        where: and(
-          eq(judgingEntries.sourceProjectId, input.projectId),
-          isNull(judgingEntries.deletedAt),
-        ),
+        where: {
+          sourceProjectId: input.projectId,
+          deletedAt: { isNull: true },
+        },
         columns: { id: true },
       });
       const inJudging = existing.status === "judging" || !!liveEntry;
@@ -198,10 +192,10 @@ export const hackathonContentRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
       const [legacy, placements] = await Promise.all([
         db.query.hackathonResults.findMany({
-          where: and(
-            eq(hackathonResults.hackathonId, input.hackathonId),
-            isNotNull(hackathonResults.publishedAt),
-          ),
+          where: {
+            hackathonId: input.hackathonId,
+            publishedAt: { isNotNull: true },
+          },
           with: {
             project: {
               columns: { id: true, name: true, teamMembers: true },
@@ -213,10 +207,10 @@ export const hackathonContentRouter = createTRPCRouter({
           },
         }),
         db.query.judgingPlacements.findMany({
-          where: and(
-            eq(judgingPlacements.hackathonId, input.hackathonId),
-            isNotNull(judgingPlacements.publishedAt),
-          ),
+          where: {
+            hackathonId: input.hackathonId,
+            publishedAt: { isNotNull: true },
+          },
           with: {
             entry: {
               columns: {
@@ -302,7 +296,7 @@ export const hackathonContentRouter = createTRPCRouter({
 
       const fetchProjects = () =>
         (ctx.db as DrizzleDB).query.hackathonProjects.findMany({
-          where: eq(hackathonProjects.hackathonId, input.hackathonId),
+          where: { hackathonId: input.hackathonId },
           // submittedById is a participant id — the entire content of that
           // participant's event pass QR — and it is on every solo submission. These
           // rows are cached once and served to anonymous callers, so it is dropped at
@@ -361,10 +355,10 @@ export const hackathonContentRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
       return await (ctx.db as DrizzleDB).query.hackathonParticipants.findFirst({
-        where: and(
-          eq(hackathonParticipants.hackathonId, input.hackathonId),
-          eq(hackathonParticipants.userId, ctx.userId as string),
-        ),
+        where: {
+          hackathonId: input.hackathonId,
+          userId: ctx.userId as string,
+        },
         with: {
           team: true,
         },
@@ -390,13 +384,11 @@ export const hackathonContentRouter = createTRPCRouter({
 
       const fetchPage = () =>
         (ctx.db as DrizzleDB).query.hackathonProjects.findMany({
-          where: and(
-            eq(hackathonProjects.hackathonId, input.hackathonId),
+          where: {
+            hackathonId: input.hackathonId,
             // We only show projects that are submitted, judging, or winner. Drafts stay hidden.
-            inArray(hackathonProjects.status, [
-              ...PUBLIC_PROJECT_STATUSES,
-            ]),
-          ),
+            status: { in: [...PUBLIC_PROJECT_STATUSES] },
+          },
           // Same rule as `projects` above: submittedById is the participant id behind
           // that person's event pass QR, and this endpoint is anonymous.
           columns: { submittedById: false },

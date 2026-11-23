@@ -128,7 +128,7 @@ export const eventRouter = createTRPCRouter({
       const existing = await (
         ctx.db as NonNullable<typeof ctx.db>
       ).query.events.findFirst({
-        where: eq(events.id, eventId),
+        where: { id: eventId },
         columns: { bootcampTerm: true },
       });
 
@@ -305,7 +305,7 @@ export const eventRouter = createTRPCRouter({
       const event = await (
         ctx.db as NonNullable<typeof ctx.db>
       ).query.events.findFirst({
-        where: eq(events.id, input.id),
+        where: { id: input.id },
         with: {
           checkIns: {
             with: {
@@ -403,7 +403,7 @@ export const eventRouter = createTRPCRouter({
       return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
         async (tx) => {
           const event = await tx.query.events.findFirst({
-            where: eq(events.qrCode, input.qrCode),
+            where: { qrCode: input.qrCode },
           });
 
           if (!event) {
@@ -434,13 +434,10 @@ export const eventRouter = createTRPCRouter({
             // skip this lookup when none resolved and then refuse everyone at the door
             // with "Must be a member" — at an event with nothing to do with a hackathon.
             tx.query.members.findFirst({
-              where: eq(members.userId, ctx.userId as string),
+              where: { userId: ctx.userId as string },
             }),
             tx.query.eventCheckIns.findFirst({
-              where: and(
-                eq(eventCheckIns.eventId, event.id),
-                eq(eventCheckIns.userId, ctx.userId as string),
-              ),
+              where: { eventId: event.id, userId: ctx.userId as string },
             }),
           ]);
 
@@ -536,7 +533,7 @@ export const eventRouter = createTRPCRouter({
       return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
         async (tx) => {
           const event = await tx.query.events.findFirst({
-            where: eq(events.id, input.eventId),
+            where: { id: input.eventId },
           });
 
           if (!event) {
@@ -549,7 +546,10 @@ export const eventRouter = createTRPCRouter({
           // lower() on both sides: some older rows kept the casing they were
           // typed in. Served by user_email_lower_unique_idx.
           const user = await tx.query.users.findFirst({
-            where: sql`lower(${users.email}) = ${input.email.toLowerCase()}`,
+            where: {
+              RAW: (table, { sql }) =>
+                sql`lower(${table.email}) = ${input.email.toLowerCase()}`,
+            },
             columns: { id: true, name: true, email: true },
           });
 
@@ -566,7 +566,7 @@ export const eventRouter = createTRPCRouter({
           // inside that window puts one more round trip into the critical
           // section for every person still in the queue at the door.
           const member = await tx.query.members.findFirst({
-            where: eq(members.userId, user.id),
+            where: { userId: user.id },
             columns: { id: true },
           });
 
@@ -631,7 +631,7 @@ export const eventRouter = createTRPCRouter({
       return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
         async (tx) => {
           const event = await tx.query.events.findFirst({
-            where: eq(events.id, input.eventId),
+            where: { id: input.eventId },
           });
 
           if (!event) {
@@ -642,7 +642,7 @@ export const eventRouter = createTRPCRouter({
           }
 
           const member = await tx.query.members.findFirst({
-            where: eq(members.passCode, input.passCode),
+            where: { passCode: input.passCode },
             columns: {
               id: true,
               userId: true,
@@ -725,7 +725,7 @@ export const eventRouter = createTRPCRouter({
 
       const [rows, [totals]] = await Promise.all([
         db.query.eventCheckIns.findMany({
-          where: eq(eventCheckIns.eventId, input.eventId),
+          where: { eventId: input.eventId },
           with: { user: { columns: { id: true, name: true, email: true } } },
           orderBy: (checkIns, { desc }) => [desc(checkIns.checkedInAt)],
           limit: input.limit,
@@ -882,7 +882,7 @@ export const eventRouter = createTRPCRouter({
   myEvents: protectedProcedure.query(async ({ ctx }) => {
     const fetchCheckIns = () =>
       (ctx.db as NonNullable<typeof ctx.db>).query.eventCheckIns.findMany({
-        where: eq(eventCheckIns.userId, ctx.userId as string),
+        where: { userId: ctx.userId as string },
         with: {
           event: {
             columns: {

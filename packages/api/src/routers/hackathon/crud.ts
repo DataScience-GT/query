@@ -75,7 +75,7 @@ async function findByNameOrSlug(db: DrizzleDB, value: string) {
   if (candidates.length === 0) return undefined;
 
   const exact = await db.query.hackathons.findFirst({
-    where: eq(hackathons.name, candidates[0]!),
+    where: { name: candidates[0]! },
   });
   if (exact) return exact;
 
@@ -144,11 +144,22 @@ export const hackathonCrudRouter = createTRPCRouter({
               input.upcoming ? gte(hackathons.startDate, now) : undefined,
             );
 
+            // The same filter as `where`, in the object form the relational query takes.
+            const statusFilter = {
+              ...(input.status ? { eq: input.status } : {}),
+              ...(adminViewer ? {} : { notIn: STAFF_ONLY_STATUSES }),
+            };
+            const queryWhere = {
+              ...(adminViewer ? {} : { isPublic: true }),
+              ...(input.status || !adminViewer ? { status: statusFilter } : {}),
+              ...(input.upcoming ? { startDate: { gte: now } } : {}),
+            };
+
             // The seat counts select their editions with the same filter, order
             // and page, so they run beside the list, not after it.
             const [rows, seated] = await Promise.all([
               db.query.hackathons.findMany({
-                where,
+                where: queryWhere,
                 limit: input.limit,
                 offset: input.offset,
                 // The id breaks ties, so the page and the seat-count
@@ -256,7 +267,7 @@ export const hackathonCrudRouter = createTRPCRouter({
 
       const found = isUuid
         ? await (ctx.db as DrizzleDB).query.hackathons.findFirst({
-            where: eq(hackathons.id, input.id),
+            where: { id: input.id },
           })
         : await findByNameOrSlug(ctx.db as DrizzleDB, input.id);
 
@@ -424,7 +435,7 @@ export const hackathonCrudRouter = createTRPCRouter({
       const { id, ...updateData } = input;
 
       const existing = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
-        where: eq(hackathons.id, id),
+        where: { id },
       });
 
       if (!existing) {
@@ -509,7 +520,7 @@ export const hackathonCrudRouter = createTRPCRouter({
       const { hackathonId, confirmName } = input;
 
       const existing = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
-        where: eq(hackathons.id, hackathonId),
+        where: { id: hackathonId },
         columns: { id: true, name: true },
       });
 

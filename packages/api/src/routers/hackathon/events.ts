@@ -1,12 +1,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, publicProcedure } from "../../trpc";
-import {
-  hackathons,
-  hackathonEvents,
-  hackathonEventAttendees,
-} from "@query/db";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { hackathonEvents, hackathonEventAttendees } from "@query/db";
+import { eq, inArray, sql } from "drizzle-orm";
 import { isAdmin, isScanner } from "../../middleware/procedures";
 import { isBugTesterRole } from "../../types/portal-context";
 import { recordAdminAction } from "../../middleware/audit";
@@ -34,10 +30,7 @@ const findScopedEvent = async (
   input: z.infer<typeof eventScope>,
 ) => {
   const event = await db.query.hackathonEvents.findFirst({
-    where: and(
-      eq(hackathonEvents.id, input.eventId),
-      eq(hackathonEvents.hackathonId, input.hackathonId),
-    ),
+    where: { id: input.eventId, hackathonId: input.hackathonId },
   });
 
   if (!event) {
@@ -74,7 +67,7 @@ export const hackathonEventsRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
-        where: eq(hackathons.id, input.hackathonId),
+        where: { id: input.hackathonId },
       });
 
       if (!hackathon) {
@@ -138,7 +131,7 @@ export const hackathonEventsRouter = createTRPCRouter({
       const existing = await (
         ctx.db as DrizzleDB
       ).query.hackathonEvents.findFirst({
-        where: eq(hackathonEvents.id, eventId),
+        where: { id: eventId },
       });
 
       if (!existing) {
@@ -202,7 +195,7 @@ export const hackathonEventsRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const existing = await db.query.hackathonEvents.findFirst({
-        where: eq(hackathonEvents.id, input.eventId),
+        where: { id: input.eventId },
       });
 
       if (!existing) {
@@ -263,7 +256,7 @@ export const hackathonEventsRouter = createTRPCRouter({
         // Never the check-in code: this is public, and a code anyone can read
         // is points for anyone who never came.
         const eventsData = await db.query.hackathonEvents.findMany({
-          where: eq(hackathonEvents.hackathonId, input.hackathonId),
+          where: { hackathonId: input.hackathonId },
           columns: { checkInCode: false },
           orderBy: (events, { asc }) => [asc(events.startTime)],
         });
@@ -318,7 +311,7 @@ export const hackathonEventsRouter = createTRPCRouter({
 
       const [eventsData, counts] = await Promise.all([
         db.query.hackathonEvents.findMany({
-          where: eq(hackathonEvents.hackathonId, input.hackathonId),
+          where: { hackathonId: input.hackathonId },
           orderBy: (events, { asc }) => [asc(events.startTime)],
         }),
         db

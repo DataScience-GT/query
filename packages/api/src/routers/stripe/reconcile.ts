@@ -1,9 +1,9 @@
 // Recovering membership payments Stripe took but this app never recorded.
 
 import { protectedProcedure } from "../../trpc";
-import { members, membershipHistory, stripePayments, users } from "@query/db";
-import type { DrizzleDB } from "@query/db";
-import { eq, and, inArray, isNull } from "drizzle-orm";
+import { members, stripePayments } from "@query/db";
+import type { DrizzleDB, users } from "@query/db";
+import { eq, and, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../../middleware/security";
 import { isUniqueViolation } from "../../middleware/db-errors";
 import {
@@ -82,13 +82,12 @@ async function loadReconcileState(
   // trips to answer three questions.
   const [existingRows, member] = await Promise.all([
     db.query.stripePayments.findMany({
-      where: inArray(
-        stripePayments.stripePaymentIntentId,
-        intents.map((pi) => pi.id),
-      ),
+      where: {
+        stripePaymentIntentId: { in: intents.map((pi) => pi.id) },
+      },
     }),
     db.query.members.findFirst({
-      where: eq(members.userId, userId),
+      where: { userId },
       columns: { id: true },
     }),
   ]);
@@ -100,8 +99,8 @@ async function loadReconcileState(
   // "A grant at or after this payment" is "is the newest grant at or after it".
   const newestGrant = member
     ? await db.query.membershipHistory.findFirst({
-        where: eq(membershipHistory.memberId, member.id),
-        orderBy: (history, { desc }) => [desc(history.createdAt)],
+        where: { memberId: member.id },
+        orderBy: { createdAt: "desc" },
         columns: { createdAt: true },
       })
     : undefined;
@@ -144,8 +143,8 @@ async function regrantUnhonouredPayment(
           .where(eq(members.id, member.id))
           .for("update");
         const latest = await tx.query.membershipHistory.findFirst({
-          where: eq(membershipHistory.memberId, member.id),
-          orderBy: (history, { desc }) => [desc(history.createdAt)],
+          where: { memberId: member.id },
+          orderBy: { createdAt: "desc" },
           columns: { createdAt: true },
         });
         if (latest && latest.createdAt >= existing.createdAt) return false;
@@ -259,7 +258,7 @@ export const reconcileProcedures = {
     const db = ctx.db!;
     const userId = ctx.userId!;
     const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
+      where: { id: userId },
     });
 
     const candidates = await findMembershipIntents(stripe, userId);

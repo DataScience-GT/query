@@ -1683,7 +1683,7 @@ describe("Hackathon admin management edge cases", () => {
         unconfirmedOnly: true,
       });
 
-      expect(whereOf()).toContain("attendance_confirmed_at");
+      expect(whereOf()).toContain("attendanceConfirmedAt");
       expect(whereOf()).toContain("approved");
     });
 
@@ -1692,7 +1692,7 @@ describe("Hackathon admin management edge cases", () => {
 
       await caller.hackathon.adminGetAttendees({ hackathonId: HACK_A });
 
-      expect(whereOf()).not.toContain("attendance_confirmed_at");
+      expect(whereOf()).not.toContain("attendanceConfirmedAt");
     });
 
     it("applies the same filter to the export, so the file matches the list", async () => {
@@ -1703,7 +1703,7 @@ describe("Hackathon admin management edge cases", () => {
         unconfirmedOnly: true,
       });
 
-      expect(whereOf()).toContain("attendance_confirmed_at");
+      expect(whereOf()).toContain("attendanceConfirmedAt");
     });
   });
 

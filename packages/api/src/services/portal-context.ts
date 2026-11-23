@@ -1,4 +1,3 @@
-import { admins, members, judges, projectLeaders } from "@query/db";
 import { DAY } from "@query/core";
 // Deep import: the one rule for "which hackathon is current", shared
 // with the sign-in hook in @query/auth.
@@ -6,7 +5,6 @@ import {
   resolveCurrentHackathonId,
   setMembershipChangeHandler,
 } from "@query/db/services/membership";
-import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { cache, clearMembershipCaches } from "../middleware/cache";
 import {
@@ -99,23 +97,20 @@ export async function fetchPortalContext(
   // batch and used to cost a second one.
   const [admin, judgeRecord, leaderRecord, memberRecord] = await Promise.all([
     db.query.admins.findFirst({
-      where: and(eq(admins.userId, userId), eq(admins.isActive, true)),
+      where: { userId, isActive: true },
     }),
     db.query.judges.findFirst({
-      where: and(eq(judges.userId, userId), eq(judges.isActive, true)),
+      where: { userId, isActive: true },
       columns: { id: true, name: true },
     }),
     // Club side, so it neither waits on the edition nor vanishes between them.
     db.query.projectLeaders.findFirst({
-      where: and(
-        eq(projectLeaders.userId, userId),
-        eq(projectLeaders.isActive, true),
-      ),
+      where: { userId, isActive: true },
       columns: { id: true },
     }),
     // Membership does not depend on an edition resolving.
     db.query.members.findFirst({
-      where: eq(members.userId, userId),
+      where: { userId },
       // Four fields only; the row carries the whole profile, bio and skills
       // arrays included.
       columns: {

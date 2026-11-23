@@ -165,7 +165,7 @@ export const bootcampRouter = createTRPCRouter({
     const term = currentTerm();
 
     const member = await db.query.members.findFirst({
-      where: eq(members.userId, ctx.userId as string),
+      where: { userId: ctx.userId as string },
       columns: { bootcampTerm: true },
     });
 
@@ -224,7 +224,7 @@ export const bootcampRouter = createTRPCRouter({
   workshops: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
     const member = await db.query.members.findFirst({
-      where: eq(members.userId, ctx.userId as string),
+      where: { userId: ctx.userId as string },
       columns: { bootcampTerm: true },
     });
 
@@ -358,7 +358,7 @@ export const bootcampRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
       const workshop = await db.query.bootcampWorkshops.findFirst({
-        where: eq(bootcampWorkshops.id, input.workshopId),
+        where: { id: input.workshopId },
         columns: { term: true, week: true, title: true },
       });
       if (!workshop) {

@@ -4,10 +4,7 @@ import { createTRPCRouter } from "../../trpc";
 import {
   judges,
   judgeAssignments,
-  judgeVotes,
   judgeInterest,
-  hackathons,
-  users,
 } from "@query/db";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { isAdmin, isSuperAdmin } from "../../middleware/procedures";
@@ -29,7 +26,7 @@ export const judgeAdminRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const allJudges = await (ctx.db as DrizzleDB).query.judges.findMany({
         where: input?.hackathonId
-          ? eq(judges.hackathonId, input.hackathonId)
+          ? { hackathonId: input.hackathonId }
           : undefined,
         with: {
           user: {
@@ -77,8 +74,11 @@ export const judgeAdminRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const user = await (ctx.db as DrizzleDB).query.users.findFirst({
         where: input.userId
-          ? eq(users.id, input.userId)
-          : sql`lower(${users.email}) = lower(${input.email!})`,
+          ? { id: input.userId }
+          : {
+              RAW: (table, { sql }) =>
+                sql`lower(${table.email}) = lower(${input.email!})`,
+            },
       });
 
       if (!user) {
@@ -91,10 +91,7 @@ export const judgeAdminRouter = createTRPCRouter({
       }
 
       const existing = await (ctx.db as DrizzleDB).query.judges.findFirst({
-        where: and(
-          eq(judges.userId, user.id),
-          eq(judges.hackathonId, input.hackathonId),
-        ),
+        where: { userId: user.id, hackathonId: input.hackathonId },
       });
 
       if (existing) {
@@ -128,7 +125,7 @@ export const judgeAdminRouter = createTRPCRouter({
           const hackathon = await (
             ctx.db as DrizzleDB
           ).query.hackathons.findFirst({
-            where: eq(hackathons.id, input.hackathonId),
+            where: { id: input.hackathonId },
             columns: { name: true },
           });
 
@@ -163,7 +160,7 @@ export const judgeAdminRouter = createTRPCRouter({
       // Read first, because `.returning()` hands back the row as it now is — the
       // approval email has to know whether this click was the transition.
       const before = await (ctx.db as DrizzleDB).query.judges.findFirst({
-        where: eq(judges.id, input.judgeId),
+        where: { id: input.judgeId },
         columns: { isActive: true },
       });
 
@@ -208,7 +205,7 @@ export const judgeAdminRouter = createTRPCRouter({
           const hackathon = await (
             ctx.db as DrizzleDB
           ).query.hackathons.findFirst({
-            where: eq(hackathons.id, updated.hackathonId),
+            where: { id: updated.hackathonId },
             columns: { name: true },
           });
 
@@ -240,7 +237,7 @@ export const judgeAdminRouter = createTRPCRouter({
       const existingVote = await (
         ctx.db as DrizzleDB
       ).query.judgeVotes.findFirst({
-        where: eq(judgeVotes.judgeId, input.judgeId),
+        where: { judgeId: input.judgeId },
       });
 
       if (existingVote) {

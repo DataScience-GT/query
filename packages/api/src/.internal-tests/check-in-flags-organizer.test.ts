@@ -411,7 +411,7 @@ describe("judging.admin.listEntries", () => {
     });
 
     for (const call of [pageQuery(), totalQuery()]) {
-      expect(render(call.where).sql).toMatch(/ and false\)$/);
+      expect(render(call.where).sql).toMatch(/ and \(false\)\)$/);
     }
     expect(result).toMatchObject({ total: 0, entries: [] });
   });

@@ -4,7 +4,6 @@ import { and, asc, count, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import {
   initiativeApplications,
   initiatives,
-  members,
   projectLeaders,
   users,
 } from "@query/db";
@@ -101,7 +100,7 @@ export async function requireActiveMember(
   message = "An active membership is required to join a project.",
 ) {
   const member = await db.query.members.findFirst({
-    where: eq(members.userId, userId),
+    where: { userId },
     columns: { isActive: true, membershipEndDate: true },
   });
 
@@ -227,7 +226,7 @@ export const initiativeRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const initiative = await db.query.initiatives.findFirst({
-        where: eq(initiatives.id, input.id),
+        where: { id: input.id },
       });
       if (!initiative || !canManage(ctx, initiative)) throw notFound();
 
@@ -277,10 +276,7 @@ export const initiativeRouter = createTRPCRouter({
         }
 
         const target = await db.query.projectLeaders.findFirst({
-          where: and(
-            eq(projectLeaders.userId, input.leaderUserId),
-            eq(projectLeaders.isActive, true),
-          ),
+          where: { userId: input.leaderUserId, isActive: true },
           columns: { id: true },
         });
         if (!target) {
@@ -330,7 +326,7 @@ export const initiativeRouter = createTRPCRouter({
       const { id, ...fields } = input;
 
       const initiative = await db.query.initiatives.findFirst({
-        where: eq(initiatives.id, id),
+        where: { id },
       });
       if (!initiative || !canManage(ctx, initiative)) throw notFound();
 
@@ -368,7 +364,7 @@ export const initiativeRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const initiative = await db.query.initiatives.findFirst({
-        where: eq(initiatives.id, input.id),
+        where: { id: input.id },
       });
       if (!initiative || !canManage(ctx, initiative)) throw notFound();
 
@@ -408,7 +404,7 @@ export const initiativeRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const initiative = await db.query.initiatives.findFirst({
-        where: eq(initiatives.id, input.id),
+        where: { id: input.id },
       });
       if (!initiative || !canManage(ctx, initiative)) throw notFound();
 
@@ -447,7 +443,7 @@ export const initiativeRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const initiative = await db.query.initiatives.findFirst({
-        where: eq(initiatives.id, input.initiativeId),
+        where: { id: input.initiativeId },
       });
       if (!initiative || !canManage(ctx, initiative)) throw notFound();
 
@@ -486,15 +482,12 @@ export const initiativeRouter = createTRPCRouter({
         await lockInitiative(tx, input.initiativeId);
 
         const initiative = await tx.query.initiatives.findFirst({
-          where: eq(initiatives.id, input.initiativeId),
+          where: { id: input.initiativeId },
         });
         if (!initiative || !canManage(ctx, initiative)) throw notFound();
 
         const application = await tx.query.initiativeApplications.findFirst({
-          where: and(
-            eq(initiativeApplications.initiativeId, initiative.id),
-            eq(initiativeApplications.userId, input.userId),
-          ),
+          where: { initiativeId: initiative.id, userId: input.userId },
         });
         if (!application) throw notFound("That member has not applied.");
 
@@ -535,7 +528,7 @@ export const initiativeRouter = createTRPCRouter({
           .where(eq(initiativeApplications.id, application.id));
 
         const applicant = await tx.query.users.findFirst({
-          where: eq(users.id, input.userId),
+          where: { id: input.userId },
           columns: { email: true },
         });
 
@@ -729,7 +722,7 @@ export const initiativeRouter = createTRPCRouter({
         await lockInitiative(tx, input.initiativeId);
 
         const initiative = await tx.query.initiatives.findFirst({
-          where: eq(initiatives.id, input.initiativeId),
+          where: { id: input.initiativeId },
         });
         if (!initiative) throw notFound();
 
@@ -762,10 +755,7 @@ export const initiativeRouter = createTRPCRouter({
         }
 
         const existing = await tx.query.initiativeApplications.findFirst({
-          where: and(
-            eq(initiativeApplications.initiativeId, initiative.id),
-            eq(initiativeApplications.userId, userId),
-          ),
+          where: { initiativeId: initiative.id, userId },
         });
 
         // Tested before capacity: somebody who already applied is a duplicate, not an
@@ -997,7 +987,7 @@ export const initiativeRouter = createTRPCRouter({
 
       const proposerId = await db.transaction(async (tx) => {
         const proposal = await tx.query.initiatives.findFirst({
-          where: eq(initiatives.id, input.id),
+          where: { id: input.id },
         });
         if (!proposal) throw notFound("Proposal not found.");
 
@@ -1036,7 +1026,7 @@ export const initiativeRouter = createTRPCRouter({
 
         if (input.decision === "approve") {
           const existing = await tx.query.projectLeaders.findFirst({
-            where: eq(projectLeaders.userId, proposal.leaderUserId),
+            where: { userId: proposal.leaderUserId },
           });
 
           if (existing) {
@@ -1058,7 +1048,7 @@ export const initiativeRouter = createTRPCRouter({
         }
 
         const proposer = await tx.query.users.findFirst({
-          where: eq(users.id, proposal.leaderUserId),
+          where: { id: proposal.leaderUserId },
           columns: { email: true },
         });
 
@@ -1127,7 +1117,7 @@ export const initiativeRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const target = await db.query.users.findFirst({
-        where: eq(users.id, input.userId),
+        where: { id: input.userId },
         columns: { id: true },
       });
       if (!target) {
@@ -1135,7 +1125,7 @@ export const initiativeRouter = createTRPCRouter({
       }
 
       const existing = await db.query.projectLeaders.findFirst({
-        where: eq(projectLeaders.userId, input.userId),
+        where: { userId: input.userId },
       });
 
       if (existing) {

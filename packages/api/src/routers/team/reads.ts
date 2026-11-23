@@ -3,14 +3,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc";
-import {
-  hackathonTeams,
-  hackathonParticipants,
-  hackathonProjects,
-  hackathons,
-  judgingEntries,
-} from "@query/db";
-import { eq, and, or, isNull, isNotNull, inArray } from "drizzle-orm";
+import { hackathonParticipants } from "@query/db";
+import { eq, and, isNull, isNotNull } from "drizzle-orm";
 import { VOLATILE_TTL } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { assertHackathonVisible } from "../hackathon/visibility";
@@ -41,7 +35,7 @@ export const teamReadProcedures = {
         const rows = await (
           ctx.db as NonNullable<typeof ctx.db>
         ).query.hackathonTeams.findMany({
-          where: eq(hackathonTeams.hackathonId, input.hackathonId),
+          where: { hackathonId: input.hackathonId },
           with: {
             captain: {
               columns: { id: true, name: true, image: true },
@@ -92,7 +86,7 @@ export const teamReadProcedures = {
     .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
     .query(async ({ ctx, input }) => {
       const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
-        where: eq(hackathons.id, input.hackathonId),
+        where: { id: input.hackathonId },
         columns: {
           hackingStartTime: true,
           startDate: true,
@@ -122,10 +116,10 @@ export const teamReadProcedures = {
       const db = ctx.db as DrizzleDB;
 
       const participant = await db.query.hackathonParticipants.findFirst({
-        where: and(
-          eq(hackathonParticipants.hackathonId, input.hackathonId),
-          eq(hackathonParticipants.userId, ctx.userId as string),
-        ),
+        where: {
+          hackathonId: input.hackathonId,
+          userId: ctx.userId as string,
+        },
         columns: { id: true, teamId: true },
       });
 
@@ -146,10 +140,10 @@ export const teamReadProcedures = {
       // Whether the project made it into judging, so the submit page can send
       // the team to their judging times instead of leaving them guessing.
       const judging = await db.query.judgingEntries.findFirst({
-        where: and(
-          eq(judgingEntries.sourceProjectId, project.id),
-          isNull(judgingEntries.deletedAt),
-        ),
+        where: {
+          sourceProjectId: project.id,
+          deletedAt: { isNull: true },
+        },
         columns: { id: true },
       });
 
@@ -187,13 +181,15 @@ export const teamReadProcedures = {
       );
 
     return await db.query.hackathonProjects.findMany({
-      where: or(
-        inArray(hackathonProjects.teamId, myTeamIds),
-        and(
-          isNull(hackathonProjects.teamId),
-          inArray(hackathonProjects.submittedById, mySoloIds),
-        ),
-      ),
+      where: {
+        OR: [
+          { RAW: (t, { sql }) => sql`${t.teamId} in ${myTeamIds}` },
+          {
+            teamId: { isNull: true },
+            RAW: (t, { sql }) => sql`${t.submittedById} in ${mySoloIds}`,
+          },
+        ],
+      },
       columns: { submittedById: false },
       with: { team: { columns: { id: true, name: true } } },
       orderBy: (projects, { desc }) => [desc(projects.submittedAt)],
