@@ -164,6 +164,7 @@ export const judgePortalRouter = createTRPCRouter({
         previousExperience: z.string().max(2000).optional(),
         dietaryRestrictions: z.array(z.string()).optional(),
         shirtSize: z.string().optional(),
+        canAttendInPerson: z.boolean(),
         whyJudge: z.string().max(2000).optional(),
         preferredTrack: z.string().optional(),
       }),
@@ -229,6 +230,7 @@ export const judgePortalRouter = createTRPCRouter({
               previousExperience: input.previousExperience,
               dietaryRestrictions: input.dietaryRestrictions || [],
               shirtSize: input.shirtSize,
+              canAttendInPerson: input.canAttendInPerson,
               whyJudge: input.whyJudge,
             })
             .where(eq(judges.id, judge.id));
@@ -249,6 +251,7 @@ export const judgePortalRouter = createTRPCRouter({
               previousExperience: input.previousExperience,
               dietaryRestrictions: input.dietaryRestrictions || [],
               shirtSize: input.shirtSize,
+              canAttendInPerson: input.canAttendInPerson,
               whyJudge: input.whyJudge,
               isActive: false, // Must be approved by admin
             })
