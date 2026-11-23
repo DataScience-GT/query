@@ -24,6 +24,7 @@ import {
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { isAdmin } from "../../../middleware/procedures";
+import { isBugTesterRole } from "../../../types/portal-context";
 import { recordAdminAction } from "../../../middleware/audit";
 import { isUniqueViolation } from "../../../middleware/db-errors";
 import { assertHackathonExists } from "../../../services/judging/config";
@@ -147,6 +148,9 @@ export const roomProcedures = {
       ]);
 
     const origin = portalOrigin(ctx.req);
+    // The link's id and signed URL are the door credential: whoever holds the
+    // URL is let in as a guest judge. Bug testers read the page, not the key.
+    const hideLinks = isBugTesterRole(ctx.admin.role);
     const byRoom = (list: { roomId: string; value: number }[], roomId: string) =>
       list.find((row) => row.roomId === roomId)?.value ?? 0;
 
@@ -176,9 +180,9 @@ export const roomProcedures = {
           challengeMode: challenge?.mode ?? "scheduled",
           link: link
             ? {
-                id: link.id,
+                id: hideLinks ? "" : link.id,
                 createdAt: link.createdAt,
-                url: roomLinkUrl(link.id, origin),
+                url: hideLinks ? "" : roomLinkUrl(link.id, origin),
               }
             : null,
           judgesSeated: byRoom(seated, room.id),

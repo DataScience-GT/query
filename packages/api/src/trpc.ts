@@ -2,6 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import type { TRPCDefaultErrorShape } from "@trpc/server";
 import superjson from "superjson";
 import { z, ZodError } from "zod";
+import { siteOrigin } from "@query/core/server";
 import type { Context } from "./context";
 import {
   rateLimit,
@@ -310,7 +311,31 @@ const sanitizeInputs = t.middleware(async ({ next, ctx, getRawInput }) => {
   return next({ getRawInput: () => Promise.resolve(scrubbed) });
 });
 
-const enforceContentType = t.middleware(async ({ ctx, next, type }) => {
+// Mutations are only for our own pages. A cross-site form or fetch still
+// carries the visitor's session cookie, so a request whose Origin is some other
+// site is refused. No Origin means a server-side caller (or a same-origin
+// request some browsers send without one), which has no cross-site page behind
+// it. The request's own origin is accepted too, so local dev and previews on a
+// host other than the configured one keep working: a cross-site attacker
+// cannot make a browser send our host as Origin.
+const isForeignOrigin = (req: Request) => {
+  const origin = req.headers.get("origin");
+  if (!origin) return false;
+  if (origin === siteOrigin()) return false;
+  try {
+    return origin !== new URL(req.url).origin;
+  } catch {
+    return true;
+  }
+};
+
+const guardMutationRequest = t.middleware(async ({ ctx, next, type }) => {
+  if (type === "mutation" && ctx.req && isForeignOrigin(ctx.req)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Cross-origin mutation requests are not allowed",
+    });
+  }
   if (type === "mutation" && ctx.req) {
     const contentType = ctx.req.headers.get("content-type") || "";
     const isJson = contentType.toLowerCase().includes("application/json");
@@ -543,7 +568,7 @@ export const publicProcedure = t.procedure
   .use(recordDuration)
   .use(requiresDb)
   .use(sanitizeInputs)
-  .use(enforceContentType)
+  .use(guardMutationRequest)
   .use(async ({ ctx, next, type }) => {
     // Flood protection, keyed on the signed-in user when there is one: at a
     // 2000-person venue everyone shares one NAT address, so an address-keyed
@@ -628,7 +653,7 @@ export const protectedProcedure = t.procedure
   .use(requiresDb)
   .use(isAuthed)
   .use(sanitizeInputs)
-  .use(enforceContentType)
+  .use(guardMutationRequest)
   .use(cacheInvalidationMiddleware);
 
 export const uploadProcedure = t.procedure
@@ -636,7 +661,7 @@ export const uploadProcedure = t.procedure
   .use(requiresDb)
   .use(isAuthed)
   .use(uploadSanitizeInputs)
-  .use(enforceContentType)
+  .use(guardMutationRequest)
   .use(cacheInvalidationMiddleware);
 
 // Signed in, large text input (see textUploadInputs). Gate it further with
@@ -646,7 +671,7 @@ export const textUploadProcedure = t.procedure
   .use(requiresDb)
   .use(isAuthed)
   .use(textUploadInputs)
-  .use(enforceContentType)
+  .use(guardMutationRequest)
   .use(cacheInvalidationMiddleware);
 
 // No `adminProcedure` or `judgeProcedure` here. Both existed and were

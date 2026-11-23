@@ -6,6 +6,7 @@ import { protectedProcedure } from "../../trpc";
 import { members, stripePayments } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
+import { siteOrigin } from "@query/core/server";
 import { logSecurityEvent } from "../../middleware/security";
 import {
   createOrUpdateMembership,
@@ -45,6 +46,15 @@ export const checkoutProcedures = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // Stripe sends the buyer back to this URL, and the mock flow redirects
+      // there directly: anything but our own origin is an open redirect.
+      if (new URL(input.returnUrl).origin !== siteOrigin()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "That return address is not allowed.",
+        });
+      }
+
       const user = await ctx.db!.query.users.findFirst({
         where: eq((await import("@query/db")).users.id, ctx.userId!),
       });
