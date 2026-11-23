@@ -40,3 +40,6 @@ yarn-error.log*
 AGENTS.md
 CLAUDE.md
 /scripts/.font-cache/
+
+# Lock file the skills CLI writes when agent skills are installed locally
+skills-lock.json
