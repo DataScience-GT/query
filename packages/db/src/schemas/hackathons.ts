@@ -12,7 +12,7 @@ import {
   foreignKey,
   check,
 } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { users } from "./auth";
 import { members } from "./members";
 import {
@@ -333,66 +333,6 @@ export const hackathonInterest = pgTable(
 
 export type HackathonInterest = typeof hackathonInterest.$inferSelect;
 
-// Relations
-export const hackathonsRelations = relations(hackathons, ({ many }) => ({
-  participants: many(hackathonParticipants),
-  teams: many(hackathonTeams),
-  projects: many(hackathonProjects),
-  interest: many(hackathonInterest),
-}));
-
-export const hackathonInterestRelations = relations(
-  hackathonInterest,
-  ({ one }) => ({
-    hackathon: one(hackathons, {
-      fields: [hackathonInterest.hackathonId],
-      references: [hackathons.id],
-    }),
-    user: one(users, {
-      fields: [hackathonInterest.userId],
-      references: [users.id],
-    }),
-  }),
-);
-
-export const hackathonParticipantsRelations = relations(
-  hackathonParticipants,
-  ({ one }) => ({
-    hackathon: one(hackathons, {
-      fields: [hackathonParticipants.hackathonId],
-      references: [hackathons.id],
-    }),
-    user: one(users, {
-      fields: [hackathonParticipants.userId],
-      references: [users.id],
-    }),
-    member: one(members, {
-      fields: [hackathonParticipants.memberId],
-      references: [members.id],
-    }),
-    team: one(hackathonTeams, {
-      fields: [hackathonParticipants.teamId],
-      references: [hackathonTeams.id],
-    }),
-  }),
-);
-
-export const hackathonTeamsRelations = relations(
-  hackathonTeams,
-  ({ one, many }) => ({
-    hackathon: one(hackathons, {
-      fields: [hackathonTeams.hackathonId],
-      references: [hackathons.id],
-    }),
-    captain: one(users, {
-      fields: [hackathonTeams.captainId],
-      references: [users.id],
-    }),
-    participants: many(hackathonParticipants),
-    projects: many(hackathonProjects),
-  }),
-);
-
 // Event scheduling for hackathons
 export const hackathonEvents = pgTable(
   "hackathon_event",
@@ -471,31 +411,6 @@ export const hackathonEventAttendees = pgTable(
   ],
 );
 
-export const hackathonEventsRelations = relations(
-  hackathonEvents,
-  ({ one, many }) => ({
-    hackathon: one(hackathons, {
-      fields: [hackathonEvents.hackathonId],
-      references: [hackathons.id],
-    }),
-    attendees: many(hackathonEventAttendees),
-  }),
-);
-
-export const hackathonEventAttendeesRelations = relations(
-  hackathonEventAttendees,
-  ({ one }) => ({
-    event: one(hackathonEvents, {
-      fields: [hackathonEventAttendees.eventId],
-      references: [hackathonEvents.id],
-    }),
-    participant: one(hackathonParticipants, {
-      fields: [hackathonEventAttendees.participantId],
-      references: [hackathonParticipants.id],
-    }),
-  }),
-);
-
 // A check-in the rules refused (two events at the same time, or two under 30
 // minutes apart). The refusal itself rolls back, so this is the only trace:
 // organisers read it as a flag on the hacker's team in judging and decide
@@ -565,20 +480,6 @@ export const hackathonCheckInFlags = pgTable(
       foreignColumns: [hackathonEvents.id],
     }).onDelete("set null"),
   ],
-);
-
-export const hackathonProjectsRelations = relations(
-  hackathonProjects,
-  ({ one }) => ({
-    hackathon: one(hackathons, {
-      fields: [hackathonProjects.hackathonId],
-      references: [hackathons.id],
-    }),
-    team: one(hackathonTeams, {
-      fields: [hackathonProjects.teamId],
-      references: [hackathonTeams.id],
-    }),
-  }),
 );
 
 // One announcement, composed once and sent in batches. The send loop runs in
@@ -670,27 +571,6 @@ export const hackathonAnnouncementRecipients = pgTable(
       name: "announcement_recipient_announcement_id_fk",
     }).onDelete("cascade"),
   ],
-);
-
-export const hackathonAnnouncementsRelations = relations(
-  hackathonAnnouncements,
-  ({ one, many }) => ({
-    hackathon: one(hackathons, {
-      fields: [hackathonAnnouncements.hackathonId],
-      references: [hackathons.id],
-    }),
-    recipients: many(hackathonAnnouncementRecipients),
-  }),
-);
-
-export const hackathonAnnouncementRecipientsRelations = relations(
-  hackathonAnnouncementRecipients,
-  ({ one }) => ({
-    announcement: one(hackathonAnnouncements, {
-      fields: [hackathonAnnouncementRecipients.announcementId],
-      references: [hackathonAnnouncements.id],
-    }),
-  }),
 );
 
 // People barred from taking part in hackathons: registering, the interest

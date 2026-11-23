@@ -16,35 +16,38 @@ import { membershipHistory } from "../schemas/members";
 const DAY = 24 * 60 * 60 * 1000;
 
 /**
- * A hackathons table that actually evaluates the `where` callback, so a test
- * can tell a query that filters drafts from one that only says it does. The
- * column references drizzle passes in are stood in for by their own names, and
- * each operator returns a predicate over a plain row.
+ * A hackathons table that actually evaluates the relational `where` filter, so
+ * a test can tell a query that filters drafts from one that only says it does.
+ * It understands the three operators the service uses and throws on any other,
+ * so a filter it cannot read cannot pass unchecked.
  */
 function fakeHackathons(rows: Record<string, unknown>[]) {
-  const columns = { status: "status", startDate: "startDate", endDate: "endDate" };
+  type Condition = { notIn?: unknown[]; lte?: Date; gte?: Date };
+  type Filter = Record<string, Condition>;
 
-  type Pred = (row: Record<string, unknown>) => boolean;
-  const ops = {
-    and: (...preds: Pred[]): Pred => (row) => preds.every((p) => p(row)),
-    ne: (col: string, val: unknown): Pred => (row) => row[col] !== val,
-    notInArray: (col: string, vals: unknown[]): Pred => (row) =>
-      !vals.includes(row[col]),
-    lte: (col: string, val: Date): Pred => (row) => (row[col] as Date) <= val,
-    gte: (col: string, val: Date): Pred => (row) => (row[col] as Date) >= val,
-    desc: (col: string) => col,
-  };
+  const matches = (row: Record<string, unknown>, where: Filter) =>
+    Object.entries(where).every(([column, condition]) => {
+      for (const operator of Object.keys(condition)) {
+        if (!["notIn", "lte", "gte"].includes(operator)) {
+          throw new Error(`fake cannot read operator ${operator}`);
+        }
+      }
+      const value = row[column];
+      return (
+        (condition.notIn === undefined || !condition.notIn.includes(value)) &&
+        (condition.lte === undefined || (value as Date) <= condition.lte) &&
+        (condition.gte === undefined || (value as Date) >= condition.gte)
+      );
+    });
 
   return {
     query: {
       hackathons: {
         findFirst: vi.fn(
-          async (args?: {
-            where?: (c: typeof columns, o: typeof ops) => Pred;
-            orderBy?: unknown;
-          }) => {
-            let matching = args?.where
-              ? rows.filter(args.where(columns, ops))
+          async (args?: { where?: Filter; orderBy?: unknown }) => {
+            const where = args?.where;
+            let matching = where
+              ? rows.filter((row) => matches(row, where))
               : [...rows];
             if (args?.orderBy) {
               matching = [...matching].sort(

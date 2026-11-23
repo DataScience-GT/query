@@ -8,7 +8,6 @@ import {
   index,
   unique,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 import { users } from "./auth";
 
 export const userProfiles = pgTable(
@@ -102,40 +101,4 @@ export const membershipHistory = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("history_member_id_idx").on(table.memberId)],
-);
-
-export const usersRelations = relations(users, ({ one }) => ({
-  profile: one(userProfiles, {
-    fields: [users.id],
-    references: [userProfiles.userId],
-  }),
-  member: one(members, {
-    fields: [users.id],
-    references: [members.userId],
-  }),
-}));
-
-export const userProfilesRelations = relations(userProfiles, ({ one }) => ({
-  user: one(users, {
-    fields: [userProfiles.userId],
-    references: [users.id],
-  }),
-}));
-
-export const membersRelations = relations(members, ({ one, many }) => ({
-  user: one(users, {
-    fields: [members.userId],
-    references: [users.id],
-  }),
-  membershipHistory: many(membershipHistory),
-}));
-
-export const membershipHistoryRelations = relations(
-  membershipHistory,
-  ({ one }) => ({
-    member: one(members, {
-      fields: [membershipHistory.memberId],
-      references: [members.id],
-    }),
-  }),
 );

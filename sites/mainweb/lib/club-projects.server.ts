@@ -1,5 +1,4 @@
-import { db, clubProjects } from "@query/db";
-import { eq } from "drizzle-orm";
+import { db } from "@query/db";
 import type { ClubProjectCard } from "./club-projects";
 
 // Read on the server, not through tRPC: the tRPC provider is mounted only
@@ -9,11 +8,8 @@ export async function loadClubProjects(): Promise<ClubProjectCard[]> {
 
   try {
     return await db.query.clubProjects.findMany({
-      where: eq(clubProjects.isPublished, true),
-      orderBy: (project, { asc }) => [
-        asc(project.sortOrder),
-        asc(project.name),
-      ],
+      where: { isPublished: true },
+      orderBy: { sortOrder: "asc", name: "asc" },
       columns: {
         id: true,
         slug: true,

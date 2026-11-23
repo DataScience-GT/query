@@ -1,7 +1,6 @@
 import { auth } from "@query/auth";
-import { admins, db, members } from "@query/db";
-import type { DrizzleDB } from "@query/db";
-import { and, eq } from "drizzle-orm";
+import { db } from "@query/db";
+import type { DrizzleDB, admins } from "@query/db";
 import { cache } from "@query/api";
 import { isExpiredAdmin, isStaffRole } from "@query/api/portal-context";
 
@@ -19,13 +18,13 @@ export async function bootcampCaller() {
   if (!admin) {
     admin =
       (await (db as DrizzleDB).query.admins.findFirst({
-        where: and(eq(admins.userId, userId), eq(admins.isActive, true)),
+        where: { userId, isActive: true },
       })) ?? null;
     if (admin) cache.set(cacheKey, admin, 60);
   }
 
   const member = await (db as DrizzleDB).query.members.findFirst({
-    where: eq(members.userId, userId),
+    where: { userId },
     columns: { bootcampTerm: true },
   });
 

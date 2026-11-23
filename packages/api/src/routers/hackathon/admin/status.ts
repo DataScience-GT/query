@@ -33,10 +33,7 @@ export const statusProcedures = {
       const participant = await (
         ctx.db as DrizzleDB
       ).query.hackathonParticipants.findFirst({
-        where: and(
-          eq(hackathonParticipants.id, input.participantId),
-          eq(hackathonParticipants.hackathonId, input.hackathonId),
-        ),
+        where: { id: input.participantId, hackathonId: input.hackathonId },
       });
 
       if (!participant) {
@@ -168,7 +165,7 @@ export const statusProcedures = {
       const db = ctx.db as DrizzleDB;
 
       const hackathon = await db.query.hackathons.findFirst({
-        where: eq(hackathons.id, input.hackathonId),
+        where: { id: input.hackathonId },
         columns: { id: true },
       });
 
@@ -302,7 +299,7 @@ export const statusProcedures = {
       const db = ctx.db as DrizzleDB;
 
       const hackathon = await db.query.hackathons.findFirst({
-        where: eq(hackathons.id, hackathonId),
+        where: { id: hackathonId },
         columns: { name: true },
       });
 
@@ -318,10 +315,7 @@ export const statusProcedures = {
       // been accepted". Re-checked in memory because an acceptance cannot be unsent.
       const participants = (
         await db.query.hackathonParticipants.findMany({
-          where: and(
-            inArray(hackathonParticipants.id, participantIds),
-            eq(hackathonParticipants.hackathonId, hackathonId),
-          ),
+          where: { id: { in: participantIds }, hackathonId },
           with: { user: { columns: { email: true } } },
         })
       ).filter((participant) => participant.hackathonId === hackathonId);

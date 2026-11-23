@@ -9,7 +9,7 @@ import {
   uniqueIndex,
   check,
 } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { users } from "./auth";
 import { members } from "./members";
 
@@ -103,24 +103,3 @@ export const eventCheckIns = pgTable(
     index("event_check_in_user_id_idx").on(table.userId),
   ],
 );
-
-// Relations
-export const eventsRelations = relations(events, ({ one, many }) => ({
-  createdBy: one(users, {
-    fields: [events.createdById],
-    references: [users.id],
-  }),
-  checkIns: many(eventCheckIns),
-}));
-
-export const eventCheckInsRelations = relations(eventCheckIns, ({ one }) => ({
-  event: one(events, {
-    fields: [eventCheckIns.eventId],
-    references: [events.id],
-  }),
-  user: one(users, { fields: [eventCheckIns.userId], references: [users.id] }),
-  member: one(members, {
-    fields: [eventCheckIns.memberId],
-    references: [members.id],
-  }),
-}));

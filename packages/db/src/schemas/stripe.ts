@@ -8,7 +8,6 @@ import {
   index,
   unique,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 import { users } from "./auth";
 
 // Stripe checkout/payment info from webhooks, so a payment is tracked before
@@ -89,30 +88,4 @@ export const userAccountLinks = pgTable(
     unique("unique_link_per_user").on(table.userId),
     unique("unique_link_per_payment").on(table.stripePaymentId),
   ],
-);
-
-// Relations
-export const stripePaymentsRelations = relations(
-  stripePayments,
-  ({ one, many }) => ({
-    linkedUser: one(users, {
-      fields: [stripePayments.linkedUserId],
-      references: [users.id],
-    }),
-    accountLinks: many(userAccountLinks),
-  }),
-);
-
-export const userAccountLinksRelations = relations(
-  userAccountLinks,
-  ({ one }) => ({
-    user: one(users, {
-      fields: [userAccountLinks.userId],
-      references: [users.id],
-    }),
-    stripePayment: one(stripePayments, {
-      fields: [userAccountLinks.stripePaymentId],
-      references: [stripePayments.id],
-    }),
-  }),
 );

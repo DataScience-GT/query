@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { preload } from "react-dom";
-import { db, hackathons, inArray, eq, and, asc, desc } from "@query/db";
+import { db } from "@query/db";
 import { ORG_NAME, SITE_ORIGIN } from "@query/core";
 import { VENUE_TZ } from "@/lib/venue-time";
 import "./fonts.generated.css";
@@ -33,21 +33,18 @@ const EDITION_COLUMNS = {
 async function currentEdition() {
   if (!db) return null;
   const ahead = await db.query.hackathons.findFirst({
-    where: and(
-      inArray(hackathons.status, [...AHEAD_STATUSES]),
-      eq(hackathons.isPublic, true),
-    ),
-    orderBy: asc(hackathons.startDate),
+    where: {
+      status: { in: [...AHEAD_STATUSES] },
+      isPublic: true,
+    },
+    orderBy: { startDate: "asc" },
     columns: EDITION_COLUMNS,
   });
   if (ahead) return ahead;
 
   return db.query.hackathons.findFirst({
-    where: and(
-      eq(hackathons.status, "completed"),
-      eq(hackathons.isPublic, true),
-    ),
-    orderBy: desc(hackathons.startDate),
+    where: { status: "completed", isPublic: true },
+    orderBy: { startDate: "desc" },
     columns: EDITION_COLUMNS,
   });
 }

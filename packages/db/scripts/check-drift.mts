@@ -110,17 +110,30 @@ for (const exported of Object.values(schema)) {
     problems.push(`table "${table.name}" has the wrong timestamp type: ${wrongZone.join(", ")}`);
   }
 
-  const uniques = [
+  // Each entry lists the index names that count as present. Drizzle 1.0 no
+  // longer derives a name for a bare `.unique()` column (`uniqueName` is
+  // undefined), so accept both names such a constraint can carry: `_unique`,
+  // which drizzle-kit 0.x gave it and production still has, and `_key`, which
+  // drizzle-kit 1.0 leaves to Postgres on a fresh database.
+  const uniques: string[][] = [
     ...table.indexes
       .filter((index) => index.config.unique)
-      .map((index) => index.config.name),
-    ...table.uniqueConstraints.map((constraint) => constraint.getName()),
+      .map((index) => [index.config.name]),
+    ...table.uniqueConstraints.map((constraint) => [constraint.getName()]),
     ...table.columns
       .filter((column) => column.isUnique)
-      .map((column) => column.uniqueName),
-  ].filter((name): name is string => !!name);
+      .map((column) =>
+        column.uniqueName
+          ? [column.uniqueName]
+          : [`${table.name}_${column.name}_unique`, `${table.name}_${column.name}_key`],
+      ),
+  ]
+    .map((names) => names.filter((name): name is string => !!name))
+    .filter((names) => names.length > 0);
 
-  const missingUniques = uniques.filter((name) => !liveIndexes.has(name));
+  const missingUniques = uniques
+    .filter((names) => !names.some((name) => liveIndexes.has(name)))
+    .map((names) => names[0]);
   if (missingUniques.length > 0) {
     problems.push(
       `table "${table.name}" is missing unique constraint(s): ${missingUniques.join(", ")} — remove the duplicate rows, then push again`,

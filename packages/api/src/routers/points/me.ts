@@ -1,12 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
-import {
-  hackathons,
-  hackathonEvents,
-  hackathonParticipants,
-  hackathonStoreItems,
-} from "@query/db";
+import { hackathonStoreItems } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { notHackathonBanned } from "../../middleware/procedures";
@@ -37,10 +32,7 @@ async function myParticipant(
   hackathonId: string,
 ) {
   const participant = await db.query.hackathonParticipants.findFirst({
-    where: and(
-      eq(hackathonParticipants.hackathonId, hackathonId),
-      eq(hackathonParticipants.userId, userId),
-    ),
+    where: { hackathonId, userId },
     columns: { id: true, registrationStatus: true },
   });
 
@@ -146,7 +138,7 @@ export const pointsMeRouter = createTRPCRouter({
     assertAccepted(participant);
 
     const hackathon = await db.query.hackathons.findFirst({
-      where: eq(hackathons.id, input.hackathonId),
+      where: { id: input.hackathonId },
       columns: {
         storeCatalogVisible: true,
         storeOpen: true,
@@ -261,10 +253,7 @@ export const pointsMeRouter = createTRPCRouter({
       }
 
       const event = await db.query.hackathonEvents.findFirst({
-        where: and(
-          eq(hackathonEvents.hackathonId, input.hackathonId),
-          eq(hackathonEvents.checkInCode, code),
-        ),
+        where: { hackathonId: input.hackathonId, checkInCode: code },
         columns: {
           id: true,
           name: true,

@@ -21,11 +21,14 @@ describe("outerColumn", () => {
       .toSQL();
 
     expect(query.sql).toContain(
-      `where "schedule_id" = "judging_schedule"."id"`,
+      `where "judging_appointment"."schedule_id" = "judging_schedule"."id"`,
     );
   });
 
-  it("is needed: a plain column loses its table name there", () => {
+  // Drizzle 0.x dropped the table name from a plain column in this shape, and
+  // outerColumn existed for that. 1.0 keeps it, so the helper is now belt and
+  // braces; this pins that a plain column is still correlated correctly.
+  it("keeps the table name on a plain column too", () => {
     const query = db
       .select({
         hasLink: sql<boolean>`exists (select 1 from ${judgingRoomLinks} where ${judgingRoomLinks.roomId} = ${judgingRooms.id})`,
@@ -33,6 +36,8 @@ describe("outerColumn", () => {
       .from(judgingRooms)
       .toSQL();
 
-    expect(query.sql).toContain(`where "room_id" = "id"`);
+    expect(query.sql).toContain(
+      `where "judging_room_link"."room_id" = "judging_room"."id"`,
+    );
   });
 });

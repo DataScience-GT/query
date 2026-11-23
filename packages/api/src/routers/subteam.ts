@@ -227,7 +227,7 @@ export const subteamRouter = createTRPCRouter({
         await lockSubteam(tx, input.subteamId);
 
         const subteam = await tx.query.subteams.findFirst({
-          where: eq(subteams.id, input.subteamId),
+          where: { id: input.subteamId },
         });
         // Archived is invisible to members, so it answers like a made-up id.
         if (!subteam || subteam.archivedAt !== null) throw notFound();
@@ -269,11 +269,11 @@ export const subteamRouter = createTRPCRouter({
         }
 
         const existing = await tx.query.subteamApplications.findFirst({
-          where: and(
-            eq(subteamApplications.subteamId, subteam.id),
-            eq(subteamApplications.userId, userId),
-            inArray(subteamApplications.status, [...ACTIVE_STATUSES]),
-          ),
+          where: {
+            subteamId: subteam.id,
+            userId,
+            status: { in: [...ACTIVE_STATUSES] },
+          },
         });
 
         if (existing) {
@@ -307,7 +307,7 @@ export const subteamRouter = createTRPCRouter({
         }
 
         const applicant = await tx.query.users.findFirst({
-          where: eq(users.id, userId),
+          where: { id: userId },
           columns: { email: true },
         });
 
@@ -411,7 +411,7 @@ export const subteamRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const subteam = await db.query.subteams.findFirst({
-        where: eq(subteams.id, input.id),
+        where: { id: input.id },
       });
       if (!subteam) throw notFound();
 
@@ -562,12 +562,12 @@ export const subteamRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const application = await db.query.subteamApplications.findFirst({
-        where: eq(subteamApplications.id, input.applicationId),
+        where: { id: input.applicationId },
       });
       if (!application) throw notFound("Application not found.");
 
       const subteam = await db.query.subteams.findFirst({
-        where: eq(subteams.id, application.subteamId),
+        where: { id: application.subteamId },
       });
       if (!subteam) throw notFound();
       if (subteam.archivedAt !== null) {
@@ -613,7 +613,7 @@ export const subteamRouter = createTRPCRouter({
       }
 
       const applicant = await db.query.users.findFirst({
-        where: eq(users.id, application.userId),
+        where: { id: application.userId },
         columns: { email: true },
       });
 

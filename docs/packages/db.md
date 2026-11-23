@@ -22,7 +22,7 @@ Production: Neon serverless Postgres (`us-east-1`, next to App Hosting in us-eas
 
 ## Schema layout
 
-Files in `src/schemas/`, re-exported from `schemas/index.ts`. `drizzle.config.ts` globs `./src/schemas/**/*.ts`.
+Files in `src/schemas/`, re-exported from `schemas/index.ts`. `drizzle.config.ts` reads that one index, not a glob (drizzle-kit 1.0 refuses a table it reaches twice), so a new schema file must be re-exported there or push and `db:check` never see it. Relations are declared once in `src/relations.ts` with `defineRelations`, not beside the tables, and `db` is built from them.
 
 | File | Tables |
 | --- | --- |
@@ -148,7 +148,7 @@ pnpm --filter @query/db studio            # Drizzle Studio
 pnpm --filter @query/db db:seed           # scripts/seed.ts
 ```
 
-The repo is **push-based**: `packages/db/drizzle/meta/_journal.json` has no migration entries. App Hosting runs `drizzle-kit push --verbose < /dev/null` then `db:check`. Destructive prompts cannot be confirmed, so the push aborts rather than dropping columns; `db:check` is the real gate (push can still exit 0).
+The repo is **push-based**: `packages/db/drizzle/meta/_journal.json` has no migration entries. App Hosting runs `drizzle-kit push --verbose < /dev/null` then `db:check`. Destructive prompts cannot be confirmed, so the push applies nothing rather than dropping columns, and exits 2 (`missing_hints`) so the build stops. `db:check` still gates declared columns and unique constraints.
 
 ### Dropping a column or table
 
@@ -158,7 +158,7 @@ Push never drops anything in a deploy, so a drop ships as two things in one chan
 psql "$PROD_DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/sql/<file>.sql
 ```
 
-The other order is the dangerous one. If the schema stops declaring a column production still has, every later push stops at the data-loss prompt and applies nothing, so new columns stop reaching production too. Each file runs in one transaction and uses `IF EXISTS`, so a failure changes nothing and a second run is a no-op. Rehearse it on a PGX clone first: run the file, then `migrate:push` should report no drops, and `db:check` should pass.
+The other order is the dangerous one. If the schema stops declaring a column production still has, every later push stops at the data-loss prompt, applies nothing and fails the build, so no deploy goes out until the column is dropped. Each file runs in one transaction and uses `IF EXISTS`, so a failure changes nothing and a second run is a no-op. Rehearse it on a PGX clone first: run the file, then `migrate:push` should report no drops, and `db:check` should pass.
 
 `scripts/link-payments.ts` is a one-off to attach historical paid Stripe rows to matching user emails:
 

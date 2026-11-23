@@ -60,7 +60,7 @@ export const userRouter = createTRPCRouter({
         const user = await (
           ctx.db as NonNullable<typeof ctx.db>
         ).query.users.findFirst({
-          where: eq(users.id, ctx.userId as string),
+          where: { id: ctx.userId as string },
           columns: { id: true, email: true, name: true, image: true },
           with: {
             profile: {

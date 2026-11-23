@@ -92,4 +92,4 @@ When it stops fitting, the fix is a job that builds the ZIP into the bucket and 
 
 ## Deploying
 
-`apphosting.yaml` runs `drizzle-kit push` before the build, so `member_resume` is created on deploy. Push refuses destructive changes, so if an earlier build created the old `data bytea` column it will be left behind harmlessly — drop it by hand if you care.
+`apphosting.yaml` runs `drizzle-kit push` before the build, so `member_resume` is created on deploy. Push refuses destructive changes, and with drizzle-kit 1.0 a refused push exits 2 and stops the build, so if an earlier build created the old `data bytea` column and the table holds rows, drop the column by hand before the deploy.

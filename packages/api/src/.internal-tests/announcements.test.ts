@@ -687,7 +687,7 @@ describe("Announcements", () => {
 
       // The address is looked up for the caller, not taken from the request.
       const lookup = mockFindFirst.mock.calls.find(([t]) => t === "users");
-      expect(boundValues([[lookup?.[1]?.where]])).toContain(caller);
+      expect(lookup?.[1]?.where).toEqual({ id: caller });
     });
 
     it("writes no announcement and no recipient rows", async () => {

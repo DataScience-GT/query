@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import Stripe from "stripe";
-import { db, stripePayments, users } from "@query/db";
+import { db, stripePayments } from "@query/db";
 import {
   createOrUpdateMembership,
   splitName,
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
 
       // Check if payment already exists (idempotency)
       const existingPayment = await db.query.stripePayments.findFirst({
-        where: eq(stripePayments.stripeSessionId, session.id),
+        where: { stripeSessionId: session.id },
       });
 
       if (existingPayment) {
@@ -262,14 +262,14 @@ export async function POST(req: NextRequest) {
 
       if (metadataUserId) {
         targetUser = await db.query.users.findFirst({
-          where: eq(users.id, metadataUserId),
+          where: { id: metadataUserId },
         });
       }
 
       // Priority 2: Fallback to email match
       if (!targetUser) {
         targetUser = await db.query.users.findFirst({
-          where: eq(users.email, customerEmail),
+          where: { email: customerEmail },
         });
       }
 
@@ -393,14 +393,14 @@ export async function POST(req: NextRequest) {
 
       if (metadataUserId) {
         targetUser = await db.query.users.findFirst({
-          where: eq(users.id, metadataUserId),
+          where: { id: metadataUserId },
         });
       }
 
       const receiptEmail = pi.receipt_email?.toLowerCase();
       if (!targetUser && receiptEmail) {
         targetUser = await db.query.users.findFirst({
-          where: eq(users.email, receiptEmail),
+          where: { email: receiptEmail },
         });
       }
 

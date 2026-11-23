@@ -110,10 +110,7 @@ export const pointsAdminRouter = createTRPCRouter({
     const db = ctx.db as DrizzleDB;
 
     const participant = await db.query.hackathonParticipants.findFirst({
-      where: and(
-        eq(hackathonParticipants.id, input.participantId),
-        eq(hackathonParticipants.hackathonId, input.hackathonId),
-      ),
+      where: { id: input.participantId, hackathonId: input.hackathonId },
       columns: {
         id: true,
         firstName: true,

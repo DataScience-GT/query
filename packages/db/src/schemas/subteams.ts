@@ -8,7 +8,7 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { users } from "./auth";
 
 // Club subteams: the standing groups that run the club (events, marketing,
@@ -121,21 +121,3 @@ export const subteamApplications = pgTable(
 );
 
 export type SubteamApplication = typeof subteamApplications.$inferSelect;
-
-export const subteamsRelations = relations(subteams, ({ many }) => ({
-  applications: many(subteamApplications),
-}));
-
-export const subteamApplicationsRelations = relations(
-  subteamApplications,
-  ({ one }) => ({
-    subteam: one(subteams, {
-      fields: [subteamApplications.subteamId],
-      references: [subteams.id],
-    }),
-    user: one(users, {
-      fields: [subteamApplications.userId],
-      references: [users.id],
-    }),
-  }),
-);

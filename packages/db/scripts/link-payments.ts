@@ -17,7 +17,7 @@ import path from "path";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { and, eq, isNull, sql } from "drizzle-orm";
-import * as schema from "../src/schemas";
+import { relations } from "../src/relations";
 import { stripePayments } from "../src/schemas/stripe";
 import { users } from "../src/schemas/auth";
 import {
@@ -32,7 +32,7 @@ const APPLY = process.argv.includes("--apply");
 
 async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const db = drizzle(pool, { schema }) as unknown as DrizzleDB;
+  const db = drizzle({ client: pool, relations }) as unknown as DrizzleDB;
 
   const hackathonId = await resolveCurrentHackathonId(db);
   if (!hackathonId) {

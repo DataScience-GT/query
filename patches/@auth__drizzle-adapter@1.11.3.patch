@@ -1,0 +1,26 @@
+diff --git a/index.js b/index.js
+index e1678f7074f4c8a9729eecca98beb09eea27f265..15a593f2c74207bb24d931b906435c5d9be9768e 100644
+--- a/index.js
++++ b/index.js
+@@ -18,10 +18,10 @@
+ import { is } from "drizzle-orm";
+ import { MySqlDatabase } from "drizzle-orm/mysql-core";
+ import { PgDatabase } from "drizzle-orm/pg-core";
+-import { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
+ import { MySqlDrizzleAdapter } from "./lib/mysql.js";
+ import { PostgresDrizzleAdapter } from "./lib/pg.js";
+-import { SQLiteDrizzleAdapter } from "./lib/sqlite.js";
++// Patched for drizzle-orm 1.0: BaseSQLiteDatabase no longer exists, and a missing
++// named export fails the bundle. This app only runs Postgres.
+ export function DrizzleAdapter(db, schema) {
+     if (is(db, MySqlDatabase)) {
+         return MySqlDrizzleAdapter(db, schema);
+@@ -29,8 +29,5 @@ export function DrizzleAdapter(db, schema) {
+     else if (is(db, PgDatabase)) {
+         return PostgresDrizzleAdapter(db, schema);
+     }
+-    else if (is(db, BaseSQLiteDatabase)) {
+-        return SQLiteDrizzleAdapter(db, schema);
+-    }
+     throw new Error(`Unsupported database type (${typeof db}) in Auth.js Drizzle adapter.`);
+ }

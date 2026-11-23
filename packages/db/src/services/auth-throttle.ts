@@ -18,7 +18,10 @@ export const GLOBAL_THROTTLE_KEY = "*global*";
 
 // The slice of a drizzle db/transaction these helpers need.
 type Executor = {
-  execute: (query: ReturnType<typeof sql>) => Promise<{ rows: unknown[] }>;
+  // Variadic: drizzle 1.0 overloads execute() by mode, so a one-argument
+  // signature no longer matches. Callers read `.rows` off the raw driver result.
+  // oxlint-disable-next-line typescript/no-explicit-any
+  execute: (...args: any[]) => PromiseLike<any>;
 };
 
 /**

@@ -1,5 +1,4 @@
 import { pgTable, text, timestamp, uuid, boolean } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 import { users } from "./auth";
 import { ADMIN_ROLES } from "../constants";
 
@@ -27,10 +26,3 @@ export const admins = pgTable("admin", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
-
-export const adminsRelations = relations(admins, ({ one }) => ({
-  user: one(users, {
-    fields: [admins.userId],
-    references: [users.id],
-  }),
-}));
