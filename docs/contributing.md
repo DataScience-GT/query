@@ -89,7 +89,7 @@ refuses generated attribution lines, and `.gitignore` keeps both out of
 3. `pnpm --filter @query/db db:check` confirms every declared column exists (this is the App Hosting build gate).
 4. Prefer `migrate:generate` if you want reviewable SQL in `packages/db/drizzle/`.
 
-Destructive changes abort on App Hosting because `drizzle-kit push` is fed `/dev/null` and cannot confirm. Plan those separately.
+Destructive changes abort on App Hosting because `drizzle-kit push` is fed `/dev/null` and cannot confirm. The push exits 2 and the build stops, so nothing deploys until the change is applied by hand. Plan those separately.
 
 Unique indexes, cascade behavior, and “current hackathon” resolution have bitten this product before. Read the comments on the table you are touching.
 

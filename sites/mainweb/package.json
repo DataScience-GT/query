@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "type": "module",
   "private": true,
   "license": "Apache-2.0",
@@ -25,6 +25,8 @@
     "@trpc/client": "catalog:",
     "@trpc/react-query": "catalog:",
     "@trpc/server": "catalog:",
+    "@ui-sdk/core": "0.1.0-beta.16",
+    "@ui-sdk/react": "0.1.0-beta.16",
     "@yudiel/react-qr-scanner": "^2.6.0",
     "archiver": "^8.0.0",
     "babel-plugin-react-compiler": "1.0.0",

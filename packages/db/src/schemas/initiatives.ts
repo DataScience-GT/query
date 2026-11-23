@@ -10,7 +10,7 @@ import {
   uniqueIndex,
   check,
 } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { users } from "./auth";
 
 // Club initiatives: things a project leader runs year-round that members
@@ -157,29 +157,3 @@ export const initiativeApplications = pgTable(
 );
 
 export type InitiativeApplication = typeof initiativeApplications.$inferSelect;
-
-export const projectLeadersRelations = relations(projectLeaders, ({ one }) => ({
-  user: one(users, { fields: [projectLeaders.userId], references: [users.id] }),
-}));
-
-export const initiativesRelations = relations(initiatives, ({ one, many }) => ({
-  leader: one(users, {
-    fields: [initiatives.leaderUserId],
-    references: [users.id],
-  }),
-  applications: many(initiativeApplications),
-}));
-
-export const initiativeApplicationsRelations = relations(
-  initiativeApplications,
-  ({ one }) => ({
-    initiative: one(initiatives, {
-      fields: [initiativeApplications.initiativeId],
-      references: [initiatives.id],
-    }),
-    user: one(users, {
-      fields: [initiativeApplications.userId],
-      references: [users.id],
-    }),
-  }),
-);

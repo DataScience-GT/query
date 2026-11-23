@@ -9,7 +9,7 @@ import {
   foreignKey,
   check,
 } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { users } from "./auth";
 import { hackathons, hackathonParticipants } from "./hackathons";
 
@@ -137,37 +137,4 @@ export const hackathonStorePurchases = pgTable(
       sql`${table.quantity} > 0 and ${table.unitPrice} >= 0 and ${table.total} = ${table.unitPrice} * ${table.quantity}`,
     ),
   ],
-);
-
-export const hackathonPointAdjustmentsRelations = relations(
-  hackathonPointAdjustments,
-  ({ one }) => ({
-    participant: one(hackathonParticipants, {
-      fields: [hackathonPointAdjustments.participantId],
-      references: [hackathonParticipants.id],
-    }),
-    actor: one(users, {
-      fields: [hackathonPointAdjustments.actorId],
-      references: [users.id],
-    }),
-  }),
-);
-
-export const hackathonStoreItemsRelations = relations(
-  hackathonStoreItems,
-  ({ many }) => ({ purchases: many(hackathonStorePurchases) }),
-);
-
-export const hackathonStorePurchasesRelations = relations(
-  hackathonStorePurchases,
-  ({ one }) => ({
-    participant: one(hackathonParticipants, {
-      fields: [hackathonStorePurchases.participantId],
-      references: [hackathonParticipants.id],
-    }),
-    item: one(hackathonStoreItems, {
-      fields: [hackathonStorePurchases.itemId],
-      references: [hackathonStoreItems.id],
-    }),
-  }),
 );

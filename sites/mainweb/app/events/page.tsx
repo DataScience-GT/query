@@ -4,11 +4,10 @@ import Link from "next/link";
 import databricksFall from "@/assets/images/photos/databricks-fall-2025.jpg";
 import PublicPage from "@/components/PublicPage";
 import { eventDateParts, eventWhenWhere } from "@/lib/public-events";
-import { and, eq, gte, lt } from "drizzle-orm";
 
 import { withCheckInCounts } from "@query/api/derived-counts";
 import { startOfEasternDay } from "@query/api/eastern-time";
-import { db, events } from "@query/db";
+import { db } from "@query/db";
 
 export const metadata: Metadata = {
   title: "Events",
@@ -64,10 +63,7 @@ async function loadUpcoming() {
   try {
     // Counted from the rows: events.current_check_ins is a retired counter.
     const rows = await db.query.events.findMany({
-      where: and(
-        eq(events.kind, "club"),
-        gte(events.eventDate, startOfToday()),
-      ),
+      where: { kind: "club", eventDate: { gte: startOfToday() } },
       orderBy: (event, { asc }) => [asc(event.eventDate)],
       limit: 20,
       columns: listedColumns,
@@ -89,7 +85,7 @@ async function loadPast() {
 
   try {
     const rows = await db.query.events.findMany({
-      where: and(eq(events.kind, "club"), lt(events.eventDate, startOfToday())),
+      where: { kind: "club", eventDate: { lt: startOfToday() } },
       orderBy: (event, { desc }) => [desc(event.eventDate)],
       limit: 20,
       columns: listedColumns,

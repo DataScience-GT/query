@@ -47,10 +47,10 @@ export const teamProcedures = {
             // 1. Registered for this hackathon? Read inside the transaction so a
             // double-submit cannot both see no team.
             const participant = await tx.query.hackathonParticipants.findFirst({
-              where: and(
-                eq(hackathonParticipants.hackathonId, input.hackathonId),
-                eq(hackathonParticipants.userId, ctx.userId as string),
-              ),
+              where: {
+                hackathonId: input.hackathonId,
+                userId: ctx.userId as string,
+              },
             });
 
             if (!participant) {
@@ -138,10 +138,10 @@ export const teamProcedures = {
             // 1. Verify registration. Read inside the transaction so the slot claim below
             // settles against the same row.
             const participant = await tx.query.hackathonParticipants.findFirst({
-              where: and(
-                eq(hackathonParticipants.hackathonId, input.hackathonId),
-                eq(hackathonParticipants.userId, ctx.userId as string),
-              ),
+              where: {
+                hackathonId: input.hackathonId,
+                userId: ctx.userId as string,
+              },
             });
 
             if (!participant) {
@@ -169,10 +169,7 @@ export const teamProcedures = {
 
             // 3. Find the team and check capacity
             const team = await tx.query.hackathonTeams.findFirst({
-              where: and(
-                eq(hackathonTeams.id, input.teamId),
-                eq(hackathonTeams.hackathonId, input.hackathonId),
-              ),
+              where: { id: input.teamId, hackathonId: input.hackathonId },
             });
 
             if (!team) {
@@ -258,10 +255,10 @@ export const teamProcedures = {
       const participant = await (
         ctx.db as NonNullable<typeof ctx.db>
       ).query.hackathonParticipants.findFirst({
-        where: and(
-          eq(hackathonParticipants.hackathonId, input.hackathonId),
-          eq(hackathonParticipants.userId, ctx.userId as string),
-        ),
+        where: {
+          hackathonId: input.hackathonId,
+          userId: ctx.userId as string,
+        },
       });
 
       if (!participant || !participant.teamId) {
@@ -293,7 +290,7 @@ export const teamProcedures = {
             if (team.captainId === (ctx.userId as string)) {
               if ((await countMembers(tx, team.id)) <= 1) {
                 const project = await tx.query.hackathonProjects.findFirst({
-                  where: eq(hackathonProjects.teamId, team.id),
+                  where: { teamId: team.id },
                 });
 
                 // Disbanding takes the team's project with it, so a submission has to be
@@ -381,10 +378,7 @@ export const teamProcedures = {
       const team = await (
         ctx.db as NonNullable<typeof ctx.db>
       ).query.hackathonTeams.findFirst({
-        where: and(
-          eq(hackathonTeams.id, input.teamId),
-          eq(hackathonTeams.hackathonId, input.hackathonId),
-        ),
+        where: { id: input.teamId, hackathonId: input.hackathonId },
       });
 
       if (!team)
@@ -408,7 +402,7 @@ export const teamProcedures = {
               .for("update");
 
             const project = await tx.query.hackathonProjects.findFirst({
-              where: eq(hackathonProjects.teamId, team.id),
+              where: { teamId: team.id },
             });
 
             // Disbanding takes the team's project with it, so a submission has to be
@@ -465,10 +459,7 @@ export const teamProcedures = {
 
       const db = ctx.db as NonNullable<typeof ctx.db>;
       const team = await db.query.hackathonTeams.findFirst({
-        where: and(
-          eq(hackathonTeams.id, input.teamId),
-          eq(hackathonTeams.hackathonId, input.hackathonId),
-        ),
+        where: { id: input.teamId, hackathonId: input.hackathonId },
       });
 
       if (!team)

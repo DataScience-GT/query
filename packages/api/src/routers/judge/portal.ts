@@ -1,13 +1,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
-import {
-  judges,
-  judgeAssignments,
-  hackathons,
-  hackathonParticipants,
-} from "@query/db";
-import { eq, and, inArray } from "drizzle-orm";
+import { judges, judgeAssignments } from "@query/db";
+import { eq } from "drizzle-orm";
 import { CacheKeys } from "../../middleware/cache";
 import { notHackathonBanned } from "../../middleware/procedures";
 import { resolveHackathonId } from "../../services/portal-context";
@@ -24,7 +19,7 @@ async function assertTrackExists(
   if (!track) return null;
 
   const hackathon = await db.query.hackathons.findFirst({
-    where: eq(hackathons.id, hackathonId),
+    where: { id: hackathonId },
     columns: { tracks: true, challenges: true },
   });
 
@@ -84,11 +79,11 @@ export const judgePortalRouter = createTRPCRouter({
       if (cached) return cached;
 
       const judge = await (ctx.db as DrizzleDB).query.judges.findFirst({
-        where: and(
-          eq(judges.userId, ctx.userId as string),
-          eq(judges.hackathonId, hackathonId),
-          eq(judges.isActive, true),
-        ),
+        where: {
+          userId: ctx.userId as string,
+          hackathonId,
+          isActive: true,
+        },
       });
 
       const result = {
@@ -109,17 +104,14 @@ export const judgePortalRouter = createTRPCRouter({
     const db = ctx.db as DrizzleDB;
 
     const myJudges = await db.query.judges.findMany({
-      where: eq(judges.userId, ctx.userId as string),
+      where: { userId: ctx.userId as string },
       columns: { id: true, hackathonId: true, isActive: true, createdAt: true },
     });
 
     if (myJudges.length === 0) return [];
 
     const rows = await db.query.judgeAssignments.findMany({
-      where: inArray(
-        judgeAssignments.judgeId,
-        myJudges.map((j) => j.id),
-      ),
+      where: { judgeId: { in: myJudges.map((j) => j.id) } },
       columns: { judgeId: true, hackathonId: true, track: true, assignedAt: true },
     });
 
@@ -175,7 +167,7 @@ export const judgePortalRouter = createTRPCRouter({
         // uuid used to pass, and one that did not exist hit the foreign key as
         // a 500. Announced counts: judges are recruited before registration.
         const hackathon = await tx.query.hackathons.findFirst({
-          where: eq(hackathons.id, input.hackathonId),
+          where: { id: input.hackathonId },
           columns: { isPublic: true, status: true },
         });
         if (
@@ -193,10 +185,10 @@ export const judgePortalRouter = createTRPCRouter({
 
         // Check if user is registered as a participant for this hackathon
         const participant = await tx.query.hackathonParticipants.findFirst({
-          where: and(
-            eq(hackathonParticipants.hackathonId, input.hackathonId),
-            eq(hackathonParticipants.userId, ctx.userId as string),
-          ),
+          where: {
+            hackathonId: input.hackathonId,
+            userId: ctx.userId as string,
+          },
         });
 
         if (participant) {
@@ -209,10 +201,7 @@ export const judgePortalRouter = createTRPCRouter({
 
         // Find existing judge profile or create one for this hackathon
         let judge = await tx.query.judges.findFirst({
-          where: and(
-            eq(judges.userId, ctx.userId),
-            eq(judges.hackathonId, input.hackathonId),
-          ),
+          where: { userId: ctx.userId, hackathonId: input.hackathonId },
         });
 
         if (judge) {
@@ -268,10 +257,7 @@ export const judgePortalRouter = createTRPCRouter({
         // The application itself: one per judge per edition, carrying the
         // preferred track.
         const existingAssignment = await tx.query.judgeAssignments.findFirst({
-          where: and(
-            eq(judgeAssignments.judgeId, judge.id),
-            eq(judgeAssignments.hackathonId, input.hackathonId),
-          ),
+          where: { judgeId: judge.id, hackathonId: input.hackathonId },
         });
 
         if (existingAssignment) {

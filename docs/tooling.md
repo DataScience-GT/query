@@ -43,6 +43,12 @@ The code tools build a graph of `sites/`, `packages/` and `tooling/` with `@babe
 
 All but `run_check` only read files. The readers scan the source text rather than importing it, so they need no database or environment, and a change to how routers or schemas are written may need a matching change in `tooling/mcp/src`. Its tests run the readers against the repo and fail when they drift.
 
+## Drizzle MCP server and skill
+
+`.mcp.json` also registers `drizzle`: the MCP server that ships with drizzle-kit (`pnpm --dir packages/db exec drizzle-kit mcp`), with the `generate`, `push`, `pull`, `check`, `export`, `up` and `fix_conflicts` tools. Its `push` and `pull` use the database in `packages/db/drizzle.config.ts`, which reads `DATABASE_URL`, so point that at a local database before an agent calls them. Production schema changes go through the deploy, never through an agent.
+
+The matching agent skill is installed per machine, not committed: run `pnpm --dir packages/db exec drizzle-kit skills`. It writes `packages/db/.agents/skills/drizzle` (with a Claude Code link in `packages/db/.claude/skills`) and `packages/db/skills-lock.json`, all gitignored. Re-run it after a drizzle-kit upgrade; the skill says so when it is stale.
+
 ## Build version
 
 `sites/mainweb/next.config.mjs` stamps every build with `NEXT_PUBLIC_APP_VERSION` as `MAJOR.MINOR.PATCH`, and with the short SHA as `NEXT_PUBLIC_APP_COMMIT`. `/api/ping` returns both, so `curl https://datasciencegt.org/api/ping` shows what is live.
@@ -53,7 +59,7 @@ All but `run_check` only read files. The readers scan the source text rather tha
 - A build with no git at all reports the `package.json` version as is.
 - A turbo cache hit replays the version of the build it cached, which is the same code.
 
-To ship a release worth naming, run `pnpm version:set 4.1.0` in a PR. The patch restarts from that commit.
+To ship a release worth naming, run `pnpm version:set 4.2.0` in a PR. The patch restarts from that commit.
 
 ### Which versions mean something
 
@@ -83,6 +89,7 @@ The versions before 3.4 were assigned after the fact, from the repo history.
 | 3.6 | 2026-11 | Lighter portal: judging console and desk load on demand, sign-in and error pages skip the portal data stack, the sidebar nav is drawn on the server |
 | 4.0 | 2026-11 | One design across the public site and portal (dark teal, DS@GT logo), shared confirm dialog and error screens, per-page tab titles |
 | 4.1 | 2026-11 | Security fixes, judge application review screen with an in-person question, optional shared Redis (Upstash) for cache invalidation and rate limits, off until Hacklytics 2027 |
+| 4.2 | 2026-11 | Drizzle ORM and Kit 1.0 (rc.6) with the drizzle-kit MCP server for agents, ui-sdk, event photos across the public site at higher quality, a fuller History page |
 
 ## Other root files
 

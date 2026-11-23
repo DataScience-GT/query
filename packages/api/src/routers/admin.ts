@@ -4,7 +4,6 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import {
   admins,
-  users,
   events,
   eventCheckIns,
   hackathons,
@@ -12,7 +11,7 @@ import {
   hackathonEventAttendees,
   members,
 } from "@query/db";
-import { eq, and, count, gte, inArray, sql } from "drizzle-orm";
+import { eq, count, gte, inArray } from "drizzle-orm";
 import { CacheKeys, invalidatePortalContext } from "../middleware/cache";
 import { isAdmin } from "../middleware/procedures";
 import { recordAdminAction } from "../middleware/audit";
@@ -70,10 +69,7 @@ export const adminRouter = createTRPCRouter({
       });
     }
     const admin = await (ctx.db as DrizzleDB).query.admins.findFirst({
-      where: and(
-        eq(admins.userId, ctx.userId as string),
-        eq(admins.isActive, true),
-      ),
+      where: { userId: ctx.userId as string, isActive: true },
     });
 
     const expired = isExpiredAdmin(admin);
@@ -345,14 +341,17 @@ export const adminRouter = createTRPCRouter({
       const user = await (ctx.db as DrizzleDB).query.users.findFirst({
         // lower() on both sides: some older rows kept the casing they were typed
         // in. Served by user_email_lower_unique_idx.
-        where: sql`lower(${users.email}) = ${input.email.toLowerCase()}`,
+        where: {
+          RAW: (table, { sql }) =>
+            sql`lower(${table.email}) = ${input.email.toLowerCase()}`,
+        },
         columns: { id: true, name: true, email: true, image: true },
       });
 
       if (!user) return null;
 
       const existing = await (ctx.db as DrizzleDB).query.admins.findFirst({
-        where: eq(admins.userId, user.id),
+        where: { userId: user.id },
         columns: { id: true, role: true, isActive: true, expiresAt: true },
       });
 
@@ -383,11 +382,11 @@ export const adminRouter = createTRPCRouter({
       // Parallel check: user exists AND not already admin
       const [user, existingAdmin] = await Promise.all([
         (ctx.db as DrizzleDB).query.users.findFirst({
-          where: eq(users.id, input.userId),
+          where: { id: input.userId },
           columns: { id: true },
         }),
         (ctx.db as DrizzleDB).query.admins.findFirst({
-          where: eq(admins.userId, input.userId),
+          where: { userId: input.userId },
           columns: { id: true },
         }),
       ]);
@@ -460,7 +459,7 @@ export const adminRouter = createTRPCRouter({
       });
 
       const targetAdmin = await (ctx.db as DrizzleDB).query.admins.findFirst({
-        where: eq(admins.id, input.adminId),
+        where: { id: input.adminId },
       });
 
       if (!targetAdmin) {
@@ -500,7 +499,7 @@ export const adminRouter = createTRPCRouter({
 
       if (removesSuperAdmin) {
         const superAdmins = await (ctx.db as DrizzleDB).query.admins.findMany({
-          where: and(eq(admins.role, "super_admin"), eq(admins.isActive, true)),
+          where: { role: "super_admin", isActive: true },
           columns: { id: true, expiresAt: true },
         });
 
@@ -560,7 +559,7 @@ export const adminRouter = createTRPCRouter({
     .input(z.object({ adminId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const targetAdmin = await (ctx.db as DrizzleDB).query.admins.findFirst({
-        where: eq(admins.id, input.adminId),
+        where: { id: input.adminId },
       });
 
       if (!targetAdmin) {

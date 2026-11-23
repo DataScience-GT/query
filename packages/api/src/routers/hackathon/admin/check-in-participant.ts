@@ -6,11 +6,7 @@ import {
   recordEventAttendance,
 } from "../../../services/points";
 import { flaggingRuleBreaks } from "../../../services/check-in-flags";
-import {
-  hackathonParticipants,
-  hackathonEvents,
-  hackathonEventAttendees,
-} from "@query/db";
+import { hackathonParticipants } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { evictParticipantCaches } from "./seats";
@@ -32,10 +28,7 @@ export async function checkInParticipant(
 ) {
   // 1. Verify participant exists and belongs to this hackathon
   const participant = await ctx.db.query.hackathonParticipants.findFirst({
-    where: and(
-      eq(hackathonParticipants.id, input.participantId),
-      eq(hackathonParticipants.hackathonId, input.hackathonId),
-    ),
+    where: { id: input.participantId, hackathonId: input.hackathonId },
     with: { user: true },
   });
 
@@ -60,10 +53,7 @@ export async function checkInParticipant(
 
   // 2. Verify event exists and belongs to this hackathon
   const event = await ctx.db.query.hackathonEvents.findFirst({
-    where: and(
-      eq(hackathonEvents.id, input.eventId),
-      eq(hackathonEvents.hackathonId, input.hackathonId),
-    ),
+    where: { id: input.eventId, hackathonId: input.hackathonId },
   });
 
   if (!event) {
@@ -82,10 +72,7 @@ export async function checkInParticipant(
 
   // 3. Check for existing check-in to prevent duplicates
   const existingScan = await ctx.db.query.hackathonEventAttendees.findFirst({
-    where: and(
-      eq(hackathonEventAttendees.eventId, input.eventId),
-      eq(hackathonEventAttendees.participantId, input.participantId),
-    ),
+    where: { eventId: input.eventId, participantId: input.participantId },
   });
 
   const attendance = {

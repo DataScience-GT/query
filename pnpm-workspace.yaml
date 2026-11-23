@@ -19,7 +19,7 @@ catalog:
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
   astro: 7.4.12
-  drizzle-orm: 0.45.4
+  drizzle-orm: 1.0.0-rc.6
   eslint-plugin-turbo: 2.11.10
   next: 16.4.5
   next-auth: 5.0.0-beta.32
@@ -77,3 +77,8 @@ frozenLockfile: false
 allowBuilds:
   "@parcel/watcher": false
   esbuild: false
+minimumReleaseAgeExclude:
+  - "@ui-sdk/core@0.1.0-beta.16"
+  - "@ui-sdk/react@0.1.0-beta.16"
+patchedDependencies:
+  '@auth/drizzle-adapter@1.11.3': patches/@auth__drizzle-adapter@1.11.3.patch

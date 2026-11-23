@@ -1,8 +1,6 @@
 // Who may take part (admitted, checked in) and which project row a participant owns.
 
 import { TRPCError } from "@trpc/server";
-import { hackathonProjects } from "@query/db";
-import { eq, and, isNull } from "drizzle-orm";
 import type { Tx } from "./windows";
 
 // The single project row a participant owns: their team's entry, or the solo
@@ -14,15 +12,13 @@ export function ownProjectWhere(
   teamId: string | null | undefined,
   participantId: string,
 ) {
-  return and(
-    eq(hackathonProjects.hackathonId, hackathonId),
-    teamId
-      ? eq(hackathonProjects.teamId, teamId)
-      : and(
-          isNull(hackathonProjects.teamId),
-          eq(hackathonProjects.submittedById, participantId),
-        ),
-  );
+  return teamId
+    ? { hackathonId, teamId }
+    : {
+        hackathonId,
+        teamId: { isNull: true as const },
+        submittedById: participantId,
+      };
 }
 
 // Only admitted applicants take part. This used to block `rejected` and

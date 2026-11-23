@@ -66,7 +66,7 @@ const staleItem = (name: string) =>
 export const pointsStoreRouter = createTRPCRouter({
   settings: isAdmin.input(hackathonScope).query(async ({ ctx, input }) => {
     const hackathon = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
-      where: eq(hackathons.id, input.hackathonId),
+      where: { id: input.hackathonId },
       columns: {
         storeCatalogVisible: true,
         storeOpen: true,
@@ -178,7 +178,7 @@ export const pointsStoreRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const hackathon = await db.query.hackathons.findFirst({
-        where: eq(hackathons.id, input.hackathonId),
+        where: { id: input.hackathonId },
         columns: { id: true },
       });
 
@@ -226,10 +226,7 @@ export const pointsStoreRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const current = await db.query.hackathonStoreItems.findFirst({
-        where: and(
-          eq(hackathonStoreItems.id, input.itemId),
-          eq(hackathonStoreItems.hackathonId, input.hackathonId),
-        ),
+        where: { id: input.itemId, hackathonId: input.hackathonId },
       });
 
       if (!current) {
@@ -361,10 +358,7 @@ export const pointsStoreRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const participant = await db.query.hackathonParticipants.findFirst({
-        where: and(
-          eq(hackathonParticipants.id, input.participantId),
-          eq(hackathonParticipants.hackathonId, input.hackathonId),
-        ),
+        where: { id: input.participantId, hackathonId: input.hackathonId },
         columns: {
           id: true,
           firstName: true,

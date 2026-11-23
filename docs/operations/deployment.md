@@ -19,7 +19,7 @@ Config: [`apphosting.yaml`](../../apphosting.yaml) at the repo root.
 Build command (abbreviated):
 
 1. `pnpm install`
-2. `drizzle-kit push --verbose < /dev/null` on `@query/db` (additive only; destructive waits for a TTY confirmation that stdin cannot give)
+2. `drizzle-kit push --verbose < /dev/null` on `@query/db` (additive only; anything destructive needs a confirmation that stdin cannot give, so push applies nothing and exits 2, which stops the build)
 3. `pnpm --filter @query/db db:check` — **fails the build** if a declared column is missing
 4. `pnpm turbo run build --filter=web`
 5. Copy `.next/static` (and `public` if present) into the standalone tree

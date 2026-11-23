@@ -2,10 +2,66 @@
 
 import { z } from "zod";
 import { isAdmin } from "../../../middleware/procedures";
-import { hackathonParticipants, memberResumes } from "@query/db";
+import { hackathonParticipants, memberResumes, users } from "@query/db";
 import { inArray, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { PARTICIPANT_STATUSES, buildAttendeeWhere } from "./attendee-where";
+
+// buildAttendeeWhere as a relational-query filter, for db.query...findMany.
+// The same rules as the builder version; the search clause is raw SQL written
+// against the query's own table alias.
+type AttendeeFilter = NonNullable<
+  NonNullable<
+    Parameters<DrizzleDB["query"]["hackathonParticipants"]["findMany"]>[0]
+  >["where"]
+>;
+
+const buildAttendeeFilter = (input: {
+  hackathonId: string;
+  search?: string;
+  status?: z.infer<typeof PARTICIPANT_STATUSES>;
+  unconfirmedOnly?: boolean;
+}) => {
+  const clauses: AttendeeFilter[] = [];
+
+  if (input.status) {
+    clauses.push({ registrationStatus: input.status });
+  }
+
+  if (input.unconfirmedOnly) {
+    clauses.push(
+      { registrationStatus: "approved" },
+      { attendanceConfirmedAt: { isNull: true } },
+    );
+  }
+
+  const term = input.search?.trim();
+  if (term) {
+    // Escaped so a literal % or _ in a name searches for that character instead
+    // of turning into a wildcard.
+    const pattern = `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+    clauses.push({
+      RAW: (table, { sql: rawSql }) =>
+        rawSql`(
+        ${table.firstName} ilike ${pattern}
+        or ${table.lastName} ilike ${pattern}
+        or ${table.school} ilike ${pattern}
+        or ${table.major} ilike ${pattern}
+        or ${table.whyAttend} ilike ${pattern}
+        or exists (
+          select 1 from ${users} as attendee_user
+          where attendee_user."id" = ${table.userId}
+            and (attendee_user."name" ilike ${pattern} or attendee_user."email" ilike ${pattern})
+        )
+      )`,
+    });
+  }
+
+  return {
+    hackathonId: input.hackathonId,
+    ...(clauses.length > 0 ? { AND: clauses } : {}),
+  };
+};
 
 export const rosterProcedures = {
   adminGetAttendees: isAdmin
@@ -30,7 +86,7 @@ export const rosterProcedures = {
 
       const [rows, [totals]] = await Promise.all([
         db.query.hackathonParticipants.findMany({
-          where,
+          where: buildAttendeeFilter(input),
           // The table and its expanded row. Left out: the consent flags,
           // demographics the row does not draw (pronouns, race, underrepresented,
           // first generation), hardware, member and wave ids, the team (the table does
@@ -147,7 +203,7 @@ export const rosterProcedures = {
     )
     .query(async ({ ctx, input }) => {
       return await (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
-        where: buildAttendeeWhere(input),
+        where: buildAttendeeFilter(input),
         with: {
           user: { columns: { id: true, name: true, email: true } },
           team: { columns: { id: true, name: true } },

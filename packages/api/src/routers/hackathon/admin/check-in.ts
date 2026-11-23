@@ -11,11 +11,7 @@ import {
   searchParticipants,
 } from "../../../services/points";
 import { flaggingRuleBreaks } from "../../../services/check-in-flags";
-import {
-  hackathonParticipants,
-  hackathonEvents,
-  hackathonEventAttendees,
-} from "@query/db";
+import { hackathonEventAttendees } from "@query/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { checkInParticipant } from "./check-in-participant";
@@ -39,10 +35,7 @@ export const checkInProcedures = {
       // Scoped through the event's own hackathonId rather than the pair in the
       // input, so an eventId from another edition returns nothing.
       const event = await db.query.hackathonEvents.findFirst({
-        where: and(
-          eq(hackathonEvents.id, input.eventId),
-          eq(hackathonEvents.hackathonId, input.hackathonId),
-        ),
+        where: { id: input.eventId, hackathonId: input.hackathonId },
         columns: { id: true },
       });
 
@@ -52,7 +45,7 @@ export const checkInProcedures = {
 
       const [rows, [totals]] = await Promise.all([
         db.query.hackathonEventAttendees.findMany({
-          where: eq(hackathonEventAttendees.eventId, input.eventId),
+          where: { eventId: input.eventId },
           with: {
             participant: {
               columns: { id: true, firstName: true, lastName: true },
@@ -87,10 +80,7 @@ export const checkInProcedures = {
       const db = ctx.db as DrizzleDB;
 
       const event = await db.query.hackathonEvents.findFirst({
-        where: and(
-          eq(hackathonEvents.id, input.eventId),
-          eq(hackathonEvents.hackathonId, input.hackathonId),
-        ),
+        where: { id: input.eventId, hackathonId: input.hackathonId },
         columns: { id: true },
       });
 
@@ -206,10 +196,7 @@ export const checkInProcedures = {
       const db = ctx.db as DrizzleDB;
 
       const event = await db.query.hackathonEvents.findFirst({
-        where: and(
-          eq(hackathonEvents.id, input.eventId),
-          eq(hackathonEvents.hackathonId, input.hackathonId),
-        ),
+        where: { id: input.eventId, hackathonId: input.hackathonId },
         columns: { id: true },
       });
 
@@ -262,10 +249,7 @@ export const checkInProcedures = {
 
       const [participant, event] = await Promise.all([
         db.query.hackathonParticipants.findFirst({
-          where: and(
-            eq(hackathonParticipants.id, input.participantId),
-            eq(hackathonParticipants.hackathonId, input.hackathonId),
-          ),
+          where: { id: input.participantId, hackathonId: input.hackathonId },
           columns: {
             id: true,
             firstName: true,
@@ -275,10 +259,7 @@ export const checkInProcedures = {
           with: { user: { columns: { name: true, email: true } } },
         }),
         db.query.hackathonEvents.findFirst({
-          where: and(
-            eq(hackathonEvents.id, input.eventId),
-            eq(hackathonEvents.hackathonId, input.hackathonId),
-          ),
+          where: { id: input.eventId, hackathonId: input.hackathonId },
           columns: {
             id: true,
             name: true,

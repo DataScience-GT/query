@@ -1,7 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, textUploadProcedure } from "../trpc";
-import { admins, hackathonBans, users, projectLeaders } from "@query/db";
-import { eq, and } from "drizzle-orm";
+import type { admins, projectLeaders } from "@query/db";
 import { CacheKeys } from "./cache";
 import {
   isStaffRole,
@@ -23,7 +22,7 @@ export const callerIsAdmin = async (ctx: Context) => {
   if (cached !== null) return cached;
 
   const admin = await ctx.db.query.admins.findFirst({
-    where: and(eq(admins.userId, ctx.userId), eq(admins.isActive, true)),
+    where: { userId: ctx.userId, isActive: true },
   });
 
   // Staff only: this widens public responses and, through isProjectLeader,
@@ -47,10 +46,7 @@ const loadAdminRow = async (ctx: Context) => {
   if (!admin) {
     admin =
       (await (ctx.db as NonNullable<typeof ctx.db>).query.admins.findFirst({
-        where: and(
-          eq(admins.userId, ctx.userId as string),
-          eq(admins.isActive, true),
-        ),
+        where: { userId: ctx.userId as string, isActive: true },
       })) ?? null;
 
     if (admin) ctx.cache.set(cacheKey, admin, 60);
@@ -159,10 +155,7 @@ export const isProjectLeader = protectedProcedure.use(async ({ ctx, next }) => {
   if (leader === null) {
     leader =
       (await db.query.projectLeaders.findFirst({
-        where: and(
-          eq(projectLeaders.userId, userId),
-          eq(projectLeaders.isActive, true),
-        ),
+        where: { userId, isActive: true },
       })) ?? false;
 
     ctx.cache.set(cacheKey, leader, 60);
@@ -206,7 +199,7 @@ export const notHackathonBanned = protectedProcedure.use(
     let email = ctx.session?.user?.email ?? null;
     if (!email) {
       const user = await db.query.users.findFirst({
-        where: eq(users.id, ctx.userId as string),
+        where: { id: ctx.userId as string },
         columns: { email: true },
       });
       email = user?.email ?? null;
@@ -217,7 +210,7 @@ export const notHackathonBanned = protectedProcedure.use(
       let banned = ctx.cache.get<boolean>(key);
       if (banned === null) {
         const ban = await db.query.hackathonBans.findFirst({
-          where: eq(hackathonBans.email, email.trim().toLowerCase()),
+          where: { email: email.trim().toLowerCase() },
           columns: { id: true },
         });
         banned = !!ban;

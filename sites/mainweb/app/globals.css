@@ -1,5 +1,17 @@
+@layer ui-sdk;
 @import "tailwindcss";
+@import "@ui-sdk/core/web.css" layer(components);
 @import "@query/ui/theme.css";
+
+/* ui-sdk's base styles underline and recolor every link. The site styles its
+   links itself and relies on Tailwind's reset, so links keep inheriting here;
+   rules in `components` itself outrank the `components.ui-sdk` sublayer. */
+@layer components {
+  a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+}
 
 /* The site is dark by default. This `body` rule is unlayered, so it outranks
    every Tailwind utility regardless of specificity — the `bg-[#050505]` class

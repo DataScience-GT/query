@@ -4,16 +4,10 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc";
 import { notHackathonBanned } from "../../middleware/procedures";
-import {
-  hackathonTeams,
-  hackathonParticipants,
-  hackathonProjects,
-  hackathons,
-  judgingEntries,
-} from "@query/db";
-import { eq, and, isNull, isNotNull } from "drizzle-orm";
+import { hackathonParticipants, hackathonProjects } from "@query/db";
+import { eq } from "drizzle-orm";
 import { isUniqueViolation } from "../../middleware/db-errors";
-import type { DrizzleDB } from "@query/db";
+import type { DrizzleDB, hackathons } from "@query/db";
 import { computeSubmissionWindow, checkWithdrawWindow } from "./windows";
 import type { Tx } from "./windows";
 import { ownProjectWhere, checkCheckedIn } from "./guards";
@@ -99,10 +93,10 @@ async function assertNotPulledByOrganiser(tx: Tx, project: Project) {
   if (project.withdrawnByAdminAt) throw withdrawn();
 
   const pulled = await tx.query.judgingEntries.findFirst({
-    where: and(
-      eq(judgingEntries.sourceProjectId, project.id),
-      isNotNull(judgingEntries.deletedAt),
-    ),
+    where: {
+      sourceProjectId: project.id,
+      deletedAt: { isNotNull: true },
+    },
     columns: { id: true },
   });
   if (pulled) throw withdrawn();
@@ -117,10 +111,7 @@ async function assertTeamCaptain(
 ) {
   // Verify team belongs to this hackathon
   const team = await tx.query.hackathonTeams.findFirst({
-    where: and(
-      eq(hackathonTeams.id, teamId),
-      eq(hackathonTeams.hackathonId, hackathonId),
-    ),
+    where: { id: teamId, hackathonId },
   });
 
   if (!team) {
@@ -147,10 +138,10 @@ export const submissionProcedures = {
 
       // 1. Verify user is registered for hackathon
       const participant = await db.query.hackathonParticipants.findFirst({
-        where: and(
-          eq(hackathonParticipants.hackathonId, input.hackathonId),
-          eq(hackathonParticipants.userId, ctx.userId as string),
-        ),
+        where: {
+          hackathonId: input.hackathonId,
+          userId: ctx.userId as string,
+        },
         with: { team: true },
       });
 
@@ -165,7 +156,7 @@ export const submissionProcedures = {
 
       // 1.5. Verify hackathon is not past the submission window
       const hackathon = await db.query.hackathons.findFirst({
-        where: eq(hackathons.id, input.hackathonId),
+        where: { id: input.hackathonId },
       });
 
       if (!hackathon) {
@@ -314,10 +305,10 @@ export const submissionProcedures = {
       return await (ctx.db as NonNullable<typeof ctx.db>).transaction(
         async (tx) => {
           const participant = await tx.query.hackathonParticipants.findFirst({
-            where: and(
-              eq(hackathonParticipants.hackathonId, input.hackathonId),
-              eq(hackathonParticipants.userId, ctx.userId as string),
-            ),
+            where: {
+              hackathonId: input.hackathonId,
+              userId: ctx.userId as string,
+            },
           });
 
           if (!participant) {
@@ -346,7 +337,7 @@ export const submissionProcedures = {
           // submitProject already applies.
           if (participant.teamId) {
             const team = await tx.query.hackathonTeams.findFirst({
-              where: eq(hackathonTeams.id, participant.teamId),
+              where: { id: participant.teamId },
             });
             if (team && team.captainId !== (ctx.userId as string)) {
               throw new TRPCError({
@@ -360,10 +351,10 @@ export const submissionProcedures = {
           // that already reference it. Judging has it when the status says so or
           // when it was promoted into a judging entry that is still live.
           const inJudging = await tx.query.judgingEntries.findFirst({
-            where: and(
-              eq(judgingEntries.sourceProjectId, project.id),
-              isNull(judgingEntries.deletedAt),
-            ),
+            where: {
+              sourceProjectId: project.id,
+              deletedAt: { isNull: true },
+            },
             columns: { id: true },
           });
           if (

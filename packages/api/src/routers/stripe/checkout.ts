@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc";
-import { members, stripePayments } from "@query/db";
+import { stripePayments } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
 import { siteOrigin } from "@query/core/server";
@@ -56,7 +56,7 @@ export const checkoutProcedures = {
       }
 
       const user = await ctx.db!.query.users.findFirst({
-        where: eq((await import("@query/db")).users.id, ctx.userId!),
+        where: { id: ctx.userId! },
       });
 
       if (!user?.email) {
@@ -203,7 +203,7 @@ export const checkoutProcedures = {
     )
     .mutation(async ({ ctx, input }) => {
       const user = await ctx.db!.query.users.findFirst({
-        where: eq((await import("@query/db")).users.id, ctx.userId!),
+        where: { id: ctx.userId! },
       });
 
       if (!user?.email) {
@@ -217,7 +217,7 @@ export const checkoutProcedures = {
       // their own row, never an input flag — otherwise a non-member could ask for
       // add-on pricing and get bootcamp access for $10.
       const member = await ctx.db!.query.members.findFirst({
-        where: eq(members.userId, ctx.userId!),
+        where: { userId: ctx.userId! },
         columns: { isActive: true, membershipEndDate: true },
       });
       const membershipActive = !!(
@@ -425,7 +425,7 @@ export const checkoutProcedures = {
       }
 
       const user = await ctx.db!.query.users.findFirst({
-        where: eq((await import("@query/db")).users.id, ctx.userId!),
+        where: { id: ctx.userId! },
       });
 
       const nameParts = (user?.name || "Member").split(" ");
@@ -439,7 +439,7 @@ export const checkoutProcedures = {
 
       // Check if already processed (idempotent)
       const existing = await ctx.db!.query.stripePayments.findFirst({
-        where: eq(stripePayments.stripePaymentIntentId, pi.id),
+        where: { stripePaymentIntentId: pi.id },
       });
 
       // A grant that throws leaves a recorded payment and no membership. Reconcile

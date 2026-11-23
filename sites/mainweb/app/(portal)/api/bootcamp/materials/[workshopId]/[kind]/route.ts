@@ -99,7 +99,7 @@ export async function POST(
   }
 
   const workshop = await (db as DrizzleDB).query.bootcampWorkshops.findFirst({
-    where: eq(bootcampWorkshops.id, workshopId),
+    where: { id: workshopId },
     columns: { id: true },
   });
   if (!workshop) return notFound();
@@ -225,7 +225,7 @@ export async function GET(
   }
 
   const workshop = await (db as DrizzleDB).query.bootcampWorkshops.findFirst({
-    where: eq(bootcampWorkshops.id, workshopId),
+    where: { id: workshopId },
   });
   if (!workshop) return notFound();
 

@@ -3,9 +3,9 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc";
-import { stripePayments, userAccountLinks, users } from "@query/db";
+import { stripePayments, userAccountLinks } from "@query/db";
 import type { DrizzleDB } from "@query/db";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { logSecurityEvent } from "../../middleware/security";
 import {
   createOrUpdateMembership,
@@ -31,24 +31,24 @@ export const linkingProcedures = {
 
     return await ctx.db!.transaction(async (tx) => {
       const user = await tx.query.users.findFirst({
-        where: eq((await import("@query/db")).users.id, ctx.userId!),
+        where: { id: ctx.userId! },
       });
 
       if (!user?.email) return { success: false };
 
       const payment = await tx.query.stripePayments.findFirst({
-        where: and(
-          eq(stripePayments.customerEmail, user.email),
-          isNull(stripePayments.linkedUserId),
-          eq(stripePayments.paymentStatus, "paid"),
-        ),
+        where: {
+          customerEmail: user.email,
+          linkedUserId: { isNull: true },
+          paymentStatus: "paid",
+        },
       });
 
       if (!payment) return { success: false };
 
       // Verify not already linked (double check)
       const existingLink = await tx.query.userAccountLinks.findFirst({
-        where: eq(userAccountLinks.userId, ctx.userId!),
+        where: { userId: ctx.userId! },
       });
       if (existingLink) return { success: true };
 
@@ -96,7 +96,7 @@ export const linkingProcedures = {
   // email (the auto-link case).
   checkPendingPayment: protectedProcedure.query(async ({ ctx }) => {
     const user = await ctx.db!.query.users.findFirst({
-      where: eq((await import("@query/db")).users.id, ctx.userId!),
+      where: { id: ctx.userId! },
     });
 
     if (!user?.email) {
@@ -104,11 +104,11 @@ export const linkingProcedures = {
     }
 
     const pendingPayment = await ctx.db!.query.stripePayments.findFirst({
-      where: and(
-        eq(stripePayments.customerEmail, user.email),
-        isNull(stripePayments.linkedUserId),
-        eq(stripePayments.paymentStatus, "paid"),
-      ),
+      where: {
+        customerEmail: user.email,
+        linkedUserId: { isNull: true },
+        paymentStatus: "paid",
+      },
     });
 
     return {
@@ -132,11 +132,11 @@ export const linkingProcedures = {
     .mutation(async ({ ctx, input }) => {
       return await ctx.db!.transaction(async (tx) => {
         const payment = await tx.query.stripePayments.findFirst({
-          where: and(
-            eq(stripePayments.customerEmail, input.email.toLowerCase()),
-            isNull(stripePayments.linkedUserId),
-            eq(stripePayments.paymentStatus, "paid"),
-          ),
+          where: {
+            customerEmail: input.email.toLowerCase(),
+            linkedUserId: { isNull: true },
+            paymentStatus: "paid",
+          },
         });
 
         if (!payment) {
@@ -154,7 +154,7 @@ export const linkingProcedures = {
         // the payment (which covers paying personally and signing up with a school
         // address, and payments Stripe recorded without a name).
         const account = await tx.query.users.findFirst({
-          where: eq(users.id, ctx.userId!),
+          where: { id: ctx.userId! },
           columns: { email: true },
         });
 
@@ -199,7 +199,7 @@ export const linkingProcedures = {
         }
 
         const existingLink = await tx.query.userAccountLinks.findFirst({
-          where: eq(userAccountLinks.stripePaymentId, payment.id),
+          where: { stripePaymentId: payment.id },
         });
 
         if (existingLink) {
@@ -215,7 +215,7 @@ export const linkingProcedures = {
         }
 
         const userExistingLink = await tx.query.userAccountLinks.findFirst({
-          where: eq(userAccountLinks.userId, ctx.userId!),
+          where: { userId: ctx.userId! },
         });
 
         if (userExistingLink) {
@@ -267,7 +267,7 @@ export const linkingProcedures = {
   // The current user's linked payment status.
   getLinkedPayment: protectedProcedure.query(async ({ ctx }) => {
     const link = await ctx.db!.query.userAccountLinks.findFirst({
-      where: eq(userAccountLinks.userId, ctx.userId!),
+      where: { userId: ctx.userId! },
       with: {
         stripePayment: true,
       },

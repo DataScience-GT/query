@@ -1672,8 +1672,14 @@ describe("Hackathon admin management edge cases", () => {
 
   // =====================================================================
   describe("Chasing unconfirmed seats", () => {
-    const whereOf = () =>
-      JSON.stringify(mockFindMany.mock.calls[0]?.[1]?.where);
+    const whereOf = () => mockFindMany.mock.calls[0]?.[1]?.where;
+    const UNCONFIRMED = {
+      hackathonId: HACK_A,
+      AND: [
+        { registrationStatus: "approved" },
+        { attendanceConfirmedAt: { isNull: true } },
+      ],
+    };
 
     it("narrows the roster to accepted hackers who have not said they are coming", async () => {
       const caller = adminCaller();
@@ -1683,8 +1689,7 @@ describe("Hackathon admin management edge cases", () => {
         unconfirmedOnly: true,
       });
 
-      expect(whereOf()).toContain("attendance_confirmed_at");
-      expect(whereOf()).toContain("approved");
+      expect(whereOf()).toEqual(UNCONFIRMED);
     });
 
     it("does not filter on confirmation unless asked", async () => {
@@ -1692,7 +1697,7 @@ describe("Hackathon admin management edge cases", () => {
 
       await caller.hackathon.adminGetAttendees({ hackathonId: HACK_A });
 
-      expect(whereOf()).not.toContain("attendance_confirmed_at");
+      expect(whereOf()).toEqual({ hackathonId: HACK_A });
     });
 
     it("applies the same filter to the export, so the file matches the list", async () => {
@@ -1703,7 +1708,7 @@ describe("Hackathon admin management edge cases", () => {
         unconfirmedOnly: true,
       });
 
-      expect(whereOf()).toContain("attendance_confirmed_at");
+      expect(whereOf()).toEqual(UNCONFIRMED);
     });
   });
 

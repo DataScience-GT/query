@@ -4,12 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../../trpc";
 import { notHackathonBanned } from "../../middleware/procedures";
 import { CacheKeys } from "../../middleware/cache";
-import {
-  hackathons,
-  hackathonParticipants,
-  hackathonProjects,
-  members,
-} from "@query/db";
+import { hackathonParticipants } from "@query/db";
 import { eq, and, inArray, isNull, ne } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { assertHackathonVisible } from "./visibility";
@@ -105,7 +100,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
           ctx.db as DrizzleDB
         ).transaction(async (tx) => {
           const hackathon = await tx.query.hackathons.findFirst({
-            where: eq(hackathons.id, input.hackathonId),
+            where: { id: input.hackathonId },
           });
 
           if (!hackathon) {
@@ -134,10 +129,10 @@ export const hackathonRegistrationRouter = createTRPCRouter({
 
           const existingParticipant =
             await tx.query.hackathonParticipants.findFirst({
-              where: and(
-                eq(hackathonParticipants.hackathonId, input.hackathonId),
-                eq(hackathonParticipants.userId, ctx.userId as string),
-              ),
+              where: {
+                hackathonId: input.hackathonId,
+                userId: ctx.userId as string,
+              },
             });
 
           if (existingParticipant) {
@@ -154,7 +149,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
           // person alone; the edition clause used to be here and made a paying member
           // read as a non-member the moment a new edition opened.
           const member = await tx.query.members.findFirst({
-            where: eq(members.userId, ctx.userId as string),
+            where: { userId: ctx.userId as string },
           });
 
           const [participant] = await tx
@@ -241,10 +236,10 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const participant = await db.query.hackathonParticipants.findFirst({
-        where: and(
-          eq(hackathonParticipants.hackathonId, input.hackathonId),
-          eq(hackathonParticipants.userId, ctx.userId as string),
-        ),
+        where: {
+          hackathonId: input.hackathonId,
+          userId: ctx.userId as string,
+        },
         columns: { id: true, teamId: true, registrationStatus: true },
       });
 
@@ -257,7 +252,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
 
       // A finished event's registrations are its record of who took part.
       const hackathon = await db.query.hackathons.findFirst({
-        where: eq(hackathons.id, input.hackathonId),
+        where: { id: input.hackathonId },
         columns: { status: true },
       });
       if (
@@ -285,10 +280,10 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       }
 
       const project = await db.query.hackathonProjects.findFirst({
-        where: and(
-          eq(hackathonProjects.hackathonId, input.hackathonId),
-          eq(hackathonProjects.submittedById, participant.id),
-        ),
+        where: {
+          hackathonId: input.hackathonId,
+          submittedById: participant.id,
+        },
         columns: { id: true },
       });
       if (project) {
@@ -342,7 +337,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       const userId = ctx.userId as string;
 
       const hackathon = await db.query.hackathons.findFirst({
-        where: eq(hackathons.id, input.hackathonId),
+        where: { id: input.hackathonId },
         columns: { status: true, registrationDeadline: true },
       });
       if (!hackathon) {
@@ -363,10 +358,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       }
 
       const participant = await db.query.hackathonParticipants.findFirst({
-        where: and(
-          eq(hackathonParticipants.hackathonId, input.hackathonId),
-          eq(hackathonParticipants.userId, userId),
-        ),
+        where: { hackathonId: input.hackathonId, userId },
         columns: { id: true, registrationStatus: true },
       });
       if (!participant) {
@@ -449,10 +441,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       const userId = ctx.userId as string;
 
       const participant = await db.query.hackathonParticipants.findFirst({
-        where: and(
-          eq(hackathonParticipants.hackathonId, input.hackathonId),
-          eq(hackathonParticipants.userId, userId),
-        ),
+        where: { hackathonId: input.hackathonId, userId },
         columns: {
           id: true,
           registrationStatus: true,
@@ -539,7 +528,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
               attendanceConfirmedAt: true,
               hasSubmittedProject: true,
             },
-            where: eq(hackathonParticipants.userId, userId),
+            where: { userId },
             with: {
               hackathon: {
                 columns: {
@@ -596,13 +585,10 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         // Only people actually in: a pending, rejected or waitlisted applicant
         // is not listed on a page anyone can open. A status change evicts this
         // key (CACHE_INVALIDATION_MAP), so the roster follows decisions.
-        where: and(
-          eq(hackathonParticipants.hackathonId, input.hackathonId),
-          inArray(hackathonParticipants.registrationStatus, [
-            "approved",
-            "checked_in",
-          ]),
-        ),
+        where: {
+          hackathonId: input.hackathonId,
+          registrationStatus: { in: ["approved", "checked_in"] },
+        },
         // Anyone can read this roster, so it carries neither the decision made on
         // each application (registrationStatus names everyone rejected or waitlisted)
         // nor the participant id, which is the whole content of that participant's

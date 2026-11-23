@@ -1,7 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { hackathons } from "@query/db";
-import { eq } from "drizzle-orm";
-import type { DrizzleDB } from "@query/db";
+import type { DrizzleDB, hackathons } from "@query/db";
 import { callerIsAdmin } from "../../middleware/procedures";
 import type { Context } from "../../context";
 
@@ -21,7 +19,7 @@ export const assertHackathonVisible = async (
   hackathonId: string,
 ) => {
   const row = await (ctx.db as DrizzleDB).query.hackathons.findFirst({
-    where: eq(hackathons.id, hackathonId),
+    where: { id: hackathonId },
     columns: { id: true, status: true },
   });
 

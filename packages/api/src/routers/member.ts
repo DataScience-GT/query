@@ -5,7 +5,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 // membershipHistory is written by createOrUpdateMembership on a real payment,
 // and by the admin operations below when somebody pays another way.
 import { members, membershipHistory, users } from "@query/db";
-import { eq, and, ilike, or, desc, sql } from "drizzle-orm";
+import { eq, ilike, or, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import {
   clearMembershipCaches,
@@ -37,7 +37,7 @@ export const memberRouter = createTRPCRouter({
       `member:me:${ctx.userId}`,
       async () =>
         (await (ctx.db as DrizzleDB).query.members.findFirst({
-          where: eq(members.userId, ctx.userId!),
+          where: { userId: ctx.userId! },
         })) ?? null,
       60,
     );
@@ -71,7 +71,7 @@ export const memberRouter = createTRPCRouter({
       const existingMember = await (
         ctx.db as DrizzleDB
       ).query.members.findFirst({
-        where: eq(members.userId, ctx.userId!),
+        where: { userId: ctx.userId! },
       });
 
       if (existingMember) {
@@ -160,7 +160,7 @@ export const memberRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-        where: eq(members.userId, ctx.userId!),
+        where: { userId: ctx.userId! },
       });
 
       if (!member) {
@@ -212,12 +212,10 @@ export const memberRouter = createTRPCRouter({
       if (cached) return cached;
 
       const allMembers = await (ctx.db as DrizzleDB).query.members.findMany({
-        where: and(
-          eq(members.isActive, true),
-          input.memberType
-            ? eq(members.memberType, input.memberType)
-            : undefined,
-        ),
+        where: {
+          isActive: true,
+          ...(input.memberType ? { memberType: input.memberType } : {}),
+        },
         limit: input.limit,
         offset: input.offset,
         with: {
@@ -253,7 +251,7 @@ export const memberRouter = createTRPCRouter({
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-        where: eq(members.id, input.id),
+        where: { id: input.id },
         with: {
           user: {
             columns: {
@@ -294,7 +292,7 @@ export const memberRouter = createTRPCRouter({
       `member:history:${ctx.userId}`,
       async () => {
         const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-          where: eq(members.userId, ctx.userId!),
+          where: { userId: ctx.userId! },
           columns: { id: true },
           with: {
             membershipHistory: {
@@ -319,7 +317,7 @@ export const memberRouter = createTRPCRouter({
   /** The caller's own pass, for the QR an officer scans at the door. */
   myPass: protectedProcedure.query(async ({ ctx }) => {
     const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-      where: eq(members.userId, ctx.userId as string),
+      where: { userId: ctx.userId as string },
       columns: { passCode: true, firstName: true, lastName: true },
     });
 
@@ -358,7 +356,7 @@ export const memberRouter = createTRPCRouter({
     if (cached) return cached;
 
     const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-      where: eq(members.userId, ctx.userId!),
+      where: { userId: ctx.userId! },
     });
 
     if (!member) {
@@ -453,15 +451,15 @@ export const memberRouter = createTRPCRouter({
     .input(z.object({ userId: z.string().min(1).max(255) }))
     .query(async ({ ctx, input }) => {
       const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-        where: eq(members.userId, input.userId),
+        where: { userId: input.userId },
         columns: { id: true },
       });
 
       if (!member) return [];
 
       return await (ctx.db as DrizzleDB).query.membershipHistory.findMany({
-        where: eq(membershipHistory.memberId, member.id),
-        orderBy: [desc(membershipHistory.createdAt)],
+        where: { memberId: member.id },
+        orderBy: { createdAt: "desc" },
         limit: 100,
       });
     }),
@@ -489,7 +487,7 @@ export const memberRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const user = await db.query.users.findFirst({
-        where: eq(users.id, input.userId),
+        where: { id: input.userId },
         columns: { id: true, name: true },
       });
 

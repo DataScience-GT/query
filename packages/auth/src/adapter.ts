@@ -53,19 +53,19 @@ function createAdapter(): Adapter | undefined {
         token: string;
       }): Promise<VerificationToken | null> => {
         if (!db) return null;
-        const result = await db.execute(sql`
+        const result = await db.execute<{
+          identifier: string;
+          token: string;
+          expires: string | Date;
+        }>(sql`
           DELETE FROM "verificationToken"
           WHERE "identifier" = ${params.identifier} AND "token" = ${params.token}
           RETURNING *
         `);
-        if (result.rowCount === 0) {
+        const row = result.rows[0];
+        if (!row) {
           return null;
         }
-        const row = result.rows[0] as {
-          identifier: string;
-          token: string;
-          expires: string | Date;
-        };
         return {
           identifier: row.identifier,
           token: row.token,

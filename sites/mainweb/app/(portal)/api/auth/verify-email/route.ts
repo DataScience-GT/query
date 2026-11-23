@@ -247,17 +247,17 @@ export async function POST(request: NextRequest) {
       try {
         await tx.transaction(async (link) => {
           const payment = await link.query.stripePayments.findFirst({
-            where: and(
-              eq(stripePayments.customerEmail, identifier),
-              isNull(stripePayments.linkedUserId),
-              eq(stripePayments.paymentStatus, "paid"),
-            ),
+            where: {
+              customerEmail: identifier,
+              linkedUserId: { isNull: true },
+              paymentStatus: "paid",
+            },
           });
           if (!payment) return;
 
           // Check no existing link for this user
           const existingLink = await link.query.userAccountLinks.findFirst({
-            where: eq(userAccountLinks.userId, user.id),
+            where: { userId: user.id },
           });
           if (existingLink) return;
 

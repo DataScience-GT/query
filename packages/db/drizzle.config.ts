@@ -45,7 +45,10 @@ const retiredPanelTables = [
 ];
 
 export default defineConfig({
-  schema: "./src/schemas/**/*.ts",
+  // One entry file, not a glob: drizzle-kit 1.0 no longer dedupes tables that
+  // the glob reaches twice (once in its own file, once through the index
+  // re-exports) and refuses to run on "duplicate table name".
+  schema: "./src/schemas/index.ts",
   tablesFilter: retiredPanelTables.map((table) => `!${table}`),
   out: "./drizzle",
   dialect: "postgresql",

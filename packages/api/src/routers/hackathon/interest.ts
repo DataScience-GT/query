@@ -17,7 +17,7 @@ import {
   or,
   sql,
 } from "drizzle-orm";
-import { hackathonInterest, hackathons, users } from "@query/db";
+import { hackathonInterest, users } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import {
   createTRPCRouter,
@@ -83,21 +83,15 @@ type UpcomingEdition = {
 
 async function findAnnounced(db: DrizzleDB) {
   const ahead = await db.query.hackathons.findFirst({
-    where: and(
-      inArray(hackathons.status, AHEAD_STATUSES),
-      eq(hackathons.isPublic, true),
-    ),
-    orderBy: asc(hackathons.startDate),
+    where: { status: { in: AHEAD_STATUSES }, isPublic: true },
+    orderBy: { startDate: "asc" },
   });
   if (ahead) return ahead;
 
   // Between editions: the one that just finished, not the oldest on record.
   return db.query.hackathons.findFirst({
-    where: and(
-      eq(hackathons.status, "completed"),
-      eq(hackathons.isPublic, true),
-    ),
-    orderBy: desc(hackathons.startDate),
+    where: { status: "completed", isPublic: true },
+    orderBy: { startDate: "desc" },
   });
 }
 
@@ -152,10 +146,7 @@ export const hackathonInterestRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const row = await (ctx.db as DrizzleDB).query.hackathonInterest.findFirst(
         {
-          where: and(
-            eq(hackathonInterest.hackathonId, input.hackathonId),
-            eq(hackathonInterest.userId, ctx.userId),
-          ),
+          where: { hackathonId: input.hackathonId, userId: ctx.userId },
         },
       );
       return row ?? null;
@@ -180,7 +171,7 @@ export const hackathonInterestRouter = createTRPCRouter({
       }
 
       const target = await db.query.hackathons.findFirst({
-        where: eq(hackathons.id, input.hackathonId),
+        where: { id: input.hackathonId },
         columns: { id: true, status: true, isPublic: true },
       });
 
@@ -284,7 +275,7 @@ export const hackathonInterestRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
 
       const hackathon = await db.query.hackathons.findFirst({
-        where: eq(hackathons.id, input.hackathonId),
+        where: { id: input.hackathonId },
         columns: { id: true, name: true, status: true },
       });
 
