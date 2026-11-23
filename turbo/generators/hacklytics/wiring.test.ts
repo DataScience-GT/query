@@ -184,11 +184,11 @@ describe("ci.yml", () => {
     expect(wireCi(wired, handover, "live")).toBe(wired);
   });
 
-  it("asks for a hand edit when there is no archive to copy", () => {
+  it("adds no archive jobs when the file has none to copy", () => {
     const withoutArchives = CI.slice(0, CI.indexOf("  preview-live2026:"));
-    expect(() => wireCi(withoutArchives, handover, "live")).toThrow(
-      /Add the archive jobs by hand/,
-    );
+    const wiredWithout = wireCi(withoutArchives, handover, "live");
+    expect(wiredWithout).not.toMatch(/preview-live\d{4}:/);
+    expect(wireCi(wiredWithout, handover, "live")).toBe(wiredWithout);
   });
 });
 
@@ -219,7 +219,7 @@ describe("the repo's own deploy files", () => {
       files[".github/workflows/ci.yml"],
     );
     expect(files[".github/workflows/ci.yml"]).toContain(
-      `preview-${live}${next.prev}:`,
+      `hacklytics${next.next}/out`,
     );
   });
 });

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { isProbePath } from "@/lib/probe-paths";
 
 /**
  * Proxy middleware for HTTP caching.
@@ -99,6 +100,19 @@ export const config = {
 };
 
 export async function proxy(req: NextRequest): Promise<Response> {
+  // Scanner traffic (/.env, *.php, wp-*): answer before any render, and let
+  // the CDN keep the answer so a repeat probe never reaches Cloud Run.
+  if (isProbePath(req.nextUrl.pathname)) {
+    return new Response("Not found", {
+      status: 404,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "public, max-age=86400",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  }
+
   const response = NextResponse.next();
 
   response.headers.set("Cache-Control", getCacheControl(req.nextUrl.pathname));

@@ -1,4 +1,4 @@
-# CI-only override, layered on docker-compose.local.yml by tooling/scripts/src/local.ts
+# CI-only override, layered on docker/compose.local.yml by tooling/scripts/src/local.ts
 # and .github/workflows/ci.yml. The database is throwaway there, so skip
 # durability: no fsync, and keep the data in memory. Local dev does not use this
 # file and keeps its persistent volume.

@@ -5,7 +5,7 @@
     // and imports name the .ts file because Node does no resolution magic.
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2023"],
+    "lib": ["ES2025"],
     "types": ["node"],
     "allowJs": false,
     "erasableSyntaxOnly": true,

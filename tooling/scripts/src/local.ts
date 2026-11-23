@@ -6,7 +6,7 @@
  *   pnpm local:down     stop the containers, keep the data
  *   pnpm local:reset    stop them and delete the data (next local:up starts clean)
  *
- * See docker-compose.local.yml and docs/getting-started.md.
+ * See docker/compose.local.yml and docs/getting-started.md.
  */
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync } from "node:fs";
@@ -14,15 +14,15 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-// CI adds a faster, non-durable Postgres (docker-compose.ci.yml). Every compose
+// CI adds a faster, non-durable Postgres (docker/compose.ci.yml). Every compose
 // call must use the same files, or compose sees a config change and recreates
 // the container.
 const compose = [
   "docker",
   "compose",
   "-f",
-  "docker-compose.local.yml",
-  ...(process.env.CI ? ["-f", "docker-compose.ci.yml"] : []),
+  "docker/compose.local.yml",
+  ...(process.env.CI ? ["-f", "docker/compose.ci.yml"] : []),
 ];
 
 function run(command: string[]) {

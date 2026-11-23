@@ -224,6 +224,7 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <Image
+                      unoptimized
                       src={judge.user?.image || "/avatars/default.svg"}
                       alt=""
                       width={36}
