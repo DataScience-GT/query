@@ -19,7 +19,7 @@ import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { isAdmin, notHackathonBanned } from "../../middleware/procedures";
 import { recordAdminAction } from "../../middleware/audit";
-import { rateLimit } from "../../middleware/security";
+import { rateLimitShared } from "../../middleware/security";
 import {
   emailConcurrency,
   forEachWithConcurrency,
@@ -388,7 +388,7 @@ export const judgingHackerRouter = createTRPCRouter({
 
       // Per user: a campus shares one address, and the lookup below answers
       // "is this email a checked-in hacker" however carefully it is worded.
-      const limit = rateLimit(`judging-invite:${userId}`, 10, 10 / 60);
+      const limit = await rateLimitShared(`judging-invite:${userId}`, 10, 10 / 60);
       if (!limit.allowed) {
         throw new TRPCError({
           code: "TOO_MANY_REQUESTS",
