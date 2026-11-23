@@ -331,13 +331,12 @@ export const judgingEntryChallenges = pgTable(
     isOptIn: boolean("is_opt_in").notNull().default(true),
   },
   (table) => [
-    // Declared in the order drizzle-kit reads it back (constraint_column_usage,
-    // which lists columns by name), under the name the key already has. Written
-    // entry-first, push saw a different key on every deploy and dropped and
-    // re-added it. The key in the database stays (entry_id, challenge_id).
+    // Entry-first, as the key exists in the database. drizzle-kit 1.0 reads key
+    // columns back in key order; declared any other way, push drops and
+    // re-creates the key.
     primaryKey({
       name: "judging_entry_challenge_entry_id_challenge_id_pk",
-      columns: [table.challengeId, table.entryId],
+      columns: [table.entryId, table.challengeId],
     }),
     index("judging_entry_challenge_challenge_idx").on(table.challengeId),
     foreignKey({
