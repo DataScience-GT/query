@@ -139,7 +139,7 @@ export default function Navbar() {
           <Link
             href="/login"
             rel="noopener noreferrer"
-            className="mt-4 rounded-sm bg-white px-10 py-4 font-mono text-sm font-bold tracking-[0.3em] text-black uppercase shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            className="bg-dsgt-teal mt-4 inline-flex h-12 items-center justify-center rounded-sm px-6 text-[15px] font-medium text-black transition-colors hover:bg-white"
             onClick={() => setMenuOpen(false)}
           >
             Portal

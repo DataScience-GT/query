@@ -26,7 +26,7 @@ export const STATUS_LABELS: Record<ClubProjectStatus, string> = {
 };
 
 export const STATUS_CLASSES: Record<ClubProjectStatus, string> = {
-  active: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  active: "bg-[#00A8A8]/[0.12] text-[#00A8A8] border-transparent",
   revived: "bg-[#00A8A8]/10 text-[#00A8A8] border-[#00A8A8]/20",
   needs_lead: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   past: "bg-white/5 text-[#7a7a7a] border-white/10",
@@ -52,8 +52,7 @@ export const joinHref = (project: ClubProjectCard) =>
 
 export const joinLabel = (project: ClubProjectCard) => {
   if (project.status === "needs_lead") return "Lead this project";
-  if (project.initiativeId) return "Apply to join";
-  return "Express interest";
+  return "Apply to join";
 };
 
 export const isExternalJoin = (project: ClubProjectCard) =>

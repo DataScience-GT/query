@@ -199,7 +199,7 @@ export default async function BootcampPage() {
           </p>
           <Link
             href="/club/bootcamp"
-            className="bg-dsgt-teal mt-8 inline-flex min-h-11 items-center rounded-sm px-6 text-sm font-semibold text-black transition-colors hover:bg-white"
+            className="bg-dsgt-teal mt-8 inline-flex h-12 items-center justify-center rounded-sm px-6 text-[15px] font-medium text-black transition-colors hover:bg-white"
           >
             Join in the portal
           </Link>

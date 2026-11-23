@@ -16,7 +16,7 @@ export default function ProjectCard({ project }: { project: ClubProjectCard }) {
 
   return (
     <div
-      className={`group flex flex-col rounded-xl border border-white/5 bg-[#0a0a0a] p-8 transition-colors duration-300 ${
+      className={`group flex flex-col rounded-xl border border-white/5 bg-[#0a0a0a] p-8 transition-colors duration-300 [&>:last-child]:mb-0 ${
         muted ? "" : "hover:border-dsgt-teal/30"
       }`}
     >
@@ -43,48 +43,43 @@ export default function ProjectCard({ project }: { project: ClubProjectCard }) {
       </p>
 
       {project.tech.length > 0 && (
-        <div className="mb-6 flex flex-wrap gap-2">
-          {project.tech.map((tech) => (
-            <span
-              key={tech}
-              className="rounded-sm border border-white/10 bg-white/5 px-2 py-1 font-mono text-[11px] text-neutral-300"
-            >
-              {tech}
-            </span>
-          ))}
-        </div>
+        <p className="mb-6 font-mono text-[11px] leading-relaxed text-neutral-300">
+          {project.tech.join(" � ")}
+        </p>
       )}
 
-      <div className="mt-auto flex flex-wrap items-center gap-6">
-        {!muted &&
-          (external ? (
+      {(!muted || project.repoUrl) && (
+        <div className="mt-auto flex flex-wrap items-center gap-6">
+          {!muted &&
+            (external ? (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-dsgt-teal inline-flex min-h-11 items-center font-mono text-xs tracking-[0.15em] uppercase transition-colors hover:text-white md:min-h-0"
+              >
+                {joinLabel(project)} →
+              </a>
+            ) : (
+              <Link
+                href={href}
+                className="text-dsgt-teal inline-flex min-h-11 items-center font-mono text-xs tracking-[0.15em] uppercase transition-colors hover:text-white md:min-h-0"
+              >
+                {joinLabel(project)} →
+              </Link>
+            ))}
+          {project.repoUrl && (
             <a
-              href={href}
+              href={project.repoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-dsgt-teal inline-flex min-h-11 items-center font-mono text-xs tracking-[0.15em] uppercase transition-colors hover:text-white md:min-h-0"
+              className="hover:text-dsgt-teal inline-flex min-h-11 items-center font-mono text-xs tracking-[0.15em] text-neutral-400 uppercase transition-colors md:min-h-0"
             >
-              {joinLabel(project)} →
+              Repo →
             </a>
-          ) : (
-            <Link
-              href={href}
-              className="text-dsgt-teal inline-flex min-h-11 items-center font-mono text-xs tracking-[0.15em] uppercase transition-colors hover:text-white md:min-h-0"
-            >
-              {joinLabel(project)} →
-            </Link>
-          ))}
-        {project.repoUrl && (
-          <a
-            href={project.repoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-dsgt-teal inline-flex min-h-11 items-center font-mono text-xs tracking-[0.15em] text-neutral-400 uppercase transition-colors md:min-h-0"
-          >
-            Repo →
-          </a>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

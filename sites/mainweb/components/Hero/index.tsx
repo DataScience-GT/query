@@ -5,7 +5,7 @@ import { VERIFIED_MEMBERS_LABEL } from "@query/core";
 import Mini from "../Text/Mini";
 
 import type { BootcampSession } from "@/lib/bootcamp-sessions.server";
-import { eventDateParts, sessionTitle } from "@/lib/public-events";
+import { bootcampBreakNote, eventDateParts, sessionTitle } from "@/lib/public-events";
 
 import hero3 from "@/assets/images/blobs/hero3--export.svg";
 import hero2mobile from "@/assets/images/blobs/hero2-mobile--export.svg";
@@ -20,7 +20,7 @@ function NextSession({ session }: { session: BootcampSession }) {
   return (
     <>
       <p className="text-lg font-semibold leading-snug text-white">{heading}</p>
-      <p className="mt-1 text-sm text-neutral-300">
+      <p className="mt-1 text-sm text-[#E3EFEE] min-[1000px]:text-neutral-300">
         {weekday.slice(0, 3)}, {month} {day} · {time}
         {session.location ? ` · ${session.location}` : ""}
       </p>
@@ -28,13 +28,13 @@ function NextSession({ session }: { session: BootcampSession }) {
   );
 }
 
-function NoSession() {
+function NoSession({ termOver }: { termOver: boolean }) {
   return (
     <p className="text-lg font-semibold leading-snug text-white">
-      Bootcamp meets weekly during the semester.{" "}
+      {bootcampBreakNote(termOver)}{" "}
       <Link
         href="/bootcamp"
-        className="whitespace-nowrap text-dsgt-teal transition-colors hover:text-white"
+        className="whitespace-nowrap text-white underline underline-offset-4 transition-colors hover:text-white/80 min-[1000px]:text-dsgt-teal min-[1000px]:no-underline min-[1000px]:hover:text-white"
       >
         See the schedule →
       </Link>
@@ -42,11 +42,17 @@ function NoSession() {
   );
 }
 
-const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
+const Hero = ({
+  nextSession,
+  termOver,
+}: {
+  nextSession: BootcampSession | null;
+  termOver: boolean;
+}) => {
   return (
     <section
       id="hero"
-      className="relative w-full min-h-screen py-24 flex items-center justify-center px-8 overflow-hidden bg-[#050505]"
+      className="relative w-full min-h-svh pt-28 pb-16 md:min-h-0 md:pt-40 md:pb-24 flex items-center justify-center overflow-hidden bg-[#050505]"
     >
       {/* CSS picks the blob so the server HTML is already right at every width. */}
       <div className="absolute inset-0 z-0">
@@ -66,7 +72,7 @@ const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
         />
       </div>
 
-      <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-12 flex flex-col md:flex-row items-center justify-between gap-12">
         {/* Left Content */}
         <div className="flex flex-col justify-center items-start w-full md:w-3/5 space-y-6">
           <h1
@@ -81,7 +87,7 @@ const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
           </h1>
 
           <div className="max-w-md">
-            <Mini className="text-neutral-400 text-lg leading-relaxed">
+            <Mini className="text-[#E3EFEE] min-[1000px]:text-neutral-400 text-lg leading-relaxed">
               The largest student-run data science organization at Georgia Tech.
               We bridge the gap between classroom theory and production
               engineering.
@@ -90,7 +96,7 @@ const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
 
           <dl className="grid w-full max-w-xl grid-cols-1 gap-6 border-t-2 border-dsgt-teal pt-5 sm:grid-cols-[auto_1fr] sm:gap-10">
             <div>
-              <dt className="font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-400">
+              <dt className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#E3EFEE] min-[1000px]:text-neutral-400">
                 Verified members
               </dt>
               <dd className="mt-2 text-3xl font-bold leading-none tracking-tight text-white tabular-nums">
@@ -98,14 +104,14 @@ const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
               </dd>
             </div>
             <div>
-              <dt className="font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-400">
+              <dt className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#E3EFEE] min-[1000px]:text-neutral-400">
                 Next bootcamp session
               </dt>
               <dd className="mt-2">
                 {nextSession ? (
                   <NextSession session={nextSession} />
                 ) : (
-                  <NoSession />
+                  <NoSession termOver={termOver} />
                 )}
               </dd>
             </div>

@@ -3,11 +3,18 @@ import Image from "next/image";
 import Link from "next/link";
 import databricksFall from "@/assets/images/photos/databricks-fall-2025.jpg";
 import PublicPage from "@/components/PublicPage";
-import { eventDateParts, eventWhenWhere } from "@/lib/public-events";
+import { loadBootcampSessions } from "@/lib/bootcamp-sessions.server";
+import {
+  bootcampBreakNote,
+  eventDateParts,
+  eventWhenWhere,
+  splitByDay,
+} from "@/lib/public-events";
 
 import { withCheckInCounts } from "@query/api/derived-counts";
 import { startOfEasternDay } from "@query/api/eastern-time";
 import { db } from "@query/db";
+import { currentTerm } from "@query/db/services/membership";
 
 export const metadata: Metadata = {
   title: "Events",
@@ -145,7 +152,17 @@ function EventRow({ event, past }: { event: ListedEvent; past?: boolean }) {
 
 export default async function EventsPage() {
   // Two independent reads; the slower one is the whole cost.
-  const [upcoming, past] = await Promise.all([loadUpcoming(), loadPast()]);
+  const [upcoming, past, sessions] = await Promise.all([
+    loadUpcoming(),
+    loadPast(),
+    loadBootcampSessions(currentTerm()),
+  ]);
+  const bootcamp = splitByDay(sessions, startOfToday());
+  const nextSession = bootcamp.upcoming[0];
+  const nextParts = nextSession && eventDateParts(nextSession.eventDate);
+  const bootcampNote = nextParts
+    ? `The next bootcamp session is ${nextParts.month} ${nextParts.day}.`
+    : bootcampBreakNote(bootcamp.past.length > 0);
 
   return (
     <PublicPage
@@ -182,14 +199,7 @@ export default async function EventsPage() {
           </h2>
           {upcoming.length === 0 ? (
             <p className="max-w-xl text-neutral-300">
-              Nothing is scheduled right now. The{" "}
-              <Link
-                href="/bootcamp"
-                className="text-dsgt-teal underline-offset-4 hover:underline"
-              >
-                bootcamp
-              </Link>{" "}
-              meets weekly during the semester.
+              Nothing is scheduled right now. {bootcampNote}
             </p>
           ) : (
             <ul className="divide-y divide-white/5">

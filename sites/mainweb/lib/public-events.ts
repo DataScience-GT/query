@@ -59,6 +59,13 @@ export function splitByDay<T extends { eventDate: Date }>(rows: T[], from: Date)
   };
 }
 
+/** One sentence on where the bootcamp stands when no session is coming up. */
+export function bootcampBreakNote(termOver: boolean) {
+  return termOver
+    ? "This term's bootcamp has ended. The next one starts next term."
+    : "Dates for this term are not posted yet.";
+}
+
 type SummarySession = { eventDate: Date };
 const TBA = "To be announced";
 /** The bootcamp is paid, so the room is only shown in the portal to people enrolled. */
