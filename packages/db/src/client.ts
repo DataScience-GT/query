@@ -1,12 +1,12 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { sql } from "drizzle-orm";
 import { Pool } from "pg";
-import * as schema from "./schemas";
+import { relations } from "./relations";
 
 // DATABASE_URL should be set via Next.js env loading or Firebase Functions config
 const DATABASE_URL = process.env.DATABASE_URL;
 
-export type DrizzleDB = ReturnType<typeof drizzle<typeof schema>>;
+export type DrizzleDB = ReturnType<typeof drizzle<typeof relations>>;
 
 const globalForDb = globalThis as unknown as {
   conn: Pool | undefined;
@@ -61,7 +61,7 @@ if (DATABASE_URL) {
   if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
 
   pool = conn;
-  db = drizzle(conn, { schema });
+  db = drizzle({ client: conn, relations });
 } else {
   // Deliberate startup diagnostic: `db` stays null instead of throwing so
   // builds that never touch the database still succeed, which makes this the

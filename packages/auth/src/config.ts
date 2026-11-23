@@ -178,7 +178,7 @@ export const authConfig: NextAuthConfig = {
             await tx.execute(
               sql`SELECT pg_advisory_xact_lock(hashtext(${identifier}))`,
             );
-            const recent = await tx.execute(sql`
+            const recent = await tx.execute<Record<string, unknown>>(sql`
               SELECT 1 FROM "verificationToken"
               WHERE "identifier" = ${identifier} AND "token" LIKE 'custom:%'
                 AND "expires" > ${issuedWithinMinute}::timestamptz

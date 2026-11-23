@@ -9,7 +9,7 @@ import {
   uniqueIndex,
   numeric,
 } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { users } from "./auth";
 import { hackathons, hackathonProjects } from "./hackathons";
 
@@ -58,7 +58,6 @@ export const judges = pgTable(
     uniqueIndex("judge_user_hackathon_idx").on(table.userId, table.hackathonId),
   ],
 );
-
 
 export const judgeAssignments = pgTable(
   "judge_assignment",
@@ -228,75 +227,6 @@ export const hackathonResults = pgTable(
     ),
   ],
 );
-
-// Relations
-export const judgesRelations = relations(judges, ({ one, many }) => ({
-  user: one(users, {
-    fields: [judges.userId],
-    references: [users.id],
-  }),
-  hackathon: one(hackathons, {
-    fields: [judges.hackathonId],
-    references: [hackathons.id],
-  }),
-  assignments: many(judgeAssignments),
-  votes: many(judgeVotes),
-}));
-
-export const judgeAssignmentsRelations = relations(
-  judgeAssignments,
-  ({ one }) => ({
-    judge: one(judges, {
-      fields: [judgeAssignments.judgeId],
-      references: [judges.id],
-    }),
-    hackathon: one(hackathons, {
-      fields: [judgeAssignments.hackathonId],
-      references: [hackathons.id],
-    }),
-  }),
-);
-
-export const judgingProjectsRelations = relations(
-  judgingProjects,
-  ({ one, many }) => ({
-    hackathon: one(hackathons, {
-      fields: [judgingProjects.hackathonId],
-      references: [hackathons.id],
-    }),
-    votes: many(judgeVotes),
-  }),
-);
-
-export const judgeVotesRelations = relations(judgeVotes, ({ one }) => ({
-  judge: one(judges, {
-    fields: [judgeVotes.judgeId],
-    references: [judges.id],
-  }),
-  project: one(judgingProjects, {
-    fields: [judgeVotes.projectId],
-    references: [judgingProjects.id],
-  }),
-}));
-
-export const hackathonResultsRelations = relations(
-  hackathonResults,
-  ({ one }) => ({
-    hackathon: one(hackathons, {
-      fields: [hackathonResults.hackathonId],
-      references: [hackathons.id],
-    }),
-    project: one(judgingProjects, {
-      fields: [hackathonResults.projectId],
-      references: [judgingProjects.id],
-    }),
-    sourceProject: one(hackathonProjects, {
-      fields: [hackathonResults.sourceProjectId],
-      references: [hackathonProjects.id],
-    }),
-  }),
-);
-
 
 // "I might judge." A short public form on the Hacklytics site, no account. It
 // is a lead list, not an application: nobody here has a user row, so it is

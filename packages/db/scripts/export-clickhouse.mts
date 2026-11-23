@@ -129,7 +129,7 @@ const readJson = (raw: string | null) => {
 };
 
 const pool = new Pool({ connectionString: DATABASE_URL, max: 2 });
-const db = drizzle(pool);
+const db = drizzle({ client: pool });
 
 try {
   await ensureHackathonTables();

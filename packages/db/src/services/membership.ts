@@ -49,12 +49,11 @@ export async function resolveCurrentHackathonId(
   const now = new Date();
 
   const inProgress = await db.query.hackathons.findFirst({
-    where: (h, { and: andFn, notInArray, lte, gte }) =>
-      andFn(
-        notInArray(h.status, [...PRE_CURRENT_STATUSES]),
-        lte(h.startDate, now),
-        gte(h.endDate, now),
-      ),
+    where: {
+      status: { notIn: [...PRE_CURRENT_STATUSES] },
+      startDate: { lte: now },
+      endDate: { gte: now },
+    },
     columns: { id: true },
   });
 
@@ -66,8 +65,7 @@ export async function resolveCurrentHackathonId(
       // Without it, the day staff draft next year's edition every membership read,
       // portal gate and club check-in retargets an edition nobody registered for
       // and every paying member reads as lapsed. An edition joins when it opens.
-      where: (h, { notInArray }) =>
-        notInArray(h.status, [...PRE_CURRENT_STATUSES]),
+      where: { status: { notIn: [...PRE_CURRENT_STATUSES] } },
       orderBy: (h, { desc }) => [desc(h.startDate)],
       columns: { id: true },
     }));
@@ -218,7 +216,7 @@ export async function createOrUpdateMembership(
   // and had their remaining months replaced by a term starting today — and a
   // payment could not be honoured at all when no edition was open.
   const existing = await db.query.members.findFirst({
-    where: eq(members.userId, opts.userId),
+    where: { userId: opts.userId },
   });
 
   const now = new Date();
@@ -340,17 +338,17 @@ export async function linkPaidPaymentByVerifiedEmail(
   const email = opts.email.trim().toLowerCase();
 
   const alreadyLinked = await db.query.userAccountLinks.findFirst({
-    where: eq(userAccountLinks.userId, opts.userId),
+    where: { userId: opts.userId },
     columns: { id: true },
   });
   if (alreadyLinked) return { linked: false, reason: "already-linked" };
 
   const payment = await db.query.stripePayments.findFirst({
-    where: and(
-      eq(stripePayments.customerEmail, email),
-      isNull(stripePayments.linkedUserId),
-      eq(stripePayments.paymentStatus, "paid"),
-    ),
+    where: {
+      customerEmail: email,
+      linkedUserId: { isNull: true },
+      paymentStatus: "paid",
+    },
   });
   if (!payment) return { linked: false, reason: "no-payment" };
 
