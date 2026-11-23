@@ -999,11 +999,6 @@
     "ast_hash": "1dbaf991e5f06aa6f08afe4199ecbc80",
     "semantic_hash": ""
   },
-  "sites/hacklytics2027/public/sponsors/silver_assurant.png": {
-    "mtime": 1794705597.0748427,
-    "ast_hash": "962573812c23feb757e553e868ac03f9",
-    "semantic_hash": ""
-  },
   "sites/hacklytics2027/public/sponsors/silver_growthfactor.svg": {
     "mtime": 1794705597.0765457,
     "ast_hash": "14ab89b32d4f290e9823f605c05c58af",
@@ -1014,44 +1009,9 @@
     "ast_hash": "0633727ad982e48232a33861e6664ad6",
     "semantic_hash": ""
   },
-  "sites/mainweb/assets/images/2025/aditi.jpg": {
-    "mtime": 1794705597.5836778,
-    "ast_hash": "213aa5c674bca3df83af7b560113f000",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/2025/alysha.jpg": {
-    "mtime": 1794705597.6001475,
-    "ast_hash": "5216819e51cebf533b50f261e509cd24",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/2025/alysha.png": {
-    "mtime": 1794705597.6012435,
-    "ast_hash": "7dee1c4104e1f3ed544d2149d021152e",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/2025/anika.jpg": {
-    "mtime": 1794705597.6072872,
-    "ast_hash": "a8fc13ee58ffc58241962bd4899671d1",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/2025/anushka.jpg": {
-    "mtime": 1794705597.6138947,
-    "ast_hash": "4c9a4f6dc68f78396ab4314163e68e63",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/2025/aryan.jpeg": {
-    "mtime": 1794705597.6175578,
-    "ast_hash": "344b60147b017004df8aa6f54a0e0d8f",
-    "semantic_hash": ""
-  },
   "sites/mainweb/assets/images/2025/diya.jpeg": {
     "mtime": 1794705597.6228752,
     "ast_hash": "795ab9931aab3ac481ea155ba1bb6442",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/2025/glenne.png": {
-    "mtime": 1794705597.6273942,
-    "ast_hash": "3f97f7a7022e030e8a2c4fe5912672bc",
     "semantic_hash": ""
   },
   "sites/mainweb/assets/images/2025/ideas.png": {
@@ -1064,66 +1024,6 @@
     "ast_hash": "b68f5b09b8a64e08a2a57fea9ddc8dc4",
     "semantic_hash": ""
   },
-  "sites/mainweb/assets/images/2025/nitika.jpg": {
-    "mtime": 1794705597.6513753,
-    "ast_hash": "693cd8eeda238276b9a137846921991d",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/2025/sarvesh.jpg": {
-    "mtime": 1794705597.657412,
-    "ast_hash": "d766b9ae842f1fdaf39ac9813ff9c169",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/2025/smera.png": {
-    "mtime": 1794705597.6661851,
-    "ast_hash": "58f798e4431f4ac4ee3640a1a26d2751",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/2025/squad.jpg": {
-    "mtime": 1794705597.6704938,
-    "ast_hash": "019b4c15096529baea33ea250e81d834",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/2025/vidhi.jpeg": {
-    "mtime": 1794705597.6759374,
-    "ast_hash": "987529e9e793b0e81241ad5c3308fa46",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/blobs/blob1--export.svg": {
-    "mtime": 1794705597.6783278,
-    "ast_hash": "2e35979a013e5add58d7243540ce448c",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/blobs/blob2--export.svg": {
-    "mtime": 1794705597.6803496,
-    "ast_hash": "9bb2392740cf7a2524f0c7d866644dec",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/blobs/footer--export.svg": {
-    "mtime": 1794705597.6859694,
-    "ast_hash": "10ce0f3fadf7d481b541f6ba9be5034e",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/blobs/footer-mobile--export.svg": {
-    "mtime": 1794705597.6903975,
-    "ast_hash": "9551a31a876b7d0bd365b0896d8af08d",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/blobs/footer-mobile2--export.svg": {
-    "mtime": 1794705597.6921175,
-    "ast_hash": "09d15fc1e9866b421b379e6c4f7fdfae",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/blobs/hero--export.svg": {
-    "mtime": 1794705597.6939576,
-    "ast_hash": "71b0b07b28f76e92851685df042c12b2",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/blobs/hero2--export.svg": {
-    "mtime": 1794705597.6946607,
-    "ast_hash": "f6f4c2286fed53ba1d0b1150cd638b08",
-    "semantic_hash": ""
-  },
   "sites/mainweb/assets/images/blobs/hero2-mobile--export.svg": {
     "mtime": 1794705597.6973987,
     "ast_hash": "a63863062af88218b61fb3a622d72e19",
@@ -1134,69 +1034,9 @@
     "ast_hash": "a27c2973ca27c8004cd24cdccc448a16",
     "semantic_hash": ""
   },
-  "sites/mainweb/assets/images/blobs/major--export.svg": {
-    "mtime": 1794705597.7082772,
-    "ast_hash": "b96f6343e7b4b6861d9286cbdc584b8d",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/blobs/small-blob--export.svg": {
-    "mtime": 1794705597.7088702,
-    "ast_hash": "3ee043311af553d3898777a530db412d",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/blobs/small-header--export.svg": {
-    "mtime": 1794705597.7126417,
-    "ast_hash": "5d3fdd981c4ecc0f9217447285a88b0b",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/dsgt/Icon-128.png": {
-    "mtime": 1794705597.715143,
-    "ast_hash": "649043c2240e0960e7b428a178fb5776",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/dsgt/Icon-196.png": {
-    "mtime": 1794705597.717399,
-    "ast_hash": "cdfc13455619e8ba63fb38ce7d2af3da",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/dsgt/Icon-512.png": {
-    "mtime": 1794705597.7180603,
-    "ast_hash": "6d116106d1534ac573453037a0a590c1",
-    "semantic_hash": ""
-  },
   "sites/mainweb/assets/images/dsgt/apple-touch-icon.png": {
     "mtime": 1794705597.7199395,
     "ast_hash": "a553d167c4ebe8f7235db780deb5606b",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/dsgt/favicon-16x16.png": {
-    "mtime": 1794705597.7224624,
-    "ast_hash": "1ba48b669f4dc4a2fbc7c2c9b19fc144",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/dsgt/favicon-32x32.png": {
-    "mtime": 1794705597.723054,
-    "ast_hash": "0b5c2486bbeba828c6035b91076efc87",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/dsgt/financial_icon.png": {
-    "mtime": 1794705597.7307942,
-    "ast_hash": "7c9b56970b1fba63bd44a9975ffb11a5",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/dsgt/heathcare_icon.png": {
-    "mtime": 1794705597.7363367,
-    "ast_hash": "b11f3ba1d2d2a49d32d75c63bf06b0e4",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/dsgt/logos-20.png": {
-    "mtime": 1794705597.743695,
-    "ast_hash": "ec33805b044d3d4b3ee743a526ed936e",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/dsgt/sports_icon.png": {
-    "mtime": 1794705597.7457983,
-    "ast_hash": "c856bfb7f7a46ff8add780dbdc84df67",
     "semantic_hash": ""
   },
   "sites/mainweb/assets/images/dsgt/square-logo.png": {
@@ -1204,144 +1044,9 @@
     "ast_hash": "8d47af02e2905a05a2c5f6c7050a0a91",
     "semantic_hash": ""
   },
-  "sites/mainweb/assets/images/logos/Mentra.png": {
-    "mtime": 1794705597.7601752,
-    "ast_hash": "b6aeebc85c95af446a2ea72a0826a2ab",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/logos/arc-logo-v3.png": {
-    "mtime": 1794705597.7626874,
-    "ast_hash": "55a8f4e773deb78c276a3b191d9cceaf",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/logos/birdclef.png": {
-    "mtime": 1794705597.764634,
-    "ast_hash": "f37c26b38a1ee5afc0a58d5101b95637",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/logos/blueconduit.png": {
-    "mtime": 1794705597.764634,
-    "ast_hash": "a86a172050e611338e23c0fa5ba2943e",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/logos/dlp4.png": {
-    "mtime": 1794705597.7676046,
-    "ast_hash": "da0f46fe404f43e489aea9e9bef6fa7b",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/logos/furnichanter.png": {
-    "mtime": 1794705597.7696161,
-    "ast_hash": "868842989d760a59333e1eed35661681",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/logos/gtaa.png": {
-    "mtime": 1794705597.772388,
-    "ast_hash": "3a0615bdc1b824c9ddc40d30c47928b1",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/logos/shepcenter.jpeg": {
-    "mtime": 1794705597.7734005,
-    "ast_hash": "3ba5a5f2dc7976eef67facaa13645ab0",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/logos/stock.png": {
-    "mtime": 1794705597.776907,
-    "ast_hash": "efddeac3e0afd08dc4bf7ed9efce9418",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/logos/storm.png": {
-    "mtime": 1794705597.7797954,
-    "ast_hash": "9b0a3ba74ae7a18fd842fe9ae06a91b5",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/logos/trading.png": {
-    "mtime": 1794705597.7827678,
-    "ast_hash": "6f0786ca16dbaeb9ecbfe91f45102ffa",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/portraits/2022/John.jpg": {
-    "mtime": 1794705597.7893364,
-    "ast_hash": "3406407f5c7ac984e947fe093f829a76",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/portraits/2024/Om.jpeg": {
-    "mtime": 1794705597.7950358,
-    "ast_hash": "18b9f7fabbf509f29dac539bb0f04717",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/slides/slide0.jpg": {
-    "mtime": 1794705597.8010948,
-    "ast_hash": "89749d633e88b49c3e57db979b67e7fc",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/slides/slide1.jpg": {
-    "mtime": 1794705597.8058846,
-    "ast_hash": "779263eff916ec5dd6262fdb23b5ca31",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/slides/slide2.jpg": {
-    "mtime": 1794705597.8120487,
-    "ast_hash": "bdb73dbe024d23651cdebf543d6d43dd",
-    "semantic_hash": ""
-  },
   "sites/mainweb/assets/images/slides/slide6.jpg": {
     "mtime": 1794705597.8256886,
     "ast_hash": "8e3a6921fa59aa11aff8238f8ac12780",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/slides/slide7.jpg": {
-    "mtime": 1794705597.8297138,
-    "ast_hash": "6b09ee7d1e8d406c9f99acf7f864166b",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/slides/slide8.jpg": {
-    "mtime": 1794705597.8337371,
-    "ast_hash": "e694095b8ce5c64971ecd58279ba2eef",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/assets/images/slides/slide9.jpg": {
-    "mtime": 1794705597.8407843,
-    "ast_hash": "9c10de82ff8f376e0df56c5f4fdb2575",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/components/Background/background-design-1.png": {
-    "mtime": 1794705597.8436563,
-    "ast_hash": "dd23fe479a70d5b51505d6ce918e1216",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/background-design-1.png": {
-    "mtime": 1794705598.2840123,
-    "ast_hash": "27fedc45db55ddce60ca589a57d04e50",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/circles.svg": {
-    "mtime": 1794705598.2853553,
-    "ast_hash": "2517f9eb2aa231a483a2b0c27da9d454",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/favicon-16x16.png": {
-    "mtime": 1794705598.2868736,
-    "ast_hash": "1ba48b669f4dc4a2fbc7c2c9b19fc144",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/favicon-32x32.png": {
-    "mtime": 1794705598.2868736,
-    "ast_hash": "0b5c2486bbeba828c6035b91076efc87",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/dsgt/Icon-128.png": {
-    "mtime": 1794705598.3555734,
-    "ast_hash": "649043c2240e0960e7b428a178fb5776",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/dsgt/Icon-196.png": {
-    "mtime": 1794705598.3563306,
-    "ast_hash": "cdfc13455619e8ba63fb38ce7d2af3da",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/dsgt/Icon-512.png": {
-    "mtime": 1794705598.3581302,
-    "ast_hash": "6d116106d1534ac573453037a0a590c1",
     "semantic_hash": ""
   },
   "sites/mainweb/public/images/dsgt/apple-touch-icon.png": {
@@ -1349,94 +1054,9 @@
     "ast_hash": "a553d167c4ebe8f7235db780deb5606b",
     "semantic_hash": ""
   },
-  "sites/mainweb/public/images/dsgt/favicon-16x16.png": {
-    "mtime": 1794705598.3601434,
-    "ast_hash": "1ba48b669f4dc4a2fbc7c2c9b19fc144",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/dsgt/favicon-32x32.png": {
-    "mtime": 1794705598.3621619,
-    "ast_hash": "0b5c2486bbeba828c6035b91076efc87",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/dsgt/financial_icon.png": {
-    "mtime": 1794705598.36544,
-    "ast_hash": "7c9b56970b1fba63bd44a9975ffb11a5",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/dsgt/heathcare_icon.png": {
-    "mtime": 1794705598.367543,
-    "ast_hash": "b11f3ba1d2d2a49d32d75c63bf06b0e4",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/dsgt/logos-20.png": {
-    "mtime": 1794705598.3740225,
-    "ast_hash": "ec33805b044d3d4b3ee743a526ed936e",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/dsgt/sports_icon.png": {
-    "mtime": 1794705598.3760316,
-    "ast_hash": "c856bfb7f7a46ff8add780dbdc84df67",
-    "semantic_hash": ""
-  },
   "sites/mainweb/public/images/dsgt/square-logo.png": {
     "mtime": 1794705598.377411,
     "ast_hash": "8d47af02e2905a05a2c5f6c7050a0a91",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/logos/Mentra.png": {
-    "mtime": 1794705598.380345,
-    "ast_hash": "b6aeebc85c95af446a2ea72a0826a2ab",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/logos/arc-logo-v3.png": {
-    "mtime": 1794705598.3814745,
-    "ast_hash": "55a8f4e773deb78c276a3b191d9cceaf",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/logos/birdclef.png": {
-    "mtime": 1794705598.3844986,
-    "ast_hash": "f37c26b38a1ee5afc0a58d5101b95637",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/logos/blueconduit.png": {
-    "mtime": 1794705598.3844986,
-    "ast_hash": "a86a172050e611338e23c0fa5ba2943e",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/logos/dlp4.png": {
-    "mtime": 1794705598.4062665,
-    "ast_hash": "da0f46fe404f43e489aea9e9bef6fa7b",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/logos/furnichanter.png": {
-    "mtime": 1794705598.408278,
-    "ast_hash": "868842989d760a59333e1eed35661681",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/logos/gtaa.png": {
-    "mtime": 1794705598.4087927,
-    "ast_hash": "3a0615bdc1b824c9ddc40d30c47928b1",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/logos/shepcenter.jpeg": {
-    "mtime": 1794705598.4108074,
-    "ast_hash": "3ba5a5f2dc7976eef67facaa13645ab0",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/logos/stock.png": {
-    "mtime": 1794705598.4138348,
-    "ast_hash": "efddeac3e0afd08dc4bf7ed9efce9418",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/logos/storm.png": {
-    "mtime": 1794705598.4158502,
-    "ast_hash": "9b0a3ba74ae7a18fd842fe9ae06a91b5",
-    "semantic_hash": ""
-  },
-  "sites/mainweb/public/images/logos/trading.png": {
-    "mtime": 1794705598.419743,
-    "ast_hash": "6f0786ca16dbaeb9ecbfe91f45102ffa",
     "semantic_hash": ""
   },
   "sites/mainweb/public/logo128.png": {
@@ -1452,36 +1072,6 @@
   "sites/mainweb/public/logo512.png": {
     "mtime": 1794705598.4257925,
     "ast_hash": "6d116106d1534ac573453037a0a590c1",
-    "semantic_hash": ""
-  },
-  "trust badge/league-2027-season-trust-badge-template_Black.svg": {
-    "mtime": 1794705598.5220032,
-    "ast_hash": "02531a570a5cada8f5baee91c37024b4",
-    "semantic_hash": ""
-  },
-  "trust badge/league-2027-season-trust-badge-template_Blue.svg": {
-    "mtime": 1794705598.5242972,
-    "ast_hash": "7cf3173f9bbfb11324305725f3f6f4ae",
-    "semantic_hash": ""
-  },
-  "trust badge/league-2027-season-trust-badge-template_Dark Gray.svg": {
-    "mtime": 1794705598.5242972,
-    "ast_hash": "8387d35cfa760abad581e67c13e1f640",
-    "semantic_hash": ""
-  },
-  "trust badge/league-2027-season-trust-badge-template_Red.svg": {
-    "mtime": 1794705598.5273218,
-    "ast_hash": "3b080e7e24a817cc919cf20d1779296c",
-    "semantic_hash": ""
-  },
-  "trust badge/league-2027-season-trust-badge-template_White.svg": {
-    "mtime": 1794705598.5299985,
-    "ast_hash": "8a3d6ff4550c2c06158ccaec261ee1e4",
-    "semantic_hash": ""
-  },
-  "trust badge/league-2027-season-trust-badge-template_Yellow.svg": {
-    "mtime": 1794705598.5375936,
-    "ast_hash": "c3488c604b79d92494b69a47f45aaf49",
     "semantic_hash": ""
   },
   ".githooks/commit-msg": {
@@ -4694,26 +4284,6 @@
     "ast_hash": "cfcf1fc5717a00884afc4ab33d0a7480",
     "semantic_hash": ""
   },
-  "sites/hacklytics2026/public/browser.svg": {
-    "mtime": 1794705596.634203,
-    "ast_hash": "66fec07e688e6715a3cffa9ac859397b",
-    "semantic_hash": ""
-  },
-  "sites/hacklytics2026/public/cloud-color/cloudb/cloud-blue-down.png": {
-    "mtime": 1794705596.638227,
-    "ast_hash": "bc44d6f00ce0487eccde6ec60b5455b1",
-    "semantic_hash": ""
-  },
-  "sites/hacklytics2026/public/cloud-color/cloudy/cloud-button.png": {
-    "mtime": 1794705596.6422515,
-    "ast_hash": "d04f6b25dfd7c8f594d80d1015c6d5af",
-    "semantic_hash": ""
-  },
-  "sites/hacklytics2026/public/cloud-end/cloudEnd.png": {
-    "mtime": 1794705596.6454628,
-    "ast_hash": "c0988ccd8e05bc0f1574e96e0450220c",
-    "semantic_hash": ""
-  },
   "sites/hacklytics2026/public/cloud-final/image.png": {
     "mtime": 1794705596.6480908,
     "ast_hash": "0e25cd0b3238251896dd51e8e0c81476",
@@ -4759,29 +4329,9 @@
     "ast_hash": "0f083998cb4d8b38de46a21b7e9396f8",
     "semantic_hash": ""
   },
-  "sites/hacklytics2026/public/file.svg": {
-    "mtime": 1794705596.6834817,
-    "ast_hash": "d09f95206c3fa0bb9bd9fefabfd0ea71",
-    "semantic_hash": ""
-  },
-  "sites/hacklytics2026/public/globe.svg": {
-    "mtime": 1794705596.7021472,
-    "ast_hash": "3312a118b9a2c78c9b10245734b645a6",
-    "semantic_hash": ""
-  },
-  "sites/hacklytics2026/public/instagram-logo.svg": {
-    "mtime": 1794705596.7147224,
-    "ast_hash": "708d1fe2f78f64ea2f182e8c000e3614",
-    "semantic_hash": ""
-  },
   "sites/hacklytics2026/public/logo.png": {
     "mtime": 1794705596.725914,
     "ast_hash": "1ce03856440e2ce0603d225eeef2a508",
-    "semantic_hash": ""
-  },
-  "sites/hacklytics2026/public/mid-candy/medium.png": {
-    "mtime": 1794705596.7299368,
-    "ast_hash": "c1187d161509190cc3ec01955fd7dca6",
     "semantic_hash": ""
   },
   "sites/hacklytics2026/public/prizes/apple-watch.jpg": {
@@ -4934,34 +4484,9 @@
     "ast_hash": "c642d6f3b5568bb939f81dea8c697e8f",
     "semantic_hash": ""
   },
-  "sites/hacklytics2026/public/sponsors/silver_assurant.png": {
-    "mtime": 1794705596.8570604,
-    "ast_hash": "6a4ca0757ef485fa3c0df48d862fac72",
-    "semantic_hash": ""
-  },
   "sites/hacklytics2026/public/sponsors/silver_growthfactor.svg": {
     "mtime": 1794705596.9115477,
     "ast_hash": "14ab89b32d4f290e9823f605c05c58af",
-    "semantic_hash": ""
-  },
-  "sites/hacklytics2026/public/tickets/bronze.png": {
-    "mtime": 1794705596.9155765,
-    "ast_hash": "90d8d4ce4a10190a544176abcdcd7b0c",
-    "semantic_hash": ""
-  },
-  "sites/hacklytics2026/public/tickets/gold.png": {
-    "mtime": 1794705596.9155765,
-    "ast_hash": "0d24a830d8f96d5e5905ce6af6e8033a",
-    "semantic_hash": ""
-  },
-  "sites/hacklytics2026/public/tickets/silver.png": {
-    "mtime": 1794705596.9196076,
-    "ast_hash": "b4aff12720ece262b3b675cec75631fa",
-    "semantic_hash": ""
-  },
-  "sites/hacklytics2026/public/window.svg": {
-    "mtime": 1794705596.9196076,
-    "ast_hash": "a2760511c65806022ad20adf74370ff3",
     "semantic_hash": ""
   },
   "sites/hacklytics2026/public/wonka/wonka.jpg": {
