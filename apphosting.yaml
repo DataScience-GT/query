@@ -50,21 +50,21 @@ env:
     secret: AUTH_GITHUB_ID
   - variable: GITHUB_CLIENT_SECRET
     secret: AUTH_GITHUB_SECRET
-  # Shared cache invalidation and rate limits (Upstash Redis, REST). Leave these
-  # two out and every instance falls back to its own in-memory state, which is
-  # correct but stale across instances. Create the secrets first, or the rollout
-  # breaks on a reference to a secret that does not exist (docs/operations/
-  # environment.md, "Shared Redis"):
+  # Shared cache invalidation and rate limits (Upstash Redis, REST). Without
+  # these two every instance falls back to its own in-memory state, which is
+  # correct but stale across instances. Left commented out because a reference
+  # to a secret that does not exist breaks the rollout. Create both first
+  # (docs/operations/environment.md, "Shared Redis"), then uncomment:
   #   firebase apphosting:secrets:set upstash-redis-rest-url
   #   firebase apphosting:secrets:set upstash-redis-rest-token
-  - variable: UPSTASH_REDIS_REST_URL
-    secret: upstash-redis-rest-url
-    availability:
-      - RUNTIME
-  - variable: UPSTASH_REDIS_REST_TOKEN
-    secret: upstash-redis-rest-token
-    availability:
-      - RUNTIME
+  # - variable: UPSTASH_REDIS_REST_URL
+  #   secret: upstash-redis-rest-url
+  #   availability:
+  #     - RUNTIME
+  # - variable: UPSTASH_REDIS_REST_TOKEN
+  #   secret: upstash-redis-rest-token
+  #   availability:
+  #     - RUNTIME
   # Redis stays unused until Hacklytics 2027 check-in opens: cross-instance
   # staleness only matters under event load. Delete this to turn it on now.
   - variable: UPSTASH_REDIS_FROM
