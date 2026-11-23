@@ -188,17 +188,17 @@ export default function HistoryPage() {
               <h2 className="text-2xl font-semibold tracking-tight text-white">
                 {title}
               </h2>
-              <p className="mt-3 text-lg leading-relaxed text-gray-300">
+              <p className="mt-3 text-lg leading-relaxed text-neutral-300">
                 {story}
               </p>
               {facts && (
                 <dl className="mt-6 grid gap-x-6 gap-y-3 border-t border-white/10 pt-5 text-[15px] sm:grid-cols-[8.5rem_1fr]">
                   {facts.map(([label, value]) => (
                     <div key={label} className="contents">
-                      <dt className="font-mono text-xs tracking-[0.15em] text-gray-400 uppercase sm:pt-0.5">
+                      <dt className="font-mono text-xs tracking-[0.15em] text-neutral-400 uppercase sm:pt-0.5">
                         {label}
                       </dt>
-                      <dd className="mb-2 leading-relaxed text-gray-200 sm:mb-0">
+                      <dd className="mb-2 leading-relaxed text-neutral-200 sm:mb-0">
                         {value}
                       </dd>
                     </div>

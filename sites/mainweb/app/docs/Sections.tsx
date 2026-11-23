@@ -28,7 +28,7 @@ import type { DocSection, Row } from "./content";
 
 function C({ children }: { children: ReactNode }) {
   return (
-    <code className="rounded-sm bg-white/10 px-1.5 py-0.5 font-mono text-[0.85em] text-gray-200">
+    <code className="rounded-sm bg-white/10 px-1.5 py-0.5 font-mono text-[0.85em] text-neutral-200">
       {children}
     </code>
   );
@@ -69,7 +69,7 @@ function Heading({ children }: { children: ReactNode }) {
 }
 
 function Prose({ children }: { children: ReactNode }) {
-  return <p className="mt-4 max-w-prose leading-7 text-gray-300">{children}</p>;
+  return <p className="mt-4 max-w-prose leading-7 text-neutral-300">{children}</p>;
 }
 
 // Term and description pairs. Stacks on phones, two columns from sm up.
@@ -86,7 +86,7 @@ function Rows({ rows, mono = true }: { rows: Row[]; mono?: boolean }) {
           >
             {row.term}
           </dt>
-          <dd className="leading-7 text-gray-300">
+          <dd className="leading-7 text-neutral-300">
             <Inline text={row.body} />
             {row.href && (
               <>
@@ -106,7 +106,7 @@ function CodeBlock({ label, code }: { label: string; code: string }) {
   return (
     <figure className="mt-5 rounded-sm border border-white/10 bg-white/[0.03]">
       <figcaption className="flex items-center justify-between border-b border-white/10 pr-1 pl-4">
-        <span className="font-mono text-[11px] tracking-[0.2em] text-gray-400 uppercase">
+        <span className="font-mono text-[11px] tracking-[0.2em] text-neutral-400 uppercase">
           {label}
         </span>
         <button
@@ -122,7 +122,7 @@ function CodeBlock({ label, code }: { label: string; code: string }) {
               })
               .catch(() => {});
           }}
-          className="inline-flex min-h-11 items-center px-3 font-mono text-[11px] tracking-[0.2em] text-gray-300 uppercase transition-colors hover:text-dsgt-teal"
+          className="inline-flex min-h-11 items-center px-3 font-mono text-[11px] tracking-[0.2em] text-neutral-300 uppercase transition-colors hover:text-dsgt-teal"
         >
           {copied ? "Copied" : "Copy"}
           <span className="sr-only"> {label}</span>
@@ -130,7 +130,7 @@ function CodeBlock({ label, code }: { label: string; code: string }) {
       </figcaption>
       <pre
         tabIndex={0}
-        className="overflow-x-auto p-4 font-mono text-[13px] leading-6 text-gray-200"
+        className="overflow-x-auto p-4 font-mono text-[13px] leading-6 text-neutral-200"
       >
         <code>{code}</code>
       </pre>
@@ -140,7 +140,7 @@ function CodeBlock({ label, code }: { label: string; code: string }) {
 
 function Steps({ items }: { items: string[] }) {
   return (
-    <ol className="mt-5 max-w-prose list-decimal space-y-2 pl-5 leading-7 text-gray-300 marker:font-mono marker:text-gray-400">
+    <ol className="mt-5 max-w-prose list-decimal space-y-2 pl-5 leading-7 text-neutral-300 marker:font-mono marker:text-neutral-400">
       {items.map((item) => (
         <li key={item} className="pl-2">
           <Inline text={item} />

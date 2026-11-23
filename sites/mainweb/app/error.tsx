@@ -41,7 +41,7 @@ export default function PublicError({
             </span>
           </button>
           {error.digest && (
-            <span className="font-mono text-xs text-gray-500">
+            <span className="font-mono text-xs text-[#7a7a7a]">
               Reference {error.digest}
             </span>
           )}

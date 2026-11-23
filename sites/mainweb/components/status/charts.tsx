@@ -96,7 +96,7 @@ function Tooltip({
           : Math.min(width - 170, tip.x + 8),
       }}
     >
-      <div className="mb-1 text-gray-400">{tip.title}</div>
+      <div className="mb-1 text-neutral-400">{tip.title}</div>
       {tip.rows}
     </div>
   );
@@ -113,7 +113,7 @@ function TipRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 tabular-nums">
-      <span className="flex items-center gap-1.5 text-gray-400">
+      <span className="flex items-center gap-1.5 text-neutral-400">
         {color && (
           <span
             className="inline-block h-0.5 w-3"
@@ -130,7 +130,7 @@ function TipRow({
 
 function Legend({ items }: { items: { label: string; color: string }[] }) {
   return (
-    <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-400">
+    <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-neutral-400">
       {items.map((item) => (
         <li key={item.label} className="flex items-center gap-2">
           <span
@@ -184,7 +184,7 @@ export function UptimeStrip({
           title: dayLabel(day.day),
           rows:
             pct === null ? (
-              <div className="text-gray-300">
+              <div className="text-neutral-300">
                 {probe
                   ? "No data. The outside check had no results this day."
                   : "No data. Nobody used the site, or it was not sampled."}
@@ -276,13 +276,13 @@ export function UptimeStrip({
 export function DayTable({ days }: { days: Day[] }) {
   const shown = days.filter((d) => d.minutesWithData > 0).reverse();
   return (
-    <details className="mt-4 text-sm text-gray-400">
-      <summary className="cursor-pointer text-xs text-gray-400 hover:text-white">
+    <details className="mt-4 text-sm text-neutral-400">
+      <summary className="cursor-pointer text-xs text-neutral-400 hover:text-white">
         View the days as a table
       </summary>
       <div className="mt-3 max-h-72 overflow-auto">
         <table className="w-full text-left text-xs tabular-nums">
-          <thead className="sticky top-0 bg-[#050505] text-gray-400">
+          <thead className="sticky top-0 bg-[#050505] text-neutral-400">
             <tr>
               <th className="py-1 pr-3 font-medium">Day (UTC)</th>
               <th className="py-1 pr-3 font-medium">Uptime</th>
@@ -517,7 +517,7 @@ export function LatencyChart({
               />
             </>
           ) : (
-            <div className="text-gray-300">No data</div>
+            <div className="text-neutral-300">No data</div>
           ),
         };
 
@@ -636,7 +636,7 @@ export function RequestsChart({
               />
             </>
           ) : (
-            <div className="text-gray-300">No data</div>
+            <div className="text-neutral-300">No data</div>
           ),
         };
 
@@ -738,13 +738,13 @@ export function HoursTable({
     .reverse();
 
   return (
-    <details className="mt-4 text-sm text-gray-400">
-      <summary className="cursor-pointer text-xs text-gray-400 hover:text-white">
+    <details className="mt-4 text-sm text-neutral-400">
+      <summary className="cursor-pointer text-xs text-neutral-400 hover:text-white">
         View the last 24 hours as a table
       </summary>
       <div className="mt-3 max-h-72 overflow-auto">
         <table className="w-full text-left text-xs tabular-nums">
-          <thead className="sticky top-0 bg-[#050505] text-gray-400">
+          <thead className="sticky top-0 bg-[#050505] text-neutral-400">
             <tr>
               <th className="py-1 pr-3 font-medium">Hour (ET)</th>
               <th className="py-1 pr-3 font-medium">Requests</th>

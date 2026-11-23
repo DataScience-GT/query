@@ -22,7 +22,7 @@ export default function ProjectCard({ project }: { project: ClubProjectCard }) {
     >
       <div className="mb-3 flex items-start justify-between gap-4">
         <h3
-          className={`group-hover:text-dsgt-teal text-xl font-semibold tracking-tight transition-colors ${muted ? "text-gray-300" : "text-white"}`}
+          className={`group-hover:text-dsgt-teal text-xl font-semibold tracking-tight transition-colors ${muted ? "text-neutral-300" : "text-white"}`}
         >
           {project.name}
         </h3>
@@ -33,12 +33,12 @@ export default function ProjectCard({ project }: { project: ClubProjectCard }) {
         </span>
       </div>
 
-      <p className="mb-5 font-mono text-xs text-gray-400">
+      <p className="mb-5 font-mono text-xs text-neutral-400">
         {project.leadName ? `Lead: ${project.leadName}` : "Lead: open"}
         {project.capacityNote ? ` · ${project.capacityNote}` : ""}
       </p>
 
-      <p className="mb-6 text-[15px] leading-relaxed text-gray-300">
+      <p className="mb-6 text-[15px] leading-relaxed text-neutral-300">
         {project.summary}
       </p>
 
@@ -47,7 +47,7 @@ export default function ProjectCard({ project }: { project: ClubProjectCard }) {
           {project.tech.map((tech) => (
             <span
               key={tech}
-              className="rounded-sm border border-white/10 bg-white/5 px-2 py-1 font-mono text-[11px] text-gray-300"
+              className="rounded-sm border border-white/10 bg-white/5 px-2 py-1 font-mono text-[11px] text-neutral-300"
             >
               {tech}
             </span>
@@ -79,7 +79,7 @@ export default function ProjectCard({ project }: { project: ClubProjectCard }) {
             href={project.repoUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-dsgt-teal inline-flex min-h-11 items-center font-mono text-xs tracking-[0.15em] text-gray-400 uppercase transition-colors md:min-h-0"
+            className="hover:text-dsgt-teal inline-flex min-h-11 items-center font-mono text-xs tracking-[0.15em] text-neutral-400 uppercase transition-colors md:min-h-0"
           >
             Repo →
           </a>

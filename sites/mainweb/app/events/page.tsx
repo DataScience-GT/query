@@ -106,7 +106,7 @@ function EventRow({ event, past }: { event: ListedEvent; past?: boolean }) {
 
   return (
     <li className="grid grid-cols-[3.5rem_1fr] gap-x-5 py-6 first:pt-0 last:pb-0 sm:grid-cols-[4.5rem_1fr] sm:gap-x-8">
-      <div className={past ? "text-gray-500" : "text-dsgt-teal"}>
+      <div className={past ? "text-[#7a7a7a]" : "text-dsgt-teal"}>
         <p className="font-mono text-xs tracking-[0.2em] uppercase">{month}</p>
         <p className="text-3xl leading-none font-bold tabular-nums sm:text-4xl">
           {day}
@@ -115,7 +115,7 @@ function EventRow({ event, past }: { event: ListedEvent; past?: boolean }) {
       <div>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h3
-            className={`text-lg font-semibold ${past ? "text-gray-300" : "text-white"}`}
+            className={`text-lg font-semibold ${past ? "text-neutral-300" : "text-white"}`}
           >
             {event.title}
           </h3>
@@ -125,16 +125,16 @@ function EventRow({ event, past }: { event: ListedEvent; past?: boolean }) {
             </span>
           )}
           {past && event.currentCheckIns > 0 && (
-            <span className="font-mono text-[11px] text-gray-400">
+            <span className="font-mono text-[11px] text-neutral-400">
               {event.currentCheckIns} checked in
             </span>
           )}
         </div>
-        <p className="mt-1 text-sm text-gray-400">
+        <p className="mt-1 text-sm text-neutral-400">
           {eventWhenWhere(event.eventDate, event.location)}
         </p>
         {event.description && (
-          <p className="mt-2 max-w-prose text-sm leading-relaxed text-gray-400">
+          <p className="mt-2 max-w-prose text-sm leading-relaxed text-neutral-400">
             {event.description}
           </p>
         )}
@@ -176,12 +176,12 @@ export default async function EventsPage() {
         <section aria-labelledby="upcoming">
           <h2
             id="upcoming"
-            className="mb-8 border-b border-white/10 pb-3 font-mono text-xs tracking-[0.3em] text-gray-300 uppercase"
+            className="mb-8 border-b border-white/10 pb-3 font-mono text-xs tracking-[0.3em] text-neutral-300 uppercase"
           >
             Upcoming
           </h2>
           {upcoming.length === 0 ? (
-            <p className="max-w-xl text-gray-300">
+            <p className="max-w-xl text-neutral-300">
               Nothing is scheduled right now. The{" "}
               <Link
                 href="/bootcamp"
@@ -204,7 +204,7 @@ export default async function EventsPage() {
           <section className="mt-24" aria-labelledby="past">
             <h2
               id="past"
-              className="mb-8 border-b border-white/10 pb-3 font-mono text-xs tracking-[0.3em] text-gray-400 uppercase"
+              className="mb-8 border-b border-white/10 pb-3 font-mono text-xs tracking-[0.3em] text-neutral-400 uppercase"
             >
               Past
             </h2>

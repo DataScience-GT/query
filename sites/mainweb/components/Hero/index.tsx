@@ -20,7 +20,7 @@ function NextSession({ session }: { session: BootcampSession }) {
   return (
     <>
       <p className="text-lg font-semibold leading-snug text-white">{heading}</p>
-      <p className="mt-1 text-sm text-gray-300">
+      <p className="mt-1 text-sm text-neutral-300">
         {weekday.slice(0, 3)}, {month} {day} · {time}
         {session.location ? ` · ${session.location}` : ""}
       </p>
@@ -81,7 +81,7 @@ const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
           </h1>
 
           <div className="max-w-md">
-            <Mini className="text-gray-400 text-lg leading-relaxed">
+            <Mini className="text-neutral-400 text-lg leading-relaxed">
               The largest student-run data science organization at Georgia Tech.
               We bridge the gap between classroom theory and production
               engineering.
@@ -90,7 +90,7 @@ const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
 
           <dl className="grid w-full max-w-xl grid-cols-1 gap-6 border-t-2 border-dsgt-teal pt-5 sm:grid-cols-[auto_1fr] sm:gap-10">
             <div>
-              <dt className="font-mono text-[11px] uppercase tracking-[0.2em] text-gray-400">
+              <dt className="font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-400">
                 Verified members
               </dt>
               <dd className="mt-2 text-3xl font-bold leading-none tracking-tight text-white tabular-nums">
@@ -98,7 +98,7 @@ const Hero = ({ nextSession }: { nextSession: BootcampSession | null }) => {
               </dd>
             </div>
             <div>
-              <dt className="font-mono text-[11px] uppercase tracking-[0.2em] text-gray-400">
+              <dt className="font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-400">
                 Next bootcamp session
               </dt>
               <dd className="mt-2">

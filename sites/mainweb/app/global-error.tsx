@@ -26,7 +26,7 @@ export default function GlobalError({
           display: "grid",
           placeItems: "center",
           background: "#050505",
-          color: "#9ca3af",
+          color: "#a3a3a3",
           fontFamily: "system-ui, -apple-system, Segoe UI, sans-serif",
           padding: "0 16px",
         }}

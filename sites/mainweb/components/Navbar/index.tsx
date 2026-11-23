@@ -51,8 +51,8 @@ export default function Navbar() {
      */
     const baseClass = `inline-flex items-center min-h-11 font-mono uppercase whitespace-nowrap transition-ui duration-300 cursor-pointer ${
       isMobile
-        ? `tracking-[0.2em] text-xl font-bold ${current ? "text-dsgt-teal" : "text-gray-300 hover:text-white"}`
-        : `text-[11px] tracking-[0.14em] min-[1200px]:tracking-[0.2em] ${current ? "text-white" : "text-gray-400 hover:text-dsgt-teal"}`
+        ? `tracking-[0.2em] text-xl font-bold ${current ? "text-dsgt-teal" : "text-neutral-300 hover:text-white"}`
+        : `text-[11px] tracking-[0.14em] min-[1200px]:tracking-[0.2em] ${current ? "text-white" : "text-neutral-400 hover:text-dsgt-teal"}`
     }`;
 
     return (

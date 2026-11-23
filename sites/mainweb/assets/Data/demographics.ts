@@ -3,14 +3,14 @@ export type Share = { label: string; value: number };
 const byShare = (shares: Share[]) =>
   [...shares].sort((a, b) => b.value - a.value);
 
-export const classYears = byShare([
+export const classYears: Share[] = [
   { label: "1st year", value: 42.7 },
   { label: "2nd year", value: 27.3 },
   { label: "3rd year", value: 9.68 },
   { label: "4th year", value: 5.14 },
   { label: "5th year+", value: 1.38 },
   { label: "Masters/PhD", value: 13.8 },
-]);
+];
 
 export const majors = byShare([
   { label: "Computer Science", value: 60.1 },

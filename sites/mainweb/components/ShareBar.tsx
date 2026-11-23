@@ -15,7 +15,7 @@ export default function ShareBar({
 }) {
   return (
     <figure>
-      <figcaption className="font-mono text-xs uppercase tracking-[0.2em] text-gray-400">
+      <figcaption className="font-mono text-xs uppercase tracking-[0.2em] text-neutral-400">
         {title}
       </figcaption>
       <div className="mt-4 flex h-9 gap-0.5" aria-hidden="true">
@@ -38,7 +38,7 @@ export default function ShareBar({
               style={tint(rank)}
               aria-hidden="true"
             />
-            <span className="text-gray-200">{share.label}</span>
+            <span className="text-neutral-200">{share.label}</span>
             <span className="ml-auto font-mono tabular-nums text-white">
               {share.value}%
             </span>

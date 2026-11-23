@@ -40,7 +40,7 @@ export default function DocsPageClient() {
 
   if (status === "loading" || status === "unauthenticated") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#050505] font-mono text-gray-400">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#050505] font-mono text-neutral-400">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-dsgt-teal border-t-transparent" />
         <p className="text-xs tracking-[0.3em] uppercase">Checking sign-in</p>
       </div>
@@ -75,7 +75,7 @@ export default function DocsPageClient() {
   const Body = SECTION_BODY[active];
 
   return (
-    <div className="selection:bg-dsgt-teal/30 relative min-h-screen overflow-x-hidden bg-[#050505] pt-20 font-sans text-gray-400">
+    <div className="selection:bg-dsgt-teal/30 relative min-h-screen overflow-x-hidden bg-[#050505] pt-20 font-sans text-neutral-400">
       <Navbar />
 
       {/* Phones: a native select is the most usable switcher for six items. */}
@@ -99,7 +99,7 @@ export default function DocsPageClient() {
           <ChevronDown
             size={16}
             aria-hidden
-            className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-gray-400"
+            className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-neutral-400"
           />
         </div>
       </div>
@@ -122,7 +122,7 @@ export default function DocsPageClient() {
                       className={`-ml-px flex min-h-11 items-center border-l-2 pl-4 text-sm transition-colors ${
                         on
                           ? "border-dsgt-teal font-semibold text-white"
-                          : "border-transparent text-gray-400 hover:text-white"
+                          : "border-transparent text-neutral-400 hover:text-white"
                       }`}
                     >
                       {s.label}
