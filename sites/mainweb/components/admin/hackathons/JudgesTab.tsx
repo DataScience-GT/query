@@ -47,6 +47,7 @@ type JudgeDetailsProps = {
     previousExperience: string | null;
     dietaryRestrictions: string[] | null;
     shirtSize: string | null;
+    canAttendInPerson: boolean | null;
     whyJudge: string | null;
     createdAt: Date | string;
   };
@@ -102,6 +103,16 @@ function JudgeDetails({ judge, email, track, isLead }: JudgeDetailsProps) {
         : null,
     ],
     ["Shirt size", judge.shirtSize],
+    [
+      "Attends in person",
+      judge.canAttendInPerson == null ? (
+        "Not asked"
+      ) : judge.canAttendInPerson ? (
+        "Yes"
+      ) : (
+        <span className="font-medium text-[var(--danger)]">No</span>
+      ),
+    ],
     ["Applied", new Date(judge.createdAt).toLocaleString()],
   ];
   return (
