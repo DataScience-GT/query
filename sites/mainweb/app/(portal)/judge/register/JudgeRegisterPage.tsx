@@ -14,7 +14,7 @@ import {
   FormErrorAlert,
   FormNavigation,
 } from "@/components/hackathon/FormComponents";
-import { SHIRT_SIZES, DIETARY_OPTIONS } from "@/components/hackathon/constants";
+import { DIETARY_OPTIONS } from "@/components/hackathon/constants";
 import Link from "next/link";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
@@ -86,7 +86,6 @@ export default function JudgeRegisterPage() {
   const [githubUrl, setGithubUrl] = useState("");
   const [previousExperience, setPreviousExperience] = useState("");
   const [whyJudge, setWhyJudge] = useState("");
-  const [shirtSize, setShirtSize] = useState("");
   const [dietary, setDietary] = useState<string[]>([]);
   const [canAttend, setCanAttend] = useState("");
 
@@ -150,6 +149,15 @@ export default function JudgeRegisterPage() {
         setError("Enter a valid email address.");
         return false;
       }
+    } else if (s === 2) {
+      if (!previousExperience.trim()) {
+        setError("Tell us about your judging experience (or say none).");
+        return false;
+      }
+      if (!whyJudge.trim()) {
+        setError("Tell us why you want to judge.");
+        return false;
+      }
     } else if (s === 3) {
       if (!canAttend) {
         setError("Tell us whether you can attend in person.");
@@ -182,9 +190,8 @@ export default function JudgeRegisterPage() {
       specialty: specialty.trim() || undefined,
       linkedinUrl: linkedinUrl.trim() || undefined,
       githubUrl: githubUrl.trim() || undefined,
-      previousExperience: previousExperience.trim() || undefined,
-      whyJudge: whyJudge.trim() || undefined,
-      shirtSize: shirtSize || undefined,
+      previousExperience: previousExperience.trim(),
+      whyJudge: whyJudge.trim(),
       dietaryRestrictions: dietary.length ? dietary : undefined,
       canAttendInPerson: canAttend === "Yes",
       preferredTrack: preferredTrack || undefined,
@@ -383,6 +390,7 @@ export default function JudgeRegisterPage() {
             </div>
             <FormTextarea
               label="Judging or mentoring you have done"
+              required
               value={previousExperience}
               onChange={(e) => setPreviousExperience(e.target.value)}
               placeholder="Hackathons you have judged, students you have mentored…"
@@ -390,6 +398,7 @@ export default function JudgeRegisterPage() {
             />
             <FormTextarea
               label="Why do you want to judge?"
+              required
               value={whyJudge}
               onChange={(e) => setWhyJudge(e.target.value)}
               placeholder="What excites you about being a judge for this event?"
@@ -404,13 +413,18 @@ export default function JudgeRegisterPage() {
                 placing judges in rooms see a track that exists. Leaving it
                 unset means "any project", which is a real and common answer. */}
             {trackOptions.length > 0 ? (
-              <FormChipSelect
-                label="Track you would like to judge"
-                options={trackOptions}
-                value={preferredTrack}
-                onChange={setPreferredTrack}
-                allowDeselect
-              />
+              <>
+                <FormChipSelect
+                  label="Track you would like to judge"
+                  options={trackOptions}
+                  value={preferredTrack}
+                  onChange={setPreferredTrack}
+                  allowDeselect
+                />
+                <p className={`mt-2 ${fieldHint}`}>
+                  Tracks aren&apos;t final yet and may change.
+                </p>
+              </>
             ) : (
               <p className={fieldHint}>
                 This hackathon has no tracks published yet. You can apply
@@ -424,15 +438,6 @@ export default function JudgeRegisterPage() {
                 options={["Yes", "No"]}
                 value={canAttend}
                 onChange={setCanAttend}
-              />
-            </div>
-            <div className="mt-6">
-              <FormChipSelect
-                label="T-shirt size"
-                options={[...SHIRT_SIZES]}
-                value={shirtSize}
-                onChange={setShirtSize}
-                allowDeselect
               />
             </div>
             <div className="mt-6">
