@@ -10,12 +10,8 @@ import {
   userAccountLinks,
   verificationTokens,
 } from "@query/db";
-import {
-  createOrUpdateMembership,
-  paidForBootcamp,
-  isBootcampAddOnOnly,
-  planFromMetadata,
-} from "@query/db/services/membership";
+import { createOrUpdateMembership } from "@query/db/services/membership";
+import { entitlementForPayment } from "@query/db/services/pricing";
 import { eq, and, isNull, like, sql } from "drizzle-orm";
 import { timingSafeEqual } from "node:crypto";
 import { isLockedOut, recordFailure } from "@query/db/services/auth-throttle";
@@ -247,14 +243,18 @@ export async function POST(request: NextRequest) {
       // the session was never stored and the user bounced back to /login.
       try {
         await tx.transaction(async (link) => {
-          const payment = await link.query.stripePayments.findFirst({
+          // Only a payment whose amount buys something is claimable, so a stray
+          // $1 link neither grants a year nor uses up the account's one link.
+          const candidates = await link.query.stripePayments.findMany({
             where: {
               customerEmail: identifier,
               linkedUserId: { isNull: true },
               paymentStatus: "paid",
             },
           });
-          if (!payment) return;
+          const payment = candidates.find((row) => entitlementForPayment(row));
+          const entitlement = payment && entitlementForPayment(payment);
+          if (!payment || !entitlement) return;
 
           // Check no existing link for this user
           const existingLink = await link.query.userAccountLinks.findFirst({
@@ -299,9 +299,9 @@ export async function POST(request: NextRequest) {
             userId: user.id,
             firstName,
             lastName,
-            bootcampMember: paidForBootcamp(payment.metadata),
-            addOnOnly: isBootcampAddOnOnly(payment.metadata),
-            plan: planFromMetadata(payment.metadata),
+            bootcampMember: entitlement.bootcamp,
+            addOnOnly: entitlement.addOnOnly,
+            plan: entitlement.plan,
           });
         });
       } catch (linkError) {

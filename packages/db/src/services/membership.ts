@@ -4,6 +4,7 @@ import type { DrizzleDB } from "../client";
 import { members, membershipHistory } from "../schemas/members";
 import { PRE_CURRENT_STATUSES } from "../schemas/hackathons";
 import { stripePayments, userAccountLinks } from "../schemas/stripe";
+import { entitlementForPayment } from "./pricing";
 
 // Membership rules, in one place. Here rather than @query/api because
 // @query/api depends on @query/auth, and linking has to happen at sign-in —
@@ -193,9 +194,7 @@ export const splitName = (name: string | null | undefined) => {
   };
 };
 
-export async function createOrUpdateMembership(
-  db: DrizzleDB,
-  opts: {
+type GrantOptions = {
     userId: string;
     firstName: string;
     lastName: string;
@@ -208,16 +207,40 @@ export async function createOrUpdateMembership(
     addOnOnly?: boolean;
     /** How long this payment bought. Defaults to the year. */
     plan?: MembershipPlan;
-  },
+};
+
+export async function createOrUpdateMembership(
+  db: DrizzleDB,
+  opts: GrantOptions,
 ) {
+  // Always inside a transaction (a savepoint when the caller already has one),
+  // so the member-row lock taken below is held until the grant is committed
+  // rather than released as soon as the read returns.
+  await db.transaction((tx) =>
+    grantMembership(tx as unknown as DrizzleDB, opts),
+  );
+}
+
+async function grantMembership(db: DrizzleDB, opts: GrantOptions) {
   // Keyed on the person, not the edition. This used to resolve a "current
   // hackathon" and look for (userId, hackathonId), so on the day the next
   // edition opened an existing member matched nothing, took the insert branch,
   // and had their remaining months replaced by a term starting today — and a
   // payment could not be honoured at all when no edition was open.
-  const existing = await db.query.members.findFirst({
-    where: { userId: opts.userId },
-  });
+  //
+  // Locked, so two payments for the same person cannot both read the same end
+  // date and both extend from it, which lost one paid term. The second grant
+  // waits here and extends from the first one's result.
+  const readLocked = async () =>
+    (
+      await db
+        .select()
+        .from(members)
+        .where(eq(members.userId, opts.userId))
+        .for("update")
+    )[0];
+
+  let existing = await readLocked();
 
   const now = new Date();
 
@@ -242,54 +265,68 @@ export async function createOrUpdateMembership(
   // the term, so the new one starts where the old ends — measuring from today
   // would throw away whatever time was left. A lapsed membership restarts from
   // today; there is no credit for the gap.
-  const termStart =
-    existing?.membershipEndDate && existing.membershipEndDate > now
-      ? existing.membershipEndDate
-      : now;
+  const termFor = (current: { membershipEndDate: Date | null } | undefined) => {
+    const start =
+      current?.membershipEndDate && current.membershipEndDate > now
+        ? current.membershipEndDate
+        : now;
 
   // The semester plan expires with the semester rather than a fixed number of
   // months out, which is what the bootcamp and the roster already treat as a
   // semester.
-  const termEnd =
-    opts.plan === "semester"
-      ? semesterEndDate(termStart)
-      : (() => {
-          const end = new Date(termStart);
-          end.setFullYear(end.getFullYear() + 1);
-          return end;
-        })();
+    const end =
+      opts.plan === "semester"
+        ? semesterEndDate(start)
+        : (() => {
+            const e = new Date(start);
+            e.setFullYear(e.getFullYear() + 1);
+            return e;
+          })();
+    return { termStart: start, termEnd: end };
+  };
 
-  if (existing) {
+  const extend = async (current: NonNullable<typeof existing>) => {
+    const { termStart, termEnd } = termFor(current);
     await db
       .update(members)
       .set({
         isActive: true,
         membershipEndDate: termEnd,
-        renewalCount: existing.renewalCount + 1,
+        renewalCount: current.renewalCount + 1,
         memberType: "continuous",
-        phoneNumber: opts.phoneNumber || existing.phoneNumber,
-        bootcampMember: existing.bootcampMember || !!opts.bootcampMember,
+        phoneNumber: opts.phoneNumber || current.phoneNumber,
+        bootcampMember: current.bootcampMember || !!opts.bootcampMember,
         // Only a purchase moves the term; a plain renewal leaves last semester's,
         // which is what expires the access.
         bootcampTerm: opts.bootcampMember
           ? currentTerm(now)
-          : existing.bootcampTerm,
+          : current.bootcampTerm,
         updatedAt: now,
       })
-      .where(eq(members.id, existing.id));
+      .where(eq(members.id, current.id));
 
     // The renewal overwrites membershipEndDate in place, so without this row the
     // previous term leaves no trace. Since a membership is no longer scoped to an
     // edition, this table is the only record of which years somebody was a member.
     await db.insert(membershipHistory).values({
-      memberId: existing.id,
+      memberId: current.id,
       action: "renewed",
       startDate: termStart,
       endDate: termEnd,
     });
+  };
+
+  if (existing) {
+    await extend(existing);
     return;
   }
 
+  const { termEnd } = termFor(undefined);
+
+  // A concurrent first grant for the same person can commit between the locked
+  // read and this insert. unique_member_per_user would fail the second one and
+  // lose its payment, so take the conflict as "someone joined first", re-read
+  // their row under the lock and extend it instead.
   const [created] = await db
     .insert(members)
     .values({
@@ -305,16 +342,21 @@ export async function createOrUpdateMembership(
       bootcampMember: !!opts.bootcampMember,
       bootcampTerm: opts.bootcampMember ? currentTerm(now) : null,
     })
+    .onConflictDoNothing({ target: members.userId })
     .returning({ id: members.id });
 
-  if (created) {
-    await db.insert(membershipHistory).values({
-      memberId: created.id,
-      action: "joined",
-      startDate: now,
-      endDate: termEnd,
-    });
+  if (!created) {
+    existing = await readLocked();
+    if (existing) await extend(existing);
+    return;
   }
+
+  await db.insert(membershipHistory).values({
+    memberId: created.id,
+    action: "joined",
+    startDate: now,
+    endDate: termEnd,
+  });
 }
 
 export type LinkOutcome =
@@ -343,14 +385,20 @@ export async function linkPaidPaymentByVerifiedEmail(
   });
   if (alreadyLinked) return { linked: false, reason: "already-linked" };
 
-  const payment = await db.query.stripePayments.findFirst({
+  // Only a payment whose amount buys something is claimable. A $1 payment link
+  // or an odd Dashboard charge is skipped rather than linked, so it can neither
+  // be granted as a year nor use up the account's one link ahead of a real
+  // payment.
+  const candidates = await db.query.stripePayments.findMany({
     where: {
       customerEmail: email,
       linkedUserId: { isNull: true },
       paymentStatus: "paid",
     },
   });
-  if (!payment) return { linked: false, reason: "no-payment" };
+  const payment = candidates.find((row) => entitlementForPayment(row));
+  const entitlement = payment && entitlementForPayment(payment);
+  if (!payment || !entitlement) return { linked: false, reason: "no-payment" };
 
   const { firstName, lastName } = splitName(opts.name ?? payment.customerName);
 
@@ -390,9 +438,9 @@ export async function linkPaidPaymentByVerifiedEmail(
     lastName,
     // What they paid for is recorded on the payment, so the add-on survives being
     // claimed later by the sign-in hook or the backfill.
-    bootcampMember: paidForBootcamp(payment.metadata),
-    addOnOnly: isBootcampAddOnOnly(payment.metadata),
-    plan: planFromMetadata(payment.metadata),
+    bootcampMember: entitlement.bootcamp,
+    addOnOnly: entitlement.addOnOnly,
+    plan: entitlement.plan,
   });
 
   notifyMembershipChanged(opts.userId);

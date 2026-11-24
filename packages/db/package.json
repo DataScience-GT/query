@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./constants": "./src/constants/index.ts",
     "./services/membership": "./src/services/membership.ts",
+    "./services/pricing": "./src/services/pricing.ts",
     "./services/auth-throttle": "./src/services/auth-throttle.ts"
   },
   "scripts": {
