@@ -7,9 +7,12 @@ import {
   GENDERS,
   LEVELS_OF_STUDY,
   MAJORS,
+  REFERRAL_SOURCES,
   REGISTRATION_STEPS,
   SCHOOLS,
   SHIRT_SIZES,
+  TRAVEL_DISTANCES,
+  TRAVEL_METHODS,
 } from "@/components/hackathon/constants";
 import {
   FormErrorAlert,
@@ -23,14 +26,15 @@ import { useSession } from "next-auth/react";
 
 import type { RouterOutputs } from "@query/api";
 import { MLH_CODE_OF_CONDUCT_URL } from "@query/core";
-import { sectionTitle, textLink } from "@query/ui/classes";
+import { fieldHint, sectionTitle, textLink } from "@query/ui/classes";
 import { FormChipSelect, FormMultiChipSelect } from "@query/ui/FormChipSelect";
 import { FormInput } from "@query/ui/FormInput";
 import { FormTextarea } from "@query/ui/FormTextarea";
 import { SearchableSelect } from "@query/ui/SearchableSelect";
 import { StepProgress } from "@query/ui/StepProgress";
 
-type RegistrationStep = 0 | 1 | 2 | 3;
+type RegistrationStep = 0 | 1 | 2 | 3 | 4;
+const LAST_STEP = 4;
 
 const MLH_PRIVACY_URL = "https://mlh.io/privacy";
 const MLH_CONTEST_TERMS_URL =
@@ -46,7 +50,21 @@ const INLINE_ERROR_FIELDS = new Set([
   "graduationYear",
   "country",
   "whyAttend",
+  "techJourney",
+  "helpfulFeedback",
+  "dreamBuild",
+  "travelFromCity",
+  "travelFromCountry",
 ]);
+
+const YES_NO = ["Yes", "No"];
+const YES_NO_PREFER = ["Yes", "No", "Prefer not to say"];
+const EXCITEMENT_OPTIONS = Array.from({ length: 10 }, (_, i) => String(i + 1));
+const NOT_SURE = "Not sure yet";
+
+/** A saved yes/no answer as the chip that shows it. */
+const yesNo = (value: boolean | null | undefined) =>
+  value == null ? "" : value ? "Yes" : "No";
 
 // Native checkboxes; the accent colours the tick. The `!` beats the 44px
 // minimum globals.css gives every checkbox on a touch screen, which would turn
@@ -124,6 +142,26 @@ function startFromRecord(record: SavedRegistration) {
     linkedinUrl: record.linkedinUrl ?? "",
     githubUrl: record.githubUrl ?? "",
     whyAttend: record.whyAttend ?? "",
+    isGtStudent: yesNo(record.isGtStudent),
+    isDsgtMember: yesNo(record.isDsgtMember),
+    attendedHacklyticsBefore: yesNo(record.attendedHacklyticsBefore),
+    usCitizen: record.usCitizen ?? "",
+    travelReimbursement: yesNo(record.travelReimbursement),
+    travelFromCity: record.travelFromCity ?? "",
+    travelFromState: record.travelFromState ?? "",
+    travelFromCountry: record.travelFromCountry ?? "",
+    travelDistance: record.travelDistance ?? "",
+    travelMethod: record.travelMethod ?? "",
+    techJourney: record.techJourney ?? "",
+    helpfulFeedback: record.helpfulFeedback ?? "",
+    trackInterest: record.trackInterest ?? "",
+    dreamBuild: record.dreamBuild ?? "",
+    referralSource: record.referralSource ?? "",
+    anythingElse: record.anythingElse ?? "",
+    favoriteFlower: record.favoriteFlower ?? "",
+    favoriteSnack: record.favoriteSnack ?? "",
+    excitement: record.excitement != null ? String(record.excitement) : "",
+    ramadanFasting: record.ramadanFasting ?? "",
     shirtSize: (record.shirtSize ?? "") as ShirtSize | "",
     dietary: record.dietaryRestrictions ?? [],
     emergencyContact: record.emergencyContact ?? "",
@@ -160,6 +198,27 @@ function startFromDraft(saved: Record<string, unknown>) {
     linkedinUrl: text("linkedinUrl"),
     githubUrl: text("githubUrl"),
     whyAttend: text("whyAttend"),
+    isGtStudent: text("isGtStudent"),
+    isDsgtMember: text("isDsgtMember"),
+    attendedHacklyticsBefore: text("attendedHacklyticsBefore"),
+    // Citizenship and fasting are sensitive, so they are not kept in the draft.
+    usCitizen: "",
+    travelReimbursement: text("travelReimbursement"),
+    travelFromCity: text("travelFromCity"),
+    travelFromState: text("travelFromState"),
+    travelFromCountry: text("travelFromCountry"),
+    travelDistance: text("travelDistance"),
+    travelMethod: text("travelMethod"),
+    techJourney: text("techJourney"),
+    helpfulFeedback: text("helpfulFeedback"),
+    trackInterest: text("trackInterest"),
+    dreamBuild: text("dreamBuild"),
+    referralSource: text("referralSource"),
+    anythingElse: text("anythingElse"),
+    favoriteFlower: text("favoriteFlower"),
+    favoriteSnack: text("favoriteSnack"),
+    excitement: text("excitement"),
+    ramadanFasting: "",
     shirtSize: (SHIRT_SIZES.find((s) => s === saved.shirtSize) ?? "") as
       ShirtSize | "",
     dietary: Array.isArray(saved.dietary)
@@ -177,6 +236,8 @@ function startFromDraft(saved: Record<string, unknown>) {
  *  draft kept on this browser. */
 export function RegistrationForm({
   hackathonId,
+  hackathonName,
+  tracks,
   interest,
   saved,
   onRegistered,
@@ -184,6 +245,9 @@ export function RegistrationForm({
   onCancel,
 }: {
   hackathonId: string;
+  hackathonName: string;
+  /** The hackathon's tracks, offered as the track-interest choices. */
+  tracks?: readonly string[] | null;
   /** What they told the interest list, offered only where it fits this form. */
   interest?: Interest | null;
   saved?: SavedRegistration;
@@ -230,6 +294,7 @@ export function RegistrationForm({
   const [underrepresented, setUnderrepresented] = useState(
     start.underrepresented,
   );
+  const [usCitizen, setUsCitizen] = useState(start.usCitizen);
 
   // Step 2: Academic
   // 12k schools / ~450KB, so it loads on the academic step rather than in the
@@ -265,6 +330,8 @@ export function RegistrationForm({
     start.country,
   );
   const [firstGeneration, setFirstGeneration] = useState(start.firstGeneration);
+  const [isGtStudent, setIsGtStudent] = useState(start.isGtStudent);
+  const [isDsgtMember, setIsDsgtMember] = useState(start.isDsgtMember);
 
   // Step 3: Experience
   const [hackathonsAttended, setHackathonsAttended] = useState(
@@ -274,15 +341,40 @@ export function RegistrationForm({
   const [linkedinUrl, setLinkedinUrl] = useState(start.linkedinUrl);
   const [githubUrl, setGithubUrl] = useState(start.githubUrl);
   const [whyAttend, setWhyAttend] = useState(start.whyAttend);
+  const [attendedHacklyticsBefore, setAttendedHacklyticsBefore] = useState(
+    start.attendedHacklyticsBefore,
+  );
+  const [techJourney, setTechJourney] = useState(start.techJourney);
+  const [helpfulFeedback, setHelpfulFeedback] = useState(start.helpfulFeedback);
+  const [trackInterest, setTrackInterest] = useState(start.trackInterest);
+  const [dreamBuild, setDreamBuild] = useState(start.dreamBuild);
+  const [referralSource, setReferralSource] = useState(start.referralSource);
+  const [anythingElse, setAnythingElse] = useState(start.anythingElse);
 
   // Step 4: Logistics
   const [shirtSize, setShirtSize] = useState<ShirtSize | "">(start.shirtSize);
   const [dietary, setDietary] = useState<string[]>(start.dietary);
+  const [ramadanFasting, setRamadanFasting] = useState(start.ramadanFasting);
+  const [travelReimbursement, setTravelReimbursement] = useState(
+    start.travelReimbursement,
+  );
+  const [travelFromCity, setTravelFromCity] = useState(start.travelFromCity);
+  const [travelFromState, setTravelFromState] = useState(start.travelFromState);
+  const [travelFromCountry, setTravelFromCountry] = useState(
+    start.travelFromCountry,
+  );
+  const [travelDistance, setTravelDistance] = useState(start.travelDistance);
+  const [travelMethod, setTravelMethod] = useState(start.travelMethod);
   const [emergencyContact, setEmergencyContact] = useState(
     start.emergencyContact,
   );
   const [emergencyPhone, setEmergencyPhone] = useState(start.emergencyPhone);
   const [needsHardware, setNeedsHardware] = useState(start.needsHardware);
+
+  // Step 5: Just for fun
+  const [favoriteFlower, setFavoriteFlower] = useState(start.favoriteFlower);
+  const [favoriteSnack, setFavoriteSnack] = useState(start.favoriteSnack);
+  const [excitement, setExcitement] = useState(start.excitement);
   const [agreeToCoC, setAgreeToCoC] = useState(false);
   const [mlhCodeOfConduct, setMlhCodeOfConduct] = useState(false);
   const [mlhDataSharing, setMlhDataSharing] = useState(false);
@@ -329,6 +421,24 @@ export function RegistrationForm({
     linkedinUrl,
     githubUrl,
     whyAttend,
+    isGtStudent,
+    isDsgtMember,
+    attendedHacklyticsBefore,
+    travelReimbursement,
+    travelFromCity,
+    travelFromState,
+    travelFromCountry,
+    travelDistance,
+    travelMethod,
+    techJourney,
+    helpfulFeedback,
+    trackInterest,
+    dreamBuild,
+    referralSource,
+    anythingElse,
+    favoriteFlower,
+    favoriteSnack,
+    excitement,
     shirtSize,
     dietary,
     needsHardware,
@@ -350,6 +460,14 @@ export function RegistrationForm({
   useEffect(() => {
     formTop.current?.scrollIntoView({ block: "start" });
   }, [step]);
+
+  // The hackathon's tracks, plus a way out for anyone who has not picked.
+  const trackOptions = useMemo(() => {
+    const named = (tracks ?? []).filter(
+      (t) => t.trim() && t.trim().toUpperCase() !== "NONE",
+    );
+    return named.length > 0 ? [...named, NOT_SURE] : [];
+  }, [tracks]);
 
   const utils = trpc.useUtils();
   const registerMutation = trpc.hackathon.register.useMutation({
@@ -397,6 +515,7 @@ export function RegistrationForm({
         !age || parseInt(age) < 13 || parseInt(age) > 120,
         "Please enter a valid age (13-120).",
       );
+      need("usCitizen", !usCitizen, "Tell us if you are a U.S. citizen.");
     } else if (s === 1) {
       need("school", !school.trim(), "School / university is required.");
       need("major", !major.trim(), "Major / field of study is required.");
@@ -409,25 +528,95 @@ export function RegistrationForm({
       );
       need("levelOfStudy", !levelOfStudy, "Level of study is required.");
       need("country", !country.trim(), "Country is required.");
+      need(
+        "isGtStudent",
+        !isGtStudent,
+        "Tell us if you are a student at Georgia Tech.",
+      );
+      need(
+        "isDsgtMember",
+        !isDsgtMember,
+        "Tell us if you are a member of Data Science @ Georgia Tech.",
+      );
     } else if (s === 2) {
+      need(
+        "attendedHacklyticsBefore",
+        !attendedHacklyticsBefore,
+        "Tell us if you have been to Hacklytics before.",
+      );
       need(
         "whyAttend",
         !whyAttend.trim(),
-        "Please tell us why you want to attend.",
+        "Please tell us what you hope to learn or gain.",
       );
-    } else if (s === 3 && !editing) {
+      need(
+        "techJourney",
+        !techJourney.trim(),
+        "Please tell us about your journey in tech.",
+      );
+      need(
+        "helpfulFeedback",
+        !helpfulFeedback.trim(),
+        "Please tell us about the most helpful feedback you've gotten.",
+      );
+      need(
+        "trackInterest",
+        !trackInterest.trim(),
+        "Pick the track you are most interested in.",
+      );
+      need(
+        "dreamBuild",
+        !dreamBuild.trim(),
+        "Please tell us what you would build.",
+      );
+      need(
+        "referralSource",
+        !referralSource,
+        "Tell us how you heard about us.",
+      );
+    } else if (s === 3) {
+      need(
+        "ramadanFasting",
+        !ramadanFasting,
+        "Tell us if you will be fasting during the event.",
+      );
+      need(
+        "travelReimbursement",
+        !travelReimbursement,
+        "Tell us if you will request travel reimbursement.",
+      );
+      need("travelFromCity", !travelFromCity.trim(), "City is required.");
+      need(
+        "travelFromCountry",
+        !travelFromCountry.trim(),
+        "The country you are coming from is required.",
+      );
+      need(
+        "travelDistance",
+        !travelDistance,
+        "Tell us how far you will travel.",
+      );
+      need("travelMethod", !travelMethod, "Tell us how you will get here.");
+    } else if (s === 4) {
+      need("excitement", !excitement, "Tell us how excited you are.");
       // Already agreed to when the application was sent, so not asked again.
-      need("agreeToCoC", !agreeToCoC, "You must agree to the Code of Conduct.");
-      need(
-        "mlhCodeOfConduct",
-        !mlhCodeOfConduct,
-        "You must agree to the MLH Code of Conduct.",
-      );
-      need(
-        "mlhDataSharing",
-        !mlhDataSharing,
-        "You must agree to the MLH Data Sharing provision.",
-      );
+      if (!editing) {
+        need(
+          "agreeToCoC",
+          !agreeToCoC,
+          "You must agree to the Code of Conduct.",
+        );
+        need(
+          "mlhCodeOfConduct",
+          !mlhCodeOfConduct,
+          "You must agree to the MLH Code of Conduct.",
+        );
+        need(
+          "mlhDataSharing",
+          !mlhDataSharing,
+          "You must agree to the MLH Data Sharing provision.",
+        );
+      }
     }
     return problems;
   }
@@ -458,7 +647,7 @@ export function RegistrationForm({
 
   function handleNext() {
     if (!validateStep(step)) return;
-    setStep((s) => Math.min(s + 1, 3) as RegistrationStep);
+    setStep((s) => Math.min(s + 1, LAST_STEP) as RegistrationStep);
   }
 
   function handleBack() {
@@ -468,8 +657,13 @@ export function RegistrationForm({
   }
 
   function handleSubmit() {
-    // Step 2 too — the last step is reachable by Back-then-Next.
-    if (!validateStep(2) || !validateStep(3)) return;
+    // Every step: the last one is reachable by Back-then-Next.
+    for (const s of [0, 1, 2, 3, 4] as const) {
+      if (!validateStep(s)) {
+        if (s !== step) setStep(s);
+        return;
+      }
+    }
     setError("");
     const answers = {
       hackathonId,
@@ -490,6 +684,26 @@ export function RegistrationForm({
       linkedinUrl: linkedinUrl.trim() || undefined,
       githubUrl: githubUrl.trim() || undefined,
       whyAttend: whyAttend.trim(),
+      isGtStudent: isGtStudent === "Yes",
+      isDsgtMember: isDsgtMember === "Yes",
+      attendedHacklyticsBefore: attendedHacklyticsBefore === "Yes",
+      usCitizen: usCitizen as "Yes" | "No" | "Prefer not to say",
+      travelReimbursement: travelReimbursement === "Yes",
+      travelFromCity: travelFromCity.trim(),
+      travelFromState: travelFromState.trim() || undefined,
+      travelFromCountry: travelFromCountry.trim(),
+      travelDistance: travelDistance as (typeof TRAVEL_DISTANCES)[number],
+      travelMethod: travelMethod as (typeof TRAVEL_METHODS)[number],
+      techJourney: techJourney.trim(),
+      helpfulFeedback: helpfulFeedback.trim(),
+      trackInterest: trackInterest.trim(),
+      dreamBuild: dreamBuild.trim(),
+      referralSource: referralSource as (typeof REFERRAL_SOURCES)[number],
+      anythingElse: anythingElse.trim() || undefined,
+      ramadanFasting: ramadanFasting as "Yes" | "No" | "Prefer not to say",
+      favoriteFlower: favoriteFlower.trim() || undefined,
+      favoriteSnack: favoriteSnack.trim() || undefined,
+      excitement: parseInt(excitement),
       shirtSize: shirtSize || undefined,
       dietaryRestrictions: dietary.length ? dietary : undefined,
       emergencyContact: emergencyContact.trim() || undefined,
@@ -587,6 +801,15 @@ export function RegistrationForm({
                 placeholder="e.g. Asian, Hispanic, White, etc."
               />
             </div>
+            <div className="mt-5">
+              <FormChipSelect
+                label="Are you a U.S. citizen?"
+                required
+                options={YES_NO_PREFER}
+                value={usCitizen}
+                onChange={setUsCitizen}
+              />
+            </div>
             <div className="pt-4">
               <label className={checkboxRow}>
                 <input
@@ -652,6 +875,20 @@ export function RegistrationForm({
               error={fieldErrors.country}
               placeholder="United States"
             />
+            <FormChipSelect
+              label="Are you a student at Georgia Tech?"
+              required
+              options={YES_NO}
+              value={isGtStudent}
+              onChange={setIsGtStudent}
+            />
+            <FormChipSelect
+              label="Are you a member of Data Science @ Georgia Tech?"
+              required
+              options={YES_NO}
+              value={isDsgtMember}
+              onChange={setIsDsgtMember}
+            />
             <div className="pt-4">
               <label className={checkboxRow}>
                 <input
@@ -680,15 +917,90 @@ export function RegistrationForm({
               min={0}
               max={100}
             />
+            <FormChipSelect
+              label={`Have you been to Hacklytics before?`}
+              required
+              options={YES_NO}
+              value={attendedHacklyticsBefore}
+              onChange={setAttendedHacklyticsBefore}
+            />
             <FormTextarea
-              label="Why do you want to attend?"
+              label="What do you hope to learn or gain from Hacklytics?"
               required
               value={whyAttend}
               onChange={(e) => setWhyAttend(e.target.value)}
               error={fieldErrors.whyAttend}
-              placeholder="Tell us what excites you about this hackathon…"
+              placeholder="Tell us what you want to get out of the weekend…"
               maxLength={2000}
               rows={4}
+            />
+            <FormTextarea
+              label="Tell us about your journey in tech. Is this your first hackathon? Have you coded before?"
+              required
+              value={techJourney}
+              onChange={(e) => setTechJourney(e.target.value)}
+              error={fieldErrors.techJourney}
+              maxLength={2000}
+              rows={4}
+            />
+            <FormTextarea
+              label="What's the most helpful feedback you've ever gotten about yourself, and how does it shape you today?"
+              required
+              value={helpfulFeedback}
+              onChange={(e) => setHelpfulFeedback(e.target.value)}
+              error={fieldErrors.helpfulFeedback}
+              maxLength={2000}
+              rows={4}
+            />
+            {trackOptions.length > 0 ? (
+              <div>
+                <FormChipSelect
+                  label="Which track are you most interested in?"
+                  required
+                  options={trackOptions}
+                  value={trackInterest}
+                  onChange={setTrackInterest}
+                />
+                <p className={fieldHint}>
+                  Tracks aren&apos;t final yet and may change.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <FormInput
+                  label="Which track are you most interested in?"
+                  required
+                  value={trackInterest}
+                  onChange={(e) => setTrackInterest(e.target.value)}
+                  maxLength={100}
+                />
+                <p className={fieldHint}>
+                  Tracks aren&apos;t final yet and may change.
+                </p>
+              </div>
+            )}
+            <FormTextarea
+              label="If you could build any app, website or tool, what problem would it solve?"
+              required
+              value={dreamBuild}
+              onChange={(e) => setDreamBuild(e.target.value)}
+              error={fieldErrors.dreamBuild}
+              maxLength={2000}
+              rows={4}
+            />
+            <FormChipSelect
+              label="How did you hear about us?"
+              required
+              options={[...REFERRAL_SOURCES]}
+              value={referralSource}
+              onChange={setReferralSource}
+            />
+            <FormTextarea
+              label="Anything else you'd like us to know?"
+              value={anythingElse}
+              onChange={(e) => setAnythingElse(e.target.value)}
+              maxLength={2000}
+              rows={3}
             />
             <ResumeSection />
             <FormInput
@@ -719,7 +1031,7 @@ export function RegistrationForm({
 
         {/* Step 4: Logistics */}
         {step === 3 && (
-          <StepContainer title="Logistics and consent">
+          <StepContainer title="Logistics">
             <FormChipSelect
               label="T-shirt size"
               options={[...SHIRT_SIZES]}
@@ -732,6 +1044,13 @@ export function RegistrationForm({
               selected={dietary}
               onChange={setDietary}
               noneOption="None"
+            />
+            <FormChipSelect
+              label={`${hackathonName} falls during Ramadan. Will you be fasting during the event? We'll plan suhoor and iftar meals around you.`}
+              required
+              options={YES_NO_PREFER}
+              value={ramadanFasting}
+              onChange={setRamadanFasting}
             />
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <FormInput
@@ -764,6 +1083,79 @@ export function RegistrationForm({
                   (e.g., laptop).
                 </span>
               </label>
+            </div>
+            <FormChipSelect
+              label={`${hackathonName} is fully in person. Will you request travel reimbursement?`}
+              required
+              options={YES_NO}
+              value={travelReimbursement}
+              onChange={setTravelReimbursement}
+            />
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+              <FormInput
+                label="Where are you coming from? City"
+                required
+                value={travelFromCity}
+                onChange={(e) => setTravelFromCity(e.target.value)}
+                error={fieldErrors.travelFromCity}
+                maxLength={100}
+              />
+              <FormInput
+                label="State / province"
+                value={travelFromState}
+                onChange={(e) => setTravelFromState(e.target.value)}
+                maxLength={100}
+              />
+              <FormInput
+                label="Country"
+                required
+                value={travelFromCountry}
+                onChange={(e) => setTravelFromCountry(e.target.value)}
+                error={fieldErrors.travelFromCountry}
+                maxLength={100}
+              />
+            </div>
+            <FormChipSelect
+              label="How far will you travel?"
+              required
+              options={[...TRAVEL_DISTANCES]}
+              value={travelDistance}
+              onChange={setTravelDistance}
+            />
+            <FormChipSelect
+              label="How will you get here?"
+              required
+              options={[...TRAVEL_METHODS]}
+              value={travelMethod}
+              onChange={setTravelMethod}
+            />
+          </StepContainer>
+        )}
+
+        {/* Step 5: Just for fun, then the consents, so they come last. */}
+        {step === 4 && (
+          <StepContainer title="Just for fun">
+            <FormInput
+              label="What's your favorite flower?"
+              value={favoriteFlower}
+              onChange={(e) => setFavoriteFlower(e.target.value)}
+              maxLength={60}
+            />
+            <FormInput
+              label="What's your favorite hackathon snack?"
+              value={favoriteSnack}
+              onChange={(e) => setFavoriteSnack(e.target.value)}
+              maxLength={60}
+            />
+            <div>
+              <FormChipSelect
+                label={`How excited are you for ${hackathonName}?`}
+                required
+                options={EXCITEMENT_OPTIONS}
+                value={excitement}
+                onChange={setExcitement}
+              />
+              <p className={fieldHint}>1 = a little, 10 = can&apos;t wait</p>
             </div>
             {/* Agreed to when the application was sent; not asked again. */}
             {!editing && (

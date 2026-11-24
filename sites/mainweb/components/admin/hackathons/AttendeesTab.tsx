@@ -216,6 +216,9 @@ export function AttendeesTab({
    * screen. Fetched on demand through its own endpoint so the bulk-PII read
    * happens exactly when an organiser asks for it.
    */
+  const yesNoCell = (v: boolean | null) =>
+    v == null ? "Not asked" : v ? "Yes" : "No";
+
   const exportToCSV = async () => {
     setExporting(true);
     let all: Awaited<
@@ -245,6 +248,26 @@ export function AttendeesTab({
       "Major",
       "Grad Year",
       "Why Attend",
+      "GT Student",
+      "DS@GT Member",
+      "Attended Hacklytics Before",
+      "US Citizen",
+      "Travel Reimbursement",
+      "Travel From City",
+      "Travel From State",
+      "Travel From Country",
+      "Travel Distance",
+      "Travel Method",
+      "Tech Journey",
+      "Helpful Feedback",
+      "Track Interest",
+      "Dream Build",
+      "Referral Source",
+      "Ramadan Fasting",
+      "Anything Else",
+      "Favorite Flower",
+      "Favorite Snack",
+      "Excitement (1-10)",
       "Shirt Size",
       "Dietary Restrictions",
       "Emergency Contact",
@@ -263,6 +286,26 @@ export function AttendeesTab({
       a.major || "",
       a.graduationYear || "",
       a.whyAttend || "",
+      yesNoCell(a.isGtStudent),
+      yesNoCell(a.isDsgtMember),
+      yesNoCell(a.attendedHacklyticsBefore),
+      a.usCitizen ?? "",
+      yesNoCell(a.travelReimbursement),
+      a.travelFromCity ?? "",
+      a.travelFromState ?? "",
+      a.travelFromCountry ?? "",
+      a.travelDistance ?? "",
+      a.travelMethod ?? "",
+      a.techJourney ?? "",
+      a.helpfulFeedback ?? "",
+      a.trackInterest ?? "",
+      a.dreamBuild ?? "",
+      a.referralSource ?? "",
+      a.ramadanFasting ?? "",
+      a.anythingElse ?? "",
+      a.favoriteFlower ?? "",
+      a.favoriteSnack ?? "",
+      a.excitement ?? "",
       a.shirtSize || "None",
       (a.dietaryRestrictions || []).join(", ") || "None",
       a.emergencyContact || "",
@@ -1175,13 +1218,129 @@ export function AttendeesTab({
                               </div>
                               <div>
                                 <p className={detailLabel}>
-                                  Why do you want to attend?
+                                  What do they hope to learn or gain?
                                 </p>
                                 <p className="border-l-2 border-[var(--border-medium)] pl-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed">
                                   {attendee.whyAttend
                                     ? `"${attendee.whyAttend}"`
                                     : "No answer provided."}
                                 </p>
+                              </div>
+                              <div className="grid grid-cols-1 gap-4">
+                              <div>
+                                <p className={detailLabel}>Georgia Tech student</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.isGtStudent == null ? "Not asked" : attendee.isGtStudent ? "Yes" : "No"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>DS@GT member</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.isDsgtMember == null ? "Not asked" : attendee.isDsgtMember ? "Yes" : "No"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Been to Hacklytics before</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.attendedHacklyticsBefore == null ? "Not asked" : attendee.attendedHacklyticsBefore ? "Yes" : "No"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>U.S. citizen</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.usCitizen || "Not asked"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Track interest</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.trackInterest || "Not asked"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Heard about us</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.referralSource || "Not asked"}
+                                </p>
+                              </div>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Journey in tech</p>
+                                <p className="border-l-2 border-[var(--border-medium)] pl-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed">
+                                  {attendee.techJourney || "Not asked"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Most helpful feedback</p>
+                                <p className="border-l-2 border-[var(--border-medium)] pl-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed">
+                                  {attendee.helpfulFeedback || "Not asked"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>What they would build</p>
+                                <p className="border-l-2 border-[var(--border-medium)] pl-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed">
+                                  {attendee.dreamBuild || "Not asked"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Anything else</p>
+                                <p className="border-l-2 border-[var(--border-medium)] pl-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed">
+                                  {attendee.anythingElse || "Not asked"}
+                                </p>
+                              </div>
+                              <h4 className={detailGroup}>Travel</h4>
+                              <div className="grid grid-cols-1 gap-4">
+                              <div>
+                                <p className={detailLabel}>Travel reimbursement</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.travelReimbursement == null ? "Not asked" : attendee.travelReimbursement ? "Yes" : "No"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Coming from</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {[attendee.travelFromCity, attendee.travelFromState, attendee.travelFromCountry].filter(Boolean).join(", ") || "Not asked"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Distance</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.travelDistance || "Not asked"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Method</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.travelMethod || "Not asked"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Fasting for Ramadan</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.ramadanFasting || "Not asked"}
+                                </p>
+                              </div>
+                              </div>
+                              <h4 className={detailGroup}>Just for fun</h4>
+                              <div className="grid grid-cols-1 gap-4">
+                              <div>
+                                <p className={detailLabel}>Favorite flower</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.favoriteFlower || "Not asked"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Favorite snack</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.favoriteSnack || "Not asked"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Excitement (1-10)</p>
+                                <p className="text-sm tabular-nums text-[var(--text-primary)]">
+                                  {attendee.excitement ?? "Not asked"}
+                                </p>
+                              </div>
                               </div>
 
                               {/* Quick action buttons in expanded view */}

@@ -1,6 +1,12 @@
 // Registration form constants — nationwide hackathon application
 
-export { SHIRT_SIZES, LEVELS_OF_STUDY } from "@query/db/constants";
+export {
+  SHIRT_SIZES,
+  LEVELS_OF_STUDY,
+  REFERRAL_SOURCES,
+  TRAVEL_DISTANCES,
+  TRAVEL_METHODS,
+} from "@query/db/constants";
 export type { ShirtSize, LevelOfStudy } from "@query/db/constants";
 
 export const DIETARY_OPTIONS = [
@@ -27,6 +33,7 @@ export const REGISTRATION_STEPS = [
   "Academic Info",
   "Experience",
   "Logistics",
+  "Just for fun",
 ] as const;
 
 /**
