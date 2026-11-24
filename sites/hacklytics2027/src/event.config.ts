@@ -197,7 +197,7 @@ export default defineEvent({
         a: [
           "On the DS@GT portal. ",
           { text: "Apply here", href: APPLY_URL, external: true },
-          " by January 31.",
+          " by January 20.",
         ],
       },
       {
@@ -235,7 +235,7 @@ export default defineEvent({
 
     footer: {
       headline: "Applications are open",
-      note: "Apply by January 31. It’s free.",
+      note: "Apply by January 20. It’s free.",
     },
   }),
 });
