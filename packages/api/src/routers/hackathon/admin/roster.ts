@@ -244,6 +244,8 @@ export const rosterProcedures = {
         // Exactly what the CSV in AttendeesTab writes, so a new column on the
         // table is not exported until the CSV asks for it.
         columns: {
+          // Not shown in the CSV; it keeps the file matchable to the roster.
+          id: true,
           registrationStatus: true,
           registeredAt: true,
           firstName: true,
