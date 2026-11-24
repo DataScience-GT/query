@@ -15,6 +15,9 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const isUuid = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ workshopId: string }> },
@@ -26,6 +29,10 @@ export async function DELETE(
   }
   if (!caller.isStaff) {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+  // A non-uuid id makes Postgres throw; answer 400 instead of a 500.
+  if (!isUuid(workshopId)) {
+    return NextResponse.json({ error: "Invalid workshop id" }, { status: 400 });
   }
   if (!bootcampBucketName()) {
     return NextResponse.json(

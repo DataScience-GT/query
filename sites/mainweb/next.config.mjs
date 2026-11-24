@@ -170,7 +170,7 @@ const nextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
-          { key: "X-XSS-Protection", value: "1; mode=block" },
+          { key: "X-XSS-Protection", value: "0" },
           // SAMEORIGIN rather than DENY: the QR and print views are opened in
           // frames by the admin screens. `frame-ancestors 'self'` above says
           // the same thing to browsers that honour CSP.

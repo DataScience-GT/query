@@ -6,6 +6,7 @@ import type { DrizzleDB } from "@query/db";
 import { eq } from "drizzle-orm";
 import { rateLimitShared } from "@query/api";
 import { bootcampCaller } from "@/lib/bootcamp-access";
+import { isSameOriginRequest } from "@/lib/same-origin";
 import { canDownloadBootcampFile } from "@/lib/bootcamp-route-rules";
 import {
   bootcampDownloadName,
@@ -65,6 +66,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ workshopId: string; kind: string }> },
 ) {
+  // Raw-byte upload: see the same check on the resume route.
+  if (!isSameOriginRequest(request.headers)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const { workshopId, kind, caller } = await context(params);
   if (!caller.userId || !db) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });

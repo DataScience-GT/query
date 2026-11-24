@@ -50,6 +50,14 @@ function waitForNamedEntry(archive: ZipArchive, name: string) {
  * first. Nothing here writes, so a read over GET is what it looks like.
  */
 export async function GET(request: NextRequest) {
+  // Another site could otherwise navigate a staff browser here and start the
+  // multi-GB stream. A click inside the app sends same-origin, a typed URL or
+  // bookmark sends none; non-browser clients send no header at all and still
+  // need a session cookie, so absent is allowed.
+  const fetchSite = request.headers.get("sec-fetch-site");
+  if (fetchSite && fetchSite !== "same-origin" && fetchSite !== "none") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const caller = await resumeCaller();
   if (!caller.userId || !db) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
