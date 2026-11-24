@@ -533,6 +533,11 @@ export const hackathonAnnouncements = pgTable(
         // reaches someone who was turned down.
         "waitlisted",
         "rejected",
+        // Judges, not applicants: the judge roster of this edition, and the
+        // part of it that never answered "can you attend in person?". Never
+        // shown on hackers' event pages.
+        "judges",
+        "judges_in_person_unanswered",
       ],
     }).notNull(),
     subject: text("subject").notNull(),

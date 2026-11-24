@@ -58,6 +58,16 @@ const AUDIENCES = [
     label: "Rejected and waitlisted",
     hint: "Both groups in one send, so the message has to fit both",
   },
+  {
+    id: "judges" as const,
+    label: "All judges",
+    hint: "Judges waiting for approval or approved. Not shown on event pages",
+  },
+  {
+    id: "judges_in_person_unanswered" as const,
+    label: "Judges who haven't answered in person",
+    hint: "Judges who never said whether they can attend in person. Not shown on event pages",
+  },
 ];
 
 type Audience = (typeof AUDIENCES)[number]["id"];

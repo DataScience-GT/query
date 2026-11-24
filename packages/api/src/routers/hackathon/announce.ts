@@ -14,6 +14,7 @@ import {
   isNotNull,
   isNull,
   lt,
+  notInArray,
   or,
   sql,
 } from "drizzle-orm";
@@ -22,6 +23,7 @@ import {
   hackathonAnnouncementRecipients,
   hackathonInterest,
   hackathonParticipants,
+  judges,
   users,
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
@@ -51,9 +53,15 @@ const AUDIENCES = [
   "not_accepted",
   "waitlisted",
   "rejected",
+  "judges",
+  "judges_in_person_unanswered",
 ] as const;
 
 type Audience = (typeof AUDIENCES)[number];
+
+// Messages for the judge roster. They are not for hackers, so listForMe keeps
+// them off the event page.
+const JUDGE_AUDIENCES = ["judges", "judges_in_person_unanswered"] as const;
 
 // How many announcements listForMe returns to a hacker's event page.
 const LATEST_FOR_ME = 3;
@@ -114,6 +122,27 @@ const resolveAudience = async (
         ),
       )
       .orderBy(asc(hackathonInterest.userId));
+  }
+
+  // Judges still in play: waiting for approval (is_active false) or approved.
+  // An application whose assignment was rejected is left out. Email comes from
+  // the users table, as for every other audience.
+  if (audience === "judges" || audience === "judges_in_person_unanswered") {
+    return await db
+      .select({ userId: judges.userId, email: users.email })
+      .from(judges)
+      .innerJoin(users, eq(users.id, judges.userId))
+      .where(
+        and(
+          eq(judges.hackathonId, hackathonId),
+          isNotNull(users.email),
+          sql`not exists (select 1 from judge_assignment ja where ja.judge_id = ${judges.id} and ja.status = 'rejected')`,
+          audience === "judges_in_person_unanswered"
+            ? isNull(judges.canAttendInPerson)
+            : undefined,
+        ),
+      )
+      .orderBy(asc(judges.userId));
   }
 
   // "registered" is everyone holding a seat, at any stage. Rejected and
@@ -383,7 +412,12 @@ export const hackathonAnnounceRouter = createTRPCRouter({
             eq(hackathonAnnouncementRecipients.userId, ctx.userId),
           ),
         )
-        .where(eq(hackathonAnnouncements.hackathonId, input.hackathonId))
+        .where(
+          and(
+            eq(hackathonAnnouncements.hackathonId, input.hackathonId),
+            notInArray(hackathonAnnouncements.audience, [...JUDGE_AUDIENCES]),
+          ),
+        )
         .orderBy(desc(hackathonAnnouncements.createdAt))
         .limit(LATEST_FOR_ME);
 
