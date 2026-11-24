@@ -56,7 +56,7 @@ export default async function ProjectsPage() {
         <SectionHeading>{term}</SectionHeading>
 
         {current.length === 0 ? (
-          <p className="text-gray-300">
+          <p className="text-neutral-300">
             The roster is being updated. Check back shortly, or email{" "}
             <a
               href={`mailto:${CONTACT_EMAIL}`}
@@ -83,7 +83,7 @@ export default async function ProjectsPage() {
             </h2>
             <div className="h-px w-full bg-gradient-to-r from-white/10 to-transparent" />
           </div>
-          <p className="mb-12 max-w-xl text-gray-400">
+          <p className="mb-12 max-w-xl text-neutral-400">
             Finished or retired. Kept here as an archive, not as something you
             can join today.
           </p>
@@ -102,7 +102,7 @@ export default async function ProjectsPage() {
         <div className="flex flex-col items-center justify-center gap-8 sm:flex-row sm:gap-12">
           <Link
             href="/initiatives"
-            className="hover:text-dsgt-teal group flex min-h-11 items-center gap-4 font-mono text-xs tracking-[0.2em] text-gray-300 uppercase transition-colors md:min-h-0"
+            className="hover:text-dsgt-teal group flex min-h-11 items-center gap-4 font-mono text-xs tracking-[0.2em] text-neutral-300 uppercase transition-colors md:min-h-0"
           >
             Apply in the portal{" "}
             <span className="text-lg transition-transform group-hover:translate-x-2">
@@ -111,7 +111,7 @@ export default async function ProjectsPage() {
           </Link>
           <Link
             href="/bootcamp"
-            className="hover:text-dsgt-teal group flex min-h-11 items-center gap-4 font-mono text-xs tracking-[0.2em] text-gray-300 uppercase transition-colors md:min-h-0"
+            className="hover:text-dsgt-teal group flex min-h-11 items-center gap-4 font-mono text-xs tracking-[0.2em] text-neutral-300 uppercase transition-colors md:min-h-0"
           >
             Join the bootcamp{" "}
             <span className="text-lg transition-transform group-hover:translate-x-2">

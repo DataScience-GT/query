@@ -24,7 +24,7 @@ export default function PublicPage({
   children,
 }: PublicPageProps) {
   return (
-    <div className="selection:bg-dsgt-teal/30 relative min-h-screen overflow-x-hidden bg-[#050505] font-sans text-gray-400">
+    <div className="selection:bg-dsgt-teal/30 relative min-h-screen overflow-x-hidden bg-[#050505] font-sans text-neutral-400">
       <Navbar />
       <main className="relative z-10 mx-auto max-w-7xl px-6 pt-36 pb-32 md:pt-44 lg:px-12">
         <header className="mb-20 max-w-3xl space-y-6 md:mb-24">
@@ -37,7 +37,7 @@ export default function PublicPage({
             {title}
           </h1>
           {lede && (
-            <p className="max-w-xl text-lg leading-relaxed text-gray-300">
+            <p className="max-w-xl text-lg leading-relaxed text-neutral-300">
               {lede}
             </p>
           )}

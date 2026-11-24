@@ -49,16 +49,16 @@ export default async function HomePage() {
     loadBootcampSessions(currentTerm()),
   ]);
   // oxlint-disable-next-line react/purity
-  const { upcoming } = splitByDay(sessions, startOfEasternDay(new Date()));
+  const { upcoming, past } = splitByDay(sessions, startOfEasternDay(new Date()));
   const { current: currentProjects } = groupClubProjects(projects);
 
   return (
     <div
       id="home-page"
-      className="selection:bg-dsgt-teal/30 relative overflow-x-hidden bg-[#050505] text-gray-400"
+      className="selection:bg-dsgt-teal/30 relative overflow-x-hidden bg-[#050505] text-neutral-400"
     >
       <Navbar />
-      <Hero nextSession={upcoming[0] ?? null} />
+      <Hero nextSession={upcoming[0] ?? null} termOver={past.length > 0} />
 
       {/* ABOUT SECTION */}
       <Section
@@ -66,7 +66,7 @@ export default async function HomePage() {
         className="relative z-10 scroll-mt-20 pt-16 pb-12 md:scroll-mt-0 md:pt-24 md:pb-20"
       >
         <div className="mx-auto max-w-7xl px-6 lg:px-12">
-          <h2 className="max-w-5xl text-5xl leading-[1.05] font-bold tracking-tighter text-white md:text-6xl">
+          <h2 className="max-w-5xl text-4xl leading-[1.05] font-bold tracking-tighter text-white md:text-[2.75rem]">
             Learn it in the bootcamp. Build it in a club project. Ship it at
             Hacklytics.
           </h2>
@@ -79,7 +79,7 @@ export default async function HomePage() {
             placeholder="blur"
           />
           <div className="mt-8 flex flex-col gap-6 md:mt-10 md:flex-row md:items-start md:justify-between md:gap-16">
-            <p className="max-w-xl text-lg leading-relaxed text-gray-300">
+            <p className="max-w-xl text-lg leading-relaxed text-neutral-300">
               We build technical skill through club projects, workshops, and
               guest speakers.
             </p>
@@ -132,7 +132,7 @@ export default async function HomePage() {
             <h2 className="text-5xl leading-none font-bold tracking-tighter text-white md:text-6xl">
               Bootcamp.
             </h2>
-            <p className="max-w-md leading-relaxed text-gray-300">
+            <p className="max-w-md leading-relaxed text-neutral-300">
               One session a week, from data wrangling to deep learning. The last
               weeks are yours to spend on a project of your own.
             </p>
@@ -149,7 +149,7 @@ export default async function HomePage() {
                 key={step.first}
                 className="grid grid-cols-[4.5rem_1fr] items-baseline gap-x-4 py-3.5 md:py-4"
               >
-                <span className="font-mono text-xs tracking-[0.2em] text-gray-400 uppercase tabular-nums">
+                <span className="font-mono text-xs tracking-[0.2em] text-neutral-400 uppercase tabular-nums">
                   {step.first === step.last
                     ? `Wk ${step.first}`
                     : `Wk ${step.first}–${step.last}`}
@@ -181,7 +181,7 @@ export default async function HomePage() {
             <h2 className="text-5xl leading-none font-bold tracking-tighter text-white md:text-6xl">
               Hacklytics.
             </h2>
-            <p className="leading-relaxed text-gray-200">
+            <p className="leading-relaxed text-neutral-200">
               Georgia Tech&apos;s premier{" "}
               <span className="text-white">36-hour datathon</span>. Hundreds of
               students, a weekend of data science challenges and workshops.
@@ -215,7 +215,7 @@ export default async function HomePage() {
           </div>
 
           {currentProjects.length === 0 ? (
-            <p className="text-gray-300">
+            <p className="text-neutral-300">
               The project roster is being updated —{" "}
               <Link
                 href="/projects"
@@ -245,13 +245,13 @@ export default async function HomePage() {
             <h2 className="text-5xl leading-none font-bold tracking-tighter text-white md:text-6xl">
               Join DS@GT.
             </h2>
-            <p className="mt-5 max-w-md text-lg leading-relaxed text-gray-300">
+            <p className="mt-5 max-w-md text-lg leading-relaxed text-neutral-300">
               Make an account to get weekly updates, sign up for the bootcamp,
               and find a club project.
             </p>
             <Link
               href="/login"
-              className="bg-dsgt-teal mt-8 inline-flex min-h-14 w-full items-center justify-center rounded-sm px-12 text-sm font-bold tracking-widest text-black uppercase transition-colors hover:bg-white sm:w-auto"
+              className="bg-dsgt-teal mt-8 inline-flex h-12 w-full items-center justify-center rounded-sm px-6 text-[15px] font-medium text-black transition-colors hover:bg-white sm:w-auto"
             >
               Join DS@GT
             </Link>
@@ -271,13 +271,13 @@ export default async function HomePage() {
                 <li key={path.href}>
                   <Link
                     href={path.href}
-                    className="group flex min-h-14 items-center justify-between gap-4 py-3 text-gray-300 transition-colors hover:text-white"
+                    className="group flex min-h-14 items-center justify-between gap-4 py-3 text-neutral-300 transition-colors hover:text-white"
                   >
                     <span>
                       <span className="block font-semibold text-white">
                         {path.title}
                       </span>
-                      <span className="block text-sm text-gray-400">
+                      <span className="block text-sm text-neutral-400">
                         {path.note}
                       </span>
                     </span>

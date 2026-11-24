@@ -123,9 +123,9 @@ describe("joinLabel", () => {
     expect(joinLabel(card({ initiativeId: "abc" }))).toBe("Apply to join");
   });
 
-  it("falls back to interest for an external project", () => {
+  it("uses the same label for an external project", () => {
     expect(joinLabel(card({ joinUrl: "https://dsgt-arc.org/join" }))).toBe(
-      "Express interest",
+      "Apply to join",
     );
   });
 });

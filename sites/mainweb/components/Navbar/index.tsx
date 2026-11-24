@@ -51,8 +51,8 @@ export default function Navbar() {
      */
     const baseClass = `inline-flex items-center min-h-11 font-mono uppercase whitespace-nowrap transition-ui duration-300 cursor-pointer ${
       isMobile
-        ? `tracking-[0.2em] text-xl font-bold ${current ? "text-dsgt-teal" : "text-gray-300 hover:text-white"}`
-        : `text-[11px] tracking-[0.14em] min-[1200px]:tracking-[0.2em] ${current ? "text-white" : "text-gray-400 hover:text-dsgt-teal"}`
+        ? `tracking-[0.2em] text-xl font-bold ${current ? "text-dsgt-teal" : "text-neutral-300 hover:text-white"}`
+        : `text-[11px] tracking-[0.14em] min-[1200px]:tracking-[0.2em] ${current ? "text-white" : "text-neutral-400 hover:text-dsgt-teal"}`
     }`;
 
     return (
@@ -139,7 +139,7 @@ export default function Navbar() {
           <Link
             href="/login"
             rel="noopener noreferrer"
-            className="mt-4 rounded-sm bg-white px-10 py-4 font-mono text-sm font-bold tracking-[0.3em] text-black uppercase shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            className="bg-dsgt-teal mt-4 inline-flex h-12 items-center justify-center rounded-sm px-6 text-[15px] font-medium text-black transition-colors hover:bg-white"
             onClick={() => setMenuOpen(false)}
           >
             Portal

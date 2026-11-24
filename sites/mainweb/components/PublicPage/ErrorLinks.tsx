@@ -23,7 +23,7 @@ export function ErrorLinks() {
               <span className="group-hover:text-dsgt-teal font-semibold text-white transition-colors">
                 {label} <span aria-hidden="true">&rarr;</span>
               </span>
-              <span className="text-sm text-gray-500">{note}</span>
+              <span className="text-sm text-[#7a7a7a]">{note}</span>
             </Link>
           </li>
         ))}
