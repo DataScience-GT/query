@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { classYears, majors } from "@/assets/Data/demographics";
 import hacklyticsAtrium from "@/assets/images/photos/hacklytics-2026-atrium.jpg";
@@ -8,6 +7,7 @@ import hacklyticsTeam from "@/assets/images/photos/hacklytics-2026-team.jpg";
 import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
 import Navbar from "@/components/Navbar";
+import Photo from "@/components/Photo";
 import ProjectCard from "@/components/ProjectCard";
 import Section from "@/components/Section";
 import ShareBar from "@/components/ShareBar";
@@ -70,12 +70,11 @@ export default async function HomePage() {
             Learn it in the bootcamp. Build it in a club project. Ship it at
             Hacklytics.
           </h2>
-          <Image
+          <Photo
             src={hacklyticsTeam}
             alt="DS@GT executive board at Hacklytics 2026"
             className="mt-10 h-64 w-full rounded-lg object-cover object-[50%_50%] sm:h-80 md:mt-14 lg:h-[28rem]"
             sizes="(min-width: 1280px) 1184px, 100vw"
-            quality={90}
             placeholder="blur"
           />
           <div className="mt-8 flex flex-col gap-6 md:mt-10 md:flex-row md:items-start md:justify-between md:gap-16">
@@ -166,12 +165,11 @@ export default async function HomePage() {
         id="golden-byte"
         className="relative isolate z-10 flex min-h-[26rem] scroll-mt-20 items-end overflow-hidden md:min-h-[34rem]"
       >
-        <Image
+        <Photo
           src={hacklyticsAtrium}
           alt="A packed crowd in the atrium at Hacklytics 2026, under the event arch"
           fill
           sizes="100vw"
-          quality={90}
           className="-z-10 object-cover object-[50%_25%]"
           placeholder="blur"
         />
@@ -292,12 +290,11 @@ export default async function HomePage() {
               ))}
             </ul>
           </div>
-          <Image
+          <Photo
             src={hacklyticsCrowd}
             alt="A packed lecture hall at Hacklytics 2026"
             className="h-56 w-full rounded-lg object-cover sm:h-72 lg:h-[30rem]"
             sizes="(min-width: 1280px) 442px, (min-width: 1024px) 40vw, 100vw"
-            quality={90}
             placeholder="blur"
           />
         </div>

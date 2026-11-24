@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import type { StaticImageData } from "next/image";
-import Image from "next/image";
 import hacklytics2024 from "@/assets/images/photos/hacklytics-2024-sign.jpg";
 import hacklytics2025 from "@/assets/images/photos/hacklytics-2025-hall.jpg";
 import hacklytics2026 from "@/assets/images/photos/hacklytics-2026-crowd.jpg";
+import Photo from "@/components/Photo";
 import PublicPage from "@/components/PublicPage";
 
 import { VERIFIED_MEMBERS_LABEL } from "@query/core";
@@ -206,12 +206,11 @@ export default function HistoryPage() {
                 </dl>
               )}
               {photo && (
-                <Image
+                <Photo
                   src={photo.src}
                   alt={photo.alt}
                   className="mt-8 h-56 w-full rounded-lg object-cover sm:h-72"
                   sizes="(min-width: 768px) 672px, 100vw"
-                  quality={90}
                   placeholder="blur"
                 />
               )}

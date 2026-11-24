@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import hacklyticsWhiteboard from "@/assets/images/photos/hacklytics-2025-whiteboard.jpg";
+import Photo from "@/components/Photo";
 import ProjectCard from "@/components/ProjectCard";
 import PublicPage, { SectionHeading } from "@/components/PublicPage";
 import { groupClubProjects, INTEREST_FORM_URL } from "@/lib/club-projects";
@@ -44,12 +44,11 @@ export default async function ProjectsPage() {
         </a>
       }
     >
-      <Image
+      <Photo
         src={hacklyticsWhiteboard}
         alt="Two people sketching a project plan on a whiteboard at Hacklytics 2025"
         className="mb-16 h-64 w-full rounded-lg object-cover sm:h-80 md:mb-20 lg:h-[28rem]"
         sizes="(min-width: 1280px) 1184px, 100vw"
-        quality={90}
         placeholder="blur"
       />
       <section id="current" className="mb-32 scroll-mt-32">

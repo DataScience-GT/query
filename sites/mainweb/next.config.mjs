@@ -3,6 +3,8 @@ import { readFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import { deviceSizes, imageSizes } from "./image-sizes.mjs";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -135,7 +137,8 @@ const nextConfig = {
   reactCompiler: true,
   images: {
     formats: ["image/avif", "image/webp"],
-    qualities: [75, 90],
+    deviceSizes,
+    imageSizes,
   },
   env: {
     NEXT_PUBLIC_APP_VERSION: build.version,
@@ -197,6 +200,17 @@ const nextConfig = {
           {
             key: "Cache-Control",
             value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+      {
+        // Photos encoded at build by scripts/build-photos.ts. <Photo> adds the
+        // source file's hash as `?v=`, so a replaced photo is a new URL.
+        source: "/photos/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
           },
         ],
       },
