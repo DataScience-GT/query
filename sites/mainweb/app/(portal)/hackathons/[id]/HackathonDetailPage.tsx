@@ -294,7 +294,9 @@ export default function HackathonDetailPage() {
           {myReg && <StatusBadge status={myReg.registrationStatus} />}
         </div>
         <h1 className={`mt-3 ${pageTitle}`}>{hackathon.name}</h1>
-        {hackathon.theme && (
+        {/* "Hacklytics: Digital Bloom" already says its theme. */}
+        {hackathon.theme &&
+          !hackathon.name.toLowerCase().includes(hackathon.theme.toLowerCase()) && (
           <p className={`${pageDek}${bloom ? " hl-dek" : ""}`}>{hackathon.theme}</p>
         )}
         <p className={`mt-3 ${meta}`}>
