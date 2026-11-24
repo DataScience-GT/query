@@ -51,6 +51,19 @@ export async function checkInParticipant(
     });
   }
 
+  // 1c. Banned people are refused at the door too. Banning rejects their
+  // application, so this only catches a row that predates the ban.
+  const ban = await ctx.db.query.hackathonBans.findFirst({
+    where: { email: participant.user.email.trim().toLowerCase() },
+    columns: { id: true },
+  });
+  if (ban) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: `${participant.user.name || participant.user.email} is banned from hackathons and can't be checked in.`,
+    });
+  }
+
   // 2. Verify event exists and belongs to this hackathon
   const event = await ctx.db.query.hackathonEvents.findFirst({
     where: { id: input.eventId, hackathonId: input.hackathonId },

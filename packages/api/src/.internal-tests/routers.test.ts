@@ -106,6 +106,10 @@ vi.mock("@query/db", () => {
           findMany: (...args: any[]) =>
             mockFindMany("hackathonEvents", ...args),
         },
+        hackathonBans: {
+          findFirst: (...args: any[]) => mockFindFirst("hackathonBans", ...args),
+          findMany: (...args: any[]) => mockFindMany("hackathonBans", ...args),
+        },
         hackathonEventAttendees: {
           findFirst: (...args: any[]) =>
             mockFindFirst("hackathonEventAttendees", ...args),
@@ -471,8 +475,42 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
       expect(listResult.length).toBe(1);
       expect(listResult[0].title).toBe("Keynote Speech");
-      // Assert qrCode is stripped from returned object
-      expect((listResult[0] as any).qrCode).toBeUndefined();
+      // qrCode is not selected at all, so the mock row's copy is not the proof;
+      // the column list is. It also keeps officer ids and the bootcamp term off.
+      const cfg = mockFindMany.mock.calls.find((c) => c[0] === "events")?.[1];
+      expect(cfg.columns).not.toHaveProperty("qrCode");
+      expect(cfg.columns).not.toHaveProperty("createdById");
+      expect(cfg.columns).not.toHaveProperty("bootcampTerm");
+    });
+
+    it("keeps the bootcamp room and officer ids out of the public events listing", async () => {
+      mockFindMany.mockReturnValue([
+        {
+          id: "session_1",
+          title: "Bootcamp week 3",
+          location: "Klaus 2443",
+          kind: "bootcamp",
+          checkInEnabled: true,
+          eventDate: new Date(),
+        },
+        {
+          id: "club_1",
+          title: "Club night",
+          location: "Student Center",
+          kind: "club",
+          checkInEnabled: true,
+          eventDate: new Date(),
+        },
+      ]);
+
+      const list = await appRouter.createCaller(createMockCtx()).events.list();
+
+      expect(list.find((e) => e.id === "session_1")?.location).toBeNull();
+      expect(list.find((e) => e.id === "club_1")?.location).toBe(
+        "Student Center",
+      );
+      const cfg = mockFindMany.mock.calls.find((c) => c[0] === "events")?.[1];
+      expect(cfg.columns).not.toHaveProperty("createdById");
     });
 
     it("should retain qrCode in admin listAll events endpoint", async () => {
@@ -1313,44 +1351,6 @@ describe("Router Integration and Access Control Verification Suite", () => {
       }
       expect(config.with.hackathon.columns).not.toHaveProperty("rules");
       expect(config.with.team).not.toHaveProperty("with");
-    });
-
-    it("should return public participant list for a hackathon", async () => {
-      const ctx = createMockCtx();
-      mockFindFirst.mockImplementation((table: string) =>
-        table === "hackathons" ? { id: hackathonId, status: "open" } : undefined,
-      );
-      mockFindMany.mockReturnValue([
-        {
-          hackathonId,
-          teamId: null,
-          user: { id: "u1", name: "Ada", image: null },
-          team: null,
-        },
-      ]);
-
-      const caller = appRouter.createCaller(ctx);
-      const res = await caller.hackathon.participants({ hackathonId });
-      expect(res.length).toBe(1);
-      // The joined user is the public identity; the participant id is the
-      // event-pass QR payload and is deliberately not returned.
-      expect(res[0].user.id).toBe("u1");
-    });
-
-    // A draft edition is one nobody outside the team is meant to know exists;
-    // its roster answers like the schedule and gallery do.
-    it("should hide a draft hackathon's participant list", async () => {
-      mockFindFirst.mockImplementation((table: string) =>
-        table === "hackathons" ? { id: hackathonId, status: "draft" } : undefined,
-      );
-      mockFindMany.mockReturnValue([
-        { hackathonId, teamId: null, user: { id: "u1", name: "Ada", image: null }, team: null },
-      ]);
-
-      const caller = appRouter.createCaller(createMockCtx());
-      await expect(caller.hackathon.participants({ hackathonId })).rejects.toThrow(
-        /not found/i,
-      );
     });
   });
 

@@ -477,10 +477,12 @@ describe("Hackathon admin management edge cases", () => {
       });
       mockFindMany.mockReturnValue([]);
 
-      const attendees = await caller.hackathon
-        .adminGetAttendees({ hackathonId: HACK_A })
+      const attendeeIds = await caller.hackathon
+        .adminGetAttendeeIds({ hackathonId: HACK_A })
         .catch((e: Error) => e);
-      expect(String(attendees)).not.toMatch(/Admin access required|read-only/);
+      expect(String(attendeeIds)).not.toMatch(
+        /Admin access required|read-only/,
+      );
 
       await expect(
         caller.hackathon.getEventAttendees({
@@ -488,6 +490,53 @@ describe("Hackathon admin management edge cases", () => {
           eventId: EVENT_A,
         }),
       ).resolves.toMatchObject({ matching: 0 });
+    });
+
+    // The roster rows carry phones, emergency contacts, citizenship and
+    // essays, which a QA account has no need to read.
+    it("refuses a bug tester the applicant roster and its export", async () => {
+      const caller = testerCaller({
+        hackathons: { id: HACK_A, name: "Hacklytics 2027" },
+      });
+
+      await expect(
+        caller.hackathon.adminGetAttendees({ hackathonId: HACK_A }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(
+        caller.hackathon.exportAttendees({ hackathonId: HACK_A }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+
+    it("still lets an admin export the roster and audits it", async () => {
+      const caller = adminCaller({}, "admin");
+      mockFindMany.mockReturnValue([{ registrationStatus: "pending" }]);
+
+      await expect(
+        caller.hackathon.exportAttendees({ hackathonId: HACK_A }),
+      ).resolves.toHaveLength(1);
+
+      const audit = mockInsert.mock.calls
+        .map((c) => c[2]?.[0])
+        .find((v) => v?.action === "hackathon.export_attendees");
+      expect(audit).toMatchObject({
+        resourceId: HACK_A,
+        metadata: { rowCount: 1 },
+      });
+    });
+
+    it("exports only the columns the CSV writes", async () => {
+      await adminCaller({}, "admin").hackathon.exportAttendees({
+        hackathonId: HACK_A,
+      });
+      const cfg = mockFindMany.mock.calls.find(
+        (c) => c[0] === "hackathonParticipants",
+      )?.[1];
+      expect(Object.keys(cfg.columns)).toEqual(
+        expect.arrayContaining(["firstName", "emergencyPhone", "whyAttend"]),
+      );
+      for (const unused of ["phone", "age", "resumeUrl", "linkedinUrl"]) {
+        expect(cfg.columns).not.toHaveProperty(unused);
+      }
     });
 
     /**

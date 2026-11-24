@@ -34,6 +34,7 @@ vi.mock("@query/db", () => {
         hackathonTeams: table("hackathonTeams"),
         hackathonProjects: table("hackathonProjects"),
         hackathonEvents: table("hackathonEvents"),
+        hackathonBans: table("hackathonBans"),
         hackathonEventAttendees: table("hackathonEventAttendees"),
         members: table("members"),
         events: table("events"),

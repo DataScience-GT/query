@@ -11,8 +11,13 @@ import { TRPCError } from "@trpc/server";
 import { isAdmin } from "../../../middleware/procedures";
 import { recordAdminAction } from "../../../middleware/audit";
 import { MASS_EMAIL_BATCH } from "../../../services/email-limits";
-import { hackathons, hackathonParticipants } from "@query/db";
-import { eq, and, inArray, ne, sql } from "drizzle-orm";
+import {
+  hackathonBans,
+  hackathons,
+  hackathonParticipants,
+  users,
+} from "@query/db";
+import { eq, and, inArray, ne, notExists, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import {
   SEATED_STATUSES,
@@ -220,6 +225,18 @@ export const statusProcedures = {
             and(
               eq(hackathonParticipants.hackathonId, input.hackathonId),
               eq(hackathonParticipants.registrationStatus, "pending"),
+              // A ban rejects existing applications, but one made before
+              // that was shipped (or by other means) must not be accepted.
+              notExists(
+                tx
+                  .select({ one: sql`1` })
+                  .from(users)
+                  .innerJoin(
+                    hackathonBans,
+                    sql`${hackathonBans.email} = lower(${users.email})`,
+                  )
+                  .where(eq(users.id, hackathonParticipants.userId)),
+              ),
             ),
           )
           .orderBy(hackathonParticipants.registeredAt)

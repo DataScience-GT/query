@@ -28,7 +28,10 @@ import {
   judgingRoomLinks,
   judgingRooms,
   judgingRubricItems,
+  judgingEntryMembers,
   judgingSchedules,
+  hackathonParticipants,
+  hackathonProjects,
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import type { JudgingDb, JudgingTx } from "./config";
@@ -298,11 +301,18 @@ export async function assertGuestSeated(tx: JudgingTx, judge: Judge) {
 /** A live project entered in the challenge, or NOT_FOUND. */
 export async function loadEntryInChallenge(
   db: JudgingDb,
-  input: { hackathonId: string; entryId: string; challenge: ChallengeRow },
+  input: {
+    hackathonId: string;
+    entryId: string;
+    challenge: ChallengeRow;
+    /** Pass the grading judge to refuse an entry they are on the team of. */
+    judge?: Judge;
+  },
 ) {
   const [entry] = await db
     .select({
       id: judgingEntries.id,
+      sourceProjectId: judgingEntries.sourceProjectId,
       title: judgingEntries.title,
       description: judgingEntries.description,
       submissionUrl: judgingEntries.submissionUrl,
@@ -333,7 +343,53 @@ export async function loadEntryInChallenge(
       message: `That project is not judged in ${input.challenge.label}. It may have been withdrawn; go back to the project list.`,
     });
   }
-  return entry;
+
+  // A judge who also competed must not score their own team. Registering is
+  // refused for judges, but a judge can be added to a Devpost entry by email
+  // or invited onto a team; guests have no account, so nothing to compare.
+  if (input.judge?.kind === "member") {
+    const userId = input.judge.userId;
+    const [onEntry] = await db
+      .select({ id: judgingEntryMembers.id })
+      .from(judgingEntryMembers)
+      .where(
+        and(
+          eq(judgingEntryMembers.entryId, entry.id),
+          eq(judgingEntryMembers.userId, userId),
+        ),
+      )
+      .limit(1);
+    let onTeam = !!onEntry;
+    if (!onTeam && entry.sourceProjectId) {
+      const [row] = await db
+        .select({ id: hackathonParticipants.id })
+        .from(hackathonProjects)
+        .innerJoin(
+          hackathonParticipants,
+          or(
+            eq(hackathonParticipants.teamId, hackathonProjects.teamId),
+            eq(hackathonParticipants.id, hackathonProjects.submittedById),
+          ),
+        )
+        .where(
+          and(
+            eq(hackathonProjects.id, entry.sourceProjectId),
+            eq(hackathonParticipants.userId, userId),
+          ),
+        )
+        .limit(1);
+      onTeam = !!row;
+    }
+    if (onTeam) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "You are on this project's team, so you can't grade it.",
+      });
+    }
+  }
+
+  const { sourceProjectId: _source, ...publicEntry } = entry;
+  return publicEntry;
 }
 
 export async function loadRubric(db: JudgingDb, hackathonId: string) {
