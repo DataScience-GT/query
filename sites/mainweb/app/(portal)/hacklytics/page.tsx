@@ -27,6 +27,7 @@ import { FlowerBed } from "@/components/hackathon/FlowerBed";
 import { MyRegistration } from "./MyRegistration";
 import { RetryButton } from "./RetryButton";
 import { hlSectionTitle } from "./styles";
+import { firstParagraph } from "@/lib/first-paragraph";
 
 /**
  * The public landing page for an edition that has been announced but is not yet
@@ -239,7 +240,7 @@ export default async function HacklyticsPage() {
         <h1 className={`mt-1 ${pageTitle}`}>{event.name}</h1>
 
         {event.description ? (
-          <p className={pageDek}>{event.description}</p>
+          <p className={pageDek}>{firstParagraph(event.description)}</p>
         ) : null}
       </header>
 
