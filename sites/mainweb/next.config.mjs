@@ -84,11 +84,12 @@ const build = appBuild();
 /**
  * Content-Security-Policy.
  *
- * Report-only until `CSP_ENFORCE=true`, because a CSP that blocks one inline
- * script breaks a page silently — the browser refuses the resource and nothing
- * in the product says so. Report-only sends the same violations to
- * /api/csp-report without blocking anything, so the policy can be corrected
- * against real traffic before it is switched on.
+ * Enforced in production (apphosting.yaml sets `CSP_ENFORCE=true` for BUILD,
+ * because headers() is baked into the routes manifest at build time). Without
+ * the variable the same policy goes out as Report-Only, which is what local
+ * builds and previews get. Violations reach /api/csp-report either way, and
+ * a blocked resource breaks silently in the browser, so watch the `[CSP]` log
+ * lines after any change that adds a third-party host.
  *
  * The awkward entries, so nobody "tidies" them away:
  * - `'unsafe-inline'` in script-src: Next's hydration bootstrap is an inline
@@ -104,12 +105,19 @@ const isDev = process.env.NODE_ENV !== "production";
 
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com`,
+  // 'wasm-unsafe-eval': the QR scanner decodes with zxing-wasm. It permits
+  // compiling WebAssembly only, not eval() or new Function().
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com`,
   "style-src 'self' 'unsafe-inline'",
   // data: for inline SVG and generated QR codes; blob: for the QR canvas.
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  `connect-src 'self' https://api.stripe.com${isDev ? " ws: wss:" : ""}`,
+  // fastly.jsdelivr.net: @yudiel/react-qr-scanner fetches zxing_reader.wasm from
+  // there at runtime (zxing-wasm's default). Host-only, not the pinned path, so
+  // a library bump does not silently break check-in at the door.
+  `connect-src 'self' https://api.stripe.com https://fastly.jsdelivr.net${isDev ? " ws: wss:" : ""}`,
+  // data: is the scanner's built-in beep, an inline audio clip.
+  "media-src 'self' data:",
   // 'self' for the resume previews on /settings and /admin/resumes. Without
   // it every same-origin frame goes blank the day CSP_ENFORCE flips, and
   // report-only means nothing would say so until then.

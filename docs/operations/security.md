@@ -57,8 +57,8 @@ In-process token buckets (`middleware/security.ts`):
 Mainweb (`next.config.mjs` + `proxy.ts`):
 
 - HSTS preload
-- CSP report-only by default (`report-uri /api/csp-report`); set `CSP_ENFORCE=true` to block
-- Stripe hosts allowed in `script-src` / `connect-src` / `frame-src`
+- CSP enforced in production (`CSP_ENFORCE=true` in `apphosting.yaml`, build-time); Report-Only without it. Violations go to `report-uri /api/csp-report`
+- Stripe hosts allowed in `script-src` / `connect-src` / `frame-src`; `wasm-unsafe-eval` + `fastly.jsdelivr.net` (connect) + `media-src data:` for the QR scanner
 - Authenticated route prefixes: `Cache-Control: private, no-store`
 - Proxy **does not** generate pathname ETags (that froze pages for a year after deploy)
 
@@ -82,5 +82,5 @@ Never commit `.env`. App Hosting injects Secret Manager values. GitHub deploy us
 ## What this does not do
 
 - In-memory rate limits and caches are **per Cloud Run instance**, not global
-- CSP is report-only until explicitly enforced
+- CSP is enforced in production; local builds and previews without `CSP_ENFORCE=true` are Report-Only
 - Consumer Gmail is a quota and reputation constraint for mass mail, not an application bug
