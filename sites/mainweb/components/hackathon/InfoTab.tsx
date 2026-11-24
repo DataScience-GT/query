@@ -41,9 +41,10 @@ const preloadRegistrationForm = {
   onTouchStart: () => void loadRegistrationForm(),
 };
 
-// Statuses that can still back out. checked_in is on site and rejected has
-// nothing to withdraw; the server refuses both anyway.
-const WITHDRAWABLE = new Set(["pending", "approved", "waitlisted"]);
+// Statuses that can still back out. checked_in is on site, and a rejected or
+// waitlisted application stays on record (withdrawing and re-applying would
+// skip the decision); the server refuses all three anyway.
+const WITHDRAWABLE = new Set(["pending", "approved"]);
 
 function formatDate(d: Date | string) {
   return venueFormat(d, {

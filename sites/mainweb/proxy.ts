@@ -95,7 +95,7 @@ const securityHeaders: string[] = [
   // resume PDF from /api/resume. DENY makes Chrome report "Failed to load PDF
   // document" on a file that downloaded fine.
   "X-Frame-Options: SAMEORIGIN",
-  "X-XSS-Protection: 1; mode=block",
+  "X-XSS-Protection: 0",
 ];
 
 export const config = {

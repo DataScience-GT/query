@@ -106,6 +106,10 @@ vi.mock("@query/db", () => {
           findMany: (...args: any[]) =>
             mockFindMany("hackathonEvents", ...args),
         },
+        hackathonBans: {
+          findFirst: (...args: any[]) => mockFindFirst("hackathonBans", ...args),
+          findMany: (...args: any[]) => mockFindMany("hackathonBans", ...args),
+        },
         hackathonEventAttendees: {
           findFirst: (...args: any[]) =>
             mockFindFirst("hackathonEventAttendees", ...args),
@@ -471,8 +475,42 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
       expect(listResult.length).toBe(1);
       expect(listResult[0].title).toBe("Keynote Speech");
-      // Assert qrCode is stripped from returned object
-      expect((listResult[0] as any).qrCode).toBeUndefined();
+      // qrCode is not selected at all, so the mock row's copy is not the proof;
+      // the column list is. It also keeps officer ids and the bootcamp term off.
+      const cfg = mockFindMany.mock.calls.find((c) => c[0] === "events")?.[1];
+      expect(cfg.columns).not.toHaveProperty("qrCode");
+      expect(cfg.columns).not.toHaveProperty("createdById");
+      expect(cfg.columns).not.toHaveProperty("bootcampTerm");
+    });
+
+    it("keeps the bootcamp room and officer ids out of the public events listing", async () => {
+      mockFindMany.mockReturnValue([
+        {
+          id: "session_1",
+          title: "Bootcamp week 3",
+          location: "Klaus 2443",
+          kind: "bootcamp",
+          checkInEnabled: true,
+          eventDate: new Date(),
+        },
+        {
+          id: "club_1",
+          title: "Club night",
+          location: "Student Center",
+          kind: "club",
+          checkInEnabled: true,
+          eventDate: new Date(),
+        },
+      ]);
+
+      const list = await appRouter.createCaller(createMockCtx()).events.list();
+
+      expect(list.find((e) => e.id === "session_1")?.location).toBeNull();
+      expect(list.find((e) => e.id === "club_1")?.location).toBe(
+        "Student Center",
+      );
+      const cfg = mockFindMany.mock.calls.find((c) => c[0] === "events")?.[1];
+      expect(cfg.columns).not.toHaveProperty("createdById");
     });
 
     it("should retain qrCode in admin listAll events endpoint", async () => {
@@ -1314,44 +1352,6 @@ describe("Router Integration and Access Control Verification Suite", () => {
       expect(config.with.hackathon.columns).not.toHaveProperty("rules");
       expect(config.with.team).not.toHaveProperty("with");
     });
-
-    it("should return public participant list for a hackathon", async () => {
-      const ctx = createMockCtx();
-      mockFindFirst.mockImplementation((table: string) =>
-        table === "hackathons" ? { id: hackathonId, status: "open" } : undefined,
-      );
-      mockFindMany.mockReturnValue([
-        {
-          hackathonId,
-          teamId: null,
-          user: { id: "u1", name: "Ada", image: null },
-          team: null,
-        },
-      ]);
-
-      const caller = appRouter.createCaller(ctx);
-      const res = await caller.hackathon.participants({ hackathonId });
-      expect(res.length).toBe(1);
-      // The joined user is the public identity; the participant id is the
-      // event-pass QR payload and is deliberately not returned.
-      expect(res[0].user.id).toBe("u1");
-    });
-
-    // A draft edition is one nobody outside the team is meant to know exists;
-    // its roster answers like the schedule and gallery do.
-    it("should hide a draft hackathon's participant list", async () => {
-      mockFindFirst.mockImplementation((table: string) =>
-        table === "hackathons" ? { id: hackathonId, status: "draft" } : undefined,
-      );
-      mockFindMany.mockReturnValue([
-        { hackathonId, teamId: null, user: { id: "u1", name: "Ada", image: null }, team: null },
-      ]);
-
-      const caller = appRouter.createCaller(createMockCtx());
-      await expect(caller.hackathon.participants({ hackathonId })).rejects.toThrow(
-        /not found/i,
-      );
-    });
   });
 
   describe("9. Hackathon Creation, Updates and Admin Operations (does it create stuff)", () => {
@@ -1731,6 +1731,15 @@ describe("Router Integration and Access Control Verification Suite", () => {
   });
 
   describe("12. Stripe Payments & Account Linking", () => {
+    // linkAccount lists the email's unclaimed payments (findMany) and claims
+    // the one it picks with an UPDATE ... RETURNING.
+    const stubPayment = (payment: Record<string, unknown>) => {
+      mockFindMany.mockImplementation((table) =>
+        table === "stripePayments" ? [payment] : [],
+      );
+      mockUpdate.mockReturnValue([{ id: payment.id }]);
+    };
+
     it("should create checkout session in mock development mode", async () => {
       const ctx = createMockCtx("stripe_user_id");
       const origMockMode = process.env.STRIPE_MOCK_MODE;
@@ -1758,6 +1767,15 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
     it("should allow user to link Stripe payment to account", async () => {
       const ctx = createMockCtx("user_to_link");
+      stubPayment({
+        id: "payment_100",
+        customerEmail: "purchaser@example.com",
+        customerName: "Stripe Payer",
+        paymentStatus: "paid",
+        linkedUserId: null,
+        amountTotal: 2500,
+        metadata: null,
+      });
 
       mockFindFirst.mockImplementation((table) => {
         if (table === "stripePayments") {
@@ -1771,6 +1789,10 @@ describe("Router Integration and Access Control Verification Suite", () => {
             paymentStatus: "paid",
             linkedUserId: null,
           };
+        }
+        if (table === "users") {
+          // Ownership is the account email matching the payment's.
+          return { id: "user_to_link", email: "purchaser@example.com" };
         }
         if (table === "userAccountLinks") {
           return null; // Not linked yet
@@ -1798,6 +1820,15 @@ describe("Router Integration and Access Control Verification Suite", () => {
     // know, so it cannot be the whole proof of ownership.
     it("should refuse to link a payment to someone who is not the payer", async () => {
       const ctx = createMockCtx("mallory");
+      stubPayment({
+        id: "payment_100",
+        customerEmail: "alice@gatech.edu",
+        customerName: "Alice Anderson",
+        paymentStatus: "paid",
+        linkedUserId: null,
+        amountTotal: 2500,
+        metadata: null,
+      });
 
       mockFindFirst.mockImplementation((table) => {
         if (table === "stripePayments") {
@@ -1828,6 +1859,41 @@ describe("Router Integration and Access Control Verification Suite", () => {
       expect(mockInsert).not.toHaveBeenCalled();
     });
 
+    // Names and emails are not secret: the exact name on the payment, typed by
+    // an account with a different email, must not claim it.
+    it.each([
+      ["a repeated word", "Alice", "Alice"],
+      ["the exact name on the payment", "Alice", "Anderson"],
+    ])(
+      "should refuse %s when the account email is not the payer's",
+      async (_label, firstName, lastName) => {
+        const ctx = createMockCtx("mallory");
+        stubPayment({
+          id: "payment_100",
+          customerEmail: "alice@gatech.edu",
+          customerName: "Alice Anderson",
+          paymentStatus: "paid",
+          linkedUserId: null,
+          amountTotal: 2500,
+          metadata: null,
+        });
+        mockFindFirst.mockImplementation((table) =>
+          table === "users"
+            ? { id: "mallory", email: "mallory@gatech.edu" }
+            : null,
+        );
+
+        await expect(
+          appRouter.createCaller(ctx).stripe.linkAccount({
+            firstName,
+            lastName,
+            email: "alice@gatech.edu",
+          }),
+        ).rejects.toThrow(/No payment found/);
+        expect(mockInsert).not.toHaveBeenCalled();
+      },
+    );
+
     // A substring test would accept all of these: "" is inside every name, and
     // so is any single letter. The check compares whole name tokens.
     it.each([
@@ -1838,6 +1904,15 @@ describe("Router Integration and Access Control Verification Suite", () => {
       "should not accept %s as proof of owning a payment",
       async (_label, firstName, lastName) => {
         const ctx = createMockCtx("mallory");
+        stubPayment({
+          id: "payment_100",
+          customerEmail: "alice@gatech.edu",
+          customerName: "Alice Anderson",
+          paymentStatus: "paid",
+          linkedUserId: null,
+          amountTotal: 2500,
+          metadata: null,
+        });
 
         mockFindFirst.mockImplementation((table) => {
           if (table === "stripePayments") {

@@ -8,12 +8,12 @@ import {
   readPlan,
   BOOTCAMP_ADDON_PAYMENT_TYPE,
 } from "@query/db/services/membership";
+import { entitlementForPayment } from "@query/db/services/pricing";
 import type { DrizzleDB } from "@query/db";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import {
   clearMembershipCaches,
   MAX_MEMBERSHIP_CHARGE_CENTS,
-  entitlementForCents,
   isMockMode,
 } from "@query/api";
 import type { PurchasedEntitlement } from "@query/api";
@@ -65,21 +65,13 @@ const safeLogError = (err: unknown) => {
  */
 const entitlementForSession = (
   session: Stripe.Checkout.Session,
-): PurchasedEntitlement | null => {
-  if (session.metadata?.type === BOOTCAMP_ADDON_PAYMENT_TYPE) {
-    return { plan: readPlan(session.metadata?.plan), bootcamp: true, addOnOnly: true };
-  }
-
-  if (session.metadata?.plan) {
-    return {
-      plan: readPlan(session.metadata.plan),
-      bootcamp: session.metadata.bootcamp === "true",
-      addOnOnly: false,
-    };
-  }
-
-  return entitlementForCents(session.amount_total);
-};
+): PurchasedEntitlement | null =>
+  // The amount is checked even when the portal's metadata names a plan: the
+  // metadata alone would let a session priced at $1 carry plan "annual".
+  entitlementForPayment({
+    metadata: session.metadata ? JSON.stringify(session.metadata) : null,
+    amountTotal: session.amount_total,
+  });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -202,14 +194,27 @@ export async function POST(req: NextRequest) {
           // Status upgrade commits first; the grant is best-effort after it.
           // Sharing a transaction meant a failed grant reverted the row to
           // "unpaid", losing the settlement Stripe just told us about.
-          await db
+          //
+          // Conditional, and the grant only follows a row actually changed:
+          // two concurrent deliveries of the same event both read "unpaid", and
+          // an unconditional update let both of them grant.
+          const upgraded = await db
             .update(stripePayments)
             .set({ paymentStatus: "paid", updatedAt: new Date() })
-            .where(eq(stripePayments.id, existingPayment.id));
+            .where(
+              and(
+                eq(stripePayments.id, existingPayment.id),
+                ne(stripePayments.paymentStatus, "paid"),
+              ),
+            )
+            .returning({ id: stripePayments.id });
 
-          const entitlement = entitlementForSession(session);
+          const entitlement =
+            upgraded.length > 0 ? entitlementForSession(session) : null;
 
-          if (existingPayment.linkedUserId && entitlement) {
+          if (upgraded.length === 0) {
+            // Another delivery already settled and granted it.
+          } else if (existingPayment.linkedUserId && entitlement) {
             try {
               await createOrUpdateMembership(db as unknown as DrizzleDB, {
                 userId: existingPayment.linkedUserId,
@@ -282,6 +287,15 @@ export async function POST(req: NextRequest) {
       // up, and none of the recovery paths (attemptAutoLink,
       // linkPaidPaymentByVerifiedEmail, reconcileMyPayments) could help,
       // because they all look for a payment row that was never written.
+      //
+      // A paid session whose amount buys nothing is recorded but left unlinked,
+      // so it cannot use up the account's one link ahead of a real payment.
+      const entitlement = entitlementForSession(session);
+      const linkTarget =
+        targetUser && (session.payment_status !== "paid" || entitlement)
+          ? targetUser
+          : null;
+
       await db.insert(stripePayments).values({
         stripeSessionId: session.id,
         stripeCustomerId: session.customer as string | null,
@@ -294,16 +308,14 @@ export async function POST(req: NextRequest) {
           | "paid"
           | "unpaid"
           | "no_payment_required",
-        linkedUserId: targetUser?.id || null,
-        linkedAt: targetUser ? new Date() : null,
+        linkedUserId: linkTarget?.id || null,
+        linkedAt: linkTarget ? new Date() : null,
         metadata: session.metadata ? JSON.stringify(session.metadata) : null,
       });
 
       // Membership is a separate, best-effort step. A failure here leaves a
       // recorded payment that the link paths can still turn into a membership;
       // failing the whole webhook would lose the payment instead.
-      const entitlement = entitlementForSession(session);
-
       if (targetUser && session.payment_status === "paid" && !entitlement) {
         // Recorded above, so nothing is lost and the link paths can still see
         // it — but an amount that matches nothing we sell buys nothing.

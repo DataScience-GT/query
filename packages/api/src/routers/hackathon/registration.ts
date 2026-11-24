@@ -8,13 +8,12 @@ import {
   YES_NO_PREFER_NOT,
 } from "@query/db/constants";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../../trpc";
+import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { notHackathonBanned } from "../../middleware/procedures";
 import { CacheKeys } from "../../middleware/cache";
 import { hackathonParticipants } from "@query/db";
-import { eq, and, inArray, isNull, ne } from "drizzle-orm";
+import { eq, and, inArray, isNull, notInArray } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
-import { assertHackathonVisible } from "./visibility";
 import { evictParticipantCaches } from "./admin";
 import { teamMemberCountsForUser } from "../../services/derived-counts";
 
@@ -43,6 +42,12 @@ const isDuplicateRegistration = (error: unknown) => {
 
 // The application form. Shared by register and updateMyRegistration so an
 // edit is held to exactly the rules the first submission was.
+// z.string().url() accepts any scheme, javascript: and data: included, and
+// these links are rendered as hrefs for staff.
+const httpUrl = z
+  .string()
+  .url()
+  .refine((v) => /^https?:\/\//i.test(v), "Must start with http:// or https://");
 const essay = (message: string) => z.string().trim().min(1, message).max(2000);
 const shortText = (message: string) => z.string().trim().min(1, message).max(100);
 
@@ -72,9 +77,9 @@ const registrationForm = z.object({
   firstGeneration: z.boolean().optional(),
   // Experience
   hackathonsAttended: z.number().int().min(0).max(100).optional(),
-  resumeUrl: z.string().url().max(500).optional().or(z.literal("")),
-  linkedinUrl: z.string().url().max(500).optional().or(z.literal("")),
-  githubUrl: z.string().url().max(500).optional().or(z.literal("")),
+  resumeUrl: httpUrl.max(500).optional().or(z.literal("")),
+  linkedinUrl: httpUrl.max(500).optional().or(z.literal("")),
+  githubUrl: httpUrl.max(500).optional().or(z.literal("")),
   whyAttend: essay("Tell us what you hope to learn or gain"),
   techJourney: essay("Tell us about your journey in tech"),
   helpfulFeedback: essay("Tell us about the most helpful feedback you've gotten"),
@@ -168,6 +173,23 @@ export const hackathonRegistrationRouter = createTRPCRouter({
             throw new TRPCError({
               code: "BAD_REQUEST",
               message: "You are already registered for this hackathon",
+            });
+          }
+
+          // The mirror of judge/portal.ts refusing applicants who registered:
+          // an approved judge who also competed could grade their own team.
+          const judgeRow = await tx.query.judges.findFirst({
+            where: {
+              hackathonId: input.hackathonId,
+              userId: ctx.userId as string,
+            },
+            columns: { id: true },
+          });
+          if (judgeRow) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message:
+                "You are a judge for this hackathon, so you can't register as a hacker.",
             });
           }
 
@@ -321,6 +343,19 @@ export const hackathonRegistrationRouter = createTRPCRouter({
             "You have already checked in. Ask an organizer if you need to leave the event.",
         });
       }
+      // Withdrawing deletes the row, and registering again makes a fresh
+      // `pending` one that acceptWave would take. That is a way round a
+      // rejection or a waitlist, so those stay on record until staff act.
+      if (
+        participant.registrationStatus === "rejected" ||
+        participant.registrationStatus === "waitlisted"
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Your application has been decided, so it can't be withdrawn. Email hello@hacklytics.io if you need help.",
+        });
+      }
       if (participant.teamId) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -349,7 +384,11 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         .where(
           and(
             eq(hackathonParticipants.id, participant.id),
-            ne(hackathonParticipants.registrationStatus, "checked_in"),
+            notInArray(hackathonParticipants.registrationStatus, [
+              "checked_in",
+              "rejected",
+              "waitlisted",
+            ]),
             isNull(hackathonParticipants.teamId),
           ),
         )
@@ -636,56 +675,4 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       30,
     );
   }),
-
-  participants: publicProcedure
-    .input(z.object({ hackathonId: z.string().uuid("Invalid hackathon ID") }))
-    .query(async ({ ctx, input }) => {
-      // Public, so it answers to the same visibility rule as the schedule and
-      // gallery: a draft edition's roster is staff-only.
-      await assertHackathonVisible(ctx, input.hackathonId);
-
-      const cacheKey = `hackathon:${input.hackathonId}:participants`;
-      const cached = ctx.cache.get<typeof participants>(cacheKey);
-      if (cached) return cached;
-
-      const participants = await (
-        ctx.db as DrizzleDB
-      ).query.hackathonParticipants.findMany({
-        // Only people actually in: a pending, rejected or waitlisted applicant
-        // is not listed on a page anyone can open. A status change evicts this
-        // key (CACHE_INVALIDATION_MAP), so the roster follows decisions.
-        where: {
-          hackathonId: input.hackathonId,
-          registrationStatus: { in: ["approved", "checked_in"] },
-        },
-        // Anyone can read this roster, so it carries neither the decision made on
-        // each application (registrationStatus names everyone rejected or waitlisted)
-        // nor the participant id, which is the whole content of that participant's
-        // event pass QR and would let a stranger enumerate passes for the event. The
-        // joined `user` relation is the public identity; the raw userId adds nothing.
-        columns: {
-          hackathonId: true,
-          teamId: true,
-        },
-        // A public list has to be bounded rather than handing out the whole attendee
-        // table per request; staff read it all via adminGetAttendees.
-        limit: 500,
-        orderBy: (participants, { asc }) => [asc(participants.registeredAt)],
-        with: {
-          user: {
-            columns: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-          team: true,
-        },
-      });
-
-      ctx.cache.set(cacheKey, participants, 60);
-
-      return participants;
-    }),
-
 });

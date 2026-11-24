@@ -69,8 +69,13 @@ export async function POST(req: NextRequest) {
     BURST_LIMITS.tenPerHour.maxTokens,
     BURST_LIMITS.tenPerHour.refillRate,
   );
-  if (!limit.allowed) {
-    const retryAfter = Math.max(1, Math.ceil(limit.retryAfter ?? 60));
+  // Per-IP limits fall to a botnet or rotating proxies, so all callers also
+  // share one hourly budget that bounds how many rows the form can write.
+  const globalLimit = limit.allowed
+    ? await rateLimitShared("judge-interest:global", 200, 200 / 3600)
+    : limit;
+  if (!limit.allowed || !globalLimit.allowed) {
+    const retryAfter = Math.max(1, Math.ceil(globalLimit.retryAfter ?? 60));
     return reply(
       origin,
       429,

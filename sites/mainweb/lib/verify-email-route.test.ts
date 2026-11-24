@@ -137,12 +137,14 @@ describe("verify-email wrong guesses", () => {
     expect(state.failures).toBe(1);
   });
 
-  it("answers 401 and counts a failure when no code is live", async () => {
+  it("answers 401 without charging the address when no code is live", async () => {
     state.live = null;
-    const res = await request("123456");
-
-    expect(res.status).toBe(401);
-    expect(state.failures).toBe(1);
+    for (let i = 0; i < 25; i += 1) {
+      const res = await request("123456");
+      expect(res.status).toBe(401);
+    }
+    // Charging these would let anyone lock a chosen address out of sign-in.
+    expect(state.failures).toBe(0);
   });
 
   it("answers 429 without touching any code when the address is locked out", async () => {

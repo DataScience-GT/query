@@ -13,6 +13,8 @@ import { getTableName } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import {
+  hackathonParticipants,
+  hackathonProjects,
   hackathons,
   judgingAppointments,
   judgingBuildings,
@@ -82,7 +84,9 @@ const entry = (id: string, title: string) => ({
 const name = (table: unknown) => getTableName(table as never);
 const via = (...tables: unknown[]) => tables.map(name).join(">");
 
-type Rows = unknown[] | ((call: number) => unknown[]);
+type Rows =
+  | unknown[]
+  | ((call: number, fields?: Record<string, unknown>) => unknown[]);
 type Answers = Record<string, Rows>;
 type Event = {
   kind: "select" | "execute" | "insert" | "update" | "delete";
@@ -102,11 +106,11 @@ const byCall =
 function fakeDb(answers: Answers) {
   const events: Event[] = [];
   const reads = new Map<string, number>();
-  const rowsFor = (key: string) => {
+  const rowsFor = (key: string, fields?: Record<string, unknown>) => {
     const call = reads.get(key) ?? 0;
     reads.set(key, call + 1);
     const answer = answers[key] ?? [];
-    return typeof answer === "function" ? answer(call) : answer;
+    return typeof answer === "function" ? answer(call, fields) : answer;
   };
 
   const select = (fields?: Record<string, unknown>) => {
@@ -128,7 +132,7 @@ function fakeDb(answers: Answers) {
       ) => {
         const key = via(from, ...joined);
         events.push({ kind: "select", table: key, where, fields });
-        return Promise.resolve(rowsFor(key)).then(ok, fail);
+        return Promise.resolve(rowsFor(key, fields)).then(ok, fail);
       },
     };
     for (const join of ["innerJoin", "leftJoin"]) {
@@ -472,6 +476,62 @@ describe("submit: a project is graded once", () => {
         .submit({ ...save, expectedRevision: 1 }),
     ).resolves.toMatchObject({ isComplete: true });
     expect(kinds(events)).not.toContain("execute");
+  });
+});
+
+describe("a judge on a project's team", () => {
+  const onTeam = memberWorld({
+    [via(judgingEntryMembers)]: [{ id: "member-row" }],
+  });
+  const caller = (answers: Answers) => {
+    const fake = fakeDb(answers);
+    return {
+      ...fake,
+      desk: judgingDeskRouter.createCaller(memberCtx(fake.db)),
+    };
+  };
+  const mine = /on this project's team/;
+
+  it("cannot open, save or submit their own team's project", async () => {
+    const { desk, events } = caller(onTeam);
+
+    await expect(
+      desk.startGrading({
+        hackathonId: HACK,
+        entryId: E_OPEN,
+        challengeId: GENERAL,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", message: expect.stringMatching(mine) });
+    await expect(
+      desk.saveDraft({ ...save, revision: 0 }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      desk.submit({ ...save, expectedRevision: 0 }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(wrote(events, judgingEvaluations)).toBe(false);
+  });
+
+  it("cannot grade a project submitted by their own team through the portal", async () => {
+    const { desk } = caller(
+      memberWorld({
+        [via(judgingEntries, judgingEntryChallenges)]: [
+          { ...entry(E_OPEN, "Tidewater"), sourceProjectId: "source-project" },
+        ],
+        [via(hackathonProjects, hackathonParticipants)]: [{ id: "participant" }],
+      }),
+    );
+
+    await expect(
+      desk.submit({ ...save, expectedRevision: 0 }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("can still grade a project they are not on", async () => {
+    const { desk } = caller(memberWorld());
+
+    await expect(
+      desk.submit({ ...save, expectedRevision: 0 }),
+    ).resolves.toMatchObject({ isComplete: true });
   });
 });
 
@@ -1930,7 +1990,10 @@ describe("desk.startGrading: the hold starts when a project is opened", () => {
     const secondJudge = (held: Event["values"]) =>
       memberWorld({
         [via(judgingJudges)]: [{ id: OTHER, displayName: "Alan Turing" }],
-        [via(judgingEntryMembers)]: [{ name: "Ada Lovelace" }],
+        // The member list for display. The same table is asked for the judge's
+        // own seat on the team (an id-only read), and this judge is not on it.
+        [via(judgingEntryMembers)]: (_call: number, fields?: Record<string, unknown>) =>
+          fields && "id" in fields ? [] : [{ name: "Ada Lovelace" }],
         [drafts]: [
           {
             entryId: held?.entryId,

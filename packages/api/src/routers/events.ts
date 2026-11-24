@@ -260,6 +260,19 @@ export const eventRouter = createTRPCRouter({
             desc(events.eventDate),
             desc(events.id),
           ],
+          // What the public pages render. Left out: qrCode (checks anyone in),
+          // createdById (an officer's user id), bootcampTerm and bootcampOnly.
+          columns: {
+            id: true,
+            title: true,
+            description: true,
+            location: true,
+            eventDate: true,
+            checkInEnabled: true,
+            maxCheckIns: true,
+            bootcampWeek: true,
+            kind: true,
+          },
           limit: 50,
         }),
         checkInCounts(
@@ -287,9 +300,11 @@ export const eventRouter = createTRPCRouter({
 
     const now = new Date();
     return allEvents.map((event) => {
-      const { qrCode: _qrCode, ...safeEvent } = event;
       return {
-        ...safeEvent,
+        ...event,
+        // A bootcamp session is paid; its room is for enrolled members, who
+        // read it from their own check-in history, not from this public list.
+        location: event.kind === "bootcamp" ? null : event.location,
         status:
           event.checkInEnabled &&
           event.eventDate >= new Date(now.getTime() - DAY)

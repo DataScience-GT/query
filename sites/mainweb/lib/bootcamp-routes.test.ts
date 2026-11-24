@@ -1,6 +1,7 @@
 import { Readable } from "node:stream";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
+import { siteOrigin } from "@query/core/server";
 
 const state = vi.hoisted(() => ({
   caller: { userId: "staff", isStaff: true, bootcampTerm: null } as {
@@ -146,11 +147,19 @@ function requireWorkshop() {
   return workshop;
 }
 
+// Uploads are refused unless they come from the site's own pages, so every
+// request here carries the Origin a same-site fetch would send.
+const sameSite = (headers?: HeadersInit) => {
+  const merged = new Headers(headers);
+  if (!merged.has("origin")) merged.set("origin", siteOrigin());
+  return merged;
+};
+
 const request = (method: string, body?: Uint8Array, headers?: HeadersInit) =>
   new Request(`http://localhost/api/bootcamp/materials/${ID}/materials`, {
     method,
     body,
-    headers,
+    headers: sameSite(headers),
     // Node requires duplex when a Request carries a streamed body; browsers do
     // not expose this field, so it is test-only construction detail.
     duplex: body ? "half" : undefined,

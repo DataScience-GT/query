@@ -10,6 +10,7 @@ import {
   looksLikePdf,
   resumeCaller,
 } from "@/lib/resume-access";
+import { isSameOriginRequest } from "@/lib/same-origin";
 import { uploadedResumeFileName } from "@/lib/resume-file";
 import {
   deleteResume,
@@ -32,6 +33,11 @@ const UPLOAD_LIMIT = { maxTokens: 6, refillRate: 6 / 3600 };
 const TOO_LARGE = "Resume must be 2MB or smaller.";
 
 export async function POST(request: NextRequest) {
+  // The body is raw bytes, so a cross-origin text/plain form can carry a valid
+  // PDF and the Lax cookie would still go with it from a sibling host.
+  if (!isSameOriginRequest(request.headers)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const { userId } = await resumeCaller();
   if (!userId || !db) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
