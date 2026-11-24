@@ -70,6 +70,7 @@ export function InfoTab({
     maxParticipants?: number | null;
     currentParticipants: number;
     theme?: string | null;
+    tracks?: string[] | null;
   };
   isRegistered: boolean;
   myReg?: {
@@ -459,6 +460,8 @@ export function InfoTab({
       {form && (
         <RegistrationForm
           hackathonId={hackathon.id}
+          hackathonName={hackathon.name}
+          tracks={hackathon.tracks}
           interest={interest.data}
           saved={form.saved}
           onRegistered={() => {

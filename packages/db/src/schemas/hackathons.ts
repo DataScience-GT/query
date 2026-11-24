@@ -20,7 +20,11 @@ import {
   HACKATHON_STATUSES,
   LEVELS_OF_STUDY,
   PARTICIPANT_STATUSES,
+  REFERRAL_SOURCES,
   SHIRT_SIZES,
+  TRAVEL_DISTANCES,
+  TRAVEL_METHODS,
+  YES_NO_PREFER_NOT,
 } from "../constants";
 
 // Hackathon events
@@ -164,6 +168,29 @@ export const hackathonParticipants = pgTable(
     emergencyContact: text("emergency_contact"),
     emergencyPhone: text("emergency_phone"),
     needsHardware: boolean("needs_hardware").default(false),
+
+    // Application answers added for the 2027 form. All nullable: rows from
+    // before it never saw these questions.
+    isGtStudent: boolean("is_gt_student"),
+    isDsgtMember: boolean("is_dsgt_member"),
+    attendedHacklyticsBefore: boolean("attended_hacklytics_before"),
+    usCitizen: text("us_citizen", { enum: YES_NO_PREFER_NOT }),
+    travelReimbursement: boolean("travel_reimbursement"),
+    travelFromCity: text("travel_from_city"),
+    travelFromState: text("travel_from_state"),
+    travelFromCountry: text("travel_from_country"),
+    travelDistance: text("travel_distance", { enum: TRAVEL_DISTANCES }),
+    travelMethod: text("travel_method", { enum: TRAVEL_METHODS }),
+    techJourney: text("tech_journey"),
+    helpfulFeedback: text("helpful_feedback"),
+    trackInterest: text("track_interest"),
+    dreamBuild: text("dream_build"),
+    referralSource: text("referral_source", { enum: REFERRAL_SOURCES }),
+    ramadanFasting: text("ramadan_fasting", { enum: YES_NO_PREFER_NOT }),
+    anythingElse: text("anything_else"),
+    favoriteFlower: text("favorite_flower"),
+    favoriteSnack: text("favorite_snack"),
+    excitement: integer("excitement"),
 
     // Consent
     agreeToCodeOfConduct: boolean("agree_to_code_of_conduct").default(false),

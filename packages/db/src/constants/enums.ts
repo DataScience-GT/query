@@ -30,6 +30,41 @@ export type ParticipantStatus = (typeof PARTICIPANT_STATUSES)[number];
 export const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
 export type ShirtSize = (typeof SHIRT_SIZES)[number];
 
+export const YES_NO_PREFER_NOT = ["Yes", "No", "Prefer not to say"] as const;
+export type YesNoPreferNot = (typeof YES_NO_PREFER_NOT)[number];
+
+export const TRAVEL_DISTANCES = [
+  "I'm already in Atlanta",
+  "Under 100 miles",
+  "100 to 500 miles",
+  "Over 500 miles",
+  "From outside the U.S.",
+] as const;
+export type TravelDistance = (typeof TRAVEL_DISTANCES)[number];
+
+export const TRAVEL_METHODS = [
+  "Car",
+  "Bus",
+  "Train",
+  "Plane",
+  "Walk or transit",
+  "Other",
+] as const;
+export type TravelMethod = (typeof TRAVEL_METHODS)[number];
+
+export const REFERRAL_SOURCES = [
+  "Instagram",
+  "LinkedIn",
+  "Discord",
+  "A friend",
+  "A professor or class",
+  "DS@GT",
+  "MLH",
+  "Email",
+  "Other",
+] as const;
+export type ReferralSource = (typeof REFERRAL_SOURCES)[number];
+
 export const LEVELS_OF_STUDY = [
   "Freshman",
   "Sophomore",
