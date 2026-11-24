@@ -5,6 +5,7 @@ import { ORG_NAME, SITE_ORIGIN } from "@query/core";
 import { VENUE_TZ } from "@/lib/venue-time";
 import "./fonts.generated.css";
 import { FONT_PRELOADS } from "@/lib/fonts.generated";
+import { firstParagraph } from "@/lib/first-paragraph";
 
 // The Hacklytics site's own faces (sites/hacklytics2027): Silkscreen for
 // headings, Instrument Sans for text. Scoped to this route by .hl-theme, and
@@ -89,7 +90,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const dates = formatRange(edition.startDate, edition.endDate);
   const description =
-    edition.description ??
+    firstParagraph(edition.description) ??
     "Georgia Tech's data science hackathon, open to students nationwide.";
   const title = `${edition.name} | ${dates}`;
 
@@ -157,7 +158,7 @@ async function EventJsonLd() {
     eventStatus: "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     description:
-      edition.description ??
+      firstParagraph(edition.description) ??
       "Georgia Tech's data science hackathon, open to students nationwide.",
     url: URL,
     image: [`${SITE_ORIGIN}/logo512.png`],
