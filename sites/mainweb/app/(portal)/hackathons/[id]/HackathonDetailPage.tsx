@@ -27,6 +27,7 @@ import {
 import { hackathonStatus } from "@/lib/hackathon-status";
 
 // Extracted Tab Components
+import { FlowerBed } from "@/components/hackathon/FlowerBed";
 import { InfoTab } from "@/components/hackathon/InfoTab";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { HackathonUnavailable } from "@/components/hackathon/HackathonUnavailable";
@@ -273,7 +274,12 @@ export default function HackathonDetailPage() {
   const tab = tabs.some((t) => t.id === shownTab) ? shownTab : "INFO";
   const conf = hackathonStatus(hackathon.status);
 
-  return (
+  // Hacklytics editions wear the Digital Bloom look of /hacklytics; the
+  // wrapper only re-points the colour and font tokens, so every other
+  // hackathon is untouched.
+  const bloom = /^hacklytics/i.test(hackathon.name.trim());
+
+  const content = (
     <main className={page}>
       <Link
         href="/hackathons"
@@ -288,7 +294,11 @@ export default function HackathonDetailPage() {
           {myReg && <StatusBadge status={myReg.registrationStatus} />}
         </div>
         <h1 className={`mt-3 ${pageTitle}`}>{hackathon.name}</h1>
-        {hackathon.theme && <p className={pageDek}>{hackathon.theme}</p>}
+        {/* "Hacklytics: Digital Bloom" already says its theme. */}
+        {hackathon.theme &&
+          !hackathon.name.toLowerCase().includes(hackathon.theme.toLowerCase()) && (
+          <p className={`${pageDek}${bloom ? " hl-dek" : ""}`}>{hackathon.theme}</p>
+        )}
         <p className={`mt-3 ${meta}`}>
           {[
             formatDateRange(hackathon.startDate, hackathon.endDate),
@@ -303,6 +313,7 @@ export default function HackathonDetailPage() {
           </p>
         ) : null}
         {nextStep && <NextStepStrip step={nextStep} className="mt-6" />}
+        {bloom && <FlowerBed className="mt-8" />}
       </header>
 
       {/* Mounted empty so screen readers announce the line when it lands. */}
@@ -381,4 +392,6 @@ export default function HackathonDetailPage() {
       </div>
     </main>
   );
+
+  return bloom ? <div className="hl-theme hl-app">{content}</div> : content;
 }
