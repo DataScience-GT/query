@@ -18,4 +18,6 @@ export const applicationAnswers = {
   referralSource: "A friend" as const,
   ramadanFasting: "No" as const,
   excitement: 8,
+  // A resume is required; a link satisfies it without a stored upload.
+  resumeUrl: "https://example.com/resume.pdf",
 };

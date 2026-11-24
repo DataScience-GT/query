@@ -11,7 +11,7 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { notHackathonBanned } from "../../middleware/procedures";
 import { CacheKeys } from "../../middleware/cache";
-import { hackathonParticipants } from "@query/db";
+import { hackathonParticipants, memberResumes } from "@query/db";
 import { eq, and, inArray, isNull, notInArray } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { evictParticipantCaches } from "./admin";
@@ -125,10 +125,39 @@ const registrationForm = z.object({
   mlhInformationalEmails: z.boolean().optional(),
 });
 
+/**
+ * A resume is required: an uploaded PDF on file, or a link to one. Read from
+ * the database, not the cached resume.me, so an upload made a moment ago on
+ * another instance still counts.
+ */
+async function assertHasResume(
+  db: DrizzleDB,
+  userId: string,
+  resumeUrl: string | undefined,
+) {
+  if (resumeUrl?.trim()) return;
+  const [onFile] = await db
+    .select({ userId: memberResumes.userId })
+    .from(memberResumes)
+    .where(eq(memberResumes.userId, userId))
+    .limit(1);
+  if (!onFile) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Upload your resume or paste a link to it.",
+    });
+  }
+}
+
 export const hackathonRegistrationRouter = createTRPCRouter({
   register: notHackathonBanned
     .input(registrationForm)
     .mutation(async ({ ctx, input }) => {
+      await assertHasResume(
+        ctx.db as DrizzleDB,
+        ctx.userId as string,
+        input.resumeUrl,
+      );
       try {
         const { participant, hackathonName } = await (
           ctx.db as DrizzleDB
@@ -423,6 +452,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
       const userId = ctx.userId as string;
+      await assertHasResume(db, userId, input.resumeUrl);
 
       const hackathon = await db.query.hackathons.findFirst({
         where: { id: input.hackathonId },
