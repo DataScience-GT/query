@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { judges, judgeAssignments } from "@query/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { CacheKeys } from "../../middleware/cache";
 import { notHackathonBanned } from "../../middleware/procedures";
 import { resolveHackathonId } from "../../services/portal-context";
@@ -46,6 +46,43 @@ async function assertTrackExists(
 
   return match;
 }
+
+// An application can be corrected until the edition is over.
+async function assertEditionNotOver(db: DrizzleDB, hackathonId: string) {
+  const hackathon = await db.query.hackathons.findFirst({
+    where: { id: hackathonId },
+    columns: { status: true, endDate: true },
+  });
+  if (
+    !hackathon ||
+    !["announced", "open", "closed", "in_progress"].includes(hackathon.status) ||
+    (hackathon.endDate && new Date() > new Date(hackathon.endDate))
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This hackathon is over, so applications can't be edited.",
+    });
+  }
+}
+
+// The application form. Shared by register and updateMyApplication so an edit
+// is held to exactly the rules the first submission was.
+const applicationFields = z.object({
+  name: z.string().min(1).max(200),
+  email: z.string().email().max(200),
+  phone: z.string().max(20).optional(),
+  company: z.string().max(200).optional(),
+  title: z.string().max(200).optional(),
+  specialty: z.string().max(200).optional(),
+  linkedinUrl: z.string().url().max(500).optional().or(z.literal("")),
+  githubUrl: z.string().url().max(500).optional().or(z.literal("")),
+  previousExperience: z.string().trim().min(1).max(2000),
+  dietaryRestrictions: z.array(z.string()).optional(),
+  shirtSize: z.string().optional(),
+  canAttendInPerson: z.boolean(),
+  whyJudge: z.string().trim().min(1).max(2000),
+  preferredTrack: z.string().optional(),
+});
 
 // The judge's own side of the roster: am I a judge, what have I applied to,
 // and the application itself.
@@ -105,7 +142,13 @@ export const judgePortalRouter = createTRPCRouter({
 
     const myJudges = await db.query.judges.findMany({
       where: { userId: ctx.userId as string },
-      columns: { id: true, hackathonId: true, isActive: true, createdAt: true },
+      columns: {
+        id: true,
+        hackathonId: true,
+        isActive: true,
+        createdAt: true,
+        canAttendInPerson: true,
+      },
     });
 
     if (myJudges.length === 0) return [];
@@ -116,6 +159,9 @@ export const judgePortalRouter = createTRPCRouter({
     });
 
     const activeById = new Map(myJudges.map((j) => [j.id, j.isActive]));
+    const attendById = new Map(
+      myJudges.map((j) => [j.id, j.canAttendInPerson]),
+    );
     const applied = new Set(rows.map((row) => row.judgeId));
 
     return [
@@ -126,6 +172,8 @@ export const judgePortalRouter = createTRPCRouter({
         // The judges row is what every judging gate reads, so it — not the
         // assignment's own status column — decides this.
         approved: activeById.get(row.judgeId) === true,
+        // Null for a judge who applied before the question existed.
+        canAttendInPerson: attendById.get(row.judgeId) ?? null,
       })),
       // An organiser who adds a judge directly writes the judges row and no
       // assignment. Without these the register page offered that judge the
@@ -137,30 +185,13 @@ export const judgePortalRouter = createTRPCRouter({
           track: null,
           appliedAt: judge.createdAt,
           approved: judge.isActive,
+          canAttendInPerson: judge.canAttendInPerson,
         })),
     ];
   }),
 
   register: notHackathonBanned
-    .input(
-      z.object({
-        hackathonId: z.string().uuid(),
-        name: z.string().min(1).max(200),
-        email: z.string().email().max(200),
-        phone: z.string().max(20).optional(),
-        company: z.string().max(200).optional(),
-        title: z.string().max(200).optional(),
-        specialty: z.string().max(200).optional(),
-        linkedinUrl: z.string().url().max(500).optional().or(z.literal("")),
-        githubUrl: z.string().url().max(500).optional().or(z.literal("")),
-        previousExperience: z.string().trim().min(1).max(2000),
-        dietaryRestrictions: z.array(z.string()).optional(),
-        shirtSize: z.string().optional(),
-        canAttendInPerson: z.boolean(),
-        whyJudge: z.string().trim().min(1).max(2000),
-        preferredTrack: z.string().optional(),
-      }),
-    )
+    .input(applicationFields.extend({ hackathonId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
         // Only an edition people can see and that is not over takes judges. Any
@@ -282,5 +313,124 @@ export const judgePortalRouter = createTRPCRouter({
 
         return { success: true };
       });
+    }),
+
+  // The judge's saved application for one edition, to prefill the edit form.
+  myApplication: protectedProcedure
+    .input(z.object({ hackathonId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const judge = await db.query.judges.findFirst({
+        where: { userId: ctx.userId as string, hackathonId: input.hackathonId },
+      });
+      if (!judge) return null;
+      const assignment = await db.query.judgeAssignments.findFirst({
+        where: { judgeId: judge.id, hackathonId: input.hackathonId },
+        columns: { track: true },
+      });
+      return {
+        name: judge.name,
+        email: judge.email,
+        phone: judge.phone,
+        company: judge.company,
+        title: judge.title,
+        specialty: judge.specialty,
+        linkedinUrl: judge.linkedinUrl,
+        githubUrl: judge.githubUrl,
+        previousExperience: judge.previousExperience,
+        dietaryRestrictions: judge.dietaryRestrictions ?? [],
+        whyJudge: judge.whyJudge,
+        canAttendInPerson: judge.canAttendInPerson,
+        preferredTrack: assignment?.track ?? null,
+      };
+    }),
+
+  // Edits the caller's own application. Approval (isActive and the
+  // application's status) is deliberately not touched: only an organiser moves it.
+  updateMyApplication: notHackathonBanned
+    .input(applicationFields.extend({ hackathonId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      return await (ctx.db as DrizzleDB).transaction(async (tx) => {
+        await assertEditionNotOver(tx as unknown as DrizzleDB, input.hackathonId);
+
+        const judge = await tx.query.judges.findFirst({
+          where: { userId: ctx.userId as string, hackathonId: input.hackathonId },
+          columns: { id: true },
+        });
+        if (!judge) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "You have not applied to judge this hackathon.",
+          });
+        }
+
+        const track = await assertTrackExists(
+          tx as unknown as DrizzleDB,
+          input.hackathonId,
+          input.preferredTrack,
+        );
+
+        // The form resubmits every field, so a blank optional one clears it.
+        await tx
+          .update(judges)
+          .set({
+            name: input.name,
+            email: input.email,
+            phone: input.phone || null,
+            company: input.company || null,
+            title: input.title || null,
+            specialty: input.specialty || null,
+            linkedinUrl: input.linkedinUrl || null,
+            githubUrl: input.githubUrl || null,
+            previousExperience: input.previousExperience,
+            dietaryRestrictions: input.dietaryRestrictions || [],
+            canAttendInPerson: input.canAttendInPerson,
+            whyJudge: input.whyJudge,
+          })
+          .where(eq(judges.id, judge.id));
+
+        await tx
+          .update(judgeAssignments)
+          .set({ track })
+          .where(
+            and(
+              eq(judgeAssignments.judgeId, judge.id),
+              eq(judgeAssignments.hackathonId, input.hackathonId),
+            ),
+          );
+
+        return { success: true };
+      });
+    }),
+
+  // Just the in-person answer, for the judge who applied before it was asked.
+  setMyAttendance: notHackathonBanned
+    .input(
+      z.object({
+        hackathonId: z.string().uuid(),
+        canAttendInPerson: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      await assertEditionNotOver(db, input.hackathonId);
+
+      const updated = await db
+        .update(judges)
+        .set({ canAttendInPerson: input.canAttendInPerson })
+        .where(
+          and(
+            eq(judges.userId, ctx.userId as string),
+            eq(judges.hackathonId, input.hackathonId),
+          ),
+        )
+        .returning({ id: judges.id });
+      if (updated.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "You have not applied to judge this hackathon.",
+        });
+      }
+      return { success: true };
     }),
 });

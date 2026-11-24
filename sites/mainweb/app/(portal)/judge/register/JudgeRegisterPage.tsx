@@ -71,6 +71,20 @@ export default function JudgeRegisterPage() {
     () => searchParams.get("hackathonId") ?? "",
   );
   const [hackathonId, setHackathonId] = useState(linkedHackathonId);
+  // ?edit=1 reopens the form on the judge's saved application.
+  const editing = searchParams.get("edit") === "1" && !!linkedHackathonId;
+  const { data: saved } = trpc.judge.myApplication.useQuery(
+    { hackathonId: linkedHackathonId },
+    { enabled: signedIn && editing },
+  );
+  const updateMutation = trpc.judge.updateMyApplication.useMutation({
+    onSuccess: () => {
+      void utils.judge.myApplications.invalidate();
+      void utils.judge.myApplication.invalidate();
+      router.push("/judge");
+    },
+    onError: (e) => setError(e.message),
+  });
   const [preferredTrack, setPreferredTrack] = useState("");
   // Null until edited, so the session's name and email fill in whenever it
   // arrives without an effect to copy them over.
@@ -88,6 +102,32 @@ export default function JudgeRegisterPage() {
   const [whyJudge, setWhyJudge] = useState("");
   const [dietary, setDietary] = useState<string[]>([]);
   const [canAttend, setCanAttend] = useState("");
+  const [prefilled, setPrefilled] = useState(false);
+
+  // Copy the saved answers in once. Done during render, not in an effect, so
+  // the first paint of the form already shows them.
+  if (editing && saved && !prefilled) {
+    setPrefilled(true);
+    setName(saved.name ?? "");
+    setEmail(saved.email ?? "");
+    setPhone(saved.phone ?? "");
+    setCompany(saved.company ?? "");
+    setTitle(saved.title ?? "");
+    setSpecialty(saved.specialty ?? "");
+    setLinkedinUrl(saved.linkedinUrl ?? "");
+    setGithubUrl(saved.githubUrl ?? "");
+    setPreviousExperience(saved.previousExperience ?? "");
+    setWhyJudge(saved.whyJudge ?? "");
+    setDietary(saved.dietaryRestrictions);
+    setPreferredTrack(saved.preferredTrack ?? "");
+    setCanAttend(
+      saved.canAttendInPerson == null
+        ? ""
+        : saved.canAttendInPerson
+          ? "Yes"
+          : "No",
+    );
+  }
 
   // judge.register is protected, so an outside professional following a shared
   // link filled in all four steps and only then got "Not authenticated".
@@ -99,7 +139,12 @@ export default function JudgeRegisterPage() {
     return <LoadingScreen message="Checking your session…" />;
   }
 
-  if (isLoading || applicationsLoading || registrationsLoading) {
+  if (
+    isLoading ||
+    applicationsLoading ||
+    registrationsLoading ||
+    (editing && !saved && !prefilled)
+  ) {
     return <LoadingScreen message="Loading hackathons…" />;
   }
 
@@ -174,13 +219,13 @@ export default function JudgeRegisterPage() {
 
   function handleBack() {
     setError("");
-    setStep(Math.max(step - 1, 0));
+    setStep(Math.max(step - 1, editing ? 1 : 0));
   }
 
   function handleSubmit() {
     if (!validateStep(3)) return;
     setError("");
-    registerMutation.mutate({
+    const payload = {
       hackathonId,
       name: name.trim(),
       email: email.trim(),
@@ -195,10 +240,12 @@ export default function JudgeRegisterPage() {
       dietaryRestrictions: dietary.length ? dietary : undefined,
       canAttendInPerson: canAttend === "Yes",
       preferredTrack: preferredTrack || undefined,
-    });
+    };
+    if (editing) updateMutation.mutate(payload);
+    else registerMutation.mutate(payload);
   }
 
-  if (success) {
+  if (success && !editing) {
     return (
       <main className={page}>
         <div className="max-w-xl">
@@ -218,7 +265,7 @@ export default function JudgeRegisterPage() {
 
   // Shown instead of the form: the edition is already settled one way or the
   // other, and submitting would be refused.
-  if (selectedHackathon && (application || isParticipant)) {
+  if (!editing && selectedHackathon && (application || isParticipant)) {
     return (
       <main className={page}>
         <div className="max-w-xl">
@@ -272,10 +319,13 @@ export default function JudgeRegisterPage() {
       </Link>
 
       <header className="mt-6">
-        <h1 className={pageTitle}>Apply to judge</h1>
+        <h1 className={pageTitle}>
+          {editing ? "Edit your application" : "Apply to judge"}
+        </h1>
         <p className={pageDek}>
-          Pick an event, tell us about yourself, and choose a track. Takes
-          about five minutes.
+          {editing
+            ? "Update your answers. Your approval status does not change."
+            : "Pick an event, tell us about yourself, and choose a track. Takes about five minutes."}
         </p>
       </header>
 
@@ -459,8 +509,9 @@ export default function JudgeRegisterPage() {
           onBack={handleBack}
           onNext={handleNext}
           onSubmit={handleSubmit}
-          onCancel={() => router.push("/hackathons")}
-          isSubmitting={registerMutation.isPending}
+          onCancel={() => router.push(editing ? "/judge" : "/hackathons")}
+          isSubmitting={registerMutation.isPending || updateMutation.isPending}
+          submitLabel={editing ? "Save changes" : undefined}
         />
       </div>
     </main>
