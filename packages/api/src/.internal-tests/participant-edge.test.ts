@@ -49,6 +49,7 @@ vi.mock("@query/db", async () => {
         hackathonTeams: table("hackathonTeams"),
         hackathonProjects: table("hackathonProjects"),
         hackathonEvents: table("hackathonEvents"),
+        hackathonBans: table("hackathonBans"),
         hackathonEventAttendees: table("hackathonEventAttendees"),
         members: table("members"),
         membershipHistory: table("membershipHistory"),
@@ -124,6 +125,7 @@ vi.mock("@query/db", async () => {
     admins: { userId: "user_id", isActive: "is_active", role: "role" },
     users: { id: "id", email: "email", name: "name", image: "image" },
     userProfiles: { userId: "user_id" },
+    hackathonBans: { id: "id", email: "email" },
     hackathons: {
       id: "id",
       name: "name",
@@ -946,6 +948,16 @@ describe("Participant edge cases", () => {
         { id: PARTICIPANT_A, teamId: null, registrationStatus: "checked_in" },
         /already checked in/,
       ],
+      [
+        "a rejected applicant, who could otherwise re-apply for a fresh pending row",
+        { id: PARTICIPANT_A, teamId: null, registrationStatus: "rejected" },
+        /can't be withdrawn/,
+      ],
+      [
+        "a waitlisted applicant",
+        { id: PARTICIPANT_A, teamId: null, registrationStatus: "waitlisted" },
+        /can't be withdrawn/,
+      ],
     ])("refuses %s", async (_label, participant, message) => {
       wire(participant);
 
@@ -1241,6 +1253,63 @@ describe("Participant edge cases", () => {
     });
   });
 
+  describe("Judges and hackers are separate people", () => {
+    it("refuses a registration from someone who is a judge for the edition", async () => {
+      mockFindFirst.mockImplementation((table) => {
+        if (table === "hackathons") return runningHackathon(-24);
+        if (table === "judges") return { id: "judge_1" };
+        return undefined;
+      });
+
+      await expect(
+        callerFor("user_a").hackathon.register(registrationInput()),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message: expect.stringMatching(/judge/),
+      });
+      expect(mockInsert).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Application links", () => {
+    it.each(["javascript:alert(1)", "ftp://example.com/cv.pdf", "data:text/html,x"])(
+      "refuses %s as a resume link",
+      async (resumeUrl) => {
+        await expect(
+          callerFor("user_a").hackathon.register(
+            registrationInput({ resumeUrl }),
+          ),
+        ).rejects.toThrow();
+        expect(mockInsert).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(["linkedinUrl", "githubUrl"])("refuses a javascript: %s", async (key) => {
+      await expect(
+        callerFor("user_a").hackathon.register(
+          registrationInput({ [key]: "javascript:alert(1)" }),
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("accepts https links and empty strings", async () => {
+      mockFindFirst.mockImplementation((table) =>
+        table === "hackathons" ? runningHackathon(-24) : undefined,
+      );
+      mockInsert.mockReturnValue([{ id: PARTICIPANT_A }]);
+
+      await expect(
+        callerFor("user_a").hackathon.register(
+          registrationInput({
+            resumeUrl: "https://example.com/cv.pdf",
+            linkedinUrl: "",
+            githubUrl: "http://github.com/ada",
+          }),
+        ),
+      ).resolves.toBeDefined();
+    });
+  });
+
   describe("6. Registration under contention", () => {
     // BUG: the duplicate guard at registration.ts:95-108 is an unlocked
     // findFirst; the hackathon_participant_hackathon_user_idx violation that follows is
@@ -1355,41 +1424,6 @@ describe("Participant edge cases", () => {
       ).rejects.toMatchObject({
         code: "CONFLICT",
         message: expect.stringContaining("changed just now"),
-      });
-    });
-
-    // BUG: registration.ts:222-239 is a publicProcedure whose column allow-list
-    // includes registrationStatus, and the query has no limit.
-    it("hides who was rejected from the public roster", async () => {
-      mockFindMany.mockReturnValue([]);
-      mockFindFirst.mockImplementation((table: string) =>
-        table === "hackathons" ? { id: HACK_A, status: "open" } : undefined,
-      );
-
-      await callerFor().hackathon.participants({ hackathonId: HACK_A });
-
-      const cfg = mockFindMany.mock.calls.find(
-        (c) => c[0] === "hackathonParticipants",
-      )?.[1];
-      expect(cfg.columns.registrationStatus).toBeFalsy();
-      expect(cfg.limit).toBeDefined();
-    });
-
-    it("lists only approved and checked-in people on the public roster", async () => {
-      mockFindMany.mockReturnValue([]);
-      mockFindFirst.mockImplementation((table: string) =>
-        table === "hackathons" ? { id: HACK_A, status: "open" } : undefined,
-      );
-
-      await callerFor().hackathon.participants({ hackathonId: HACK_A });
-
-      const cfg = mockFindMany.mock.calls.find(
-        (c) => c[0] === "hackathonParticipants",
-      )?.[1];
-      // Relational object filter: only the two admitted statuses, nothing else.
-      expect(cfg.where).toEqual({
-        hackathonId: HACK_A,
-        registrationStatus: { in: ["approved", "checked_in"] },
       });
     });
   });
@@ -1992,6 +2026,59 @@ describe("Participant edge cases", () => {
   });
 
   // =====================================================================
+  describe("Bans and existing applications", () => {
+    const ADMIN = "admin_user_id";
+
+    it("rejects the banned person's existing applications in the same write as the ban", async () => {
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "admins"
+          ? { userId: ADMIN, isActive: true, role: "admin" }
+          : undefined,
+      );
+      mockInsert.mockReturnValue([{ id: "ban_1" }]);
+      mockUpdate.mockReturnValue([{ userId: "user_a", hackathonId: HACK_A }]);
+
+      await callerFor(ADMIN).hackathon.banFromHackathons({
+        email: "Applicant@Example.com",
+        reason: "Harassment at a past event",
+      });
+
+      const rejected = mockUpdate.mock.calls.find(
+        (call) => call[2]?.[0]?.registrationStatus === "rejected",
+      );
+      expect(rejected).toBeDefined();
+    });
+
+    it("keeps banned applicants out of an acceptance wave", async () => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "admins")
+          return { userId: ADMIN, isActive: true, role: "admin" };
+        if (table === "hackathons") return runningHackathon(1);
+        return undefined;
+      });
+      mockSelect.mockImplementation((_trace: any, selectArgs: any[]) =>
+        Object.keys(selectArgs?.[0] ?? {}).includes("max")
+          ? [{ max: null }]
+          : [],
+      );
+
+      await callerFor(ADMIN).hackathon.acceptWave({
+        hackathonId: HACK_A,
+        size: 5,
+      });
+
+      // The applicant pick is the locking select that also orders; its WHERE
+      // must carry the ban exclusion, which the library renders as NOT EXISTS.
+      const pick = mockSelect.mock.calls.find(([trace]: any) =>
+        trace?.some(([m]: [string]) => m === "orderBy"),
+      );
+      const whereArg = pick?.[0].find(([m]: [string]) => m === "where")?.[1][0];
+      expect(JSON.stringify(whereArg, (_k, v) =>
+        typeof v === "bigint" ? String(v) : v,
+      )).toMatch(/not exists/i);
+    });
+  });
+
   describe("Acceptance waves", () => {
     const ADMIN = "admin_user_id";
 

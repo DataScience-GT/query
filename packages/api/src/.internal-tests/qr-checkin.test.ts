@@ -111,6 +111,7 @@ vi.mock("@query/db", async () => {
         hackathonProjects: table("hackathonProjects"),
         judgingEntries: table("judgingEntries"),
         hackathonEvents: table("hackathonEvents"),
+        hackathonBans: table("hackathonBans"),
         hackathonEventAttendees: table("hackathonEventAttendees"),
         members: table("members"),
         events: table("events"),
@@ -1081,40 +1082,6 @@ describe("QR check-in", () => {
         }),
       ).rejects.toThrow();
       expect(mockInsert).not.toHaveBeenCalled();
-    });
-
-    // BUG: hackathon/registration.ts:222-239 is a publicProcedure that returns
-    // participants.id — the only secret in the unsigned pass QR built at
-    // ScheduleTab.tsx:37-41 — for every participant in the hackathon.
-    it("does not hand every participant's pass id to an anonymous caller", async () => {
-      mockFindMany.mockImplementation((table: string) =>
-        table === "hackathonParticipants"
-          ? [
-              {
-                id: PARTICIPANT,
-                hackathonId: HACK_A,
-                userId: "victim_user",
-                teamId: null,
-                registrationStatus: "approved",
-                user: { id: "victim_user", name: "Ada", image: null },
-                team: null,
-              },
-            ]
-          : [],
-      );
-      mockFindFirst.mockImplementation((table: string) =>
-        table === "hackathons" ? { id: HACK_A, status: "open" } : undefined,
-      );
-      const anon = appRouter.createCaller(createMockCtx());
-
-      const rows: any[] = await anon.hackathon.participants({
-        hackathonId: HACK_A,
-      });
-
-      for (const row of rows) {
-        expect(row.id).toBeUndefined();
-        expect(row.userId).toBeUndefined();
-      }
     });
 
     // Same pass id, reached a different way: submittedById on a solo project

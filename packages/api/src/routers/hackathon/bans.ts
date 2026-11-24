@@ -1,10 +1,11 @@
 import { z } from "zod";
-import { eq, inArray } from "drizzle-orm";
-import { hackathonBans } from "@query/db";
+import { and, eq, inArray, ne, notInArray, sql } from "drizzle-orm";
+import { hackathonBans, hackathonParticipants, hackathons, users } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter } from "../../trpc";
 import { hackathonBanCacheKey, isAdmin } from "../../middleware/procedures";
 import { recordAdminAction } from "../../middleware/audit";
+import { evictParticipantCaches } from "./admin/seats";
 
 const normalize = (email: string) => email.trim().toLowerCase();
 
@@ -71,15 +72,55 @@ export const hackathonBansRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
       const email = normalize(input.email);
 
-      // Re-banning updates the reason instead of failing on the unique email.
-      const [ban] = await db
-        .insert(hackathonBans)
-        .values({ email, reason: input.reason, bannedBy: ctx.userId })
-        .onConflictDoUpdate({
-          target: hackathonBans.email,
-          set: { reason: input.reason, bannedBy: ctx.userId },
-        })
-        .returning();
+      // The ban and the rejection of existing applications are one write: a
+      // banned person's pending or accepted row would otherwise still be
+      // picked by acceptWave, mailed, or scanned in. The ban is by email and
+      // covers every hackathon, so it rejects in every hackathon that is
+      // still running; finished ones stay as the record of who took part.
+      const { ban, rejectedUserIds } = await db.transaction(async (tx) => {
+        // Re-banning updates the reason instead of failing on the unique email.
+        const [ban] = await tx
+          .insert(hackathonBans)
+          .values({ email, reason: input.reason, bannedBy: ctx.userId })
+          .onConflictDoUpdate({
+            target: hackathonBans.email,
+            set: { reason: input.reason, bannedBy: ctx.userId },
+          })
+          .returning();
+
+        const rejected = await tx
+          .update(hackathonParticipants)
+          .set({ registrationStatus: "rejected", updatedAt: new Date() })
+          .where(
+            and(
+              ne(hackathonParticipants.registrationStatus, "rejected"),
+              inArray(
+                hackathonParticipants.userId,
+                tx
+                  .select({ id: users.id })
+                  .from(users)
+                  .where(sql`lower(${users.email}) = ${email}`),
+              ),
+              inArray(
+                hackathonParticipants.hackathonId,
+                tx
+                  .select({ id: hackathons.id })
+                  .from(hackathons)
+                  .where(notInArray(hackathons.status, ["completed", "cancelled"])),
+              ),
+            ),
+          )
+          .returning({
+            userId: hackathonParticipants.userId,
+            hackathonId: hackathonParticipants.hackathonId,
+          });
+
+        return { ban, rejectedUserIds: rejected };
+      });
+
+      for (const row of rejectedUserIds) {
+        evictParticipantCaches(ctx.cache, row.hackathonId, [row.userId]);
+      }
 
       ctx.cache.delete(hackathonBanCacheKey(email));
 

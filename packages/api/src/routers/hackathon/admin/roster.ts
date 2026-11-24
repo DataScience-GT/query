@@ -1,11 +1,26 @@
 // The attendee roster: paged list, matching ids and the CSV export.
 
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { isAdmin } from "../../../middleware/procedures";
+import { recordAdminAction } from "../../../middleware/audit";
+import { isBugTesterRole } from "../../../types/portal-context";
 import { hackathonParticipants, memberResumes, users } from "@query/db";
 import { inArray, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { PARTICIPANT_STATUSES, buildAttendeeWhere } from "./attendee-where";
+
+// isAdmin lets a bug tester run every admin read. These two hand over
+// applicants' phones, emergency contacts, citizenship and essays, so bug
+// testers are turned away here rather than shown real people's data.
+const refuseBugTester = (role: string | null | undefined) => {
+  if (isBugTesterRole(role)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Admin access required",
+    });
+  }
+};
 
 // buildAttendeeWhere as a relational-query filter, for db.query...findMany.
 // The same rules as the builder version; the search clause is raw SQL written
@@ -76,6 +91,7 @@ export const rosterProcedures = {
       }),
     )
     .query(async ({ ctx, input }) => {
+      refuseBugTester(ctx.admin.role);
       const db = ctx.db as DrizzleDB;
 
       // Filtering happens in the database. The old version shipped every
@@ -222,13 +238,61 @@ export const rosterProcedures = {
       }),
     )
     .query(async ({ ctx, input }) => {
-      return await (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
+      refuseBugTester(ctx.admin.role);
+      const rows = await (ctx.db as DrizzleDB).query.hackathonParticipants.findMany({
         where: buildAttendeeFilter(input),
+        // Exactly what the CSV in AttendeesTab writes, so a new column on the
+        // table is not exported until the CSV asks for it.
+        columns: {
+          registrationStatus: true,
+          registeredAt: true,
+          firstName: true,
+          lastName: true,
+          school: true,
+          major: true,
+          graduationYear: true,
+          whyAttend: true,
+          isGtStudent: true,
+          isDsgtMember: true,
+          attendedHacklyticsBefore: true,
+          usCitizen: true,
+          travelReimbursement: true,
+          travelFromCity: true,
+          travelFromState: true,
+          travelFromCountry: true,
+          travelDistance: true,
+          travelMethod: true,
+          techJourney: true,
+          helpfulFeedback: true,
+          trackInterest: true,
+          dreamBuild: true,
+          referralSource: true,
+          ramadanFasting: true,
+          anythingElse: true,
+          favoriteFlower: true,
+          favoriteSnack: true,
+          excitement: true,
+          shirtSize: true,
+          dietaryRestrictions: true,
+          emergencyContact: true,
+          emergencyPhone: true,
+        },
         with: {
           user: { columns: { id: true, name: true, email: true } },
           team: { columns: { id: true, name: true } },
         },
         orderBy: (participants, { desc }) => [desc(participants.registeredAt)],
       });
+
+      // Every export is the roster's PII leaving the building; leave a trail.
+      await recordAdminAction(ctx.db as DrizzleDB, {
+        userId: ctx.userId,
+        action: "hackathon.export_attendees",
+        resourceId: input.hackathonId,
+        severity: "warn",
+        metadata: { rowCount: rows.length },
+      });
+
+      return rows;
     }),
 };

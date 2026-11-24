@@ -400,14 +400,12 @@ export function RegistrationForm({
 
   // Switching tabs unmounts this one, so the answers are kept as they change.
   // The consents are left out on purpose: they are ticked fresh at submit.
-  // So are gender, race and the emergency contact: this portal is used on
+  // So are phone, age, gender, race and the emergency contact: this portal is used on
   // shared and borrowed laptops, and sensitive personal details should not
   // sit in localStorage in clear text.
   const draft = JSON.stringify({
     firstName,
     lastName,
-    phone,
-    age,
     pronouns,
     underrepresented,
     school,
