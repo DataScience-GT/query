@@ -82,7 +82,7 @@ Embedded images are untouched; re-encoding those needs Ghostscript or equivalent
 
 ## CSP
 
-Previews are same-origin `<iframe>`s, which needs `'self'` in `frame-src` (`sites/mainweb/next.config.mjs`). It was missing before this feature — the policy runs report-only until `CSP_ENFORCE=true`, so every same-origin frame would have gone blank the day that flipped, with nothing saying why.
+Previews are same-origin `<iframe>`s, which needs `'self'` in `frame-src` (`sites/mainweb/next.config.mjs`). It was missing before this feature — the policy is now enforced in production (`CSP_ENFORCE=true`), so a missing `frame-src` entry blanks every same-origin frame.
 
 ## Known ceiling
 
