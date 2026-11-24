@@ -210,7 +210,7 @@ export default function LinkStripeAccount({
           Enter the name and email you used when paying through Stripe, and
           we&apos;ll attach that payment to this account. The payment email
           must match the email on this account. If you paid under a different
-          address, contact an officer and they can grant your membership.
+          address, contact an officer and they can link your payment to this account.
         </p>
 
         <form onSubmit={handleLinkSubmit} className="mt-6 space-y-4">

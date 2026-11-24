@@ -3,11 +3,14 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc";
-import { stripePayments, userAccountLinks } from "@query/db";
+import { isAdmin } from "../../middleware/procedures";
+import { recordAdminAction } from "../../middleware/audit";
+import { escapeLike } from "../judging/admin/shared";
+import { stripePayments, userAccountLinks, users } from "@query/db";
 import type { DrizzleDB } from "@query/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, count, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { logSecurityEvent } from "../../middleware/security";
-import { createOrUpdateMembership } from "@query/db/services/membership";
+import { createOrUpdateMembership, splitName } from "@query/db/services/membership";
 import { entitlementForPayment } from "@query/db/services/pricing";
 import { membershipGrants } from "../../services/metrics";
 import { clearMembershipCaches } from "./client";
@@ -271,6 +274,212 @@ export const linkingProcedures = {
           message: "Account linked successfully! You are now a member.",
         };
       });
+    }),
+
+  // Paid payments nobody has claimed, for an officer to attach to an account
+  // when the payer used a different email than their portal login.
+  listUnlinkedPayments: isAdmin
+    .input(
+      z.object({
+        query: z.string().trim().max(200).default(""),
+        limit: z.number().int().min(1).max(50).default(20),
+        offset: z.number().int().min(0).default(0),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const pattern = `%${escapeLike(input.query)}%`;
+      const where = and(
+        eq(stripePayments.paymentStatus, "paid"),
+        isNull(stripePayments.linkedUserId),
+        input.query
+          ? or(
+              ilike(stripePayments.customerEmail, pattern),
+              ilike(stripePayments.customerName, pattern),
+            )
+          : undefined,
+      );
+
+      const [rows, [totalRow]] = await Promise.all([
+        db
+          .select({
+            id: stripePayments.id,
+            customerEmail: stripePayments.customerEmail,
+            customerName: stripePayments.customerName,
+            amountTotal: stripePayments.amountTotal,
+            metadata: stripePayments.metadata,
+            createdAt: stripePayments.createdAt,
+          })
+          .from(stripePayments)
+          .where(where)
+          .orderBy(desc(stripePayments.createdAt), desc(stripePayments.id))
+          .limit(input.limit)
+          .offset(input.offset),
+        db.select({ total: count() }).from(stripePayments).where(where),
+      ]);
+
+      return {
+        total: totalRow?.total ?? 0,
+        items: rows.map(({ metadata, ...row }) => ({
+          ...row,
+          entitlement: entitlementForPayment({
+            metadata,
+            amountTotal: row.amountTotal,
+          }),
+        })),
+      };
+    }),
+
+  // An officer attaches a payment to an account whose email differs from the
+  // payer's. Same writes as linkAccount, minus the email proof: the officer is
+  // the proof, and the action is audited.
+  linkPaymentToUser: isAdmin
+    .input(
+      z
+        .object({
+          paymentId: z.string().uuid(),
+          userId: z.string().min(1).max(255).optional(),
+          email: z.string().trim().email().max(255).optional(),
+        })
+        .refine((v) => !!v.userId !== !!v.email, {
+          message: "Give either a user id or an email.",
+        }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+
+      const outcome = await db.transaction(async (tx) => {
+        const [user] = await tx
+          .select()
+          .from(users)
+          .where(
+            input.userId
+              ? eq(users.id, input.userId)
+              : sql`lower(${users.email}) = ${input.email!.toLowerCase()}`,
+          )
+          .limit(1);
+        if (!user) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message:
+              "No account has that email. They need to sign in to the portal once first.",
+          });
+        }
+
+        const [payment] = await tx
+          .select()
+          .from(stripePayments)
+          .where(eq(stripePayments.id, input.paymentId))
+          .for("update");
+        if (!payment) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Payment not found.",
+          });
+        }
+        if (payment.paymentStatus !== "paid") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "This payment was not paid, so it cannot grant a membership.",
+          });
+        }
+        if (payment.linkedUserId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "This payment has already been linked to an account.",
+          });
+        }
+
+        const entitlement = entitlementForPayment(payment);
+        if (!entitlement) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "This payment amount does not match any membership, so it cannot be linked. Use Memberships to grant time by hand.",
+          });
+        }
+
+        const userExistingLink = await tx.query.userAccountLinks.findFirst({
+          where: { userId: user.id },
+        });
+        if (userExistingLink) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "That account is already linked to a payment.",
+          });
+        }
+
+        const claimed = await tx
+          .update(stripePayments)
+          .set({
+            linkedUserId: user.id,
+            linkedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(stripePayments.id, payment.id),
+              isNull(stripePayments.linkedUserId),
+            ),
+          )
+          .returning({ id: stripePayments.id });
+        if (claimed.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "This payment has already been linked to an account.",
+          });
+        }
+
+        const payer = splitName(payment.customerName);
+        await tx.insert(userAccountLinks).values({
+          userId: user.id,
+          stripePaymentId: payment.id,
+          providedFirstName: payer.firstName,
+          providedLastName: payer.lastName,
+          providedEmail: payment.customerEmail.toLowerCase(),
+        });
+
+        const member = splitName(user.name);
+        await createOrUpdateMembership(tx as unknown as DrizzleDB, {
+          userId: user.id,
+          firstName: member.firstName,
+          lastName: member.lastName,
+          bootcampMember: entitlement.bootcamp,
+          addOnOnly: entitlement.addOnOnly,
+          plan: entitlement.plan,
+        });
+
+        return { user, payment, entitlement };
+      });
+
+      membershipGrants.inc({
+        source: "admin_link",
+        plan: outcome.entitlement.plan,
+      });
+      clearMembershipCaches(ctx.cache, outcome.user.id);
+
+      // After the transaction, as in member.adminGrant.
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "stripe.linkPaymentToUser",
+        resourceId: outcome.payment.id,
+        severity: "critical",
+        metadata: {
+          linkedUserId: outcome.user.id,
+          payerEmail: outcome.payment.customerEmail,
+          amountTotal: outcome.payment.amountTotal,
+          plan: outcome.entitlement.plan,
+          bootcamp: outcome.entitlement.bootcamp,
+          addOnOnly: outcome.entitlement.addOnOnly,
+        },
+      });
+
+      return {
+        success: true,
+        userEmail: outcome.user.email,
+        entitlement: outcome.entitlement,
+      };
     }),
 
   // The current user's linked payment status.
