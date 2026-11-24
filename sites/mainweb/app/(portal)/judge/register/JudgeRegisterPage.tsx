@@ -72,11 +72,16 @@ export default function JudgeRegisterPage() {
   );
   const [hackathonId, setHackathonId] = useState(linkedHackathonId);
   // ?edit=1 reopens the form on the judge's saved application.
-  const editing = searchParams.get("edit") === "1" && !!linkedHackathonId;
-  const { data: saved } = trpc.judge.myApplication.useQuery(
-    { hackathonId: linkedHackathonId },
-    { enabled: signedIn && editing },
-  );
+  const editRequested =
+    searchParams.get("edit") === "1" && !!linkedHackathonId;
+  const { data: saved, isLoading: savedLoading } =
+    trpc.judge.myApplication.useQuery(
+      { hackathonId: linkedHackathonId },
+      { enabled: signedIn && editRequested },
+    );
+  // With no application to edit (an ?edit=1 link for an edition they never
+  // applied to), fall back to the ordinary form instead of waiting forever.
+  const editing = editRequested && (savedLoading || !!saved);
   const updateMutation = trpc.judge.updateMyApplication.useMutation({
     onSuccess: () => {
       void utils.judge.myApplications.invalidate();
@@ -143,7 +148,7 @@ export default function JudgeRegisterPage() {
     isLoading ||
     applicationsLoading ||
     registrationsLoading ||
-    (editing && !saved && !prefilled)
+    (editRequested && savedLoading)
   ) {
     return <LoadingScreen message="Loading hackathons…" />;
   }
