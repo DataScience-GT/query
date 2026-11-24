@@ -17,6 +17,7 @@ export const DIETARY_OPTIONS = [
   "Kosher",
   "Dairy-Free",
   "Nut-Free",
+  "Other",
   "None",
 ] as const;
 

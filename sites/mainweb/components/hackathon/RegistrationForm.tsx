@@ -55,12 +55,29 @@ const INLINE_ERROR_FIELDS = new Set([
   "dreamBuild",
   "travelFromCity",
   "travelFromCountry",
+  "dietaryOther",
 ]);
 
 const YES_NO = ["Yes", "No"];
 const YES_NO_PREFER = ["Yes", "No", "Prefer not to say"];
 const EXCITEMENT_OPTIONS = Array.from({ length: 10 }, (_, i) => String(i + 1));
 const NOT_SURE = "Not sure yet";
+
+// "Other" is stored in the same list as the chips, as "Other: <what they typed>",
+// so it needs no column of its own and shows up wherever the list is shown.
+const DIETARY_OTHER = "Other";
+const DIETARY_OTHER_PREFIX = "Other: ";
+
+/** A saved dietary list as the chips to select and the text behind "Other". */
+const splitDietary = (saved: string[]) => ({
+  chips: saved.map((d) =>
+    d.startsWith(DIETARY_OTHER_PREFIX) ? DIETARY_OTHER : d,
+  ),
+  other:
+    saved
+      .find((d) => d.startsWith(DIETARY_OTHER_PREFIX))
+      ?.slice(DIETARY_OTHER_PREFIX.length) ?? "",
+});
 
 /** A saved yes/no answer as the chip that shows it. */
 const yesNo = (value: boolean | null | undefined) =>
@@ -353,7 +370,12 @@ export function RegistrationForm({
 
   // Step 4: Logistics
   const [shirtSize, setShirtSize] = useState<ShirtSize | "">(start.shirtSize);
-  const [dietary, setDietary] = useState<string[]>(start.dietary);
+  const [dietary, setDietary] = useState<string[]>(
+    () => splitDietary(start.dietary).chips,
+  );
+  const [dietaryOther, setDietaryOther] = useState(
+    () => splitDietary(start.dietary).other,
+  );
   const [ramadanFasting, setRamadanFasting] = useState(start.ramadanFasting);
   const [travelReimbursement, setTravelReimbursement] = useState(
     start.travelReimbursement,
@@ -574,6 +596,11 @@ export function RegistrationForm({
       );
     } else if (s === 3) {
       need(
+        "dietaryOther",
+        dietary.includes(DIETARY_OTHER) && !dietaryOther.trim(),
+        "Tell us your dietary restriction.",
+      );
+      need(
         "ramadanFasting",
         !ramadanFasting,
         "Tell us if you will be fasting during the event.",
@@ -703,7 +730,13 @@ export function RegistrationForm({
       favoriteSnack: favoriteSnack.trim() || undefined,
       excitement: parseInt(excitement),
       shirtSize: shirtSize || undefined,
-      dietaryRestrictions: dietary.length ? dietary : undefined,
+      dietaryRestrictions: dietary.length
+        ? dietary.map((d) =>
+            d === DIETARY_OTHER
+              ? `${DIETARY_OTHER_PREFIX}${dietaryOther.trim()}`
+              : d,
+          )
+        : undefined,
       emergencyContact: emergencyContact.trim() || undefined,
       emergencyPhone: normalizePhone(emergencyPhone) || undefined,
       needsHardware,
@@ -1043,6 +1076,17 @@ export function RegistrationForm({
               onChange={setDietary}
               noneOption="None"
             />
+            {dietary.includes(DIETARY_OTHER) && (
+              <FormInput
+                label="Your dietary restriction"
+                required
+                value={dietaryOther}
+                onChange={(e) => setDietaryOther(e.target.value)}
+                error={fieldErrors.dietaryOther}
+                maxLength={80}
+                placeholder="e.g. no shellfish"
+              />
+            )}
             <FormChipSelect
               label={`${hackathonName} falls during Ramadan. Will you be fasting during the event? We'll plan suhoor and iftar meals around you.`}
               required
