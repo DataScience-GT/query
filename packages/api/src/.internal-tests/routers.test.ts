@@ -1,4 +1,5 @@
 
+import { applicationAnswers } from "./_application-answers";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "../root";
 import { TRPCError } from "@trpc/server";
@@ -1142,6 +1143,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
         levelOfStudy: "Junior",
         country: "United States",
         whyAttend: "I want to build with data.",
+        ...applicationAnswers,
         agreeToCodeOfConduct: true,
         mlhCodeOfConduct: true,
         mlhDataSharing: true,
@@ -1181,6 +1183,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
           levelOfStudy: "Junior",
           country: "United States",
           whyAttend: "I want to build with data.",
+          ...applicationAnswers,
           agreeToCodeOfConduct: true,
           mlhCodeOfConduct: true,
           mlhDataSharing: true,
@@ -1218,6 +1221,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
           levelOfStudy: "Senior",
           country: "United States",
           whyAttend: "I want to build with data.",
+          ...applicationAnswers,
           agreeToCodeOfConduct: true,
           mlhCodeOfConduct: true,
           mlhDataSharing: true,
@@ -1250,6 +1254,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
           levelOfStudy: "Sophomore",
           country: "United States",
           whyAttend: "I want to build with data.",
+          ...applicationAnswers,
           agreeToCodeOfConduct: true,
           mlhCodeOfConduct: true,
           mlhDataSharing: true,

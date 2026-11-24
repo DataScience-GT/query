@@ -66,6 +66,12 @@ function getCacheControl(pathname: string): string {
   if (pathname.match(/\.(js|css|woff|woff2|ttf|eot)$/)) {
     return "public, max-age=31536000, immutable";
   }
+  // Photos encoded at build by scripts/build-photos.ts. <Photo> adds the
+  // source photo's hash as `?v=`, so a replaced photo is a new URL. .avif
+  // matched nothing below and fell through to no-store.
+  if (pathname.startsWith("/photos/")) {
+    return "public, max-age=31536000, immutable";
+  }
   // Images keep their filename when replaced, so a year of "immutable" kept
   // the old one on screen for every returning visitor.
   if (pathname.match(/\.(ico|png|jpg|jpeg|gif|svg|webp)$/)) {

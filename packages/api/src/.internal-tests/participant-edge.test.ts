@@ -1,3 +1,4 @@
+import { applicationAnswers } from "./_application-answers";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
@@ -287,6 +288,7 @@ const registrationInput = (overrides: Record<string, any> = {}) => ({
   levelOfStudy: "Junior" as const,
   country: "United States",
   whyAttend: "I want to build with data.",
+  ...applicationAnswers,
   agreeToCodeOfConduct: true as const,
   mlhCodeOfConduct: true as const,
   mlhDataSharing: true as const,
@@ -1164,7 +1166,7 @@ describe("Participant edge cases", () => {
         callerFor("user_a").hackathon.updateMyRegistration(
           editInput({ whyAttend: "   " }),
         ),
-      ).rejects.toThrow(/Tell us why you want to attend/);
+      ).rejects.toThrow(/Tell us what you hope to learn or gain/);
       expect(mockUpdate).not.toHaveBeenCalled();
     });
 

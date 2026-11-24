@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { LEVELS_OF_STUDY, SHIRT_SIZES } from "@query/db/constants";
+import {
+  LEVELS_OF_STUDY,
+  REFERRAL_SOURCES,
+  SHIRT_SIZES,
+  TRAVEL_DISTANCES,
+  TRAVEL_METHODS,
+  YES_NO_PREFER_NOT,
+} from "@query/db/constants";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../../trpc";
 import { notHackathonBanned } from "../../middleware/procedures";
@@ -36,6 +43,9 @@ const isDuplicateRegistration = (error: unknown) => {
 
 // The application form. Shared by register and updateMyRegistration so an
 // edit is held to exactly the rules the first submission was.
+const essay = (message: string) => z.string().trim().min(1, message).max(2000);
+const shortText = (message: string) => z.string().trim().min(1, message).max(100);
+
 const registrationForm = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
   // Personal info
@@ -65,17 +75,36 @@ const registrationForm = z.object({
   resumeUrl: z.string().url().max(500).optional().or(z.literal("")),
   linkedinUrl: z.string().url().max(500).optional().or(z.literal("")),
   githubUrl: z.string().url().max(500).optional().or(z.literal("")),
-  whyAttend: z
-    .string()
-    .trim()
-    .min(1, "Tell us why you want to attend")
-    .max(2000),
+  whyAttend: essay("Tell us what you hope to learn or gain"),
+  techJourney: essay("Tell us about your journey in tech"),
+  helpfulFeedback: essay("Tell us about the most helpful feedback you've gotten"),
+  dreamBuild: essay("Tell us what you would build"),
+  trackInterest: shortText("Pick the track you are most interested in"),
+  referralSource: z.enum(REFERRAL_SOURCES),
+  anythingElse: z.string().trim().max(2000).optional(),
+  // About you
+  isGtStudent: z.boolean(),
+  isDsgtMember: z.boolean(),
+  attendedHacklyticsBefore: z.boolean(),
+  usCitizen: z.enum(YES_NO_PREFER_NOT),
+  // Travel
+  travelReimbursement: z.boolean(),
+  travelFromCity: shortText("City is required"),
+  travelFromState: z.string().trim().max(100).optional(),
+  travelFromCountry: shortText("Country is required"),
+  travelDistance: z.enum(TRAVEL_DISTANCES),
+  travelMethod: z.enum(TRAVEL_METHODS),
+  // Just for fun
+  favoriteFlower: z.string().trim().max(60).optional(),
+  favoriteSnack: z.string().trim().max(60).optional(),
+  excitement: z.number().int().min(1).max(10),
   // Logistics
   shirtSize: z.enum(SHIRT_SIZES).optional(),
   dietaryRestrictions: z.array(z.string().max(100)).max(10).optional(),
   emergencyContact: z.string().max(200).optional(),
   emergencyPhone: z.string().max(20).optional(),
   needsHardware: z.boolean().optional(),
+  ramadanFasting: z.enum(YES_NO_PREFER_NOT),
   // Consent
   agreeToCodeOfConduct: z
     .boolean()
@@ -186,6 +215,26 @@ export const hackathonRegistrationRouter = createTRPCRouter({
               emergencyContact: input.emergencyContact,
               emergencyPhone: input.emergencyPhone,
               needsHardware: input.needsHardware,
+              isGtStudent: input.isGtStudent,
+              isDsgtMember: input.isDsgtMember,
+              attendedHacklyticsBefore: input.attendedHacklyticsBefore,
+              usCitizen: input.usCitizen,
+              travelReimbursement: input.travelReimbursement,
+              travelFromCity: input.travelFromCity,
+              travelFromState: input.travelFromState || undefined,
+              travelFromCountry: input.travelFromCountry,
+              travelDistance: input.travelDistance,
+              travelMethod: input.travelMethod,
+              techJourney: input.techJourney,
+              helpfulFeedback: input.helpfulFeedback,
+              trackInterest: input.trackInterest,
+              dreamBuild: input.dreamBuild,
+              referralSource: input.referralSource,
+              ramadanFasting: input.ramadanFasting,
+              anythingElse: input.anythingElse || undefined,
+              favoriteFlower: input.favoriteFlower || undefined,
+              favoriteSnack: input.favoriteSnack || undefined,
+              excitement: input.excitement,
               // Consent
               agreeToCodeOfConduct: input.agreeToCodeOfConduct,
               mlhCodeOfConduct: input.mlhCodeOfConduct,
@@ -405,6 +454,26 @@ export const hackathonRegistrationRouter = createTRPCRouter({
           emergencyContact: input.emergencyContact ?? null,
           emergencyPhone: input.emergencyPhone ?? null,
           needsHardware: input.needsHardware ?? false,
+          isGtStudent: input.isGtStudent,
+          isDsgtMember: input.isDsgtMember,
+          attendedHacklyticsBefore: input.attendedHacklyticsBefore,
+          usCitizen: input.usCitizen,
+          travelReimbursement: input.travelReimbursement,
+          travelFromCity: input.travelFromCity,
+          travelFromState: input.travelFromState || null,
+          travelFromCountry: input.travelFromCountry,
+          travelDistance: input.travelDistance,
+          travelMethod: input.travelMethod,
+          techJourney: input.techJourney,
+          helpfulFeedback: input.helpfulFeedback,
+          trackInterest: input.trackInterest,
+          dreamBuild: input.dreamBuild,
+          referralSource: input.referralSource,
+          ramadanFasting: input.ramadanFasting,
+          anythingElse: input.anythingElse || null,
+          favoriteFlower: input.favoriteFlower || null,
+          favoriteSnack: input.favoriteSnack || null,
+          excitement: input.excitement,
           mlhInformationalEmails: input.mlhInformationalEmails ?? false,
           updatedAt: new Date(),
         })

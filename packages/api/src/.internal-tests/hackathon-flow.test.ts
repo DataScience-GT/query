@@ -1,3 +1,4 @@
+import { applicationAnswers } from "./_application-answers";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
@@ -242,6 +243,7 @@ describe("Hackathon end-to-end flow", () => {
     levelOfStudy: "Junior" as const,
     country: "United States",
     whyAttend: "I want to build with data.",
+    ...applicationAnswers,
     agreeToCodeOfConduct: true as const,
     mlhCodeOfConduct: true as const,
     mlhDataSharing: true as const,
@@ -286,6 +288,56 @@ describe("Hackathon end-to-end flow", () => {
 
       const res = await caller.hackathon.register(registrationInput());
       expect(res).toMatchObject({ registrationStatus: "pending" });
+    });
+
+    it("stores every new application answer on the participant row", async () => {
+      mockFindFirst.mockImplementation((table) =>
+        table === "hackathons" ? openHackathon() : undefined,
+      );
+      mockInsert.mockReturnValue([
+        { id: PARTICIPANT, registrationStatus: "pending" },
+      ]);
+      mockInsert.mockClear();
+      const caller = appRouter.createCaller(createMockCtx("user_a"));
+
+      await caller.hackathon.register({
+        ...registrationInput(),
+        anythingElse: "  See you there.  ",
+        favoriteFlower: "Cherry blossom",
+        favoriteSnack: "Pretzels",
+      });
+
+      const stored = mockInsert.mock.calls.find(
+        (c) => c[2]?.[0]?.hackathonId === HACK_A,
+      )?.[2][0];
+      expect(stored).toMatchObject({
+        ...applicationAnswers,
+        anythingElse: "See you there.",
+        favoriteFlower: "Cherry blossom",
+        favoriteSnack: "Pretzels",
+      });
+    });
+
+    it.each([
+      "whyAttend",
+      "techJourney",
+      "helpfulFeedback",
+      "dreamBuild",
+      "trackInterest",
+    ])("requires the %s answer", async (field) => {
+      const caller = appRouter.createCaller(createMockCtx("user_a"));
+
+      await expect(
+        caller.hackathon.register({ ...registrationInput(), [field]: "   " }),
+      ).rejects.toThrow();
+    });
+
+    it("rejects an excitement outside 1 to 10", async () => {
+      const caller = appRouter.createCaller(createMockCtx("user_a"));
+
+      await expect(
+        caller.hackathon.register({ ...registrationInput(), excitement: 11 }),
+      ).rejects.toThrow();
     });
 
     it("rejects a second registration from the same user", async () => {
