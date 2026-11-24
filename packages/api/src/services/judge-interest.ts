@@ -99,6 +99,10 @@ export async function recordJudgeInterest(
     linkedinUrl: input.linkedinUrl ?? null,
     message: input.message ?? null,
   };
+  // Risk: anyone can claim an address first, since the form does not verify
+  // email, so the real owner's later submission is dropped. Interest rows are
+  // only leads; the docs say an admin approves judges (judge.setActive) after
+  // the fact, but they do not say organizers confirm the address by email.
   await db
     .insert(judgeInterest)
     .values(values)

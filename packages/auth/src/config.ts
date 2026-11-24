@@ -79,6 +79,8 @@ function html(params: { code: string; host: string }) {
 `;
 }
 
+class CodeCapReached extends Error {}
+
 export const authConfig: NextAuthConfig = {
   trustHost: true,
   providers: [
@@ -190,15 +192,17 @@ export const authConfig: NextAuthConfig = {
             // nothing is sent and nothing says why, so the response cannot be
             // used to probe the limits. Failed guesses carry across reissued
             // codes, so a locked-out address gets no new code either. The
-            // deployment-wide slot goes first: a spent one keeps a loop over
-            // many addresses from draining the SMTP quota.
+            // per-address slot goes first and a refused cap throws so the
+            // transaction rolls back any slot already taken: otherwise an
+            // address past its own cap, posted repeatedly, would still spend
+            // the deployment-wide slots and shut sign-in off for everyone.
             if (await isLockedOut(tx, identifier)) return false;
-            if (!(await takeCodeSlot(tx, GLOBAL_THROTTLE_KEY, GLOBAL_CODES_PER_HOUR)))
-              return false;
             if (
               !(await takeCodeSlot(tx, identifier, CODES_PER_IDENTIFIER_PER_HOUR))
             )
-              return false;
+              throw new CodeCapReached();
+            if (!(await takeCodeSlot(tx, GLOBAL_THROTTLE_KEY, GLOBAL_CODES_PER_HOUR)))
+              throw new CodeCapReached();
 
             await tx.execute(sql`
               DELETE FROM "verificationToken"
@@ -209,6 +213,9 @@ export const authConfig: NextAuthConfig = {
               VALUES (${identifier}, ${customToken}, ${expiresISO}::timestamptz)
             `);
             return true;
+          }).catch((error: unknown) => {
+            if (error instanceof CodeCapReached) return false;
+            throw error;
           });
           if (!issued) return;
         }
