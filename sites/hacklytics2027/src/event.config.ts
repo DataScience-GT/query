@@ -18,11 +18,11 @@ const CONTACT = "hello@hacklytics.io";
 const ORG = ORG_NAME_SHORT;
 
 /**
- * Where every Notify me / sign-up button goes: a Typeform, for now. The
- * portal flow is what it returns to once registration opens there: set `url`
- * to `event.links.portalInterest`.
+ * Where every Apply button goes: the portal's public Hacklytics page, which
+ * links to the application while registration is open. It needs no sign-in to
+ * read, so the button never drops a visitor on a login screen.
  */
-const INTEREST_URL = "https://form.typeform.com/to/GvqBCdAe";
+const APPLY_URL = `${SITE_ORIGIN}/hacklytics`;
 
 const CODE_OF_CONDUCT = {
   label: "MLH Code of Conduct",
@@ -79,11 +79,11 @@ export default defineEvent({
   },
 
   registration: {
-    url: INTEREST_URL,
-    label: "Notify me",
-    ariaLabel: "Notify me (opens a sign-up form)",
-    availability: "PreOrder",
-    validFrom: "2026-08-01T00:00:00-04:00",
+    url: APPLY_URL,
+    label: "Apply",
+    ariaLabel: "Apply to Hacklytics 2027",
+    availability: "InStock",
+    validFrom: "2026-11-24T00:00:00-05:00",
     price: "0",
     currency: "USD",
   },
@@ -195,9 +195,9 @@ export default defineEvent({
       {
         q: "Where do I apply?",
         a: [
-          "Applications are not open yet. ",
-          { text: "Get notified", href: INTEREST_URL, external: true },
-          " and we’ll tell you when they do.",
+          "On the DS@GT portal. ",
+          { text: "Apply here", href: APPLY_URL, external: true },
+          " by January 31.",
         ],
       },
       {
@@ -234,8 +234,8 @@ export default defineEvent({
     ],
 
     footer: {
-      headline: "Applications open soon",
-      note: "We’ll let you know the moment they do",
+      headline: "Applications are open",
+      note: "Apply by January 31. It’s free.",
     },
   }),
 });
