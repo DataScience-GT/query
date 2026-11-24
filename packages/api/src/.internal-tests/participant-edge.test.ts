@@ -126,6 +126,7 @@ vi.mock("@query/db", async () => {
     users: { id: "id", email: "email", name: "name", image: "image" },
     userProfiles: { userId: "user_id" },
     hackathonBans: { id: "id", email: "email" },
+    memberResumes: { userId: "user_id" },
     hackathons: {
       id: "id",
       name: "name",
@@ -1142,6 +1143,19 @@ describe("Participant edge cases", () => {
         resumeUrl: null,
         shirtSize: null,
       });
+    });
+
+    it("refuses an application with no resume link and no upload on file", async () => {
+      wire(pending);
+      // The resume check is the mutation's first read: nothing on file.
+      mockSelect.mockReturnValueOnce([]);
+
+      await expect(
+        callerFor("user_a").hackathon.updateMyRegistration(
+          editInput({ resumeUrl: "" }),
+        ),
+      ).rejects.toThrow(/Upload your resume or paste a link/);
+      expect(writes()).toHaveLength(0);
     });
 
     it("leaves the consents and the status alone", async () => {

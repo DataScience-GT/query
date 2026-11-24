@@ -355,6 +355,8 @@ export function RegistrationForm({
     start.hackathonsAttended,
   );
   const [resumeUrl, setResumeUrl] = useState(start.resumeUrl);
+  // A resume is required: the upload above the link field, or the link.
+  const { data: resumeOnFile } = trpc.resume.me.useQuery();
   const [linkedinUrl, setLinkedinUrl] = useState(start.linkedinUrl);
   const [githubUrl, setGithubUrl] = useState(start.githubUrl);
   const [whyAttend, setWhyAttend] = useState(start.whyAttend);
@@ -593,6 +595,11 @@ export function RegistrationForm({
         "referralSource",
         !referralSource,
         "Tell us how you heard about us.",
+      );
+      need(
+        "resume",
+        !resumeOnFile && !resumeUrl.trim(),
+        "Upload your resume or paste a link to it.",
       );
     } else if (s === 3) {
       need(
@@ -1035,7 +1042,7 @@ export function RegistrationForm({
             />
             <ResumeSection />
             <FormInput
-              label="Or paste a link to your resume"
+              label="Or paste a link to your resume (one of the two is required)"
               type="url"
               value={resumeUrl}
               onChange={(e) => setResumeUrl(e.target.value)}
