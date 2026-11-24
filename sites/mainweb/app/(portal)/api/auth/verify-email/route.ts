@@ -137,8 +137,9 @@ export async function POST(request: NextRequest) {
 
       // Failures return (not throw) so the charge commits.
       if (!live) {
+        // Not charged: nothing is being guessed at, and charging it would let
+        // anyone lock a chosen address out of sign-in with bogus guesses.
         console.warn(`[verify-email] No live code for ${safeEmail}`);
-        await recordFailure(tx, identifier);
         return null;
       }
 
