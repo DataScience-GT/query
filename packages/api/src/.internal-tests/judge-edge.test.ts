@@ -751,4 +751,134 @@ describe("Judge roster edge cases", () => {
       expect(mockFindMany.mock.calls.length).toBe(reads);
     });
   });
+
+  // =====================================================================
+  describe("6. Editing an application and the in-person answer", () => {
+    const edit = {
+      hackathonId: HACK_A,
+      name: "Ada Lovelace",
+      email: "ada@example.com",
+      canAttendInPerson: true,
+      previousExperience: "Judged two hackathons",
+      whyJudge: "Love seeing student projects",
+    };
+    const wireEdit = (hackathon: Record<string, unknown> = {}) => {
+      mockFindFirst.mockImplementation((table: string) => {
+        if (table === "admins") return PLAIN_ADMIN_ROW;
+        if (table === "hackathons")
+          return {
+            status: "open",
+            endDate: new Date(Date.now() + 86_400_000),
+            ...hackathon,
+          };
+        if (table === "judges") return { id: JUDGE_ID };
+        return undefined;
+      });
+    };
+    const updateFor = (table: unknown) =>
+      mockUpdate.mock.calls.find((c) => c[1]?.[0] === table)?.[2]?.[0];
+
+    it("lets a judge edit their own application without touching approval", async () => {
+      wireEdit();
+      await judgeCaller().judge.updateMyApplication({
+        ...edit,
+        canAttendInPerson: false,
+        whyJudge: "  New reason ",
+      });
+
+      const row = updateFor(judges);
+      expect(row).toMatchObject({
+        canAttendInPerson: false,
+        whyJudge: "New reason",
+      });
+      expect(row).not.toHaveProperty("isActive");
+      expect(updateFor(judgeAssignments)).not.toHaveProperty("status");
+      expect(mockInsert).not.toHaveBeenCalled();
+    });
+
+    it("looks the row up by the caller's own user id", async () => {
+      wireEdit();
+      await judgeCaller().judge.updateMyApplication(edit);
+      const lookup = mockFindFirst.mock.calls.find((c) => c[0] === "judges");
+      expect(lookup?.[1]?.where).toMatchObject({
+        userId: "judge_user",
+        hackathonId: HACK_A,
+      });
+    });
+
+    it("is NOT_FOUND for a user with no judge row, so another judge's row is out of reach", async () => {
+      wireEdit();
+      mockFindFirst.mockImplementation((table: string) =>
+        table === "hackathons" ? { status: "open" } : undefined,
+      );
+      await expect(
+        judgeCaller().judge.updateMyApplication(edit),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("refuses edits once the edition is over", async () => {
+      wireEdit({ status: "completed" });
+      await expect(
+        judgeCaller().judge.updateMyApplication(edit),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      wireEdit({ endDate: new Date(Date.now() - 86_400_000) });
+      await expect(
+        judgeCaller().judge.setMyAttendance({
+          hackathonId: HACK_A,
+          canAttendInPerson: true,
+        }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("saves just the in-person answer", async () => {
+      wireEdit();
+      await judgeCaller().judge.setMyAttendance({
+        hackathonId: HACK_A,
+        canAttendInPerson: true,
+      });
+      expect(updateFor(judges)).toEqual({ canAttendInPerson: true });
+    });
+
+    it("setMyAttendance is NOT_FOUND when the caller has no judge row", async () => {
+      wireEdit();
+      mockUpdate.mockReturnValue([]);
+      await expect(
+        judgeCaller().judge.setMyAttendance({
+          hackathonId: HACK_A,
+          canAttendInPerson: false,
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
+    it("keeps the admin setter away from non-admins", async () => {
+      wireEdit();
+      mockFindFirst.mockImplementation(() => undefined);
+      await expect(
+        judgeCaller().judge.setCanAttendInPerson({
+          judgeId: JUDGE_ID,
+          canAttendInPerson: true,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("lets an admin set the answer and clear it back to not asked", async () => {
+      wireEdit();
+      mockUpdate.mockReturnValue([{ id: JUDGE_ID }]);
+      await adminCaller().judge.setCanAttendInPerson({
+        judgeId: JUDGE_ID,
+        canAttendInPerson: false,
+      });
+      await adminCaller().judge.setCanAttendInPerson({
+        judgeId: JUDGE_ID,
+        canAttendInPerson: null,
+      });
+      expect(mockUpdate.mock.calls.map((c) => c[2]?.[0])).toEqual([
+        { canAttendInPerson: false },
+        { canAttendInPerson: null },
+      ]);
+    });
+  });
 });

@@ -228,6 +228,27 @@ export const judgeAdminRouter = createTRPCRouter({
       return { success: true, isActive: input.isActive };
     }),
 
+  // Sets the in-person answer for a judge who replied by email. null puts it
+  // back to "not asked".
+  setCanAttendInPerson: isAdmin
+    .input(
+      z.object({
+        judgeId: z.string().uuid(),
+        canAttendInPerson: z.boolean().nullable(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [updated] = await (ctx.db as DrizzleDB)
+        .update(judges)
+        .set({ canAttendInPerson: input.canAttendInPerson })
+        .where(eq(judges.id, input.judgeId))
+        .returning({ id: judges.id });
+      if (!updated) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Judge not found" });
+      }
+      return { success: true, canAttendInPerson: input.canAttendInPerson };
+    }),
+
   remove: isSuperAdmin
     .input(z.object({ judgeId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {

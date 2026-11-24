@@ -1,18 +1,21 @@
 "use client";
 
 import { venueFormat } from "@/lib/venue-time";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
+import { FormChipSelect } from "@query/ui/FormChipSelect";
 import { useIsClient } from "@/lib/use-is-client";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
   body,
+  btnSecondary,
+  fieldHint,
   itemTitle,
   label,
   meta,
@@ -30,6 +33,57 @@ const APPLYING = new Set(["announced", "open", "closed", "in_progress"]);
 function formatDates(start: Date | string, end: Date | string) {
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
   return `${venueFormat(start, opts)} – ${venueFormat(end, { ...opts, year: "numeric" })}`;
+}
+
+// Organizers plan seating around who is in the room, so a judge who applied
+// before the question existed is asked here instead of in the whole form.
+function ApplicationActions({
+  hackathonId,
+  canAttendInPerson,
+}: {
+  hackathonId: string;
+  canAttendInPerson: boolean | null;
+}) {
+  const utils = trpc.useUtils();
+  const [answer, setAnswer] = useState("");
+  const [error, setError] = useState("");
+  const save = trpc.judge.setMyAttendance.useMutation({
+    onSuccess: () => utils.judge.myApplications.invalidate(),
+    onError: (e) => setError(e.message),
+  });
+
+  return (
+    <div className="mt-3 space-y-3">
+      {canAttendInPerson == null && (
+        <div
+
+          className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-card)] p-4"
+        >
+          <FormChipSelect
+            label="Can you attend Hacklytics in person? Please answer so organizers can plan."
+            options={["Yes", "No"]}
+            value={answer}
+            onChange={(value) => {
+              setAnswer(value);
+              setError("");
+              save.mutate({ hackathonId, canAttendInPerson: value === "Yes" });
+            }}
+          />
+          {error && (
+            <p role="alert" className={`mt-2 ${fieldHint}`}>
+              {error}
+            </p>
+          )}
+        </div>
+      )}
+      <Link
+        href={`/judge/register?hackathonId=${hackathonId}&edit=1`}
+        className={`${btnSecondary} inline-flex`}
+      >
+        Edit application
+      </Link>
+    </div>
+  );
 }
 
 export default function JudgePage() {
@@ -88,6 +142,15 @@ export default function JudgePage() {
       APPLYING.has(h.status) && !judgingIds.has(h.id) && !waitingIds.has(h.id),
   );
 
+  const attendanceById = new Map(
+    (applications ?? []).map((a) => [a.hackathonId, a.canAttendInPerson]),
+  );
+  // Editing is refused once the edition is over, so offer it only before then.
+  const editable = (id: string) => {
+    const h = byId.get(id);
+    return !!h && APPLYING.has(h.status) && attendanceById.has(id);
+  };
+
   const judging = [...judgingIds];
   const waiting = [...waitingIds];
 
@@ -131,6 +194,14 @@ export default function JudgePage() {
                       aria-hidden="true"
                     />
                   </Link>
+                  {editable(id) && (
+                    <div className="pb-4">
+                      <ApplicationActions
+                        hackathonId={id}
+                        canAttendInPerson={attendanceById.get(id) ?? null}
+                      />
+                    </div>
+                  )}
                 </li>
               );
             })}
@@ -143,14 +214,19 @@ export default function JudgePage() {
           <h2 className={label}>Waiting for approval</h2>
           <ul className="mt-3 border-t border-[var(--border-subtle)]">
             {waiting.map((id) => (
-              <li
-                key={id}
-                className="flex items-center justify-between gap-4 border-b border-[var(--border-subtle)] py-4"
-              >
-                <p className={`${itemTitle} truncate`}>
-                  {byId.get(id)?.name ?? "Hackathon"}
-                </p>
-                <span className={status("warning")}>Applied</span>
+              <li key={id} className="border-b border-[var(--border-subtle)] py-4">
+                <div className="flex items-center justify-between gap-4">
+                  <p className={`${itemTitle} truncate`}>
+                    {byId.get(id)?.name ?? "Hackathon"}
+                  </p>
+                  <span className={status("warning")}>Applied</span>
+                </div>
+                {editable(id) && (
+                  <ApplicationActions
+                    hackathonId={id}
+                    canAttendInPerson={attendanceById.get(id) ?? null}
+                  />
+                )}
               </li>
             ))}
           </ul>
