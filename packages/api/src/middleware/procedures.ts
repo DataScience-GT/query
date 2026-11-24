@@ -36,9 +36,15 @@ export const callerIsAdmin = async (ctx: Context) => {
 };
 
 
-// Loads the caller's active admin row, cached 60s per user. Shared by
+// Loads the caller's active admin row, cached 5s per user. Shared by
 // isScanner and isAdmin so a check-in station and a staff action cost the
-// same single lookup.
+// same single lookup. Short, not re-validated per call: the cache is per
+// instance and revoking a role (isActive: false) is only seen here once the
+// entry lapses, so 60s left a removed staff member valid on every other
+// instance for a minute. 5s bounds that while still collapsing a burst of
+// scans into one lookup.
+const ADMIN_ROW_TTL_SECONDS = 5;
+
 const loadAdminRow = async (ctx: Context) => {
   const cacheKey = `${CacheKeys.admin(ctx.userId as string)}:role`;
   let admin = ctx.cache.get<typeof admins.$inferSelect>(cacheKey);
@@ -49,7 +55,7 @@ const loadAdminRow = async (ctx: Context) => {
         where: { userId: ctx.userId as string, isActive: true },
       })) ?? null;
 
-    if (admin) ctx.cache.set(cacheKey, admin, 60);
+    if (admin) ctx.cache.set(cacheKey, admin, ADMIN_ROW_TTL_SECONDS);
   }
 
   // Applied after the cache read too: a fixed term can lapse inside the 60s
