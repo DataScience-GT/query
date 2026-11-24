@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import databricksFall from "@/assets/images/photos/databricks-fall-2025.jpg";
+import Photo from "@/components/Photo";
 import PublicPage from "@/components/PublicPage";
 import { loadBootcampSessions } from "@/lib/bootcamp-sessions.server";
 import {
@@ -181,12 +181,11 @@ export default async function EventsPage() {
         </>
       }
     >
-      <Image
+      <Photo
         src={databricksFall}
         alt="A full lecture hall at the DS@GT Databricks event, Fall 2025, with a DS@GT slide on the screen"
         className="mb-16 h-auto w-full max-w-4xl rounded-lg md:mb-20"
         sizes="(min-width: 1024px) 896px, 100vw"
-        quality={90}
         placeholder="blur"
       />
       <div className="max-w-4xl text-white">

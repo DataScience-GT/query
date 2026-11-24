@@ -12,6 +12,9 @@
 /.next/
 /out/
 
+# photos encoded at build by scripts/build-photos.ts
+/public/photos/
+
 # production
 /build
 
