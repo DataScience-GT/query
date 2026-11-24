@@ -73,11 +73,21 @@ function fakeDb(existingMember: Record<string, unknown> | undefined) {
   const inserts: Record<string, unknown>[] = [];
   const historyInserts: Record<string, unknown>[] = [];
 
-  const db = {
+  const db: DrizzleDB = {
     query: {
       hackathons: { findFirst: vi.fn(async () => ({ id: "hack_1" })) },
       members: { findFirst: vi.fn(async () => existingMember) },
     },
+    // The grant reads the member row with select ... for("update"), inside a
+    // transaction that is just this same fake.
+    select: () => ({
+      from: () => ({
+        where: () => ({
+          for: async () => (existingMember ? [existingMember] : []),
+        }),
+      }),
+    }),
+    transaction: async (cb: (tx: unknown) => unknown) => cb(db),
     update: () => ({
       set: (values: Record<string, unknown>) => ({
         where: async () => {
@@ -96,6 +106,7 @@ function fakeDb(existingMember: Record<string, unknown> | undefined) {
         // memberId, so the fake has to be both awaitable and returning-able.
         const rows = [{ id: "member_new" }];
         return {
+          onConflictDoNothing: () => ({ returning: async () => rows }),
           returning: async () => rows,
           then: (
             resolve: (v: typeof rows) => unknown,

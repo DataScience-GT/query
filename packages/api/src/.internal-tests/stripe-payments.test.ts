@@ -107,10 +107,15 @@ vi.mock("@query/db", () => {
       }),
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation(() => ({
-          // Awaitable directly, or through .for("update") for a row lock.
+          // Awaitable directly, or through .for("update") for a row lock. The
+          // only locked read in these flows is the member row in
+          // createOrUpdateMembership, so it answers from the members stub.
           where: vi.fn().mockImplementation(() =>
             Object.assign(Promise.resolve([]), {
-              for: vi.fn().mockResolvedValue([]),
+              for: vi.fn(async () => {
+                const member = await mockFindFirst("members");
+                return member ? [member] : [];
+              }),
             }),
           ),
         })),

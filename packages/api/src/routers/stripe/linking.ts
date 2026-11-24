@@ -5,14 +5,10 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc";
 import { stripePayments, userAccountLinks } from "@query/db";
 import type { DrizzleDB } from "@query/db";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { logSecurityEvent } from "../../middleware/security";
-import {
-  createOrUpdateMembership,
-  paidForBootcamp,
-  isBootcampAddOnOnly,
-  planFromMetadata,
-} from "@query/db/services/membership";
+import { createOrUpdateMembership } from "@query/db/services/membership";
+import { entitlementForPayment } from "@query/db/services/pricing";
 import { membershipGrants } from "../../services/metrics";
 import { clearMembershipCaches } from "./client";
 
@@ -36,15 +32,19 @@ export const linkingProcedures = {
 
       if (!user?.email) return { success: false };
 
-      const payment = await tx.query.stripePayments.findFirst({
+      // Only a payment whose amount buys something is claimable, so a stray
+      // $1 link neither grants a year nor uses up the account's one link.
+      const candidates = await tx.query.stripePayments.findMany({
         where: {
           customerEmail: user.email,
           linkedUserId: { isNull: true },
           paymentStatus: "paid",
         },
       });
+      const payment = candidates.find((row) => entitlementForPayment(row));
+      const entitlement = payment && entitlementForPayment(payment);
 
-      if (!payment) return { success: false };
+      if (!payment || !entitlement) return { success: false };
 
       // Verify not already linked (double check)
       const existingLink = await tx.query.userAccountLinks.findFirst({
@@ -55,9 +55,25 @@ export const linkingProcedures = {
       const names = (user.name || "Member").split(" ");
       const firstName = names[0] || "Member";
       const lastName = names.slice(1).join(" ") || "Member";
-      const bootcampMember = paidForBootcamp(payment.metadata);
-      const addOnOnly = isBootcampAddOnOnly(payment.metadata);
-      const plan = planFromMetadata(payment.metadata);
+      const { bootcamp: bootcampMember, addOnOnly, plan } = entitlement;
+
+      // The claim carries the read into the write, so a concurrent claim of the
+      // same payment cannot grant twice.
+      const claimed = await tx
+        .update(stripePayments)
+        .set({
+          linkedUserId: ctx.userId!,
+          linkedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(stripePayments.id, payment.id),
+            isNull(stripePayments.linkedUserId),
+          ),
+        )
+        .returning({ id: stripePayments.id });
+      if (claimed.length === 0) return { success: false };
 
       await tx.insert(userAccountLinks).values({
         userId: ctx.userId!,
@@ -66,15 +82,6 @@ export const linkingProcedures = {
         providedLastName: lastName,
         providedEmail: user.email,
       });
-
-      await tx
-        .update(stripePayments)
-        .set({
-          linkedUserId: ctx.userId!,
-          linkedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(stripePayments.id, payment.id));
 
       await createOrUpdateMembership(tx as unknown as DrizzleDB, {
         userId: ctx.userId!,
@@ -131,15 +138,18 @@ export const linkingProcedures = {
     )
     .mutation(async ({ ctx, input }) => {
       return await ctx.db!.transaction(async (tx) => {
-        const payment = await tx.query.stripePayments.findFirst({
+        const candidates = await tx.query.stripePayments.findMany({
           where: {
             customerEmail: input.email.toLowerCase(),
             linkedUserId: { isNull: true },
             paymentStatus: "paid",
           },
         });
+        // A payment whose amount buys nothing is not claimable (see attemptAutoLink).
+        const payment = candidates.find((row) => entitlementForPayment(row));
+        const entitlement = payment && entitlementForPayment(payment);
 
-        if (!payment) {
+        if (!payment || !entitlement) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message:
@@ -147,12 +157,11 @@ export const linkingProcedures = {
           });
         }
 
-        // Prove the caller is the payer. The email alone is not proof — it is the one
-        // thing about someone else's payment that is easy to know — so without this
-        // any signed-in user could take over a stranger's membership. Either the
-        // account email matches the payer's, or the typed name matches the name on
-        // the payment (which covers paying personally and signing up with a school
-        // address, and payments Stripe recorded without a name).
+        // Prove the caller is the payer: the signed-in account's email must be the
+        // one on the payment. The typed email and name prove nothing, since both
+        // are easy to learn about someone else, so a name match is not accepted
+        // as a substitute. A payment made under a different address is linked
+        // by an officer from the admin side.
         const account = await tx.query.users.findFirst({
           where: { id: ctx.userId! },
           columns: { email: true },
@@ -165,25 +174,7 @@ export const linkingProcedures = {
           !!account?.email &&
           normalize(account.email) === normalize(payment.customerEmail);
 
-        // Every word the caller gave must be a word on the payment. Whole tokens, not
-        // `includes`: the empty string is a substring of every name, so a substring
-        // test turns this back into "knowing the email is enough". Tokenising also
-        // lets "Mary Jane Watson" match a caller who enters "Jane Watson".
-        const tokensOf = (value: string) =>
-          normalize(value).split(" ").filter(Boolean);
-
-        const paymentTokens = new Set(tokensOf(payment.customerName ?? ""));
-        const givenTokens = [
-          ...tokensOf(input.firstName),
-          ...tokensOf(input.lastName),
-        ];
-
-        const nameMatches =
-          paymentTokens.size > 0 &&
-          givenTokens.length >= 2 &&
-          givenTokens.every((token) => paymentTokens.has(token));
-
-        if (!emailMatches && !nameMatches) {
+        if (!emailMatches) {
           logSecurityEvent({
             type: "validation_error",
             identifier: ctx.userId ?? "unknown",
@@ -225,6 +216,36 @@ export const linkingProcedures = {
           });
         }
 
+        // Lock the payment and claim it only while still unlinked, so two
+        // simultaneous links of the same payment cannot both be granted.
+        await tx
+          .select({ id: stripePayments.id })
+          .from(stripePayments)
+          .where(eq(stripePayments.id, payment.id))
+          .for("update");
+
+        const claimed = await tx
+          .update(stripePayments)
+          .set({
+            linkedUserId: ctx.userId!,
+            linkedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(stripePayments.id, payment.id),
+              isNull(stripePayments.linkedUserId),
+            ),
+          )
+          .returning({ id: stripePayments.id });
+
+        if (claimed.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "This payment has already been linked to an account.",
+          });
+        }
+
         await tx.insert(userAccountLinks).values({
           userId: ctx.userId!,
           stripePaymentId: payment.id,
@@ -233,28 +254,16 @@ export const linkingProcedures = {
           providedEmail: input.email.toLowerCase(),
         });
 
-        await tx
-          .update(stripePayments)
-          .set({
-            linkedUserId: ctx.userId!,
-            linkedAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(eq(stripePayments.id, payment.id));
-
         await createOrUpdateMembership(tx as unknown as DrizzleDB, {
           userId: ctx.userId!,
           firstName: input.firstName,
           lastName: input.lastName,
-          bootcampMember: paidForBootcamp(payment.metadata),
-          addOnOnly: isBootcampAddOnOnly(payment.metadata),
-          plan: planFromMetadata(payment.metadata),
+          bootcampMember: entitlement.bootcamp,
+          addOnOnly: entitlement.addOnOnly,
+          plan: entitlement.plan,
         });
 
-        membershipGrants.inc({
-          source: "link",
-          plan: planFromMetadata(payment.metadata),
-        });
+        membershipGrants.inc({ source: "link", plan: entitlement.plan });
         clearMembershipCaches(ctx.cache, ctx.userId!);
 
         return {

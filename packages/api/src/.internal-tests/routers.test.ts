@@ -1731,6 +1731,15 @@ describe("Router Integration and Access Control Verification Suite", () => {
   });
 
   describe("12. Stripe Payments & Account Linking", () => {
+    // linkAccount lists the email's unclaimed payments (findMany) and claims
+    // the one it picks with an UPDATE ... RETURNING.
+    const stubPayment = (payment: Record<string, unknown>) => {
+      mockFindMany.mockImplementation((table) =>
+        table === "stripePayments" ? [payment] : [],
+      );
+      mockUpdate.mockReturnValue([{ id: payment.id }]);
+    };
+
     it("should create checkout session in mock development mode", async () => {
       const ctx = createMockCtx("stripe_user_id");
       const origMockMode = process.env.STRIPE_MOCK_MODE;
@@ -1758,6 +1767,15 @@ describe("Router Integration and Access Control Verification Suite", () => {
 
     it("should allow user to link Stripe payment to account", async () => {
       const ctx = createMockCtx("user_to_link");
+      stubPayment({
+        id: "payment_100",
+        customerEmail: "purchaser@example.com",
+        customerName: "Stripe Payer",
+        paymentStatus: "paid",
+        linkedUserId: null,
+        amountTotal: 2500,
+        metadata: null,
+      });
 
       mockFindFirst.mockImplementation((table) => {
         if (table === "stripePayments") {
@@ -1771,6 +1789,10 @@ describe("Router Integration and Access Control Verification Suite", () => {
             paymentStatus: "paid",
             linkedUserId: null,
           };
+        }
+        if (table === "users") {
+          // Ownership is the account email matching the payment's.
+          return { id: "user_to_link", email: "purchaser@example.com" };
         }
         if (table === "userAccountLinks") {
           return null; // Not linked yet
@@ -1798,6 +1820,15 @@ describe("Router Integration and Access Control Verification Suite", () => {
     // know, so it cannot be the whole proof of ownership.
     it("should refuse to link a payment to someone who is not the payer", async () => {
       const ctx = createMockCtx("mallory");
+      stubPayment({
+        id: "payment_100",
+        customerEmail: "alice@gatech.edu",
+        customerName: "Alice Anderson",
+        paymentStatus: "paid",
+        linkedUserId: null,
+        amountTotal: 2500,
+        metadata: null,
+      });
 
       mockFindFirst.mockImplementation((table) => {
         if (table === "stripePayments") {
@@ -1828,6 +1859,41 @@ describe("Router Integration and Access Control Verification Suite", () => {
       expect(mockInsert).not.toHaveBeenCalled();
     });
 
+    // Names and emails are not secret: the exact name on the payment, typed by
+    // an account with a different email, must not claim it.
+    it.each([
+      ["a repeated word", "Alice", "Alice"],
+      ["the exact name on the payment", "Alice", "Anderson"],
+    ])(
+      "should refuse %s when the account email is not the payer's",
+      async (_label, firstName, lastName) => {
+        const ctx = createMockCtx("mallory");
+        stubPayment({
+          id: "payment_100",
+          customerEmail: "alice@gatech.edu",
+          customerName: "Alice Anderson",
+          paymentStatus: "paid",
+          linkedUserId: null,
+          amountTotal: 2500,
+          metadata: null,
+        });
+        mockFindFirst.mockImplementation((table) =>
+          table === "users"
+            ? { id: "mallory", email: "mallory@gatech.edu" }
+            : null,
+        );
+
+        await expect(
+          appRouter.createCaller(ctx).stripe.linkAccount({
+            firstName,
+            lastName,
+            email: "alice@gatech.edu",
+          }),
+        ).rejects.toThrow(/No payment found/);
+        expect(mockInsert).not.toHaveBeenCalled();
+      },
+    );
+
     // A substring test would accept all of these: "" is inside every name, and
     // so is any single letter. The check compares whole name tokens.
     it.each([
@@ -1838,6 +1904,15 @@ describe("Router Integration and Access Control Verification Suite", () => {
       "should not accept %s as proof of owning a payment",
       async (_label, firstName, lastName) => {
         const ctx = createMockCtx("mallory");
+        stubPayment({
+          id: "payment_100",
+          customerEmail: "alice@gatech.edu",
+          customerName: "Alice Anderson",
+          paymentStatus: "paid",
+          linkedUserId: null,
+          amountTotal: 2500,
+          metadata: null,
+        });
 
         mockFindFirst.mockImplementation((table) => {
           if (table === "stripePayments") {
