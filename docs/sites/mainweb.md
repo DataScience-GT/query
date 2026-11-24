@@ -21,7 +21,7 @@ This is the club’s public site **and** the authenticated portal. There is no s
 | `/status` | Uptime and latency from real traffic, see [Status page](../features/status.md) |
 | `/sitemap.xml` / `robots.txt` | Generated via `app/sitemap.ts`, `app/robots.ts` |
 
-`app/api/csp-report/route.ts` receives CSP report-only violations.
+`app/api/csp-report/route.ts` receives CSP violation reports (enforced and Report-Only).
 
 ## Sign-in routes (`app/(auth)`)
 
@@ -91,7 +91,7 @@ Helpers: `lib/hackathon-slug.ts`, `lib/phone.ts`, `lib/bootcamp-schedule.ts`, `l
 
 - Transpiles `@query/api`, `@query/auth`, `@query/core`, `@query/db`, `@query/ui`
 - `outputFileTracingRoot` is the monorepo root (needed for standalone on App Hosting)
-- Security headers: HSTS, CSP (report-only unless `CSP_ENFORCE=true`), frame options SAMEORIGIN (admin print/QR iframes), Permissions-Policy (camera **not** denied — `/scan` needs it)
+- Security headers: HSTS, CSP (enforced in production via `CSP_ENFORCE=true`; Report-Only otherwise), frame options SAMEORIGIN (admin print/QR iframes), Permissions-Policy (camera **not** denied — `/scan` needs it)
 - React Compiler enabled
 
 `start.sh` is a local convenience script (turbo build, firebase hosting deploy, then `pnpm dev`). Production does **not** use it; App Hosting uses `apphosting.yaml`.

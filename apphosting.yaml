@@ -91,6 +91,14 @@ env:
     secret: projects/672446353769/secrets/STRIPE_WEBHOOK_SECRET
   - variable: NODE_ENV
     value: production
+  # Enforce the Content-Security-Policy. BUILD too: next.config.mjs headers()
+  # is baked into the routes manifest at build time, so a runtime-only value
+  # would still ship Report-Only. Violations still reach /api/csp-report.
+  - variable: CSP_ENFORCE
+    value: "true"
+    availability:
+      - BUILD
+      - RUNTIME
   # Cloud Storage bucket holding resume PDFs. Postgres keeps only the metadata
   # and the object key — 5000 resumes is 1.5 GB and this database is 0.5 GB.
   # The runtime service account needs objectAdmin on it:
