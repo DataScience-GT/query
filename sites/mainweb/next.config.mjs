@@ -232,6 +232,14 @@ const nextConfig = {
       // The nav button says "Portal", so people type /portal. Not permanent:
       // a cached 308 would outlive any later /portal page.
       { source: "/portal", destination: "/dashboard", permanent: false },
+      // The edition was "Hacklytics 2027" when the registration-open email
+      // went out; its page moved with the rename. Not permanent, in case a
+      // later edition takes that name.
+      {
+        source: "/hackathons/hacklytics-2027",
+        destination: "/hackathons/hacklytics-digital-bloom",
+        permanent: false,
+      },
     ];
   },
 };

@@ -18,11 +18,11 @@ const CONTACT = "hello@hacklytics.io";
 const ORG = ORG_NAME_SHORT;
 
 /**
- * Where every Apply button goes: the portal's public Hacklytics page, which
- * links to the application while registration is open. It needs no sign-in to
- * read, so the button never drops a visitor on a login screen.
+ * Where every Apply button goes: straight to the application on the portal.
+ * A signed-out visitor signs in first and lands back on it. The path is the
+ * slug of the edition's name in the portal, "Hacklytics: Digital Bloom".
  */
-const APPLY_URL = `${SITE_ORIGIN}/hacklytics`;
+const APPLY_URL = `${SITE_ORIGIN}/hackathons/hacklytics-digital-bloom`;
 
 const CODE_OF_CONDUCT = {
   label: "MLH Code of Conduct",
@@ -197,7 +197,7 @@ export default defineEvent({
         a: [
           "On the DS@GT portal. ",
           { text: "Apply here", href: APPLY_URL, external: true },
-          " by January 31.",
+          " by January 20.",
         ],
       },
       {
@@ -235,7 +235,7 @@ export default defineEvent({
 
     footer: {
       headline: "Applications are open",
-      note: "Apply by January 31. It’s free.",
+      note: "Apply by January 20. It’s free.",
     },
   }),
 });
