@@ -21,6 +21,7 @@ import { FormInput } from "@query/ui/FormInput";
 import { venueFormat } from "@/lib/venue-time";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
 import { EmptyState } from "@query/ui/EmptyState";
+import { UnlinkedPayments } from "./UnlinkedPayments";
 
 const HISTORY_ACTIONS: Record<string, string> = {
   joined: "Joined",
@@ -285,6 +286,8 @@ export default function AdminMembersPage() {
           </div>
         </section>
       )}
+
+      <UnlinkedPayments />
     </div>
   );
 }
