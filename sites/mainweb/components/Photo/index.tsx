@@ -32,8 +32,11 @@ export default function Photo({ src, ...props }: PhotoProps) {
   return (
     // `contents` keeps <picture> out of layout, so the <img> sizes and
     // positions against the same parent it would as a bare next/image.
+    // <source> renders as a block here, which made it a grid item that took
+    // the photo's column; `hidden` keeps it out. The browser still reads it.
     <picture className="contents">
       <source
+        className="hidden"
         type="image/avif"
         srcSet={avif.props.srcSet}
         sizes={avif.props.sizes}
