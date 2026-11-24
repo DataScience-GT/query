@@ -19,7 +19,7 @@
    the portal's `.light body` / `.dark body` rules take it from here. */
 :root {
   --background: #050505;
-  --foreground: #9ca3af;
+  --foreground: #a3a3a3;
 }
 
 @theme inline {

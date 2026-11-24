@@ -59,13 +59,13 @@ export default function TeamCard({
               name
             )}
           </h3>
-          <p className="mt-1 font-mono text-xs tracking-[0.12em] text-gray-400 uppercase">
+          <p className="mt-1 font-mono text-xs tracking-[0.12em] text-neutral-400 uppercase">
             {title}
           </p>
         </div>
       </div>
       {children && (
-        <p className="text-[15px] leading-relaxed text-gray-300">{children}</p>
+        <p className="text-[15px] leading-relaxed text-neutral-300">{children}</p>
       )}
     </article>
   );

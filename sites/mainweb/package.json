@@ -5,8 +5,8 @@
   "private": true,
   "license": "Apache-2.0",
   "scripts": {
-    "dev": "query-guard-local --stripe --email && next dev --port 3001",
-    "build": "next build",
+    "dev": "query-guard-local --stripe --email && node scripts/build-photos.ts && next dev --port 3001",
+    "build": "node scripts/build-photos.ts && next build",
     "start": "next start",
     "lint": "oxlint .",
     "typecheck": "tsrs --noEmit",
@@ -63,6 +63,7 @@
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "postcss": "catalog:",
+    "sharp": "0.35.5",
     "tailwindcss": "catalog:",
     "tsrs": "catalog:",
     "typescript": "catalog:",

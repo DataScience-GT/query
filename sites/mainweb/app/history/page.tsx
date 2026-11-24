@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import type { StaticImageData } from "next/image";
-import Image from "next/image";
 import hacklytics2024 from "@/assets/images/photos/hacklytics-2024-sign.jpg";
 import hacklytics2025 from "@/assets/images/photos/hacklytics-2025-hall.jpg";
 import hacklytics2026 from "@/assets/images/photos/hacklytics-2026-crowd.jpg";
+import Photo from "@/components/Photo";
 import PublicPage from "@/components/PublicPage";
 
 import { VERIFIED_MEMBERS_LABEL } from "@query/core";
@@ -188,17 +188,17 @@ export default function HistoryPage() {
               <h2 className="text-2xl font-semibold tracking-tight text-white">
                 {title}
               </h2>
-              <p className="mt-3 text-lg leading-relaxed text-gray-300">
+              <p className="mt-3 text-lg leading-relaxed text-neutral-300">
                 {story}
               </p>
               {facts && (
                 <dl className="mt-6 grid gap-x-6 gap-y-3 border-t border-white/10 pt-5 text-[15px] sm:grid-cols-[8.5rem_1fr]">
                   {facts.map(([label, value]) => (
                     <div key={label} className="contents">
-                      <dt className="font-mono text-xs tracking-[0.15em] text-gray-400 uppercase sm:pt-0.5">
+                      <dt className="font-mono text-xs tracking-[0.15em] text-neutral-400 uppercase sm:pt-0.5">
                         {label}
                       </dt>
-                      <dd className="mb-2 leading-relaxed text-gray-200 sm:mb-0">
+                      <dd className="mb-2 leading-relaxed text-neutral-200 sm:mb-0">
                         {value}
                       </dd>
                     </div>
@@ -206,12 +206,11 @@ export default function HistoryPage() {
                 </dl>
               )}
               {photo && (
-                <Image
+                <Photo
                   src={photo.src}
                   alt={photo.alt}
                   className="mt-8 h-56 w-full rounded-lg object-cover sm:h-72"
                   sizes="(min-width: 768px) 672px, 100vw"
-                  quality={90}
                   placeholder="blur"
                 />
               )}

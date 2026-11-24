@@ -12,7 +12,7 @@ interface FooterProps {
 const Footer = ({ className = "" }: FooterProps) => {
   return (
     <footer
-      className={`relative w-full border-t border-white/5 bg-[#050505] py-14 font-sans text-gray-400 md:py-20 ${className}`}
+      className={`relative w-full border-t border-white/5 bg-[#050505] py-14 font-sans text-neutral-400 md:py-20 ${className}`}
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-12">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-3 lg:gap-8">
@@ -28,7 +28,7 @@ const Footer = ({ className = "" }: FooterProps) => {
                 DS@GT
               </span>
             </div>
-            <p className="max-w-[240px] text-sm leading-relaxed text-gray-400">
+            <p className="max-w-[240px] text-sm leading-relaxed text-neutral-400">
               The largest student-run data science organization at Georgia Tech.
             </p>
           </div>
@@ -128,7 +128,7 @@ const Footer = ({ className = "" }: FooterProps) => {
 
         {/* BOTTOM COPYRIGHT */}
         <div className="mt-20 flex flex-col justify-between gap-4 border-t border-white/5 pt-8 md:flex-row">
-          <p className="font-mono text-[11px] tracking-widest text-gray-400 uppercase">
+          <p className="font-mono text-[11px] tracking-widest text-neutral-400 uppercase">
             {/* oxlint-disable-next-line react/purity */}©{" "}
             {new Date().getFullYear()} Data Science at Georgia Tech
           </p>

@@ -87,7 +87,7 @@ export default async function StatusPage() {
             {label}
           </p>
           {level !== "operational" && (
-            <p className="text-gray-300">{reason}</p>
+            <p className="text-neutral-300">{reason}</p>
           )}
         </div>
       }
@@ -103,7 +103,7 @@ export default async function StatusPage() {
               <span className="block text-3xl leading-none font-black text-white">
                 {pct(uptime90)}
               </span>
-              <span className="mt-1 block text-xs text-gray-400">
+              <span className="mt-1 block text-xs text-neutral-400">
                 {firstDay ? `90 days, since ${sinceLabel(firstDay)}` : "90 days"}
               </span>
             </span>
@@ -111,11 +111,11 @@ export default async function StatusPage() {
               <span className="block text-3xl leading-none font-black text-white">
                 {pct(uptime30)}
               </span>
-              <span className="mt-1 block text-xs text-gray-400">30 days</span>
+              <span className="mt-1 block text-xs text-neutral-400">30 days</span>
             </span>
           </p>
           <UptimeStrip days={data.days} />
-          <div className="mt-2 flex justify-between text-xs text-gray-400">
+          <div className="mt-2 flex justify-between text-xs text-neutral-400">
             <span>90 days ago</span>
             <span>Today</span>
           </div>
@@ -142,14 +142,14 @@ export default async function StatusPage() {
                   <span className="block text-3xl leading-none font-black text-white">
                     {pct(value)}
                   </span>
-                  <span className="mt-1 block text-xs text-gray-400">
+                  <span className="mt-1 block text-xs text-neutral-400">
                     {name}
                   </span>
                 </span>
               ))}
             </p>
             <UptimeStrip days={probeDays(uptime, data.generatedAt)} probe />
-            <div className="mt-2 flex justify-between text-xs text-gray-400">
+            <div className="mt-2 flex justify-between text-xs text-neutral-400">
               <span>90 days ago</span>
               <span>Today</span>
             </div>
@@ -175,7 +175,7 @@ export default async function StatusPage() {
         </section>
 
         {!data.historyOk && (
-          <p className="max-w-2xl border-t border-white/5 pt-6 text-sm leading-relaxed text-gray-400">
+          <p className="max-w-2xl border-t border-white/5 pt-6 text-sm leading-relaxed text-neutral-400">
             The history could not be read just now, so the charts are empty.
             This is a limit of the status page and says nothing about earlier
             uptime.

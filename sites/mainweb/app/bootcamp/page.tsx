@@ -1,8 +1,8 @@
 import type { BootcampSession } from "@/lib/bootcamp-sessions.server";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import lectureHall from "@/assets/images/photos/hacklytics-2025-lecture-hall.jpg";
+import Photo from "@/components/Photo";
 import PublicPage from "@/components/PublicPage";
 import {
   BOOTCAMP_CURRICULUM,
@@ -55,20 +55,20 @@ function SessionRow({
 
   return (
     <li className="grid grid-cols-[3.5rem_1fr] gap-x-5 py-5 first:pt-0 last:pb-0 sm:grid-cols-[4.5rem_1fr] sm:gap-x-8">
-      <div className={past ? "text-gray-500" : "text-dsgt-teal"}>
+      <div className={past ? "text-[#7a7a7a]" : "text-dsgt-teal"}>
         <p className="font-mono text-xs tracking-[0.2em] uppercase">{month}</p>
         <p className="text-3xl leading-none font-bold tabular-nums">{day}</p>
       </div>
       <div>
-        <p className="font-mono text-[11px] tracking-[0.2em] text-gray-400 uppercase">
+        <p className="font-mono text-[11px] tracking-[0.2em] text-neutral-400 uppercase">
           {session.bootcampWeek ? `Week ${session.bootcampWeek}` : "Session"}
         </p>
         <h3
-          className={`mt-1 text-lg font-semibold ${past ? "text-gray-300" : "text-white"}`}
+          className={`mt-1 text-lg font-semibold ${past ? "text-neutral-300" : "text-white"}`}
         >
           {sessionTitle(session.title)}
         </h3>
-        <p className="mt-1 text-sm text-gray-400">
+        <p className="mt-1 text-sm text-neutral-400">
           {/* No room: the bootcamp is paid, enrolled members see it in the portal. */}
           {eventWhenWhere(session.eventDate, null)}
         </p>
@@ -99,19 +99,18 @@ export default async function BootcampPage() {
       title="Python data science bootcamp"
       lede="Nine weeks, in person, from data wrangling to deep learning. The last three weeks go to a project of your own."
     >
-      <Image
+      <Photo
         src={lectureHall}
         alt="A presenter at the front of a full lecture hall during a Hacklytics 2025 workshop"
         className="mb-16 h-64 w-full rounded-lg object-cover object-[50%_65%] sm:h-80 md:mb-20 lg:h-[28rem]"
         sizes="(min-width: 1280px) 1184px, 100vw"
-        quality={90}
         placeholder="blur"
       />
       <div className="max-w-4xl text-white">
         <dl className="grid grid-cols-1 gap-x-10 gap-y-6 border-y border-white/10 py-8 sm:grid-cols-3">
           {facts.map((fact) => (
             <div key={fact.label}>
-              <dt className="font-mono text-[11px] tracking-[0.2em] text-gray-400 uppercase">
+              <dt className="font-mono text-[11px] tracking-[0.2em] text-neutral-400 uppercase">
                 {fact.label}
               </dt>
               <dd className="mt-2 text-xl font-semibold text-white">
@@ -126,7 +125,7 @@ export default async function BootcampPage() {
             Sessions
           </h2>
           {sessions.length === 0 ? (
-            <p className="mt-6 max-w-xl text-gray-300">
+            <p className="mt-6 max-w-xl text-neutral-300">
               Dates for {termLabel(term)} have not been posted yet. They appear
               here once the officers schedule them
               {BOOTCAMP_START_DATE
@@ -138,7 +137,7 @@ export default async function BootcampPage() {
             <div className="mt-8 space-y-14">
               {upcoming.length > 0 && (
                 <div>
-                  <h3 className="mb-6 font-mono text-xs tracking-[0.3em] text-gray-300 uppercase">
+                  <h3 className="mb-6 font-mono text-xs tracking-[0.3em] text-neutral-300 uppercase">
                     Upcoming
                   </h3>
                   <ul className="divide-y divide-white/5">
@@ -150,7 +149,7 @@ export default async function BootcampPage() {
               )}
               {past.length > 0 && (
                 <div>
-                  <h3 className="mb-6 font-mono text-xs tracking-[0.3em] text-gray-400 uppercase">
+                  <h3 className="mb-6 font-mono text-xs tracking-[0.3em] text-neutral-400 uppercase">
                     Past
                   </h3>
                   <ul className="divide-y divide-white/5">
@@ -178,7 +177,7 @@ export default async function BootcampPage() {
                   <span className="text-dsgt-teal w-6 shrink-0 font-mono text-sm tabular-nums">
                     {item.week}
                   </span>
-                  <span className="text-gray-200">{item.title}</span>
+                  <span className="text-neutral-200">{item.title}</span>
                 </li>
               ))}
             </ol>
@@ -192,14 +191,14 @@ export default async function BootcampPage() {
           <h2 id="join" className="text-3xl font-bold tracking-tight">
             Join the bootcamp
           </h2>
-          <p className="mt-4 max-w-xl leading-relaxed text-gray-300">
+          <p className="mt-4 max-w-xl leading-relaxed text-neutral-300">
             The bootcamp is a {formatCents(BOOTCAMP_ADDON_CENTS)} add-on to a
             DS@GT membership and covers one semester. Sign in to the portal to
             add it, or become a member first.
           </p>
           <Link
             href="/club/bootcamp"
-            className="bg-dsgt-teal mt-8 inline-flex min-h-11 items-center rounded-sm px-6 text-sm font-semibold text-black transition-colors hover:bg-white"
+            className="bg-dsgt-teal mt-8 inline-flex h-12 items-center justify-center rounded-sm px-6 text-[15px] font-medium text-black transition-colors hover:bg-white"
           >
             Join in the portal
           </Link>

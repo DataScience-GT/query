@@ -9,7 +9,8 @@
         ".next/**",
         "!.next/cache/**",
         "!.next/dev/**",
-        "next-env.d.ts"
+        "next-env.d.ts",
+        "public/photos/**"
       ],
       "cache": true,
       "env": [
