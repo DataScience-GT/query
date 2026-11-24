@@ -266,7 +266,7 @@ export function InfoTab({
             <div>
               <h2 className={sectionTitle}>Register</h2>
               <p className={`mt-2 ${body}`}>
-                Four steps: personal info, school, experience, and logistics.
+                Five steps: personal info, school, experience, logistics, and a few just-for-fun questions.
                 {hackathon.registrationDeadline
                   ? ` Closes ${formatDate(hackathon.registrationDeadline)}.`
                   : ""}
