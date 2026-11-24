@@ -143,6 +143,7 @@ export const gradingProcedures = {
             hackathonId: input.hackathonId,
             entryId: input.entryId,
             challenge,
+            judge,
           });
 
           const [draft] = await tx
@@ -359,6 +360,7 @@ export const gradingProcedures = {
             hackathonId: input.hackathonId,
             entryId: input.entryId,
             challenge,
+            judge,
           });
 
           const [draft] = await tx
@@ -528,6 +530,7 @@ export const gradingProcedures = {
             hackathonId: input.hackathonId,
             entryId: input.entryId,
             challenge,
+            judge,
           });
 
           // The draft first: a deadline submission holding it finishes
