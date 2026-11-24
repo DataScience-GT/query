@@ -1,6 +1,12 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
-import { NOREPLY_EMAIL, ORG_NAME_SPOKEN, SITE_ORIGIN } from "@query/core";
+import {
+  HACKLYTICS_URL,
+  NOREPLY_EMAIL,
+  ORG_NAME_SPOKEN,
+  ORG_SHORT,
+  SITE_ORIGIN,
+} from "@query/core";
 
 // Owns the pooled SMTP connection for the process. `pool: true` only does
 // anything if the transporter outlives the message — built per call, every
@@ -43,6 +49,7 @@ export class Mailer {
     paragraphs,
     ctaLabel,
     ctaUrl,
+    theme,
   }: TransactionalEmail) {
     const bodyHtml = paragraphs
       .map(
@@ -65,7 +72,10 @@ export class Mailer {
       to: email,
       subject,
       text,
-      html: renderShell({ heading, bodyHtml, ctaLabel, ctaUrl }),
+      html:
+        theme === "hacklytics"
+          ? renderHacklyticsShell({ heading, bodyHtml, ctaLabel, ctaUrl })
+          : renderShell({ heading, bodyHtml, ctaLabel, ctaUrl }),
     });
   }
 }
@@ -129,6 +139,95 @@ const renderShell = ({
   `;
 };
 
+// The Hacklytics look, for mail about a Hacklytics edition: the event site's
+// dark ground, bloom pink button and pixel wordmark (sites/hacklytics2027
+// globals.css tokens). Email clients load almost no web fonts, so the
+// wordmark is an image and the text faces fall back to system ones. Tables
+// and inline styles only; the ground is set on every cell so a client that
+// drops the body background still shows it.
+const renderHacklyticsShell = ({
+  heading,
+  bodyHtml,
+  ctaLabel,
+  ctaUrl,
+}: {
+  heading: string;
+  bodyHtml: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+}) => {
+  const ground = "#0e0f13";
+  const raised = "#15171d";
+  const rule = "#262731";
+  const ink = "#f3f5f8";
+  const ink2 = "#b4bac6";
+  const ink3 = "#8f96a5";
+  const bloom = "#ffbfcf";
+  const onBloom = "#1a0a10";
+  const sans =
+    "'Instrument Sans', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
+  const pixel = "'Silkscreen', 'Courier New', Courier, monospace";
+
+  const cta =
+    ctaLabel && ctaUrl
+      ? `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin: 8px 0 0 0;">
+          <tr>
+            <td style="background: ${bloom}; border-radius: 8px;">
+              <a href="${escapeHtml(ctaUrl)}" style="display: inline-block; padding: 14px 24px; font-family: ${sans}; font-size: 15px; font-weight: 600; line-height: 20px; color: ${onBloom}; text-decoration: none; border-radius: 8px;">${escapeHtml(ctaLabel)}</a>
+            </td>
+          </tr>
+        </table>`
+      : "";
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600&family=Silkscreen&display=swap" rel="stylesheet">
+</head>
+<body style="margin: 0; padding: 0; background: ${ground};">
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background: ${ground};">
+  <tr>
+    <td align="center" style="padding: 32px 16px; background: ${ground};">
+      <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px;">
+        <tr>
+          <td style="padding: 0 0 24px 0; background: ${ground};">
+            <table role="presentation" border="0" cellspacing="0" cellpadding="0">
+              <tr>
+                <td style="vertical-align: middle; padding-right: 14px;">
+                  <img src="${HACKLYTICS_URL}/apple-icon.png" width="44" height="44" alt="" style="display: block; border: 0; border-radius: 10px;">
+                </td>
+                <td style="vertical-align: middle;">
+                  <a href="${HACKLYTICS_URL}" style="text-decoration: none;"><img src="${HACKLYTICS_URL}/email/hacklytics-wordmark.png" width="224" height="20" alt="Hacklytics" style="display: block; border: 0; color: ${ink}; font-family: ${pixel}; font-size: 20px;"></a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="background: ${raised}; border: 1px solid ${rule}; border-top: 3px solid ${bloom}; border-radius: 12px; padding: 36px 32px;">
+            <h1 style="margin: 0 0 20px 0; font-family: ${pixel}; font-size: 26px; line-height: 32px; font-weight: 400; color: ${ink};">${escapeHtml(heading)}</h1>
+            <div style="font-family: ${sans}; font-size: 16px; line-height: 26px; color: ${ink2};">${bodyHtml}</div>
+            ${cta}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 24px 4px 0 4px; background: ${ground}; font-family: ${sans}; font-size: 12px; line-height: 18px; color: ${ink3};">
+            Hacklytics is run by ${escapeHtml(ORG_NAME_SPOKEN)} (${escapeHtml(ORG_SHORT)}).
+            <a href="${HACKLYTICS_URL}" style="color: ${ink3}; text-decoration: underline;">hacklytics.io</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
+};
+
 const DEFAULT_HOST = SITE_ORIGIN;
 
 // Every message this product sends, in one shape. `paragraphs` is plain text
@@ -142,6 +241,8 @@ export type TransactionalEmail = {
   paragraphs: string[];
   ctaLabel?: string;
   ctaUrl?: string;
+  /** "hacklytics" renders the Hacklytics look; anything else the DS@GT one. */
+  theme?: "hacklytics";
 };
 
 /** Kept as the module's entry point; the templates and callers both use it. */
@@ -460,5 +561,8 @@ export async function sendAcceptanceEmail({
     ],
     ctaLabel: "Go to Hackathon Hub",
     ctaUrl: `${host}/hackathons`,
+    // A Hacklytics edition gets the event's own look; any other hackathon
+    // keeps the DS@GT one.
+    theme: /^hacklytics/i.test(hackathonName) ? "hacklytics" : undefined,
   });
 }
