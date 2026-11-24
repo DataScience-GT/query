@@ -11,7 +11,7 @@ import {
   searchParticipants,
 } from "../../../services/points";
 import { flaggingRuleBreaks } from "../../../services/check-in-flags";
-import { hackathonEventAttendees } from "@query/db";
+import { hackathonEventAttendees, hackathonParticipants } from "@query/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { checkInParticipant } from "./check-in-participant";
@@ -88,20 +88,32 @@ export const checkInProcedures = {
         throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
       }
 
-      // RETURNING rather than a preceding existence check: it names the row this
-      // statement removed, so a scan already undone reads as "nothing to undo".
-      const deleted = await db
-        .delete(hackathonEventAttendees)
-        .where(
-          and(
-            eq(hackathonEventAttendees.eventId, input.eventId),
-            eq(hackathonEventAttendees.participantId, input.participantId),
-          ),
-        )
-        .returning({
-          id: hackathonEventAttendees.id,
-          pointsAwarded: hackathonEventAttendees.pointsAwarded,
-        });
+      // The participant row is locked first, the way recordEventAttendance and a
+      // store purchase lock it. A sale sums this person's points under that lock;
+      // deleting the scan without it let a purchase spend points from an
+      // attendance row that was being removed.
+      const deleted = await db.transaction(async (tx) => {
+        await tx
+          .select({ id: hackathonParticipants.id })
+          .from(hackathonParticipants)
+          .where(eq(hackathonParticipants.id, input.participantId))
+          .for("update");
+
+        // RETURNING rather than a preceding existence check: it names the row this
+        // statement removed, so a scan already undone reads as "nothing to undo".
+        return await tx
+          .delete(hackathonEventAttendees)
+          .where(
+            and(
+              eq(hackathonEventAttendees.eventId, input.eventId),
+              eq(hackathonEventAttendees.participantId, input.participantId),
+            ),
+          )
+          .returning({
+            id: hackathonEventAttendees.id,
+            pointsAwarded: hackathonEventAttendees.pointsAwarded,
+          });
+      });
 
       if (deleted.length === 0) {
         throw new TRPCError({
