@@ -135,3 +135,30 @@ a {
   letter-spacing: 0;
   font-weight: 700;
 }
+
+/* The hackathon detail page of a Hacklytics edition (.hl-theme hl-app). The
+   tokens above already recolour buttons, chips, the step bar and focus rings;
+   this only fits the pixel face, which is wider than the portal's display
+   face, so the headings step down a size to avoid orphaned lines. */
+.hl-app h1 {
+  font-size: 30px;
+  line-height: 1.15;
+}
+@media (min-width: 768px) {
+  .hl-app h1 {
+    font-size: 40px;
+  }
+}
+.hl-app h2 {
+  font-size: 22px;
+  line-height: 1.2;
+}
+.hl-app h3 {
+  font-size: 18px;
+  line-height: 1.25;
+}
+.hl-app .hl-dek {
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 16px;
+}
