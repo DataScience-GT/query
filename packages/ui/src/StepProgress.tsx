@@ -5,7 +5,11 @@ interface StepProgressProps {
 
 export function StepProgress({ steps, current }: StepProgressProps) {
   return (
-    <ol className="grid grid-cols-4 gap-2 mb-8">
+    // One column per step. A fixed four wrapped a fifth step onto its own row.
+    <ol
+      className="grid gap-2 mb-8"
+      style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+    >
       {steps.map((label, i) => (
         <li
           key={label}
