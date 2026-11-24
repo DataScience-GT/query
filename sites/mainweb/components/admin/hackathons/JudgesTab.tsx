@@ -28,7 +28,7 @@ import { FormInput } from "@query/ui/FormInput";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
 import { EmptyState } from "@query/ui/EmptyState";
 
-type StatusFilter = "all" | "waiting" | "approved";
+type StatusFilter = "all" | "waiting" | "approved" | "unanswered";
 
 const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
@@ -36,8 +36,15 @@ const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "approved", label: "Approved" },
 ];
 
+// Judges who applied before the in-person question existed, and never answered.
+const UNANSWERED: { value: StatusFilter; label: string } = {
+  value: "unanswered",
+  label: "In person: not answered",
+};
+
 type JudgeDetailsProps = {
   judge: {
+    id: string;
     phone: string | null;
     company: string | null;
     title: string | null;
@@ -54,13 +61,23 @@ type JudgeDetailsProps = {
   email: string | null | undefined;
   track: string | null | undefined;
   isLead: boolean | undefined;
+  /** Sets the in-person answer; null puts it back to "not asked". */
+  onSetAttendance: (value: boolean | null) => void;
+  attendanceLocked: boolean;
 };
 
 const safeHref = (value: string) =>
   /^https?:\/\//i.test(value) ? value : null;
 
 /** Everything the judge submitted, so an organizer reads it before approving. */
-function JudgeDetails({ judge, email, track, isLead }: JudgeDetailsProps) {
+function JudgeDetails({
+  judge,
+  email,
+  track,
+  isLead,
+  onSetAttendance,
+  attendanceLocked,
+}: JudgeDetailsProps) {
   const link = (value: string | null) => {
     if (!value) return null;
     const href = safeHref(value);
@@ -105,13 +122,27 @@ function JudgeDetails({ judge, email, track, isLead }: JudgeDetailsProps) {
     ["Shirt size", judge.shirtSize],
     [
       "Attends in person",
-      judge.canAttendInPerson == null ? (
-        "Not asked"
-      ) : judge.canAttendInPerson ? (
-        "Yes"
-      ) : (
-        <span className="font-medium text-[var(--danger)]">No</span>
-      ),
+      <span key="attends" className="flex flex-wrap items-center gap-2">
+        {judge.canAttendInPerson == null ? (
+          "Not asked"
+        ) : judge.canAttendInPerson ? (
+          "Yes"
+        ) : (
+          <span className="font-medium text-[var(--danger)]">No</span>
+        )}
+        {([true, false, null] as const).map((value) => (
+          <button
+            key={String(value)}
+            type="button"
+            disabled={attendanceLocked || judge.canAttendInPerson === value}
+            title={attendanceLocked ? READ_ONLY_TITLE : undefined}
+            onClick={() => onSetAttendance(value)}
+            className={textLink}
+          >
+            {value === null ? "Clear" : value ? "Set Yes" : "Set No"}
+          </button>
+        ))}
+      </span>,
     ],
     ["Applied", new Date(judge.createdAt).toLocaleString()],
   ];
@@ -179,6 +210,12 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
     onError: (e) => setError(e.message),
   });
 
+  // Covers judges who answer the in-person question by email.
+  const setAttendance = trpc.judge.setCanAttendInPerson.useMutation({
+    onSuccess: refresh,
+    onError: (e) => setError(e.message),
+  });
+
   const removeJudge = trpc.judge.remove.useMutation({
     onSuccess: refresh,
     onError: (e) => setError(e.message),
@@ -206,9 +243,15 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
 
   const roster = judges ?? [];
   const approved = roster.filter((j) => j.isActive).length;
-  const shown = roster.filter(
-    (j) =>
-      filter === "all" || (filter === "approved" ? j.isActive : !j.isActive),
+  const unanswered = roster.filter((j) => j.canAttendInPerson == null).length;
+  const shown = roster.filter((j) =>
+    filter === "all"
+      ? true
+      : filter === "unanswered"
+        ? j.canAttendInPerson == null
+        : filter === "approved"
+          ? j.isActive
+          : !j.isActive,
   );
 
   return (
@@ -320,10 +363,10 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
           <>
           <div
             role="group"
-            aria-label="Filter by status"
+            aria-label="Filter judges"
             className="mb-4 flex flex-wrap gap-2"
           >
-            {FILTERS.map((f) => (
+            {[...FILTERS, UNANSWERED].map((f) => (
               <button
                 key={f.value}
                 type="button"
@@ -332,11 +375,12 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                 className={filter === f.value ? btnInk : btnSecondary}
               >
                 {f.label}
+                {f.value === "unanswered" ? ` (${unanswered})` : ""}
               </button>
             ))}
           </div>
           {shown.length === 0 && (
-            <EmptyState>No judges with this status.</EmptyState>
+            <EmptyState>No judges match this filter.</EmptyState>
           )}
           <ul className="border-t border-[var(--border-subtle)]">
             {shown.map((judge) => {
@@ -438,6 +482,13 @@ export function JudgesTab({ hackathonId }: { hackathonId: string }) {
                     email={judge.user?.email ?? judge.email}
                     track={application?.track}
                     isLead={application?.isLead}
+                    attendanceLocked={readOnly || setAttendance.isPending}
+                    onSetAttendance={(canAttendInPerson) =>
+                      setAttendance.mutate({
+                        judgeId: judge.id,
+                        canAttendInPerson,
+                      })
+                    }
                   />
                 )}
                 </li>

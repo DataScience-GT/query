@@ -39,6 +39,7 @@ vi.mock("@/lib/trpc", () => {
         },
         create: { useMutation: mutation },
         setActive: { useMutation: mutation },
+        setCanAttendInPerson: { useMutation: mutation },
         remove: { useMutation: mutation },
       },
     },
