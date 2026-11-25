@@ -80,18 +80,13 @@ env:
   # - variable: GITHUB_TOKEN
   #   secret: GITHUB_REPO_CHECK_TOKEN
   # Discord link for accepted Hacklytics hackers (docs/features/discord.md).
-  # All three are needed; without them the feature stays hidden. Left commented
-  # out because a reference to a secret that does not exist breaks the rollout.
-  # Create them first, then uncomment:
-  #   firebase apphosting:secrets:set discord-client-id
-  #   firebase apphosting:secrets:set discord-client-secret
-  #   firebase apphosting:secrets:set discord-invite-url
-  # - variable: DISCORD_CLIENT_ID
-  #   secret: discord-client-id
-  # - variable: DISCORD_CLIENT_SECRET
-  #   secret: discord-client-secret
-  # - variable: DISCORD_INVITE_URL
-  #   secret: discord-invite-url
+  # The app id and the invite are public; only the client secret is secret.
+  - variable: DISCORD_CLIENT_ID
+    value: "1575184200972378302"
+  - variable: DISCORD_INVITE_URL
+    value: https://discord.gg/PznvWxKHNS
+  - variable: DISCORD_CLIENT_SECRET
+    secret: discord-client-secret
   - variable: AUTH_URL
     value: https://datasciencegt.org
   - variable: NEXTAUTH_URL
