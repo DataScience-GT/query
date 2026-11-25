@@ -25,7 +25,7 @@ Eight flower groups, defined in one place: `FOOD_GROUPS` in `packages/api/src/se
 | 5 | Lotus |
 | 6 | Daisy |
 | 7 | Orchid |
-| 8 | Poppy |
+| 8 | Rose |
 
 A participant gets the group with the fewest members in their hackathon so far (ties random). Assignment runs in a transaction that locks the hackathon row, so concurrent assignments stay balanced. It happens lazily the first time an accepted participant's Discord card loads or they link. Organizers can backfill everyone already accepted with "Assign food groups" in the Attendees tab of the hackathon admin.
 
@@ -42,7 +42,7 @@ A participant gets the group with the fewest members in their hackathon so far (
 
    The bot token is only the application's own credential for this one call. The application's bot user is never invited to the server, and the website never reads `DISCORD_BOT_TOKEN`.
 5. In the server, create the roles, then Server Settings > Roles > (role) > Links > add requirement:
-   - Cherry Blossom: `food_group` equals 1. Sunflower 2, Tulip 3, Lily 4, Lotus 5, Daisy 6, Orchid 7, Poppy 8.
+   - Cherry Blossom: `food_group` equals 1. Sunflower 2, Tulip 3, Lily 4, Lotus 5, Daisy 6, Orchid 7, Rose 8. Role names in the DS@GT server are "Bloom · <flower>".
    - Ramadan meals: `ramadan` equals true.
    - Optional Hacklytics role: `accepted` equals true.
 6. Set the server invite (a permanent invite link) and the app credentials as runtime env vars.
