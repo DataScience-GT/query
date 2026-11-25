@@ -25,7 +25,7 @@ const REASONS: Record<string, string> = {
 };
 
 const LINKED_ROLES_HINT =
-  "In the server, open the server menu > Linked Roles and connect Hacklytics to get your food group role.";
+  "In the server, open the server menu > Linked Roles and connect Hacklytics to get your flower role.";
 
 /**
  * Join the DS@GT Discord, for an accepted hacker. The food group shows even
@@ -111,7 +111,7 @@ export function DiscordCard({
       {!data.enabled ? (
         groupName && (
           <p className={body}>
-            {flower}Food group: <strong>{groupName}</strong>
+            {flower}Your bloom: <strong>{groupName}</strong>
           </p>
         )
       ) : data.linked ? (
@@ -121,7 +121,7 @@ export function DiscordCard({
             {groupName && (
               <>
                 {" "}
-                &middot; {flower}Food group: {groupName}
+                &middot; {flower}Bloom: {groupName}
               </>
             )}
           </p>
@@ -146,7 +146,7 @@ export function DiscordCard({
           <p className={`${body} font-semibold`}>Join the DS@GT Discord</p>
           {groupName && (
             <p className={body}>
-              {flower}Your food group: <strong>{groupName}</strong>
+              {flower}Your bloom: <strong>{groupName}</strong>
             </p>
           )}
           {ramadanBox}

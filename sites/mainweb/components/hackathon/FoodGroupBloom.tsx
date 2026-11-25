@@ -66,8 +66,8 @@ export function FoodGroupBloom({
           Your bloom: {group.name}
         </h2>
         <p className={`mt-2 ${body}`}>
-          It is your food group for meals, and the name of your matching role in
-          the Hacklytics Discord.
+          Your flower for the weekend. It matches your role in the Hacklytics
+          Discord.
         </p>
       </div>
     </section>

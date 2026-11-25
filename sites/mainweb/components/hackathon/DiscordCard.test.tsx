@@ -38,10 +38,10 @@ function render(bloom?: boolean) {
   return container;
 }
 
-describe("DiscordCard food group", () => {
+describe("DiscordCard bloom", () => {
   it("draws the flower beside the name on a Hacklytics edition", () => {
     const view = render(true);
-    expect(view.textContent).toContain("Food group: Lily");
+    expect(view.textContent).toContain("Your bloom: Lily");
     expect(view.querySelector("img")?.getAttribute("src")).toMatch(
       /^data:image\/svg\+xml,/,
     );
@@ -49,7 +49,7 @@ describe("DiscordCard food group", () => {
 
   it("keeps any other hackathon to the plain text", () => {
     const view = render();
-    expect(view.textContent).toContain("Food group: Lily");
+    expect(view.textContent).toContain("Your bloom: Lily");
     expect(view.querySelector("img")).toBeNull();
   });
 });
