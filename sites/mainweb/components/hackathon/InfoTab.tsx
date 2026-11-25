@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DiscordCard } from "@/components/hackathon/DiscordCard";
 import { InterestForm } from "@/components/hackathon/InterestForm";
-import { hackathonSlug } from "@/lib/hackathon-slug";
+import { hackathonSlug, isHacklyticsName } from "@/lib/hackathon-slug";
 import { trpc } from "@/lib/trpc";
 import { venueFormat } from "@/lib/venue-time";
 
@@ -239,7 +239,10 @@ export function InfoTab({
                   </div>
                 ))}
               {(regStatus === "approved" || regStatus === "checked_in") && (
-                <DiscordCard hackathonId={hackathon.id} />
+                <DiscordCard
+                  hackathonId={hackathon.id}
+                  bloom={isHacklyticsName(hackathon.name)}
+                />
               )}
               {canEdit && (
                 <div className="flex flex-col items-start gap-2">

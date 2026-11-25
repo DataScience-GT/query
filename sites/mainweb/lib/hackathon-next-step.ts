@@ -270,7 +270,7 @@ export function hackathonNextStep(
     return {
       step: "discord",
       label: "Join the Hacklytics Discord",
-      detail: "Get your food group and the attendee channels.",
+      detail: "Get your flower role and the attendee channels.",
       href: `/api/discord/connect?hackathon=${hackathon.id}&then=invite`,
     };
   }
