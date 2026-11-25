@@ -10,6 +10,7 @@ import {
 } from "@/lib/use-portal-context";
 import { hackathonSlug } from "@/lib/hackathon-slug";
 import {
+  discordStep,
   hackathonNextStep,
   isWithinEditionDates,
   nextStepQueries,
@@ -127,6 +128,13 @@ export default function Dashboard() {
         registrationStatus: latestReg.registrationStatus,
       })
     : { submission: false, judging: false, results: false };
+  const admitted =
+    latestReg?.registrationStatus === "approved" ||
+    latestReg?.registrationStatus === "checked_in";
+  const discord = trpc.hackathon.myDiscord.useQuery(
+    { hackathonId: stepHackathonId },
+    { enabled: stepOn && admitted },
+  );
   const submissionWindow = trpc.team.submissionWindow.useQuery(
     { hackathonId: stepHackathonId },
     { enabled: stepOn && needs.submission },
@@ -149,7 +157,8 @@ export default function Dashboard() {
     submissionWindow.isLoading ||
     mySubmission.isLoading ||
     itinerary.isLoading ||
-    results.isLoading;
+    results.isLoading ||
+    discord.isLoading;
   const nextStep = latestReg
     ? hackathonNextStep({
         now,
@@ -160,6 +169,7 @@ export default function Dashboard() {
         submitted: projectSubmitted(mySubmission.data),
         itinerary: itinerary.data,
         resultsPublished: (results.data?.length ?? 0) > 0,
+        discord: discordStep(discord.data),
       })
     : null;
 

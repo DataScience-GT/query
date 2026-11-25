@@ -214,6 +214,16 @@ export const hackathonParticipants = pgTable(
     // null forever for anyone accepted one at a time from the table.
     acceptanceWave: integer("acceptance_wave"),
 
+    // Discord link. The account is only ever the id and display name Discord
+    // gave us; the access token is never stored. foodGroup is a key from
+    // FOOD_GROUPS (packages/api/src/services/discord/config.ts), not a name,
+    // so the list can change without a migration.
+    discordUserId: text("discord_user_id"),
+    discordUsername: text("discord_username"),
+    discordLinkedAt: timestamp("discord_linked_at", { withTimezone: true }),
+    foodGroup: text("food_group"),
+    ramadanRoleOptIn: boolean("ramadan_role_opt_in"),
+
     registeredAt: timestamp("registered_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -238,6 +248,10 @@ export const hackathonParticipants = pgTable(
       table.hackathonId,
       table.userId,
     ),
+    // One Discord account links to one participant per hackathon.
+    uniqueIndex("hackathon_participant_discord_idx")
+      .on(table.hackathonId, table.discordUserId)
+      .where(sql`${table.discordUserId} is not null`),
   ],
 );
 

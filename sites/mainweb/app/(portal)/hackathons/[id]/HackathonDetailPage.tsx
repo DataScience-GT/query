@@ -35,6 +35,7 @@ import { HackerAnnouncements } from "@/components/hackathon/HackerAnnouncements"
 import { NextStepStrip } from "@/components/hackathon/NextStepStrip";
 import { decodeHackathonParam } from "@/lib/hackathon-slug";
 import {
+  discordStep,
   hackathonNextStep,
   nextStepQueries,
   projectSubmitted,
@@ -207,6 +208,13 @@ export default function HackathonDetailPage() {
     { hackathonId: stepId },
     { enabled: needs.judging },
   );
+  const admitted =
+    myReg?.registrationStatus === "approved" ||
+    myReg?.registrationStatus === "checked_in";
+  const discord = trpc.hackathon.myDiscord.useQuery(
+    { hackathonId: stepId },
+    { enabled: admitted },
+  );
   const results = trpc.hackathon.getResults.useQuery(
     { hackathonId: stepId },
     { enabled: needs.results },
@@ -217,7 +225,8 @@ export default function HackathonDetailPage() {
     submissionWindow.isLoading ||
     mySubmission.isLoading ||
     itinerary.isLoading ||
-    results.isLoading;
+    results.isLoading ||
+    discord.isLoading;
 
   useEffect(() => {
     if (authStatus === "unauthenticated") router.push(loginHref());
@@ -260,6 +269,7 @@ export default function HackathonDetailPage() {
           submitted: projectSubmitted(mySubmission.data),
           itinerary: itinerary.data,
           resultsPublished: (results.data?.length ?? 0) > 0,
+          discord: discordStep(discord.data),
         })
       : null;
   // The status is moved by hand, so the start date counts too: an edition

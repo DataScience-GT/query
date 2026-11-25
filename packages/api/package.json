@@ -15,7 +15,9 @@
     "./judge-interest": "./src/services/judge-interest.ts",
     "./portal-context": "./src/types/portal-context.ts",
     "./resume-list": "./src/services/resume-list.ts",
-    "./judging-access": "./src/services/judging/principal.ts"
+    "./judging-access": "./src/services/judging/principal.ts",
+    "./discord": "./src/services/discord/index.ts",
+    "./discord-config": "./src/services/discord/config.ts"
   },
   "scripts": {
     "lint": "oxlint .",

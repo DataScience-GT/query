@@ -79,6 +79,19 @@ env:
   #   firebase apphosting:secrets:grantaccess GITHUB_REPO_CHECK_TOKEN
   # - variable: GITHUB_TOKEN
   #   secret: GITHUB_REPO_CHECK_TOKEN
+  # Discord link for accepted Hacklytics hackers (docs/features/discord.md).
+  # All three are needed; without them the feature stays hidden. Left commented
+  # out because a reference to a secret that does not exist breaks the rollout.
+  # Create them first, then uncomment:
+  #   firebase apphosting:secrets:set discord-client-id
+  #   firebase apphosting:secrets:set discord-client-secret
+  #   firebase apphosting:secrets:set discord-invite-url
+  # - variable: DISCORD_CLIENT_ID
+  #   secret: discord-client-id
+  # - variable: DISCORD_CLIENT_SECRET
+  #   secret: discord-client-secret
+  # - variable: DISCORD_INVITE_URL
+  #   secret: discord-invite-url
   - variable: AUTH_URL
     value: https://datasciencegt.org
   - variable: NEXTAUTH_URL

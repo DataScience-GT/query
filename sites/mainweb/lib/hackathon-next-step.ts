@@ -8,7 +8,7 @@ import { eventDay, eventMoment } from "../components/hackathon/judging/event-tim
  * ones `nextStepQueries` says matter), this decides what they mean.
  *
  * Steps, in the order a hacker meets them:
- *   register -> review -> pass -> team -> submit -> judging -> results
+ *   register -> review -> discord -> pass -> team -> submit -> judging -> results
  * `status` is not a step: waitlisted, rejected, cancelled and "event ended"
  * have nothing to act on, so they read as a status line.
  */
@@ -17,6 +17,7 @@ export type NextStepKind =
   | "register"
   | "review"
   | "pass"
+  | "discord"
   | "team"
   | "submit"
   | "judging"
@@ -70,6 +71,11 @@ export type NextStepInput = {
   } | null;
   /** `hackathon.getResults` came back with rows. */
   resultsPublished?: boolean;
+  /**
+   * The Discord link, when the feature is on and the viewer can use it
+   * (`hackathon.myDiscord`). Leave out while loading or when it is off.
+   */
+  discord?: { linked: boolean } | null;
 };
 
 // Same fields as the submit page prints its deadlines with. Built on first
@@ -258,6 +264,17 @@ export function hackathonNextStep(
       : { step: "status", label: "Event ended", href: tab("INFO") };
   }
 
+  // Accepted and not in the server yet: that is the next thing to do. A
+  // button, not a page, so the href is the connect route itself.
+  if (input.discord && !input.discord.linked) {
+    return {
+      step: "discord",
+      label: "Join the Hacklytics Discord",
+      detail: "Get your food group and the attendee channels.",
+      href: `/api/discord/connect?hackathon=${hackathon.id}&then=invite`,
+    };
+  }
+
   if (registrationStatus === "approved") {
     return {
       step: "pass",
@@ -335,4 +352,14 @@ export function hackathonNextStep(
     detail: "It shows on the Judging tab once organizers publish the schedule.",
     href: tab("JUDGING"),
   };
+}
+
+/** `hackathon.myDiscord` as the next-step input: null unless the feature is on. */
+export function discordStep(
+  data:
+    | { eligible: false }
+    | { eligible: true; enabled: boolean; linked: boolean }
+    | undefined,
+): { linked: boolean } | null {
+  return data?.eligible && data.enabled ? { linked: data.linked } : null;
 }
