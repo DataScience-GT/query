@@ -38,6 +38,7 @@ import { decodeHackathonParam, isHacklyticsName } from "@/lib/hackathon-slug";
 import {
   discordStep,
   hackathonNextStep,
+  isAdmitted,
   nextStepQueries,
   projectSubmitted,
 } from "@/lib/hackathon-next-step";
@@ -188,7 +189,7 @@ export default function HackathonDetailPage() {
     return () => clearTimeout(timer);
   }, [justCheckedIn]);
 
-  // The next-step strip reads up to four more queries, each held back until
+  // The next-step strip reads up to five more queries, each held back until
   // the step can use it, so only a registered hacker at the right point pays.
   // oxlint-disable-next-line react/purity
   const now = new Date();
@@ -209,12 +210,9 @@ export default function HackathonDetailPage() {
     { hackathonId: stepId },
     { enabled: needs.judging },
   );
-  const admitted =
-    myReg?.registrationStatus === "approved" ||
-    myReg?.registrationStatus === "checked_in";
   const discord = trpc.hackathon.myDiscord.useQuery(
     { hackathonId: stepId },
-    { enabled: admitted },
+    { enabled: isAdmitted(myReg?.registrationStatus) },
   );
   const results = trpc.hackathon.getResults.useQuery(
     { hackathonId: stepId },
@@ -324,8 +322,7 @@ export default function HackathonDetailPage() {
             {`${hackathon.currentParticipants} of ${hackathon.maxParticipants} spots taken`}
           </p>
         ) : null}
-        {/* Their own flower comes first: it is the first thing an accepted
-            hacker should see, above what to do next. */}
+        {/* Above the next step: an accepted hacker sees their own flower first. */}
         {bloom && <FoodGroupBloom group={foodGroup} className="mt-6" />}
         {nextStep && <NextStepStrip step={nextStep} className="mt-6" />}
         {bloom && <FlowerBed className="mt-8" foodGroup={foodGroup?.key} />}

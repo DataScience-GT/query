@@ -45,10 +45,9 @@ export function isHacklyticsName(name: string): boolean {
 }
 
 /**
- * A Hacklytics edition's page, or a page under it (`/hackathons/hacklytics-
- * digital-bloom/checkin`), shell included. The hub decides by the name; the
- * slug of a name that starts with "Hacklytics" starts with `hacklytics`, so
- * the two agree.
+ * A Hacklytics edition's page, or a page under it. It matches the slug prefix,
+ * which agrees with `isHacklyticsName`: the slug of a name that starts with
+ * "Hacklytics" starts with `hacklytics`.
  */
 export function isHacklyticsPath(pathname: string): boolean {
   return /^\/hackathons\/hacklytics/i.test(pathname);

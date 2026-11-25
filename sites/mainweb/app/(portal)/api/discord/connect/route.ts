@@ -5,11 +5,6 @@ import type { DrizzleDB } from "@query/db";
 import { auth } from "@query/auth";
 import { siteOrigin } from "@query/core/server";
 import {
-  BURST_LIMITS,
-  rateLimitShared,
-  resolveClientIp,
-} from "@query/api/middleware/security";
-import {
   discordConfig,
   resolveConnectTarget,
   signState,
@@ -18,8 +13,14 @@ import { safeCallback } from "@/lib/safe-callback";
 import {
   authSecret,
   backToPortal,
+  overLimit,
   redirectUri,
 } from "@/lib/discord-route";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Starts the Discord link. Also the "Linked Roles Verification URL" in the
@@ -34,11 +35,6 @@ import {
  * CSP's form-action rule does not touch. It changes nothing here; the signed
  * state is what protects the callback.
  */
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export async function GET(request: NextRequest) {
   const config = discordConfig();
   const secret = authSecret();
@@ -55,13 +51,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(login);
   }
 
-  const ip = resolveClientIp(request.headers.get("x-forwarded-for"));
-  const limit = await rateLimitShared(
-    `discord-connect:${userId}:${ip}`,
-    BURST_LIMITS.tenPerHour.maxTokens,
-    BURST_LIMITS.tenPerHour.refillRate,
-  );
-  if (!limit.allowed) {
+  if (await overLimit(request, "connect", userId)) {
     return backToPortal(null, { discord: "error", reason: "rate_limited" });
   }
 

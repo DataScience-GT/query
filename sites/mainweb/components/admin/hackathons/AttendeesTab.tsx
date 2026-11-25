@@ -636,17 +636,15 @@ export function AttendeesTab({
             {isFetching && " · updating…"}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={exportToCSV}
-            disabled={exporting}
-            className={btnSecondary}
-          >
-            <Download size={16} strokeWidth={1.75} aria-hidden="true" />
-            {exporting ? "Exporting…" : "Export CSV"}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={exportToCSV}
+          disabled={exporting}
+          className={btnSecondary}
+        >
+          <Download size={16} strokeWidth={1.75} aria-hidden="true" />
+          {exporting ? "Exporting…" : "Export CSV"}
+        </button>
       </div>
 
       {/* Bulk actions for the current selection. */}
