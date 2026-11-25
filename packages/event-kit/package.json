@@ -1,6 +1,6 @@
 {
   "name": "@query/event-kit",
-  "version": "4.3.0",
+  "version": "4.4.0",
   "license": "Apache-2.0",
   "description": "Shared page shell, sections and config for the Hacklytics event sites. Astro, React and Tailwind source.",
   "homepage": "https://github.com/DataScience-GT/query/blob/main/docs/sites/event-kit.md",
