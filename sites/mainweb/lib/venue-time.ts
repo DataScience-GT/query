@@ -34,6 +34,11 @@ export function venueFormat(
   return formatter(options).format(new Date(value));
 }
 
+/** The venue's date as "Nov 6, 2026". */
+export function venueDate(value: DateLike): string {
+  return venueFormat(value, { month: "short", day: "numeric", year: "numeric" });
+}
+
 /** Year, month (1-12) and day of the month on the venue's calendar. */
 export function venueParts(value: DateLike) {
   const found = { year: 0, month: 0, day: 0 };

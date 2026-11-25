@@ -1,6 +1,6 @@
 "use client";
 
-import { venueDayNumber, venueFormat, venueParts } from "@/lib/venue-time";
+import { venueDate, venueDayNumber, venueFormat, venueParts } from "@/lib/venue-time";
 import React, {
   useState,
   useEffect,
@@ -61,14 +61,6 @@ const preloadTabs = () => {
   for (const load of [loadScheduleTab, loadProjectsTab, loadResultsTab, loadTeamsTab, loadHackerJudgingTab, loadPointsTab]) void load();
 };
 
-function formatDate(d: Date | string) {
-  return venueFormat(d, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 function formatDateRange(start: Date | string, end: Date | string) {
   const s = venueParts(start);
   const e = venueParts(end);
@@ -79,7 +71,7 @@ function formatDateRange(start: Date | string, end: Date | string) {
   if (s.year === e.year) {
     return `${venueFormat(start, short)} - ${venueFormat(end, short)}, ${e.year}`;
   }
-  return `${formatDate(start)} - ${formatDate(end)}`;
+  return `${venueDate(start)} - ${venueDate(end)}`;
 }
 
 type TabType =

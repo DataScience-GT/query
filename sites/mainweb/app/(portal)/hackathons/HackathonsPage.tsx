@@ -10,7 +10,7 @@ import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { hackathonStatus } from "@/lib/hackathon-status";
-import { venueFormat, venueParts } from "@/lib/venue-time";
+import { venueDate, venueFormat, venueParts } from "@/lib/venue-time";
 import {
   body,
   btnSecondary,
@@ -32,10 +32,6 @@ import { EmptyState } from "@query/ui/EmptyState";
 
 type Tab = "browse" | "registrations" | "projects";
 
-function formatDate(d: Date | string) {
-  return venueFormat(d, { month: "short", day: "numeric", year: "numeric" });
-}
-
 function formatDateRange(start: Date | string, end: Date | string) {
   const s = venueParts(start);
   const e = venueParts(end);
@@ -46,7 +42,7 @@ function formatDateRange(start: Date | string, end: Date | string) {
   if (s.year === e.year) {
     return `${venueFormat(start, short)} – ${venueFormat(end, short)}, ${e.year}`;
   }
-  return `${formatDate(start)} – ${formatDate(end)}`;
+  return `${venueDate(start)} – ${venueDate(end)}`;
 }
 
 export default function HackathonsPage() {
