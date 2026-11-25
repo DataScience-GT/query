@@ -1,13 +1,12 @@
 /**
  * One-time setup: tells Discord which Linked Roles metadata fields the
- * Hacklytics application publishes. Run once from a laptop:
+ * Hacklytics application publishes (docs/features/discord.md). Run once from
+ * a laptop:
  *
  *   DISCORD_CLIENT_ID=... DISCORD_BOT_TOKEN=... node tooling/scripts/src/discord-register-metadata.ts
  *
- * Both values come from the environment of whoever runs it and are never
- * committed. The token is only the application's own credential for this one
- * call; the app's bot user is never invited to the server and the website does
- * not read DISCORD_BOT_TOKEN.
+ * Neither value is committed. The token is the application's own credential
+ * for this one call; the website never reads DISCORD_BOT_TOKEN.
  */
 
 const clientId = process.env.DISCORD_CLIENT_ID;

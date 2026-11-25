@@ -17,7 +17,6 @@ vi.mock("@/lib/trpc", () => ({
           data: {
             eligible: true,
             enabled: false,
-            inviteUrl: null,
             linked: false,
             username: null,
             foodGroup: { key: "lily", number: 4, name: "Lily" },

@@ -1,8 +1,4 @@
-/**
- * Discord link configuration. No bot lives in the server: hackers connect
- * their account over OAuth and Discord's Linked Roles hand out the roles from
- * the metadata we publish (see docs/features/discord.md).
- */
+// Discord link configuration and the flower list. See docs/features/discord.md.
 
 /**
  * The food groups, in one place. `key` is what the database stores, `number`

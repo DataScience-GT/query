@@ -8,6 +8,7 @@ import { hackathonSlug } from "@/lib/hackathon-slug";
 import {
   discordStep,
   hackathonNextStep,
+  isAdmitted,
   nextStepQueries,
   projectSubmitted,
 } from "@/lib/hackathon-next-step";
@@ -22,7 +23,7 @@ type Upcoming = NonNullable<RouterOutputs["hackathon"]["getUpcoming"]>;
  * status and next step instead of the call to action in `children`.
  *
  * The next step is worked out against the viewer's own clock and reads up to
- * four more queries depending on the registration, so it stays in the browser.
+ * five more queries depending on the registration, so it stays in the browser.
  * The page mounts this only for a signed-in visitor and renders `children`
  * itself otherwise, which is also what shows while the registration loads.
  */
@@ -47,12 +48,9 @@ export function MyRegistration({
         registrationStatus: myReg.registrationStatus,
       })
     : { submission: false, judging: false, results: false };
-  const admitted =
-    myReg?.registrationStatus === "approved" ||
-    myReg?.registrationStatus === "checked_in";
   const discord = trpc.hackathon.myDiscord.useQuery(
     { hackathonId: event.id },
-    { enabled: admitted },
+    { enabled: isAdmitted(myReg?.registrationStatus) },
   );
   const submissionWindow = trpc.team.submissionWindow.useQuery(
     { hackathonId: event.id },

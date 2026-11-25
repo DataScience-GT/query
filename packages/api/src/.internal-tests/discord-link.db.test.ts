@@ -113,6 +113,12 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     return { fn: fn as unknown as typeof fetch, calls };
   };
 
+  const hackathonAs = (userId: string) =>
+    appRouter.createCaller(ctx(userId)).hackathon;
+
+  const ramadanSent = (f: ReturnType<typeof discordFetch>) =>
+    JSON.parse(f.calls[2]!.init!.body as string).metadata.ramadan;
+
   const state = (u: string, h: string, r: 0 | 1 | null = null, t: "invite" | "portal" = "portal") =>
     ({ u, h, r, t, n: "n", e: Date.now() + 60_000 }) as const;
 
@@ -222,7 +228,6 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       ramadanRoleOptIn: true,
     });
     expect(stored.discordLinkedAt).not.toBeNull();
-    // The token is never stored anywhere on the row.
     expect(JSON.stringify(stored)).not.toContain("tok-user");
   });
 
@@ -232,13 +237,13 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     await makeParticipant(h.id, a);
     const fa = discordFetch({ meId: `d-ra-${suffix}` });
     await link(a, h.id, fa, 0);
-    expect(JSON.parse(fa.calls[2]!.init!.body as string).metadata.ramadan).toBe(0);
+    expect(ramadanSent(fa)).toBe(0);
 
     const b = await makeUser("ram-b");
     await makeParticipant(h.id, b, { ramadanFasting: "No" });
     const fb = discordFetch({ meId: `d-rb-${suffix}` });
     await link(b, h.id, fb, 1);
-    expect(JSON.parse(fb.calls[2]!.init!.body as string).metadata.ramadan).toBe(0);
+    expect(ramadanSent(fb)).toBe(0);
   });
 
   it("keeps the stored opt-in when the flow gives none (verification URL)", async () => {
@@ -247,7 +252,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     await makeParticipant(h.id, u, { ramadanRoleOptIn: true });
     const f = discordFetch({ meId: `d-keep-${suffix}` });
     await link(u, h.id, f, null);
-    expect(JSON.parse(f.calls[2]!.init!.body as string).metadata.ramadan).toBe(1);
+    expect(ramadanSent(f)).toBe(1);
   });
 
   it("refuses participants who are not accepted", async () => {
@@ -292,7 +297,6 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     expect(await link(u, h.id, discordFetch({ put: 500 }))).toMatchObject({
       reason: "discord_error",
     });
-    // A failed metadata PUT rolls the stored link back.
     expect((await row(p.id)).discordUserId).toBeNull();
   });
 
@@ -328,7 +332,6 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     await makeParticipant(pending.id, u, { registrationStatus: "pending" });
     const target = await svc.resolveConnectTarget(S.db as any, u, null);
     expect(target?.hackathon?.id).toBe(current.id);
-    // Asking for an edition they are not accepted to finds nothing.
     expect(await svc.resolveConnectTarget(S.db as any, u, pending.id)).toBeNull();
   });
 
@@ -338,20 +341,20 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     const p = await makeParticipant(h.id, u);
     const stranger = await makeUser("my-stranger");
 
-    const before = await appRouter.createCaller(ctx(u)).hackathon.myDiscord({ hackathonId: h.id });
+    const before = await hackathonAs(u).myDiscord({ hackathonId: h.id });
     expect(before.eligible).toBe(true);
     expect(before.foodGroup?.name).toBeTruthy();
     expect(before.fasting).toBe(true);
     expect((await row(p.id)).foodGroup).toBe(before.foodGroup?.key);
     expect(
-      await appRouter.createCaller(ctx(stranger)).hackathon.myDiscord({ hackathonId: h.id }),
+      await hackathonAs(stranger).myDiscord({ hackathonId: h.id }),
     ).toEqual({ eligible: false });
 
     await link(u, h.id, discordFetch({ meId: `d-my-${suffix}` }), 1);
-    const linked = await appRouter.createCaller(ctx(u)).hackathon.myDiscord({ hackathonId: h.id });
+    const linked = await hackathonAs(u).myDiscord({ hackathonId: h.id });
     expect(linked).toMatchObject({ linked: true, username: "ada", ramadanOptIn: true });
 
-    await appRouter.createCaller(ctx(u)).hackathon.unlinkDiscord({ hackathonId: h.id });
+    await hackathonAs(u).unlinkDiscord({ hackathonId: h.id });
     const after = await row(p.id);
     expect(after).toMatchObject({
       discordUserId: null,
@@ -365,7 +368,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     const makeAdmin = async (tag: string) => {
       const id = await makeUser(tag);
       await S.db!.insert(S.admins).values({ userId: id, role: "admin" });
-      return appRouter.createCaller(ctx(id)).hackathon;
+      return hackathonAs(id);
     };
     const flowerOf = async (id: string) => (await row(id)).foodGroup;
     /** Members per flower across these participants; fails on a missing flower. */
@@ -572,7 +575,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     await makeParticipant(h.id, u);
     await link(u, h.id, discordFetch({ meId: `d-ro-${suffix}` }), 1);
 
-    const caller = appRouter.createCaller(ctx(admin)).hackathon;
+    const caller = hackathonAs(admin);
     const list = await caller.adminGetAttendees({ hackathonId: h.id });
     expect(list.attendees[0]).toMatchObject({
       discordUsername: "ada",
@@ -583,7 +586,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     expect(exported[0]).toMatchObject({ discordUsername: "ada", ramadanRoleOptIn: true });
     expect(exported[0].foodGroup).toBeTruthy();
 
-    const bug = appRouter.createCaller(ctx(tester)).hackathon;
+    const bug = hackathonAs(tester);
     await expect(bug.adminGetAttendees({ hackathonId: h.id })).rejects.toThrow();
     await expect(bug.exportAttendees({ hackathonId: h.id })).rejects.toThrow();
   });
