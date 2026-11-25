@@ -39,6 +39,21 @@ export function hackathonPathSegment(name: string, id: string): string {
   return hackathonSlug(name) || id;
 }
 
+/** A Hacklytics edition, by name. These wear the Digital Bloom look. */
+export function isHacklyticsName(name: string): boolean {
+  return /^hacklytics/i.test(name.trim());
+}
+
+/**
+ * A Hacklytics edition's page, or a page under it (`/hackathons/hacklytics-
+ * digital-bloom/checkin`), shell included. The hub decides by the name; the
+ * slug of a name that starts with "Hacklytics" starts with `hacklytics`, so
+ * the two agree.
+ */
+export function isHacklyticsPath(pathname: string): boolean {
+  return /^\/hackathons\/hacklytics/i.test(pathname);
+}
+
 export function adminHackathonPath(name: string, id: string): string {
   return `/admin/hackathons/${hackathonPathSegment(name, id)}`;
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Alert } from "@query/ui/Alert";
+import { FlowerSprite } from "@/components/hackathon/FoodGroupBloom";
 import {
   body,
   btnPrimary,
@@ -30,7 +31,14 @@ const LINKED_ROLES_HINT =
  * Join the DS@GT Discord, for an accepted hacker. The food group shows even
  * with Discord off or never linked: it is their meal wave.
  */
-export function DiscordCard({ hackathonId }: { hackathonId: string }) {
+export function DiscordCard({
+  hackathonId,
+  bloom = false,
+}: {
+  hackathonId: string;
+  /** A Hacklytics edition: the food group gets its flower. */
+  bloom?: boolean;
+}) {
   const utils = trpc.useUtils();
   const query = trpc.hackathon.myDiscord.useQuery({ hackathonId });
   const [ramadan, setRamadan] = useState<boolean | null>(null);
@@ -66,6 +74,14 @@ export function DiscordCard({ hackathonId }: { hackathonId: string }) {
   const base = `/api/discord/connect?hackathon=${hackathonId}`;
   const ramadanParam = data.fasting ? `&ramadan=${optIn ? 1 : 0}` : "";
   const groupName = data.foodGroup?.name;
+  const flower = bloom && data.foodGroup && (
+    <FlowerSprite
+      groupKey={data.foodGroup.key}
+      scale={2}
+      headOnly
+      className="mr-2 inline-block align-middle"
+    />
+  );
 
   const ramadanBox = data.fasting && (
     <label className="flex max-w-md items-start gap-2 text-[15px] text-[var(--text-primary)]">
@@ -95,14 +111,19 @@ export function DiscordCard({ hackathonId }: { hackathonId: string }) {
       {!data.enabled ? (
         groupName && (
           <p className={body}>
-            Food group: <strong>{groupName}</strong>
+            {flower}Food group: <strong>{groupName}</strong>
           </p>
         )
       ) : data.linked ? (
         <>
           <p className={`${body} font-semibold`}>
             Linked as @{data.username}
-            {groupName && <> &middot; Food group: {groupName}</>}
+            {groupName && (
+              <>
+                {" "}
+                &middot; {flower}Food group: {groupName}
+              </>
+            )}
           </p>
           {ramadanBox}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -125,7 +146,7 @@ export function DiscordCard({ hackathonId }: { hackathonId: string }) {
           <p className={`${body} font-semibold`}>Join the DS@GT Discord</p>
           {groupName && (
             <p className={body}>
-              Your food group: <strong>{groupName}</strong>
+              {flower}Your food group: <strong>{groupName}</strong>
             </p>
           )}
           {ramadanBox}

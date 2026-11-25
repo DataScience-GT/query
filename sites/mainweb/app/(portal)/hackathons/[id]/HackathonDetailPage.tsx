@@ -28,12 +28,13 @@ import { hackathonStatus } from "@/lib/hackathon-status";
 
 // Extracted Tab Components
 import { FlowerBed } from "@/components/hackathon/FlowerBed";
+import { FoodGroupBloom } from "@/components/hackathon/FoodGroupBloom";
 import { InfoTab } from "@/components/hackathon/InfoTab";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { HackathonUnavailable } from "@/components/hackathon/HackathonUnavailable";
 import { HackerAnnouncements } from "@/components/hackathon/HackerAnnouncements";
 import { NextStepStrip } from "@/components/hackathon/NextStepStrip";
-import { decodeHackathonParam } from "@/lib/hackathon-slug";
+import { decodeHackathonParam, isHacklyticsName } from "@/lib/hackathon-slug";
 import {
   discordStep,
   hackathonNextStep,
@@ -287,7 +288,8 @@ export default function HackathonDetailPage() {
   // Hacklytics editions wear the Digital Bloom look of /hacklytics; the
   // wrapper only re-points the colour and font tokens, so every other
   // hackathon is untouched.
-  const bloom = /^hacklytics/i.test(hackathon.name.trim());
+  const bloom = isHacklyticsName(hackathon.name);
+  const foodGroup = discord.data?.eligible ? discord.data.foodGroup : null;
 
   const content = (
     <main className={page}>
@@ -322,8 +324,11 @@ export default function HackathonDetailPage() {
             {`${hackathon.currentParticipants} of ${hackathon.maxParticipants} spots taken`}
           </p>
         ) : null}
+        {/* Their own flower comes first: it is the first thing an accepted
+            hacker should see, above what to do next. */}
+        {bloom && <FoodGroupBloom group={foodGroup} className="mt-6" />}
         {nextStep && <NextStepStrip step={nextStep} className="mt-6" />}
-        {bloom && <FlowerBed className="mt-8" />}
+        {bloom && <FlowerBed className="mt-8" foodGroup={foodGroup?.key} />}
       </header>
 
       {/* Mounted empty so screen readers announce the line when it lands. */}
