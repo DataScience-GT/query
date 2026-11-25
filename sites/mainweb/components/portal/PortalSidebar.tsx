@@ -23,12 +23,15 @@ interface PortalSidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   sections: PortalSidebarSection[];
+  /** The page draws its own fixed look, so the light/dark switch is hidden. */
+  fixedTheme?: boolean;
 }
 
 export default function PortalSidebar({
   isOpen,
   setIsOpen,
   sections,
+  fixedTheme = false,
 }: PortalSidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
@@ -149,7 +152,7 @@ export default function PortalSidebar({
                 </p>
               </div>
             </div>
-            {mounted && (
+            {mounted && !fixedTheme && (
               <button
                 type="button"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -228,7 +231,7 @@ export default function PortalSidebar({
                         isOpen ? "px-3 py-2" : "justify-center py-2.5"
                       } ${
                         isActive
-                          ? "text-[var(--text-primary)] font-semibold bg-[var(--bg-secondary)] [--nav-icon:var(--color-accent)]"
+                          ? "text-[var(--text-primary)] font-semibold bg-[var(--bg-secondary)] [--nav-icon:var(--accent)]"
                           : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] [--nav-icon:var(--text-subtle)] hover:[--nav-icon:var(--text-primary)]"
                       }`}
                     >
@@ -268,7 +271,7 @@ export default function PortalSidebar({
           </div>
           {isOpen && (
             <div className="flex flex-col">
-              {mounted && (
+              {mounted && !fixedTheme && (
                 <button
                   type="button"
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}

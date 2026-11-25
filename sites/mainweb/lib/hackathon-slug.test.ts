@@ -4,6 +4,8 @@ import {
   decodeHackathonParam,
   hackathonPathSegment,
   adminHackathonPath,
+  isHacklyticsName,
+  isHacklyticsPath,
 } from "./hackathon-slug";
 
 describe("hackathonSlug", () => {
@@ -84,5 +86,34 @@ describe("adminHackathonPath", () => {
     expect(adminHackathonPath("Hacklytics: Digital Bloom", "uuid-bloom")).not.toContain(
       "%",
     );
+  });
+});
+
+describe("isHacklyticsName", () => {
+  it("matches an edition whose name starts with Hacklytics", () => {
+    expect(isHacklyticsName("Hacklytics: Digital Bloom")).toBe(true);
+    expect(isHacklyticsName("  hacklytics 2027")).toBe(true);
+    expect(isHacklyticsName("Hello Hacks")).toBe(false);
+    expect(isHacklyticsName("Not Hacklytics")).toBe(false);
+  });
+});
+
+describe("isHacklyticsPath", () => {
+  it("is true for a Hacklytics edition and the pages under it", () => {
+    expect(isHacklyticsPath("/hackathons/hacklytics-digital-bloom")).toBe(true);
+    expect(isHacklyticsPath("/hackathons/hacklytics-2027/claim")).toBe(true);
+    expect(isHacklyticsPath("/hackathons/Hacklytics%3A%20Digital%20Bloom")).toBe(
+      true,
+    );
+  });
+
+  it("is false for everything else", () => {
+    expect(isHacklyticsPath("/hackathons")).toBe(false);
+    expect(isHacklyticsPath("/hackathons/hello-hacks")).toBe(false);
+    expect(isHacklyticsPath("/dashboard")).toBe(false);
+    expect(isHacklyticsPath("/admin/hackathons/hacklytics-digital-bloom")).toBe(
+      false,
+    );
+    expect(isHacklyticsPath("/hacklytics")).toBe(false);
   });
 });

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
+import { isHacklyticsPath } from "@/lib/hackathon-slug";
 import PortalSidebar from "./PortalSidebar";
 import type { PortalSidebarSection } from "./PortalSidebar";
 
@@ -22,16 +23,25 @@ export default function PortalWrapper({
     pathname.startsWith("/judge/guest") ||
     pathname.startsWith("/judge/activate");
 
+  // A Hacklytics edition wears the Digital Bloom look from edge to edge: the
+  // sidebar and top bar read the same tokens as the page, so one class on the
+  // shell is all it takes. It is always dark, so the theme switch has nothing
+  // to switch there.
+  const bloom = isHacklyticsPath(pathname);
+
   // Open by default: collapsed, the rail is a column of unlabeled icons.
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
-    <div className="bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen flex flex-col md:flex-row">
+    <div
+      className={`${bloom ? "hl-theme " : ""}bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen flex flex-col md:flex-row`}
+    >
       {!isAuthPage && (
         <PortalSidebar
           isOpen={isSidebarOpen}
           setIsOpen={setIsSidebarOpen}
           sections={sections}
+          fixedTheme={bloom}
         />
       )}
       <div
