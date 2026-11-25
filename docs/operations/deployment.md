@@ -41,7 +41,7 @@ Config: [`firebase.json`](../../firebase.json), [`.firebaserc`](../../.firebaser
 
 Live deploys of Hacklytics: push to `main` runs `pnpm turbo run build --filter=hacklytics2027` then `FirebaseExtended/action-hosting-deploy` with `channelId: live` and `target: hacklytics`. Pull requests get preview channels `pr-<number>`.
 
-Hacklytics 2026 is an archived site kept in the repo. Nothing here deploys it: `ci.yml` has no job for it and `firebase.json` has no target for it. The `verify` job only builds it. See [Hacklytics 2026](../sites/hacklytics2026.md#deploy).
+Hacklytics 2026 is an archived site kept in the repo. Nothing here deploys it: `ci.yml` has no job for it and `firebase.json` has no target for it. The `verify` job does not build it either. See [Hacklytics 2026](../sites/hacklytics2026.md#deploy).
 
 Service account secret: `FIREBASE_SERVICE_ACCOUNT_DSGT_WEBSITE`.
 

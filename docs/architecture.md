@@ -222,7 +222,7 @@ With `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` set (`packages/api/
 | --- | --- | --- |
 | `sites/mainweb` | Firebase App Hosting / Cloud Run (`apphosting.yaml`) | Next `standalone` |
 | `sites/hacklytics2027` | Firebase Hosting target `hacklytics` | Astro static build (`astro build` writes `out/`) |
-| `sites/hacklytics2026` | Not deployed from this repo (archived; CI `verify` only builds it) | Astro static output (`astro build` writes `out/`) |
+| `sites/hacklytics2026` | Not built or deployed by CI (archived, kept in the repo) | Astro static output (`astro build` writes `out/`) |
 
 The event site does not talk to the database. Interest and registration live on the portal; the marketing site links to `/login?callbackUrl=/hacklytics`.
 

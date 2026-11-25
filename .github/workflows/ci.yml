@@ -61,8 +61,11 @@ jobs:
       - name: Package boundaries
         run: pnpm turbo boundaries
 
+      # hacklytics2026 is archived: its code stays in the repo, but nothing
+      # lints, typechecks, tests or builds it here (vitest.config.ts skips its
+      # tests). Build it locally with pnpm --filter hacklytics2026 build.
       - name: Lint and typecheck
-        run: pnpm turbo run lint typecheck
+        run: pnpm turbo run lint typecheck --filter=!hacklytics2026
 
       # The compose database with its schema and fake data. DATABASE_URL stays
       # on these steps: the build must not look for a database that is gone.
@@ -96,7 +99,7 @@ jobs:
         run: pnpm local:down
 
       - name: Build
-        run: pnpm turbo run build
+        run: pnpm turbo run build --filter=!hacklytics2026
 
       - name: Upload Hacklytics build
         uses: actions/upload-artifact@v7

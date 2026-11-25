@@ -6,7 +6,7 @@ All workflows live in `.github/workflows/`.
 
 `ci.yml` is the one CI/CD pipeline, on every PR and every push to `main`/`dev`:
 
-1. `verify` — `pnpm install --frozen-lockfile`, then `turbo run lint typecheck`, `pnpm test`, `turbo run build` (Node from `.nvmrc`; pnpm from `packageManager`, unpinned in the workflow so it cannot drift). Uploads `sites/hacklytics2027/out` (artifact `hacklytics-out`). The archived `sites/hacklytics2026` is linted, typechecked and built here with every other workspace, but nothing uploads or deploys it.
+1. `verify` — `pnpm install --frozen-lockfile`, then `turbo run lint typecheck`, `pnpm test`, `turbo run build` (Node from `.nvmrc`; pnpm from `packageManager`, unpinned in the workflow so it cannot drift). Uploads `sites/hacklytics2027/out` (artifact `hacklytics-out`). The archived `sites/hacklytics2026` is skipped: lint, typecheck and build run with `--filter=!hacklytics2026`, `vitest.config.ts` excludes its tests, and nothing uploads or deploys it.
 2. `preview-hacklytics` — PRs from this repo (not forks, not Dependabot): deploys that build to Firebase Hosting channel `pr-N`.
 3. `deploy-hacklytics` — push to `main` only: deploys the same build to the live `hacklytics` target.
 

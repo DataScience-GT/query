@@ -18,7 +18,7 @@ Member-facing overview — what it is, what members use, current status, and how
 | --- | --- | --- |
 | `sites/mainweb` | `web` | Public club site + authenticated portal (App Hosting) |
 | `sites/hacklytics2027` | `hacklytics2027` | Hacklytics 2027 marketing site, Astro static build (Firebase Hosting) |
-| `sites/hacklytics2026` | `hacklytics2026` | Archived Hacklytics 2026 site, Astro static output (built by CI, not deployed from this repo) |
+| `sites/hacklytics2026` | `hacklytics2026` | Archived Hacklytics 2026 site, Astro static output (kept in the repo; CI does not build or deploy it) |
 | `packages/api` | `@query/api` | tRPC routers, middleware, pricing |
 | `packages/auth` | `@query/auth` | NextAuth (Google, GitHub, email codes) |
 | `packages/core` | `@query/core` | Org, site and time constants shared by every workspace |
