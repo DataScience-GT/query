@@ -5,6 +5,7 @@ import {
   glowFilter,
   headRows,
   spriteUri,
+  spriteWidth,
 } from "./bloom-flowers";
 
 /**
@@ -27,7 +28,7 @@ export function FlowerSprite({
   const flower = BLOOM_FLOWERS[groupKey];
   const { map, colors, tint } = flower;
   const rows = headOnly ? headRows(flower) : map;
-  const width = Math.max(...rows.map((r) => r.length));
+  const width = spriteWidth(rows);
   return (
     <img
       src={spriteUri(rows, colors)}

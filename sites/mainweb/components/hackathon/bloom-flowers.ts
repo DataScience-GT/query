@@ -12,7 +12,7 @@ import type { FoodGroup } from "@query/api/discord-config";
  * `tint` is the flower's identity colour. The Discord role carries the same
  * hex, so the picture and the role match. The petal shades derive from it.
  */
-export type BloomFlower = {
+type BloomFlower = {
   map: string[];
   colors: Record<string, string>;
   tint: string;
@@ -230,6 +230,10 @@ export function headRows(flower: BloomFlower) {
 export const glowFilter = (color: string) =>
   `drop-shadow(0 0 2px ${color}) drop-shadow(0 0 10px ${color}73)`;
 
+/** Pixels across the widest row. */
+export const spriteWidth = (rows: string[]) =>
+  Math.max(...rows.map((r) => r.length));
+
 export function spriteUri(map: string[], colors: Record<string, string>) {
   let rects = "";
   map.forEach((row, y) =>
@@ -239,8 +243,7 @@ export function spriteUri(map: string[], colors: Record<string, string>) {
       }
     }),
   );
-  const w = Math.max(...map.map((r) => r.length));
   return `data:image/svg+xml,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${map.length}" shape-rendering="crispEdges">${rects}</svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${spriteWidth(map)} ${map.length}" shape-rendering="crispEdges">${rects}</svg>`,
   )}`;
 }

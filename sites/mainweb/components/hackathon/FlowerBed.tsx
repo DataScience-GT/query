@@ -1,5 +1,11 @@
 import type { FoodGroup } from "@query/api/discord-config";
-import { BLOOM_FLOWERS, STEM, glowFilter, spriteUri } from "./bloom-flowers";
+import {
+  BLOOM_FLOWERS,
+  STEM,
+  glowFilter,
+  spriteUri,
+  spriteWidth,
+} from "./bloom-flowers";
 
 /**
  * The flower bed from hacklytics.io, still: mostly dormant grey plants with
@@ -71,7 +77,7 @@ export function FlowerBed({
         const own = i === MINE ? mine : null;
         const map = own?.map ?? plant.map;
         const glow = own?.tint ?? (plant.bloom ? "#ff4f8b" : null);
-        const width = Math.max(...map.map((r) => r.length)) * plant.scale;
+        const width = spriteWidth(map) * plant.scale;
         return (
           <img
             key={i}
