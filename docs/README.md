@@ -33,7 +33,7 @@ One page per feature of the site.
 | [Email](./features/email.md) | Email fan-out and limits |
 | [Status](./features/status.md) | Status page, metrics, latency |
 | [Hackathons](./features/hackathons.md) | Editions, registration, interest, bans, announcements, content, visibility, hackathon events |
-| [Discord link](./features/discord.md) | Linking Discord, Linked Roles, food groups |
+| [Discord link](./features/discord.md) | Linking Discord, Linked Roles, flowers |
 | [Judge portal](./features/judge-portal.md) | Judge accounts, applications and the judge portal |
 | [Resume book](./resume-book.md) | Member uploads, the two staff views, limits, and why files skip tRPC |
 | [Bootcamp materials](./bootcamp-materials.md) | Weekly workshop ZIPs: who can download one, publishing, session dates, storage |

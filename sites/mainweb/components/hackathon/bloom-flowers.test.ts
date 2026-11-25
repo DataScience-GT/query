@@ -5,9 +5,9 @@ import { BLOOM_FLOWERS, spriteUri } from "./bloom-flowers";
 // The Discord roles carry these same colours, so a change here is a change to
 // the server's roles too.
 const TINTS: Record<string, string> = {
-  cherry_blossom: "#F7B3CB",
+  cherry_blossom: "#4C8DF6",
   sunflower: "#F5C518",
-  tulip: "#E5484D",
+  tulip: "#2CC6B0",
   lily: "#F08A3C",
   lotus: "#E86FA6",
   daisy: "#F4F4F4",

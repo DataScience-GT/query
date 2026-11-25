@@ -82,6 +82,11 @@ export function DiscordCard({
       className="mr-2 inline-block align-middle"
     />
   );
+  const bloomLine = groupName && (
+    <p className={body}>
+      {flower}Your bloom: <strong>{groupName}</strong>
+    </p>
+  );
 
   const ramadanBox = data.fasting && (
     <label className="flex max-w-md items-start gap-2 text-[15px] text-[var(--text-primary)]">
@@ -109,11 +114,7 @@ export function DiscordCard({
         ))}
 
       {!data.enabled ? (
-        groupName && (
-          <p className={body}>
-            {flower}Your bloom: <strong>{groupName}</strong>
-          </p>
-        )
+        bloomLine
       ) : data.linked ? (
         <>
           <p className={`${body} font-semibold`}>
@@ -144,11 +145,7 @@ export function DiscordCard({
       ) : (
         <>
           <p className={`${body} font-semibold`}>Join the DS@GT Discord</p>
-          {groupName && (
-            <p className={body}>
-              {flower}Your bloom: <strong>{groupName}</strong>
-            </p>
-          )}
+          {bloomLine}
           {ramadanBox}
           <a
             href={`${base}${ramadanParam}&then=invite`}

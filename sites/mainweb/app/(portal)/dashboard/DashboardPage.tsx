@@ -12,6 +12,7 @@ import { hackathonSlug } from "@/lib/hackathon-slug";
 import {
   discordStep,
   hackathonNextStep,
+  isAdmitted,
   isWithinEditionDates,
   nextStepQueries,
   projectSubmitted,
@@ -115,7 +116,7 @@ export default function Dashboard() {
     ) ?? [];
 
   // The event they are at, else the latest registration still on the
-  // calendar. Its next step reads up to four more queries, each held back
+  // calendar. Its next step reads up to five more queries, each held back
   // until the step can use it, so a guest, or a hacker whose event has not
   // begun, pays for none of them.
   const latestReg = eventReg ?? activeRegs[0];
@@ -128,12 +129,9 @@ export default function Dashboard() {
         registrationStatus: latestReg.registrationStatus,
       })
     : { submission: false, judging: false, results: false };
-  const admitted =
-    latestReg?.registrationStatus === "approved" ||
-    latestReg?.registrationStatus === "checked_in";
   const discord = trpc.hackathon.myDiscord.useQuery(
     { hackathonId: stepHackathonId },
-    { enabled: stepOn && admitted },
+    { enabled: stepOn && isAdmitted(latestReg?.registrationStatus) },
   );
   const submissionWindow = trpc.team.submissionWindow.useQuery(
     { hackathonId: stepHackathonId },

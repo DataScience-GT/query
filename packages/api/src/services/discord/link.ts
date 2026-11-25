@@ -5,10 +5,11 @@ import { foodGroupByKey, isDiscordEligible } from "./config";
 import type { DiscordConfig } from "./config";
 import { ensureFoodGroup } from "./food-group";
 import type { DiscordState } from "./state";
+import { isUniqueViolation } from "../../middleware/db-errors";
 
 const API = "https://discord.com/api/v10";
 
-export type LinkErrorReason =
+type LinkErrorReason =
   | "not_accepted"
   | "bad_code"
   | "rate_limited"
@@ -16,15 +17,14 @@ export type LinkErrorReason =
   | "discord_error"
   | "already_linked";
 
-export type HackathonRef = { id: string; name: string };
+type HackathonRef = { id: string; name: string };
 
-export type LinkResult =
+type LinkResult =
   | {
       ok: true;
       then: DiscordState["t"];
       hackathon: HackathonRef;
       username: string;
-      foodGroup: string;
     }
   | {
       ok: false;
@@ -79,8 +79,6 @@ export async function resolveConnectTarget(
 export const ramadanFlag = (optIn: boolean, fasting: string | null | undefined) =>
   optIn && fasting === "Yes" ? 1 : 0;
 
-type Fetch = typeof fetch;
-
 function failureFor(status: number): LinkErrorReason {
   if (status === 429) return "rate_limited";
   if (status === 401 || status === 403) return "discord_denied";
@@ -113,9 +111,9 @@ async function refusal(
 }
 
 /**
- * The callback, after the route has checked the state, cookie and session.
- * Exchanges the code, reads the account, stores the link, then publishes the
- * Linked Roles metadata with the user's own token. The token is never kept.
+ * The callback, after the route has checked the state and session. Exchanges
+ * the code, reads the account, stores the link, then publishes the Linked
+ * Roles metadata with the user's own token. The token is never kept.
  */
 export async function completeLink(opts: {
   db: DrizzleDB;
@@ -123,7 +121,7 @@ export async function completeLink(opts: {
   state: DiscordState;
   code: string;
   redirectUri: string;
-  fetchImpl?: Fetch;
+  fetchImpl?: typeof fetch;
 }): Promise<LinkResult> {
   const { db, config, state, code } = opts;
   const doFetch = opts.fetchImpl ?? fetch;
@@ -139,7 +137,6 @@ export async function completeLink(opts: {
     extra: { retryAfter?: number } = {},
   ): LinkResult => ({ ok: false, reason, hackathon, ...extra });
 
-  // 1. code -> token
   const tokenRes = await doFetch(`${API}/oauth2/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -160,7 +157,6 @@ export async function completeLink(opts: {
     .access_token;
   if (!accessToken) return fail("bad_code");
 
-  // 2. who is it
   const meRes = await doFetch(`${API}/users/@me`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -176,7 +172,7 @@ export async function completeLink(opts: {
   if (!me.id || !me.username) return fail("discord_error");
   const displayName = me.global_name || me.username;
 
-  // 3. store the link (food group first, so the metadata always has one)
+  // The food group first, so the metadata always has one.
   const groupKey = await ensureFoodGroup(db, hackathon.id, participant.id);
   const optIn =
     state.r === null
@@ -210,7 +206,6 @@ export async function completeLink(opts: {
     throw error;
   }
 
-  // 4. publish the Linked Roles metadata as the user
   const group = foodGroupByKey(groupKey);
   const putRes = await doFetch(
     `${API}/users/@me/applications/${config.clientId}/role-connection`,
@@ -247,15 +242,5 @@ export async function completeLink(opts: {
     then: state.t,
     hackathon,
     username: me.username,
-    foodGroup: groupKey,
   };
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  let e: unknown = error;
-  for (let i = 0; i < 4 && e; i++) {
-    if ((e as { code?: string }).code === "23505") return true;
-    e = (e as { cause?: unknown }).cause;
-  }
-  return false;
 }

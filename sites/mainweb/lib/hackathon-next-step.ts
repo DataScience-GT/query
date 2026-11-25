@@ -124,6 +124,10 @@ const hasStarted = (hackathon: NextStepHackathon, now: Date) =>
 
 const ADMITTED = new Set(["approved", "checked_in"]);
 
+/** Accepted: seated, whether or not they have arrived. */
+export const isAdmitted = (status: string | null | undefined) =>
+  ADMITTED.has(status ?? "");
+
 /** A draft is saved work, not an entry; only these reach the judges. */
 export function projectSubmitted(
   project: { status: string } | null | undefined,
@@ -150,7 +154,7 @@ export function nextStepQueries(input: {
     submission: checkedIn && live,
     judging: checkedIn && live,
     results:
-      ADMITTED.has(registrationStatus ?? "") &&
+      isAdmitted(registrationStatus) &&
       hackathon.status !== "cancelled" &&
       hasStarted(hackathon, now),
   };

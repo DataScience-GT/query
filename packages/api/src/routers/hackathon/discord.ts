@@ -30,22 +30,19 @@ export const hackathonDiscordRouter = createTRPCRouter({
           foodGroup: true,
         },
       });
-      const eligible = !!row && isDiscordEligible(row.registrationStatus);
-      if (!row || !eligible) {
+      if (!row || !isDiscordEligible(row.registrationStatus)) {
         return { eligible: false as const };
       }
       // The group exists whether or not they ever link: it is their meal wave.
-      const key =
-        foodGroupByKey(row.foodGroup)?.key ??
-        (await ensureFoodGroup(db, input.hackathonId, row.id));
-      const config = discordConfig();
+      const foodGroup =
+        foodGroupByKey(row.foodGroup) ??
+        foodGroupByKey(await ensureFoodGroup(db, input.hackathonId, row.id));
       return {
         eligible: true as const,
-        enabled: !!config,
-        inviteUrl: config?.inviteUrl ?? null,
+        enabled: !!discordConfig(),
         linked: !!row.discordLinkedAt,
         username: row.discordUsername,
-        foodGroup: foodGroupByKey(key),
+        foodGroup,
         fasting: row.ramadanFasting === "Yes",
         ramadanOptIn: row.ramadanRoleOptIn ?? false,
       };

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { DiscordCard } from "@/components/hackathon/DiscordCard";
 import { InterestForm } from "@/components/hackathon/InterestForm";
 import { hackathonSlug, isHacklyticsName } from "@/lib/hackathon-slug";
+import { isAdmitted } from "@/lib/hackathon-next-step";
 import { trpc } from "@/lib/trpc";
 import { venueFormat } from "@/lib/venue-time";
 
@@ -185,8 +186,7 @@ export function InfoTab({
   // The header badge and the next-step strip already say where an application
   // stands, so this column holds only what can be done about it. Decided or
   // waiting with nothing to do, it is not drawn.
-  const hasStatusActions =
-    regStatus === "approved" || regStatus === "checked_in" || canEdit;
+  const hasStatusActions = isAdmitted(regStatus) || canEdit;
   const showsStatus = success || updated || !registered || hasStatusActions;
   // The register line carries the deadline, so the facts list skips it then.
   const registerOffered = !registered && canRegister;
@@ -238,7 +238,7 @@ export function InfoTab({
                     )}
                   </div>
                 ))}
-              {(regStatus === "approved" || regStatus === "checked_in") && (
+              {isAdmitted(regStatus) && (
                 <DiscordCard
                   hackathonId={hackathon.id}
                   bloom={isHacklyticsName(hackathon.name)}

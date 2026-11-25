@@ -4,27 +4,23 @@ import { db } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { auth } from "@query/auth";
 import { siteOrigin } from "@query/core/server";
-import {
-  BURST_LIMITS,
-  rateLimitShared,
-  resolveClientIp,
-} from "@query/api/middleware/security";
 import { completeLink, discordConfig, verifyState } from "@query/api/discord";
 import {
   authSecret,
   backToPortal,
+  overLimit,
   redirectUri,
 } from "@/lib/discord-route";
 
-/**
- * Discord sends the user back here with ?code=&state=. Checks the signed
- * state, the cookie that started the flow and the signed-in user, then links.
- * On success it goes to the server invite (first join) or the portal; on any
- * failure back to the hackathon page with ?discord=error&reason=.
- */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * Discord sends the user back here with ?code=&state=. Checks the signed
+ * state and the signed-in user, then links. On success it goes to the server
+ * invite (first join) or the portal; on any failure back to the hackathon page
+ * with ?discord=error&reason=.
+ */
 export async function GET(request: NextRequest) {
   const config = discordConfig();
   const secret = authSecret();
@@ -36,13 +32,7 @@ export async function GET(request: NextRequest) {
   const userId = session?.user?.id;
   if (!userId) return NextResponse.redirect(new URL("/login", siteOrigin()));
 
-  const ip = resolveClientIp(request.headers.get("x-forwarded-for"));
-  const limit = await rateLimitShared(
-    `discord-callback:${userId}:${ip}`,
-    BURST_LIMITS.tenPerHour.maxTokens,
-    BURST_LIMITS.tenPerHour.refillRate,
-  );
-  if (!limit.allowed) {
+  if (await overLimit(request, "callback", userId)) {
     return backToPortal(null, { discord: "error", reason: "rate_limited" });
   }
 

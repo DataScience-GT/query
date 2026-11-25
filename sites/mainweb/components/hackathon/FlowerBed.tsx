@@ -1,5 +1,11 @@
 import type { FoodGroup } from "@query/api/discord-config";
-import { BLOOM_FLOWERS, spriteUri } from "./bloom-flowers";
+import {
+  BLOOM_FLOWERS,
+  STEM,
+  glowFilter,
+  spriteUri,
+  spriteWidth,
+} from "./bloom-flowers";
 
 /**
  * The flower bed from hacklytics.io, still: mostly dormant grey plants with
@@ -42,7 +48,6 @@ const TULIP = [
   "....g....",
   "...ggg...",
 ];
-const STEM = { g: "#2f6b3a", G: "#4c9a55" };
 const BLOOM = { ...STEM, p: "#b8285a", P: "#ff4f8b", c: "#ffc2d6", Y: "#ffe9f0" };
 const DORMANT = { ...STEM, p: "#3a403c", P: "#5a625c", c: "#8a938c", Y: "#c9cfc9" };
 
@@ -72,7 +77,7 @@ export function FlowerBed({
         const own = i === MINE ? mine : null;
         const map = own?.map ?? plant.map;
         const glow = own?.tint ?? (plant.bloom ? "#ff4f8b" : null);
-        const width = Math.max(...map.map((r) => r.length)) * plant.scale;
+        const width = spriteWidth(map) * plant.scale;
         return (
           <img
             key={i}
@@ -81,13 +86,7 @@ export function FlowerBed({
             width={width}
             height={map.length * plant.scale}
             className={`${i % 2 || i === 12 ? "hidden sm:block" : "block"} [image-rendering:pixelated]`}
-            style={
-              glow
-                ? {
-                    filter: `drop-shadow(0 0 2px ${glow}) drop-shadow(0 0 10px ${glow}73)`,
-                  }
-                : undefined
-            }
+            style={glow ? { filter: glowFilter(glow) } : undefined}
           />
         );
       })}

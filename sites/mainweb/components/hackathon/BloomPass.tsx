@@ -1,6 +1,11 @@
 import type { FoodGroup } from "@query/api/discord-config";
 import { QRCodeSVG } from "qrcode.react";
-import { BLOOM_FLOWERS, headRows, spriteUri } from "./bloom-flowers";
+import {
+  BLOOM_FLOWERS,
+  headRows,
+  spriteUri,
+  spriteWidth,
+} from "./bloom-flowers";
 import { FlowerSprite } from "./FoodGroupBloom";
 
 /** An accepted hacker's flower, the name it goes by, and who holds the pass. */
@@ -25,7 +30,7 @@ function inkOn(tint: string) {
   }) as [number, number, number];
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
   // Contrast against INK (luminance ~0.008) versus white.
-  return (luminance + 0.05) / 0.058 >= 1.05 / (luminance + 0.05) ? INK : "#ffffff";
+  return (luminance + 0.05) / 0.058 >= 1.05 / (luminance + 0.05) ? INK : PAPER;
 }
 
 /**
@@ -41,7 +46,7 @@ export function BloomQr({
 }) {
   const flower = BLOOM_FLOWERS[flowerKey];
   const rows = headRows(flower);
-  const cols = Math.max(...rows.map((r) => r.length));
+  const cols = spriteWidth(rows);
   const pixel = Math.floor((QR_SIZE * HEAD_SHARE) / cols);
   return (
     <QRCodeSVG
