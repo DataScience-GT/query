@@ -29,7 +29,7 @@ const STEM_ROWS = [
   "......g......",
   ".....ggg.....",
 ];
-const STEM = { g: "#2f6b3a", G: "#4c9a55" };
+export const STEM = { g: "#2f6b3a", G: "#4c9a55" };
 
 function hexToHsl(hex: string): [number, number, number] {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [
@@ -84,7 +84,6 @@ function flower(
 
 /** The key union is the type, so a food group without a flower fails typecheck. */
 export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
-  // Five round petals, each notched at the tip, a deep pink eye.
   cherry_blossom: flower(
     "#F7B3CB",
     [
@@ -103,7 +102,6 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     ],
     { Y: "#d9467a" },
   ),
-  // A ring of pointed petals around a dark, seeded disc.
   sunflower: flower(
     "#F5C518",
     [
@@ -123,7 +121,6 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     ],
     { b: "#5a3a1a", B: "#7a5226", d: "#3b2410" },
   ),
-  // A cup of three petals with pointed tips.
   tulip: flower("#E5484D", [
     "..p...p...p..",
     "..pp.pPp.pp..",
@@ -136,7 +133,6 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     ".....pPp.....",
     "......p......",
   ]),
-  // A six-point star, speckled, with dark anthers around a pale throat.
   lily: flower(
     "#F08A3C",
     [
@@ -156,7 +152,6 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     ],
     { Y: "#f3e27a", w: "#8a3a12", a: "#5a2a0a" },
   ),
-  // Pointed petals in layers, fanned up from a green base.
   lotus: flower("#E86FA6", [
     "......p......",
     ".....cPp.....",
@@ -172,7 +167,6 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     ".pGpppPpppGp.",
     "..pGGGpGGGp..",
   ]),
-  // Long white rays around a yellow button.
   daisy: flower(
     "#F4F4F4",
     [
@@ -192,7 +186,6 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     ],
     { Y: "#f6c21a", y: "#c58a06", z: "#dba10d" },
   ),
-  // A dorsal sepal, two broad wings, two lower sepals and a bright lip.
   orchid: flower(
     "#B07CE8",
     [
@@ -211,7 +204,6 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     ],
     { Y: "#f6e27a", m: "#7a3fb5", n: "#4f2a80" },
   ),
-  // A tight spiral of petals over green sepals.
   rose: flower("#C8143C", [
     ".....ccp.....",
     "...cpPPPcp...",
@@ -229,13 +221,14 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
   ]),
 };
 
-/** Rows of stem under every head, for a caller that wants the bloom alone. */
-export const STEM_ROW_COUNT = STEM_ROWS.length;
-
 /** The flower without its stem and leaves. */
 export function headRows(flower: BloomFlower) {
-  return flower.map.slice(0, flower.map.length - STEM_ROW_COUNT);
+  return flower.map.slice(0, -STEM_ROWS.length);
 }
+
+/** A soft halo in the colour: a tight ring and a wide, faint one. */
+export const glowFilter = (color: string) =>
+  `drop-shadow(0 0 2px ${color}) drop-shadow(0 0 10px ${color}73)`;
 
 export function spriteUri(map: string[], colors: Record<string, string>) {
   let rects = "";

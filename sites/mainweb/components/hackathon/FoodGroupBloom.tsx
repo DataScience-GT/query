@@ -1,6 +1,11 @@
 import type { FoodGroup } from "@query/api/discord-config";
 import { body, itemTitle, object } from "@query/ui/classes";
-import { BLOOM_FLOWERS, headRows, spriteUri } from "./bloom-flowers";
+import {
+  BLOOM_FLOWERS,
+  glowFilter,
+  headRows,
+  spriteUri,
+} from "./bloom-flowers";
 
 /**
  * One food group's flower as a picture. Decorative: the group's name is always
@@ -31,11 +36,7 @@ export function FlowerSprite({
       width={width * scale}
       height={rows.length * scale}
       className={`shrink-0 [image-rendering:pixelated] ${className}`}
-      style={
-        glow
-          ? { filter: `drop-shadow(0 0 2px ${tint}) drop-shadow(0 0 10px ${tint}73)` }
-          : undefined
-      }
+      style={glow ? { filter: glowFilter(tint) } : undefined}
     />
   );
 }

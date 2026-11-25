@@ -25,7 +25,7 @@ function inkOn(tint: string) {
   }) as [number, number, number];
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
   // Contrast against INK (luminance ~0.008) versus white.
-  return (luminance + 0.05) / 0.058 >= 1.05 / (luminance + 0.05) ? INK : "#ffffff";
+  return (luminance + 0.05) / 0.058 >= 1.05 / (luminance + 0.05) ? INK : PAPER;
 }
 
 /**
