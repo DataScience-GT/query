@@ -291,6 +291,38 @@ describe("Hackathon end-to-end flow", () => {
       expect(res).toMatchObject({ registrationStatus: "pending" });
     });
 
+    it("accepts an application with no Ramadan answer and stores none", async () => {
+      mockFindFirst.mockImplementation((table) =>
+        table === "hackathons" ? openHackathon() : undefined,
+      );
+      mockInsert.mockReturnValue([
+        { id: PARTICIPANT, registrationStatus: "pending" },
+      ]);
+      mockInsert.mockClear();
+      const caller = appRouter.createCaller(createMockCtx("user_a"));
+
+      await caller.hackathon.register({
+        ...registrationInput(),
+        ramadanFasting: undefined,
+      });
+
+      const stored = mockInsert.mock.calls.find(
+        (c) => c[2]?.[0]?.hackathonId === HACK_A,
+      )?.[2][0];
+      expect(stored.ramadanFasting).toBeUndefined();
+    });
+
+    it("rejects a Ramadan answer outside the offered choices", async () => {
+      const caller = appRouter.createCaller(createMockCtx("user_a"));
+
+      await expect(
+        caller.hackathon.register({
+          ...registrationInput(),
+          ramadanFasting: "Maybe" as never,
+        }),
+      ).rejects.toThrow();
+    });
+
     it("stores every new application answer on the participant row", async () => {
       mockFindFirst.mockImplementation((table) =>
         table === "hackathons" ? openHackathon() : undefined,

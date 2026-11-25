@@ -59,6 +59,8 @@ export function InfoTab({
     description?: string | null;
     prizes?: { place: string; amount: number; description?: string }[] | null;
     rules?: string | null;
+    startDate: string | Date;
+    endDate: string | Date;
     registrationDeadline?: string | Date | null;
     websiteUrl?: string | null;
     status: string;
@@ -461,6 +463,8 @@ export function InfoTab({
         <RegistrationForm
           hackathonId={hackathon.id}
           hackathonName={hackathon.name}
+          startDate={hackathon.startDate}
+          endDate={hackathon.endDate}
           tracks={hackathon.tracks}
           interest={interest.data}
           saved={form.saved}

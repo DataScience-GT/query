@@ -21,6 +21,7 @@ import {
 } from "@/components/hackathon/FormComponents";
 import { ResumeSection } from "@/components/portal/ResumeSection";
 import { formatPhoneAsTyped, normalizePhone, phoneDigits } from "@/lib/phone";
+import { overlapsRamadan } from "@/lib/ramadan";
 import { trpc } from "@/lib/trpc";
 import { useSession } from "next-auth/react";
 
@@ -254,6 +255,8 @@ function startFromDraft(saved: Record<string, unknown>) {
 export function RegistrationForm({
   hackathonId,
   hackathonName,
+  startDate,
+  endDate,
   tracks,
   interest,
   saved,
@@ -263,6 +266,9 @@ export function RegistrationForm({
 }: {
   hackathonId: string;
   hackathonName: string;
+  /** When the event runs. The fasting question is asked only if it overlaps Ramadan. */
+  startDate: Date | string;
+  endDate: Date | string;
   /** The hackathon's tracks, offered as the track-interest choices. */
   tracks?: readonly string[] | null;
   /** What they told the interest list, offered only where it fits this form. */
@@ -273,6 +279,7 @@ export function RegistrationForm({
   onCancel: () => void;
 }) {
   const editing = saved !== undefined;
+  const askRamadan = overlapsRamadan(startDate, endDate);
   const [step, setStep] = useState<RegistrationStep>(0);
   const [error, setError] = useState("");
   // Field errors show only after a failed Continue, then follow the values.
@@ -609,7 +616,7 @@ export function RegistrationForm({
       );
       need(
         "ramadanFasting",
-        !ramadanFasting,
+        askRamadan && !ramadanFasting,
         "Tell us if you will be fasting during the event.",
       );
       need(
@@ -732,7 +739,9 @@ export function RegistrationForm({
       dreamBuild: dreamBuild.trim(),
       referralSource: referralSource as (typeof REFERRAL_SOURCES)[number],
       anythingElse: anythingElse.trim() || undefined,
-      ramadanFasting: ramadanFasting as "Yes" | "No" | "Prefer not to say",
+      ramadanFasting: askRamadan
+        ? (ramadanFasting as "Yes" | "No" | "Prefer not to say")
+        : undefined,
       favoriteFlower: favoriteFlower.trim() || undefined,
       favoriteSnack: favoriteSnack.trim() || undefined,
       excitement: parseInt(excitement),
@@ -1094,13 +1103,15 @@ export function RegistrationForm({
                 placeholder="e.g. no shellfish"
               />
             )}
-            <FormChipSelect
-              label={`${hackathonName} falls during Ramadan. Will you be fasting during the event? We'll plan suhoor and iftar meals around you.`}
-              required
-              options={YES_NO_PREFER}
-              value={ramadanFasting}
-              onChange={setRamadanFasting}
-            />
+            {askRamadan && (
+              <FormChipSelect
+                label={`${hackathonName} falls during Ramadan. Will you be fasting during the event? We'll plan suhoor and iftar meals around you.`}
+                required
+                options={YES_NO_PREFER}
+                value={ramadanFasting}
+                onChange={setRamadanFasting}
+              />
+            )}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <FormInput
                 label="Emergency contact"

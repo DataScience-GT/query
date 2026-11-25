@@ -109,7 +109,9 @@ const registrationForm = z.object({
   emergencyContact: z.string().max(200).optional(),
   emergencyPhone: z.string().max(20).optional(),
   needsHardware: z.boolean().optional(),
-  ramadanFasting: z.enum(YES_NO_PREFER_NOT),
+  // The form asks this only for an event that overlaps Ramadan, so a missing
+  // answer is valid. The column is nullable.
+  ramadanFasting: z.enum(YES_NO_PREFER_NOT).optional(),
   // Consent
   agreeToCodeOfConduct: z
     .boolean()
@@ -538,7 +540,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
           trackInterest: input.trackInterest,
           dreamBuild: input.dreamBuild,
           referralSource: input.referralSource,
-          ramadanFasting: input.ramadanFasting,
+          ramadanFasting: input.ramadanFasting ?? null,
           anythingElse: input.anythingElse || null,
           favoriteFlower: input.favoriteFlower || null,
           favoriteSnack: input.favoriteSnack || null,
