@@ -13,6 +13,10 @@ const URL = process.env.TEST_DATABASE_URL;
 
 type FetchCall = { url: string; init?: RequestInit };
 
+// The mass-accept path mails each person through a dynamic import; nothing
+// here may reach a real mail provider.
+vi.mock("@query/auth/email", () => ({ sendAcceptanceEmail: vi.fn(async () => {}) }));
+
 describe.skipIf(!URL)("discord link against a real database", () => {
   const suffix = Math.random().toString(36).slice(2, 10);
   const userIds: string[] = [];
@@ -357,39 +361,205 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     expect(after.foodGroup).toBe(before.foodGroup?.key);
   });
 
-  it("admin backfill assigns every accepted participant, evenly, and only admins", async () => {
-    const h = await makeHackathon("backfill");
-    const admin = await makeUser("bf-admin");
-    await S.db!.insert(S.admins).values({ userId: admin, role: "admin" });
-    const accepted: string[] = [];
-    for (let i = 0; i < 20; i++) {
-      accepted.push((await makeParticipant(h.id, await makeUser(`bf${i}`))).id);
-    }
-    const pending = await makeParticipant(h.id, await makeUser("bf-pending"), {
-      registrationStatus: "pending",
+  describe("flowers are assigned when someone is accepted", () => {
+    const makeAdmin = async (tag: string) => {
+      const id = await makeUser(tag);
+      await S.db!.insert(S.admins).values({ userId: id, role: "admin" });
+      return appRouter.createCaller(ctx(id)).hackathon;
+    };
+    const flowerOf = async (id: string) => (await row(id)).foodGroup;
+    /** Members per flower across these participants; fails on a missing flower. */
+    const sizesOf = async (ids: string[]) => {
+      const counts = new Map<string, number>();
+      for (const id of ids) {
+        const g = await flowerOf(id);
+        expect(svc.FOOD_GROUP_KEYS).toContain(g);
+        counts.set(g!, (counts.get(g!) ?? 0) + 1);
+      }
+      return svc.FOOD_GROUPS.map((g) => counts.get(g.key) ?? 0);
+    };
+    const spread = (sizes: number[]) => Math.max(...sizes) - Math.min(...sizes);
+    const pendingIn = async (hackathonId: string, n: number, tag: string) => {
+      const ids: string[] = [];
+      for (let i = 0; i < n; i++) {
+        const p = await makeParticipant(hackathonId, await makeUser(`${tag}${i}`), {
+          registrationStatus: "pending",
+        });
+        ids.push(p.id);
+      }
+      return ids;
+    };
+
+    it("accepting one participant gives them a flower", async () => {
+      const h = await makeHackathon("auto-one");
+      const admin = await makeAdmin("ao-admin");
+      const [id] = await pendingIn(h.id, 1, "ao");
+      expect(await flowerOf(id!)).toBeNull();
+
+      await admin.updateParticipantStatus({
+        hackathonId: h.id,
+        participantId: id!,
+        status: "approved",
+      });
+      expect(svc.FOOD_GROUP_KEYS).toContain(await flowerOf(id!));
     });
 
-    const out = await appRouter
-      .createCaller(ctx(admin))
-      .hackathon.assignFoodGroups({ hackathonId: h.id });
-    expect(out).toEqual({ assigned: 20 });
-    expect((await row(pending.id)).foodGroup).toBeNull();
-    const counts = new Map<string, number>();
-    for (const id of accepted) {
-      const g = (await row(id)).foodGroup!;
-      counts.set(g, (counts.get(g) ?? 0) + 1);
-    }
-    const sizes = svc.FOOD_GROUPS.map((g) => counts.get(g.key) ?? 0);
-    expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThanOrEqual(1);
-    // Running it again has nothing left to do.
-    expect(
-      await appRouter.createCaller(ctx(admin)).hackathon.assignFoodGroups({ hackathonId: h.id }),
-    ).toEqual({ assigned: 0 });
+    it("a wave and a bulk status change give everyone a flower, evenly", async () => {
+      const h = await makeHackathon("auto-bulk");
+      const admin = await makeAdmin("ab-admin");
+      const ids = await pendingIn(h.id, 21, "ab");
 
-    const plain = await makeUser("bf-plain");
-    await expect(
-      appRouter.createCaller(ctx(plain)).hackathon.assignFoodGroups({ hackathonId: h.id }),
-    ).rejects.toThrow();
+      const wave = await admin.acceptWave({ hackathonId: h.id, size: 13 });
+      expect(wave.accepted).toBe(13);
+      const waved = wave.participantIds as string[];
+      expect(spread(await sizesOf(waved))).toBeLessThanOrEqual(1);
+      const left = ids.filter((id) => !waved.includes(id));
+      for (const id of left) expect(await flowerOf(id)).toBeNull();
+
+      await admin.batchUpdateParticipantStatus({
+        hackathonId: h.id,
+        participantIds: left,
+        status: "approved",
+      });
+      const sizes = await sizesOf(ids);
+      expect(sizes.reduce((a, b) => a + b, 0)).toBe(21);
+      expect(spread(sizes)).toBeLessThanOrEqual(1);
+    });
+
+    it("mass acceptance with email gives everyone a flower, evenly", async () => {
+      const h = await makeHackathon("auto-mass");
+      const admin = await makeAdmin("am-admin");
+      const ids = await pendingIn(h.id, 19, "am");
+
+      const out = await admin.sendMassAcceptanceEmails({
+        hackathonId: h.id,
+        participantIds: ids,
+      });
+      expect(out.approved).toBe(19);
+      expect(spread(await sizesOf(ids))).toBeLessThanOrEqual(1);
+    });
+
+    it("a first check-in gives a flower to anyone who still has none", async () => {
+      const h = await makeHackathon("auto-checkin");
+      const admin = await makeAdmin("ac-admin");
+      const [ev] = await S.db!
+        .insert(S.hackathonEvents)
+        .values({
+          hackathonId: h.id,
+          name: "Opening",
+          type: "activity",
+          location: "Atrium",
+          startTime: new Date(Date.now() - 60 * 60_000),
+          endTime: new Date(Date.now() + 2 * 60 * 60_000),
+        })
+        .returning();
+      // Accepted before flowers were automatic: no flower yet.
+      const arriving = await makeParticipant(h.id, await makeUser("ac-in"));
+      const bystander = await makeParticipant(h.id, await makeUser("ac-by"));
+      expect(await flowerOf(arriving.id)).toBeNull();
+
+      const res = await admin.admit({
+        hackathonId: h.id,
+        eventId: ev!.id,
+        participantId: arriving.id,
+      });
+      expect(res.checkedIn).toBe(true);
+      expect((await row(arriving.id)).registrationStatus).toBe("checked_in");
+      expect(svc.FOOD_GROUP_KEYS).toContain(await flowerOf(arriving.id));
+      expect(svc.FOOD_GROUP_KEYS).toContain(await flowerOf(bystander.id));
+    });
+
+    it("checking in someone already accepted gives them a flower", async () => {
+      const h = await makeHackathon("auto-status-checkin");
+      const admin = await makeAdmin("asc-admin");
+      const p = await makeParticipant(h.id, await makeUser("asc"));
+      await admin.updateParticipantStatus({
+        hackathonId: h.id,
+        participantId: p.id,
+        status: "checked_in",
+      });
+      expect(svc.FOOD_GROUP_KEYS).toContain(await flowerOf(p.id));
+    });
+
+    it("accepting anyone backfills those accepted earlier without a flower", async () => {
+      const h = await makeHackathon("auto-backfill");
+      const admin = await makeAdmin("abf-admin");
+      const earlier: string[] = [];
+      for (let i = 0; i < 11; i++) {
+        const status = i % 3 === 0 ? "checked_in" : "approved";
+        const p = await makeParticipant(h.id, await makeUser(`abf${i}`), {
+          registrationStatus: status,
+        });
+        earlier.push(p.id);
+      }
+      const [newcomer] = await pendingIn(h.id, 1, "abf-new");
+
+      await admin.updateParticipantStatus({
+        hackathonId: h.id,
+        participantId: newcomer!,
+        status: "approved",
+      });
+      const sizes = await sizesOf([...earlier, newcomer!]);
+      expect(sizes.reduce((a, b) => a + b, 0)).toBe(12);
+      expect(spread(sizes)).toBeLessThanOrEqual(1);
+    });
+
+    it("pending, waitlisted and rejected people never get a flower", async () => {
+      const h = await makeHackathon("auto-never");
+      const admin = await makeAdmin("an-admin");
+      const pending = await makeParticipant(h.id, await makeUser("an-p"), {
+        registrationStatus: "pending",
+      });
+      const waitlisted = await makeParticipant(h.id, await makeUser("an-w"), {
+        registrationStatus: "waitlisted",
+      });
+      const rejected = await makeParticipant(h.id, await makeUser("an-r"), {
+        registrationStatus: "rejected",
+      });
+      const accepted = await pendingIn(h.id, 3, "an-a");
+      const [mover] = await pendingIn(h.id, 1, "an-m");
+
+      await admin.batchUpdateParticipantStatus({
+        hackathonId: h.id,
+        participantIds: accepted,
+        status: "approved",
+      });
+      // Moving somebody to a status that is not accepted assigns nothing either.
+      await admin.updateParticipantStatus({
+        hackathonId: h.id,
+        participantId: mover!,
+        status: "waitlisted",
+      });
+
+      for (const id of [pending.id, waitlisted.id, rejected.id, mover!]) {
+        expect(await flowerOf(id)).toBeNull();
+      }
+      for (const id of accepted) expect(svc.FOOD_GROUP_KEYS).toContain(await flowerOf(id));
+    });
+
+    it("never changes a flower someone already has", async () => {
+      const h = await makeHackathon("auto-keep");
+      const admin = await makeAdmin("ak-admin");
+      // Piled onto one flower, far from balanced: a rebalance would move them.
+      const held: string[] = [];
+      for (let i = 0; i < 6; i++) {
+        const p = await makeParticipant(h.id, await makeUser(`ak${i}`), {
+          foodGroup: "rose",
+        });
+        held.push(p.id);
+      }
+      const others = await pendingIn(h.id, 16, "ak-o");
+
+      await admin.batchUpdateParticipantStatus({
+        hackathonId: h.id,
+        participantIds: others,
+        status: "approved",
+      });
+      for (const id of held) expect(await flowerOf(id)).toBe("rose");
+      // Every newcomer has a flower, and they fill the other flowers first.
+      const sizes = await sizesOf(others);
+      expect(sizes[svc.FOOD_GROUP_KEYS.indexOf("rose")]).toBe(0);
+    });
   });
 
   it("roster and export carry the Discord columns, and bug testers are refused", async () => {
@@ -416,6 +586,5 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     const bug = appRouter.createCaller(ctx(tester)).hackathon;
     await expect(bug.adminGetAttendees({ hackathonId: h.id })).rejects.toThrow();
     await expect(bug.exportAttendees({ hackathonId: h.id })).rejects.toThrow();
-    await expect(bug.assignFoodGroups({ hackathonId: h.id })).rejects.toThrow();
   });
 });

@@ -19,6 +19,7 @@ import {
 } from "@query/db";
 import { eq, and, inArray, ne, notExists, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
+import { autoAssignFoodGroups } from "../../../services/discord";
 import {
   SEATED_STATUSES,
   assertSeats,
@@ -103,6 +104,12 @@ export const statusProcedures = {
           });
         }
       });
+
+      // After the commit, not inside it: the assignment takes the hackathon row
+      // lock itself, and assertSeats above already holds it in this transaction.
+      if (input.status === "approved" || input.status === "checked_in") {
+        await autoAssignFoodGroups(ctx.db as DrizzleDB, input.hackathonId);
+      }
 
       evictParticipantCaches(ctx.cache, input.hackathonId, [
         participant.userId,
@@ -273,6 +280,8 @@ export const statusProcedures = {
         };
       }
 
+      await autoAssignFoodGroups(db, input.hackathonId);
+
       await recordAdminAction(db, {
         userId: ctx.userId,
         action: "hackathon.acceptWave",
@@ -381,6 +390,10 @@ export const statusProcedures = {
             ),
           );
       });
+
+      // Before the mail: a send of hundreds can die at the request limit, and the
+      // acceptances above are already committed.
+      if (toAccept.length > 0) await autoAssignFoodGroups(db, hackathonId);
 
       const { sendAcceptanceEmail } = await import("@query/auth/email");
 
@@ -530,6 +543,13 @@ export const statusProcedures = {
             userId: hackathonParticipants.userId,
           });
       });
+
+      if (
+        rows.length > 0 &&
+        (status === "approved" || status === "checked_in")
+      ) {
+        await autoAssignFoodGroups(ctx.db as DrizzleDB, hackathonId);
+      }
 
       evictParticipantCaches(
         ctx.cache,
