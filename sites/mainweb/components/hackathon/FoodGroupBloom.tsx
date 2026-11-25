@@ -1,6 +1,6 @@
 import type { FoodGroup } from "@query/api/discord-config";
 import { body, itemTitle, object } from "@query/ui/classes";
-import { BLOOM_FLOWERS, STEM_ROW_COUNT, spriteUri } from "./bloom-flowers";
+import { BLOOM_FLOWERS, headRows, spriteUri } from "./bloom-flowers";
 
 /**
  * One food group's flower as a picture. Decorative: the group's name is always
@@ -19,8 +19,9 @@ export function FlowerSprite({
   glow?: boolean;
   className?: string;
 }) {
-  const { map, colors, tint } = BLOOM_FLOWERS[groupKey];
-  const rows = headOnly ? map.slice(0, map.length - STEM_ROW_COUNT) : map;
+  const flower = BLOOM_FLOWERS[groupKey];
+  const { map, colors, tint } = flower;
+  const rows = headOnly ? headRows(flower) : map;
   const width = Math.max(...rows.map((r) => r.length));
   return (
     <img

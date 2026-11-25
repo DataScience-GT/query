@@ -232,6 +232,11 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
 /** Rows of stem under every head, for a caller that wants the bloom alone. */
 export const STEM_ROW_COUNT = STEM_ROWS.length;
 
+/** The flower without its stem and leaves. */
+export function headRows(flower: BloomFlower) {
+  return flower.map.slice(0, flower.map.length - STEM_ROW_COUNT);
+}
+
 export function spriteUri(map: string[], colors: Record<string, string>) {
   let rects = "";
   map.forEach((row, y) =>

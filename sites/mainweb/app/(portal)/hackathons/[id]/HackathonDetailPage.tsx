@@ -387,6 +387,15 @@ export default function HackathonDetailPage() {
             startDate={hackathon.startDate}
             endDate={hackathon.endDate}
             pointsTabShown={eventLive}
+            bloom={
+              bloom && foodGroup
+                ? {
+                    key: foodGroup.key,
+                    name: foodGroup.name,
+                    holder: session.user?.name,
+                  }
+                : null
+            }
           />
         ) : tab === "JUDGING" ? (
           <HackerJudgingTab hackathonId={hackathon.id} />
