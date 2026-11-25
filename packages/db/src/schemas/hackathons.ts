@@ -214,8 +214,8 @@ export const hackathonParticipants = pgTable(
     // null forever for anyone accepted one at a time from the table.
     acceptanceWave: integer("acceptance_wave"),
 
-    // Discord link. The account is only ever the id and display name Discord
-    // gave us; the access token is never stored. foodGroup is a key from
+    // Discord link. The account is only ever the id and username Discord gave
+    // us; the access token is never stored. foodGroup is a key from
     // FOOD_GROUPS (packages/api/src/services/discord/config.ts), not a name,
     // so the list can change without a migration.
     discordUserId: text("discord_user_id"),
