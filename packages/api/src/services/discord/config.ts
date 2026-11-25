@@ -19,7 +19,7 @@ export const FOOD_GROUPS = [
   { key: "lotus", number: 5, name: "Lotus" },
   { key: "daisy", number: 6, name: "Daisy" },
   { key: "orchid", number: 7, name: "Orchid" },
-  { key: "poppy", number: 8, name: "Poppy" },
+  { key: "rose", number: 8, name: "Rose" },
 ] as const;
 
 export type FoodGroup = (typeof FOOD_GROUPS)[number];
