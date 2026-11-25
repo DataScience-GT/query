@@ -56,7 +56,6 @@ export async function ensureFoodGroup(
   db: DrizzleDB,
   hackathonId: string,
   participantId: string,
-  random: () => number = Math.random,
 ): Promise<string> {
   return db.transaction(async (tx) => {
     const counts = await lockAndCount(tx, hackathonId);
@@ -67,7 +66,7 @@ export async function ensureFoodGroup(
     if (row?.foodGroup && FOOD_GROUP_KEYS.includes(row.foodGroup)) {
       return row.foodGroup;
     }
-    const key = pickFoodGroup(counts, random);
+    const key = pickFoodGroup(counts);
     await tx
       .update(hackathonParticipants)
       .set({ foodGroup: key })
@@ -76,56 +75,47 @@ export async function ensureFoodGroup(
   });
 }
 
-/** Backfill: every accepted participant without a group. Returns how many. */
-export async function assignAllFoodGroups(
-  db: DrizzleDB,
-  hackathonId: string,
-  random: () => number = Math.random,
-): Promise<number> {
-  return db.transaction(async (tx) => {
-    const counts = await lockAndCount(tx, hackathonId);
-    const missing = await tx
-      .select({ id: hackathonParticipants.id })
-      .from(hackathonParticipants)
-      .where(
-        and(
-          eq(hackathonParticipants.hackathonId, hackathonId),
-          inArray(hackathonParticipants.registrationStatus, [
-            "approved",
-            "checked_in",
-          ]),
-          isNull(hackathonParticipants.foodGroup),
-        ),
-      )
-      .orderBy(asc(hackathonParticipants.registeredAt));
-    const byKey = new Map<string, string[]>();
-    for (const { id } of missing) {
-      const key = pickFoodGroup(counts, random);
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-      byKey.set(key, [...(byKey.get(key) ?? []), id]);
-    }
-    for (const [key, ids] of byKey) {
-      await tx
-        .update(hackathonParticipants)
-        .set({ foodGroup: key })
-        .where(inArray(hackathonParticipants.id, ids));
-    }
-    return missing.length;
-  });
-}
-
 /**
  * Call after a mutation that can seat people (approved or checked_in) has
- * committed. Gives every seated participant without a group one, which also
- * catches anybody accepted before this ran. Never throws: the acceptance has
- * already happened, and the hub assigns lazily if this missed.
+ * committed. Gives every seated participant without a group one, oldest
+ * registration first, which also catches anybody accepted before this ran.
+ * Never throws: the acceptance has already happened, and the hub assigns
+ * lazily if this missed.
  */
 export async function autoAssignFoodGroups(
   db: DrizzleDB,
   hackathonId: string,
 ): Promise<void> {
   try {
-    await assignAllFoodGroups(db, hackathonId);
+    await db.transaction(async (tx) => {
+      const counts = await lockAndCount(tx, hackathonId);
+      const missing = await tx
+        .select({ id: hackathonParticipants.id })
+        .from(hackathonParticipants)
+        .where(
+          and(
+            eq(hackathonParticipants.hackathonId, hackathonId),
+            inArray(hackathonParticipants.registrationStatus, [
+              "approved",
+              "checked_in",
+            ]),
+            isNull(hackathonParticipants.foodGroup),
+          ),
+        )
+        .orderBy(asc(hackathonParticipants.registeredAt));
+      const byKey = new Map<string, string[]>();
+      for (const { id } of missing) {
+        const key = pickFoodGroup(counts);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+        byKey.set(key, [...(byKey.get(key) ?? []), id]);
+      }
+      for (const [key, ids] of byKey) {
+        await tx
+          .update(hackathonParticipants)
+          .set({ foodGroup: key })
+          .where(inArray(hackathonParticipants.id, ids));
+      }
+    });
   } catch (error) {
     // Deliberate operational logging: the only record that an acceptance went
     // through without the group assignment that should follow it.
