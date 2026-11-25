@@ -58,7 +58,7 @@ export function FoodGroupBloom({
   return (
     <section
       aria-labelledby="bloom-heading"
-      data-testid="food-group-bloom"
+      data-testid="your-bloom"
       className={`flex max-w-xl items-end gap-5 p-5 ${object} ${className}`}
       style={{ borderColor: `${tint}99` }}
     >
