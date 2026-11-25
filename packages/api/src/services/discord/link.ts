@@ -9,7 +9,7 @@ import { isUniqueViolation } from "../../middleware/db-errors";
 
 const API = "https://discord.com/api/v10";
 
-export type LinkErrorReason =
+type LinkErrorReason =
   | "not_accepted"
   | "bad_code"
   | "rate_limited"
@@ -17,9 +17,9 @@ export type LinkErrorReason =
   | "discord_error"
   | "already_linked";
 
-export type HackathonRef = { id: string; name: string };
+type HackathonRef = { id: string; name: string };
 
-export type LinkResult =
+type LinkResult =
   | {
       ok: true;
       then: DiscordState["t"];
