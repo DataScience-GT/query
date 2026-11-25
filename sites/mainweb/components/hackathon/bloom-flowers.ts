@@ -85,7 +85,7 @@ function flower(
 /** The key union is the type, so a food group without a flower fails typecheck. */
 export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
   cherry_blossom: flower(
-    "#F7B3CB",
+    "#4C8DF6",
     [
       ".....p.p.....",
       "....pPpPp....",
@@ -100,7 +100,7 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
       "..ppPPpPPpp..",
       "....pp.pp....",
     ],
-    { Y: "#d9467a" },
+    { Y: "#f6e27a" },
   ),
   sunflower: flower(
     "#F5C518",
@@ -121,7 +121,7 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     ],
     { b: "#5a3a1a", B: "#7a5226", d: "#3b2410" },
   ),
-  tulip: flower("#E5484D", [
+  tulip: flower("#2CC6B0", [
     "..p...p...p..",
     "..pp.pPp.pp..",
     "..pPpPcPpPp..",
