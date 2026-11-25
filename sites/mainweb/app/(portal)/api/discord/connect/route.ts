@@ -16,7 +16,6 @@ import {
 } from "@query/api/discord";
 import { safeCallback } from "@/lib/safe-callback";
 import {
-  STATE_COOKIE,
   authSecret,
   backToPortal,
   redirectUri,
@@ -98,13 +97,5 @@ export async function GET(request: NextRequest) {
   authorize.searchParams.set("redirect_uri", redirectUri());
   authorize.searchParams.set("state", state);
 
-  const res = NextResponse.redirect(authorize);
-  res.cookies.set(STATE_COOKIE, state, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/api/discord",
-    maxAge: 600,
-  });
-  return res;
+  return NextResponse.redirect(authorize);
 }

@@ -11,7 +11,6 @@ import {
 } from "@query/api/middleware/security";
 import { completeLink, discordConfig, verifyState } from "@query/api/discord";
 import {
-  STATE_COOKIE,
   authSecret,
   backToPortal,
   redirectUri,
@@ -48,12 +47,9 @@ export async function GET(request: NextRequest) {
   }
 
   const params = request.nextUrl.searchParams;
-  const stateParam = params.get("state");
-  const cookie = request.cookies.get(STATE_COOKIE)?.value;
-  const state =
-    stateParam && cookie === stateParam
-      ? verifyState(stateParam, secret, { userId })
-      : null;
+  // The state is signed with the server secret and names the signed-in user,
+  // so one minted for anybody else, or tampered with, or expired, fails here.
+  const state = verifyState(params.get("state"), secret, { userId });
   if (!state) {
     return backToPortal(null, { discord: "error", reason: "bad_state" });
   }
@@ -85,9 +81,7 @@ export async function GET(request: NextRequest) {
     });
   }
   if (result.then === "invite") {
-    const res = NextResponse.redirect(config.inviteUrl);
-    res.cookies.delete({ name: STATE_COOKIE, path: "/api/discord" });
-    return res;
+    return NextResponse.redirect(config.inviteUrl);
   }
   return backToPortal(result.hackathon, { discord: "linked" });
 }
