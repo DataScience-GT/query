@@ -54,7 +54,7 @@ The matching agent skill is installed per machine, not committed: run `pnpm --di
 `sites/mainweb/next.config.mjs` stamps every build with `NEXT_PUBLIC_APP_VERSION` as `MAJOR.MINOR.PATCH`, and with the short SHA as `NEXT_PUBLIC_APP_COMMIT`. `/api/ping` returns both, so `curl https://datasciencegt.org/api/ping` shows what is live.
 
 - `MAJOR.MINOR` come from `version` in `sites/mainweb/package.json`, set with `pnpm version:set` (below).
-- `PATCH` is the number of merges into `main` since that `version` line last changed, so each deploy adds one. At 100 it rolls into `MINOR` (`3.4.99` is followed by `3.5.0`), so the patch is never more than two digits.
+- `PATCH` is the number of merges into `main` since that `version` line last changed, so each deploy adds one. Past 10 it rolls into `MINOR` (`3.4.10` is followed by `3.5.0`), so the patch never goes above 10.
 - App Hosting clones with depth 1, which has no history to count. The config detects a shallow clone and runs `git fetch --unshallow` against the public repo first, which adds about 15 seconds to the build.
 - A build with no git at all reports the `package.json` version as is.
 - A turbo cache hit replays the version of the build it cached, which is the same code.
@@ -90,6 +90,7 @@ The versions before 3.4 were assigned after the fact, from the repo history.
 | 4.0 | 2026-11 | One design across the public site and portal (dark teal, DS@GT logo), shared confirm dialog and error screens, per-page tab titles |
 | 4.1 | 2026-11 | Security fixes, judge application review screen with an in-person question, optional shared Redis (Upstash) for cache invalidation and rate limits, off until Hacklytics 2027 |
 | 4.2 | 2026-11 | Drizzle ORM and Kit 1.0 (rc.6) with the drizzle-kit MCP server for agents, ui-sdk, event photos across the public site at higher quality, a fuller History page |
+| 4.3 | 2026-11 | Hacklytics: Digital Bloom: Discord linking with flower and Ramadan roles (no bot), flowers assigned on acceptance, the Digital Bloom hacker portal, flower check-in passes |
 
 ## Other root files
 

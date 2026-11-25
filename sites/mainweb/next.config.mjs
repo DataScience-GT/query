@@ -11,8 +11,8 @@ const __dirname = path.dirname(__filename);
 /**
  * Build version `MAJOR.MINOR.PATCH`. MAJOR and MINOR are set by hand in this
  * package's package.json. PATCH counts merges into main since that version
- * line last changed, so every deploy adds one; at 100 it rolls into MINOR to
- * stay two digits. App Hosting clones with depth 1, which has no history to
+ * line last changed, so every deploy adds one; past 10 it rolls into MINOR
+ * (x.y.10 is followed by x.(y+1).0). App Hosting clones with depth 1, which has no history to
  * count, so a shallow clone is deepened from the public repo first.
  */
 function appBuild() {
@@ -66,7 +66,7 @@ function appBuild() {
       ? firstParent.filter((c) => after.has(c)).length
       : firstParent.length;
     return {
-      version: `${major}.${minor + Math.floor(merges / 100)}.${merges % 100}`,
+      version: `${major}.${minor + Math.floor(merges / 11)}.${merges % 11}`,
       commit,
     };
   } catch (e) {
