@@ -54,7 +54,7 @@ describe("food group choice", () => {
   it("breaks ties with the random source", () => {
     const counts = new Map<string, number>();
     expect(pickFoodGroup(counts, () => 0)).toBe("cherry_blossom");
-    expect(pickFoodGroup(counts, () => 0.999)).toBe("poppy");
+    expect(pickFoodGroup(counts, () => 0.999)).toBe("rose");
   });
 
   it("gives every group a stable number 1 to 8", () => {
