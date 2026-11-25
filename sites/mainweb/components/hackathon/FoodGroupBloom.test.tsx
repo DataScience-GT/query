@@ -22,7 +22,8 @@ describe("FoodGroupBloom", () => {
     const [, sunflower] = FOOD_GROUPS;
     const view = render(<FoodGroupBloom group={sunflower} />);
     expect(view.querySelector("h2")?.textContent).toBe("Your bloom: Sunflower");
-    expect(view.textContent).toContain("food group for meals");
+    expect(view.textContent).toContain("Your flower for the weekend");
+    expect(view.textContent).not.toMatch(/food group/i);
     expect(view.textContent).toContain("Discord");
     const image = view.querySelector("img");
     expect(image?.getAttribute("src")).toMatch(/^data:image\/svg\+xml,/);

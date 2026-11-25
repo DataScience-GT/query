@@ -67,6 +67,7 @@
     "tailwindcss": "catalog:",
     "tsrs": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "zxing-wasm": "3.1.3"
   }
 }

@@ -8,6 +8,8 @@ import { trpc } from "@/lib/trpc";
 import { QRCodeSVG } from "qrcode.react";
 import { Lock } from "lucide-react";
 import { Skeleton } from "@query/ui/Skeleton";
+import { BloomPass } from "@/components/hackathon/BloomPass";
+import type { PassBloom } from "@/components/hackathon/BloomPass";
 import {
   body,
   btnSecondary,
@@ -73,12 +75,15 @@ export function ScheduleTab({
   startDate,
   endDate,
   pointsTabShown,
+  bloom,
 }: {
   hackathonId: string;
   isRegistered: boolean;
   startDate: Date | string;
   endDate: Date | string;
   pointsTabShown: boolean;
+  /** A Hacklytics hacker's own flower: it themes the pass. */
+  bloom?: PassBloom | null;
 }) {
   const {
     data: events,
@@ -167,6 +172,8 @@ export function ScheduleTab({
             <Skeleton
               className="mx-auto mt-5 aspect-square w-full max-w-[272px] rounded-[var(--radius-sm)]"
             />
+          ) : isRegistered && qrData && bloom ? (
+            <BloomPass value={qrData} bloom={bloom} />
           ) : isRegistered && qrData ? (
             /* literal white: must match the QR bgColor below in both themes */
             <div className="mx-auto mt-5 w-full max-w-[272px] p-4 bg-[#ffffff] rounded-[var(--radius-sm)]">

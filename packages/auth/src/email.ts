@@ -558,7 +558,7 @@ export async function sendAcceptanceEmail({
     paragraphs: [
       `Congratulations! You have been accepted to participate in ${hackathonName}.`,
       "Head over to the Hackathon Hub to view the event details, find a team, and get ready to build.",
-      "Join the Hacklytics Discord from the Hackathon Hub to get your food group.",
+      "Join the Hacklytics Discord from the Hackathon Hub to get your flower role.",
     ],
     ctaLabel: "Go to Hackathon Hub",
     ctaUrl: `${host}/hackathons`,

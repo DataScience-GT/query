@@ -29,8 +29,8 @@ const records = [
   },
   {
     key: "food_group",
-    name: "Food group",
-    description: "Food group number (1-8)",
+    name: "Bloom",
+    description: "Your Hacklytics flower (1-8)",
     type: 3,
   },
   {
