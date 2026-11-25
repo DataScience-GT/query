@@ -87,15 +87,29 @@ function failureFor(status: number): LinkErrorReason {
   return "discord_error";
 }
 
-async function retryAfterOf(res: Response): Promise<number | undefined> {
-  try {
-    const body = (await res.json()) as { retry_after?: number };
-    return typeof body.retry_after === "number"
-      ? Math.ceil(body.retry_after)
-      : undefined;
-  } catch {
-    return undefined;
+/**
+ * A refused Discord call: logs the step, status and Discord's error body (never
+ * a token; the bodies of failed calls carry only an error code and message),
+ * and reads `retry_after` from the same body for a 429.
+ */
+async function refusal(
+  step: "token" | "me" | "role-connection",
+  res: Response,
+): Promise<{ status: number; retryAfter?: number }> {
+  const text = await res.text().catch(() => "");
+  // Deliberate operational logging: the only trace of why a link failed.
+  // oxlint-disable-next-line no-console
+  console.warn(`[Discord link] ${step} refused: ${res.status} ${text.slice(0, 300)}`);
+  let retryAfter: number | undefined;
+  if (res.status === 429) {
+    try {
+      const n = (JSON.parse(text) as { retry_after?: number }).retry_after;
+      if (typeof n === "number") retryAfter = Math.ceil(n);
+    } catch {
+      // No JSON body: retry with no hint.
+    }
   }
+  return { status: res.status, retryAfter };
 }
 
 /**
@@ -138,11 +152,9 @@ export async function completeLink(opts: {
     }),
   });
   if (!tokenRes.ok) {
-    if (tokenRes.status === 400) return fail("bad_code");
-    return fail(failureFor(tokenRes.status), {
-      retryAfter:
-        tokenRes.status === 429 ? await retryAfterOf(tokenRes) : undefined,
-    });
+    const { status, retryAfter } = await refusal("token", tokenRes);
+    if (status === 400) return fail("bad_code");
+    return fail(failureFor(status), { retryAfter });
   }
   const accessToken = ((await tokenRes.json()) as { access_token?: string })
     .access_token;
@@ -153,9 +165,8 @@ export async function completeLink(opts: {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!meRes.ok) {
-    return fail(failureFor(meRes.status), {
-      retryAfter: meRes.status === 429 ? await retryAfterOf(meRes) : undefined,
-    });
+    const { status, retryAfter } = await refusal("me", meRes);
+    return fail(failureFor(status), { retryAfter });
   }
   const me = (await meRes.json()) as {
     id?: string;
@@ -227,9 +238,8 @@ export async function completeLink(opts: {
       .update(hackathonParticipants)
       .set(before)
       .where(eq(hackathonParticipants.id, participant.id));
-    return fail(failureFor(putRes.status), {
-      retryAfter: putRes.status === 429 ? await retryAfterOf(putRes) : undefined,
-    });
+    const { status, retryAfter } = await refusal("role-connection", putRes);
+    return fail(failureFor(status), { retryAfter });
   }
 
   return {
