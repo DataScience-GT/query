@@ -5,6 +5,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { DiscordCard } from "@/components/hackathon/DiscordCard";
 import { InterestForm } from "@/components/hackathon/InterestForm";
 import { hackathonSlug } from "@/lib/hackathon-slug";
 import { trpc } from "@/lib/trpc";
@@ -237,6 +238,9 @@ export function InfoTab({
                     )}
                   </div>
                 ))}
+              {(regStatus === "approved" || regStatus === "checked_in") && (
+                <DiscordCard hackathonId={hackathon.id} />
+              )}
               {canEdit && (
                 <div className="flex flex-col items-start gap-2">
                   <button

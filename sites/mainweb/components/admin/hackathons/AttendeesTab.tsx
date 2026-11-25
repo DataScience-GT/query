@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { trpc } from "@/lib/trpc";
 import { csvCell } from "@/lib/csv";
+import { foodGroupByKey } from "@query/api/discord-config";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import {
   ChevronDown,
@@ -176,6 +177,9 @@ export function AttendeesTab({
   const [selectedAllMatching, setSelectedAllMatching] = useState(false);
 
   const massAccept = trpc.hackathon.sendMassAcceptanceEmails.useMutation();
+  const assignGroups = trpc.hackathon.assignFoodGroups.useMutation({
+    onSuccess: () => void utils.hackathon.adminGetAttendees.invalidate(),
+  });
 
   const stats = {
     total: analytics?.totalRegistrations ?? 0,
@@ -272,6 +276,9 @@ export function AttendeesTab({
       "Dietary Restrictions",
       "Emergency Contact",
       "Emergency Phone",
+      "Discord",
+      "Food Group",
+      "Ramadan Role",
       "Registered At",
     ];
     type Attendee = (typeof all)[number];
@@ -310,6 +317,9 @@ export function AttendeesTab({
       (a.dietaryRestrictions || []).join(", ") || "None",
       a.emergencyContact || "",
       a.emergencyPhone || "",
+      a.discordUsername ?? "",
+      foodGroupByKey(a.foodGroup)?.name ?? "",
+      yesNoCell(a.ramadanRoleOptIn),
       new Date(a.registeredAt).toISOString(),
     ]);
     const csvContent = [
@@ -629,15 +639,29 @@ export function AttendeesTab({
             {isFetching && " · updating…"}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={exportToCSV}
-          disabled={exporting}
-          className={btnSecondary}
-        >
-          <Download size={16} strokeWidth={1.75} aria-hidden="true" />
-          {exporting ? "Exporting…" : "Export CSV"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => assignGroups.mutate({ hackathonId })}
+            disabled={assignGroups.isPending}
+            className={btnSecondary}
+          >
+            {assignGroups.isPending
+              ? "Assigning…"
+              : assignGroups.isSuccess
+                ? `Assigned ${assignGroups.data.assigned}`
+                : "Assign food groups"}
+          </button>
+          <button
+            type="button"
+            onClick={exportToCSV}
+            disabled={exporting}
+            className={btnSecondary}
+          >
+            <Download size={16} strokeWidth={1.75} aria-hidden="true" />
+            {exporting ? "Exporting…" : "Export CSV"}
+          </button>
+        </div>
       </div>
 
       {/* Bulk actions for the current selection. */}
@@ -1318,6 +1342,27 @@ export function AttendeesTab({
                                 <p className={detailLabel}>Fasting for Ramadan</p>
                                 <p className="text-sm text-[var(--text-primary)]">
                                   {attendee.ramadanFasting || "Not asked"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Discord</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.discordUsername
+                                    ? `@${attendee.discordUsername}`
+                                    : "Not linked"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Food group</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {foodGroupByKey(attendee.foodGroup)?.name ??
+                                    "Not assigned"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={detailLabel}>Ramadan role</p>
+                                <p className="text-sm text-[var(--text-primary)]">
+                                  {attendee.ramadanRoleOptIn ? "Opted in" : "No"}
                                 </p>
                               </div>
                               </div>

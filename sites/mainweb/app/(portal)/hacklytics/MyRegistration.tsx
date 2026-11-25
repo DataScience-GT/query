@@ -6,6 +6,7 @@ import type { RouterOutputs } from "@query/api";
 import { trpc } from "@/lib/trpc";
 import { hackathonSlug } from "@/lib/hackathon-slug";
 import {
+  discordStep,
   hackathonNextStep,
   nextStepQueries,
   projectSubmitted,
@@ -46,6 +47,13 @@ export function MyRegistration({
         registrationStatus: myReg.registrationStatus,
       })
     : { submission: false, judging: false, results: false };
+  const admitted =
+    myReg?.registrationStatus === "approved" ||
+    myReg?.registrationStatus === "checked_in";
+  const discord = trpc.hackathon.myDiscord.useQuery(
+    { hackathonId: event.id },
+    { enabled: admitted },
+  );
   const submissionWindow = trpc.team.submissionWindow.useQuery(
     { hackathonId: event.id },
     { enabled: needs.submission },
@@ -66,7 +74,8 @@ export function MyRegistration({
     submissionWindow.isLoading ||
     mySubmission.isLoading ||
     itinerary.isLoading ||
-    results.isLoading;
+    results.isLoading ||
+    discord.isLoading;
   const nextStep =
     myReg && !stepLoading
       ? hackathonNextStep({
@@ -78,6 +87,7 @@ export function MyRegistration({
           submitted: projectSubmitted(mySubmission.data),
           itinerary: itinerary.data,
           resultsPublished: (results.data?.length ?? 0) > 0,
+          discord: discordStep(discord.data),
         })
       : null;
 

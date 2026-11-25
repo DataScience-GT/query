@@ -550,3 +550,43 @@ describe("projectSubmitted", () => {
     expect(projectSubmitted(undefined)).toBe(false);
   });
 });
+
+describe("hackathonNextStep Discord step", () => {
+  it("asks an accepted hacker who has not linked to join the Discord, ahead of the pass", () => {
+    const next = step({
+      now: BEFORE,
+      registrationStatus: "approved",
+      discord: { linked: false },
+    });
+    expect(next).toMatchObject({
+      step: "discord",
+      label: "Join the Hacklytics Discord",
+      href: `/api/discord/connect?hackathon=${HACKATHON.id}&then=invite`,
+    });
+  });
+
+  it("moves on to the pass once linked, or when the feature is off", () => {
+    expect(
+      step({ now: BEFORE, registrationStatus: "approved", discord: { linked: true } })
+        ?.step,
+    ).toBe("pass");
+    expect(
+      step({ now: BEFORE, registrationStatus: "approved", discord: null })?.step,
+    ).toBe("pass");
+  });
+
+  it("never shows it to someone who is not accepted", () => {
+    for (const registrationStatus of ["pending", "waitlisted", "rejected"]) {
+      expect(
+        step({ now: BEFORE, registrationStatus, discord: { linked: false } })?.step,
+      ).not.toBe("discord");
+    }
+  });
+
+  it("drops it once the event is over", () => {
+    expect(
+      step({ now: AFTER, registrationStatus: "approved", discord: { linked: false } })
+        ?.step,
+    ).toBe("status");
+  });
+});
