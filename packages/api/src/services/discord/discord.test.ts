@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { discordConfig, FOOD_GROUPS, foodGroupByKey } from "./config";
-import { pickFoodGroup } from "./food-group";
+import { autoAssignFoodGroups, pickFoodGroup } from "./food-group";
 import { ramadanFlag } from "./link";
 import { signState, verifyState, STATE_TTL_MS } from "./state";
 
@@ -60,6 +60,17 @@ describe("food group choice", () => {
   it("gives every group a stable number 1 to 8", () => {
     expect(FOOD_GROUPS.map((g) => g.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     expect(foodGroupByKey("tulip")?.number).toBe(3);
+  });
+});
+
+describe("autoAssignFoodGroups", () => {
+  it("logs and resolves when the assignment fails, so an acceptance still succeeds", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const db = { transaction: vi.fn().mockRejectedValue(new Error("db down")) };
+    await expect(autoAssignFoodGroups(db as never, "hack-1")).resolves.toBeUndefined();
+    expect(db.transaction).toHaveBeenCalledOnce();
+    expect(log).toHaveBeenCalledOnce();
+    log.mockRestore();
   });
 });
 

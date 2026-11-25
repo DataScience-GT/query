@@ -113,3 +113,26 @@ export async function assignAllFoodGroups(
     return missing.length;
   });
 }
+
+/**
+ * Call after a mutation that can seat people (approved or checked_in) has
+ * committed. Gives every seated participant without a group one, which also
+ * catches anybody accepted before this ran. Never throws: the acceptance has
+ * already happened, and the hub assigns lazily if this missed.
+ */
+export async function autoAssignFoodGroups(
+  db: DrizzleDB,
+  hackathonId: string,
+): Promise<void> {
+  try {
+    await assignAllFoodGroups(db, hackathonId);
+  } catch (error) {
+    // Deliberate operational logging: the only record that an acceptance went
+    // through without the group assignment that should follow it.
+    // oxlint-disable-next-line no-console
+    console.error(
+      `[Food groups] Auto-assign failed for hackathon ${hackathonId}:`,
+      error,
+    );
+  }
+}

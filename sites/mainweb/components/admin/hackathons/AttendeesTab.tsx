@@ -177,9 +177,6 @@ export function AttendeesTab({
   const [selectedAllMatching, setSelectedAllMatching] = useState(false);
 
   const massAccept = trpc.hackathon.sendMassAcceptanceEmails.useMutation();
-  const assignGroups = trpc.hackathon.assignFoodGroups.useMutation({
-    onSuccess: () => void utils.hackathon.adminGetAttendees.invalidate(),
-  });
 
   const stats = {
     total: analytics?.totalRegistrations ?? 0,
@@ -640,18 +637,6 @@ export function AttendeesTab({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => assignGroups.mutate({ hackathonId })}
-            disabled={assignGroups.isPending}
-            className={btnSecondary}
-          >
-            {assignGroups.isPending
-              ? "Assigning…"
-              : assignGroups.isSuccess
-                ? `Assigned ${assignGroups.data.assigned}`
-                : "Assign food groups"}
-          </button>
           <button
             type="button"
             onClick={exportToCSV}

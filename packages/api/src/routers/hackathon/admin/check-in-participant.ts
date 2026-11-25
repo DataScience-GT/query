@@ -10,6 +10,7 @@ import { hackathonParticipants } from "@query/db";
 import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { evictParticipantCaches } from "./seats";
+import { autoAssignFoodGroups } from "../../../services/discord";
 
 /**
  * Checks one accepted participant into one event and, on their first arrival,
@@ -153,6 +154,7 @@ export async function checkInParticipant(
   ctx.cache.delete(`hackathon:${input.hackathonId}:events`);
 
   if (promotedToCheckedIn) {
+    await autoAssignFoodGroups(ctx.db, input.hackathonId);
     evictParticipantCaches(ctx.cache, input.hackathonId, [participant.userId]);
   }
 

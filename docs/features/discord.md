@@ -27,7 +27,7 @@ Eight flower groups, defined in one place: `FOOD_GROUPS` in `packages/api/src/se
 | 7 | Orchid |
 | 8 | Rose |
 
-A participant gets the group with the fewest members in their hackathon so far (ties random). Assignment runs in a transaction that locks the hackathon row, so concurrent assignments stay balanced. It happens lazily the first time an accepted participant's Discord card loads or they link. Organizers can backfill everyone already accepted with "Assign food groups" in the Attendees tab of the hackathon admin.
+A participant gets the group with the fewest members in their hackathon so far (ties random). Assignment runs in a transaction that locks the hackathon row, so concurrent assignments stay balanced. It happens automatically whenever anyone is accepted or checked in (single or bulk status change, acceptance wave, mass acceptance email, event check-in): every accepted participant without a group gets one right after, which also covers people accepted before that existed. If that step fails the acceptance still stands, and the group is assigned the first time the participant's Discord card loads or they link. Existing groups are never changed. There is no admin button.
 
 ## Setup
 
