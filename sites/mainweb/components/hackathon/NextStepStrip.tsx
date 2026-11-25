@@ -14,8 +14,10 @@ export function NextStepStrip({
   step: HackathonNextStep;
   className?: string;
 }) {
+  // The Discord step is an OAuth redirect, not a page: a plain anchor.
+  const Anchor = step.step === "discord" ? "a" : Link;
   return (
-    <Link
+    <Anchor
       href={step.href}
       className={`group flex max-w-xl items-center justify-between gap-4 border-l-2 border-accent pl-4 ${className}`}
     >
@@ -37,6 +39,6 @@ export function NextStepStrip({
         strokeWidth={1.75}
         aria-hidden="true"
       />
-    </Link>
+    </Anchor>
   );
 }

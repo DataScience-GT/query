@@ -1,0 +1,110 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { db } from "@query/db";
+import type { DrizzleDB } from "@query/db";
+import { auth } from "@query/auth";
+import { siteOrigin } from "@query/core/server";
+import {
+  BURST_LIMITS,
+  rateLimitShared,
+  resolveClientIp,
+} from "@query/api/middleware/security";
+import {
+  discordConfig,
+  resolveConnectTarget,
+  signState,
+} from "@query/api/discord";
+import { safeCallback } from "@/lib/safe-callback";
+import {
+  STATE_COOKIE,
+  authSecret,
+  backToPortal,
+  redirectUri,
+} from "@/lib/discord-route";
+
+/**
+ * Starts the Discord link. Also the "Linked Roles Verification URL" in the
+ * Discord developer portal, which sends no query: the edition then defaults to
+ * the live one the signed-in user is accepted to.
+ *
+ *   ?hackathon=ID     optional
+ *   ?ramadan=1|0      optional; absent keeps the stored choice
+ *   ?then=invite      after linking, go to the server invite (default: portal)
+ *
+ * A GET on purpose: it is a top-level navigation to discord.com, which the
+ * CSP's form-action rule does not touch. It changes nothing here; the signed
+ * state is what protects the callback.
+ */
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function GET(request: NextRequest) {
+  const config = discordConfig();
+  const secret = authSecret();
+  if (!config || !secret || !db) {
+    return NextResponse.json({ error: "Not available" }, { status: 404 });
+  }
+
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) {
+    const here = safeCallback(request.nextUrl.pathname + request.nextUrl.search);
+    const login = new URL("/login", siteOrigin());
+    if (here) login.searchParams.set("callbackUrl", here);
+    return NextResponse.redirect(login);
+  }
+
+  const ip = resolveClientIp(request.headers.get("x-forwarded-for"));
+  const limit = await rateLimitShared(
+    `discord-connect:${userId}:${ip}`,
+    BURST_LIMITS.tenPerHour.maxTokens,
+    BURST_LIMITS.tenPerHour.refillRate,
+  );
+  if (!limit.allowed) {
+    return backToPortal(null, { discord: "error", reason: "rate_limited" });
+  }
+
+  const params = request.nextUrl.searchParams;
+  const rawHackathon = params.get("hackathon");
+  const hackathonId =
+    rawHackathon && UUID.test(rawHackathon) ? rawHackathon : null;
+  const target = await resolveConnectTarget(
+    db as DrizzleDB,
+    userId,
+    hackathonId,
+  );
+  if (!target?.hackathon) {
+    return backToPortal(null, { discord: "error", reason: "not_accepted" });
+  }
+
+  const ramadan = params.get("ramadan");
+  const state = signState(
+    {
+      u: userId,
+      h: target.hackathon.id,
+      r: ramadan === "1" ? 1 : ramadan === "0" ? 0 : null,
+      t: params.get("then") === "invite" ? "invite" : "portal",
+    },
+    secret,
+  );
+
+  const authorize = new URL("https://discord.com/oauth2/authorize");
+  authorize.searchParams.set("response_type", "code");
+  authorize.searchParams.set("client_id", config.clientId);
+  authorize.searchParams.set("scope", "identify role_connections.write");
+  authorize.searchParams.set("prompt", "consent");
+  authorize.searchParams.set("redirect_uri", redirectUri());
+  authorize.searchParams.set("state", state);
+
+  const res = NextResponse.redirect(authorize);
+  res.cookies.set(STATE_COOKIE, state, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/api/discord",
+    maxAge: 600,
+  });
+  return res;
+}

@@ -13,7 +13,7 @@ import { PARTICIPANT_STATUSES, buildAttendeeWhere } from "./attendee-where";
 // isAdmin lets a bug tester run every admin read. These two hand over
 // applicants' phones, emergency contacts, citizenship and essays, so bug
 // testers are turned away here rather than shown real people's data.
-const refuseBugTester = (role: string | null | undefined) => {
+export const refuseBugTester = (role: string | null | undefined) => {
   if (isBugTesterRole(role)) {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -154,6 +154,9 @@ export const rosterProcedures = {
             dietaryRestrictions: true,
             emergencyContact: true,
             emergencyPhone: true,
+            discordUsername: true,
+            foodGroup: true,
+            ramadanRoleOptIn: true,
           },
           with: {
             user: {
@@ -278,6 +281,9 @@ export const rosterProcedures = {
           dietaryRestrictions: true,
           emergencyContact: true,
           emergencyPhone: true,
+          discordUsername: true,
+          foodGroup: true,
+          ramadanRoleOptIn: true,
         },
         with: {
           user: { columns: { id: true, name: true, email: true } },
