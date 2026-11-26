@@ -23,6 +23,14 @@ export const MAX_LOCKOUT_HOURS = 24;
 export const GLOBAL_CODES_PER_HOUR = 300;
 /** Row key for the deployment-wide counter; not a valid email address. */
 export const GLOBAL_THROTTLE_KEY = "*global*";
+/**
+ * Of the deployment's hour, what addresses with no account yet may use. Anyone
+ * can ask for a code for an address that does not exist, and the mailbox's
+ * quota is shared, so the rest stays for people who have signed in before.
+ */
+export const NEW_ADDRESS_CODES_PER_HOUR = 200;
+/** Row key for that share of the hour; not a valid email address. */
+export const NEW_ADDRESS_THROTTLE_KEY = "*global-new*";
 
 /**
  * Codes one client network may be sent per hour: an IPv4 /24 or an IPv6 /48,
@@ -82,13 +90,33 @@ export function networkOf(ip: string): string {
 }
 
 /**
+ * Whether an address already has an account. Case-blind, like the sign-in that
+ * finds one; served by user_email_lower_unique_idx.
+ */
+export async function hasAccount(
+  tx: Executor,
+  identifier: string,
+): Promise<boolean> {
+  const res = await tx.execute(sql`
+    SELECT 1 FROM "user" WHERE lower("email") = ${identifier} LIMIT 1
+  `);
+  return res.rows.length > 0;
+}
+
+/**
  * The caps a request for a code spends against besides the address's own and
  * the deployment's: the client's network, when the request carried one, and the
  * address's domain. Keys cannot be a real address, which always has an `@`.
+ *
+ * The domain cap is for addresses with no account. It exists because a
+ * catch-all or a made-up address costs an attacker nothing, and it must not
+ * work the other way round: fake addresses at gatech.edu filling its cap would
+ * otherwise lock out everyone who signs in there by code.
  */
 export function requesterCodeCaps(
   identifier: string,
   clientIp: string | null | undefined,
+  options: { existingUser?: boolean } = {},
 ): { key: string; max: number }[] {
   const caps: { key: string; max: number }[] = [];
   if (clientIp) {
@@ -99,7 +127,7 @@ export function requesterCodeCaps(
   }
   const at = identifier.lastIndexOf("@");
   const domain = at === -1 ? "" : identifier.slice(at + 1).toLowerCase();
-  if (domain) {
+  if (domain && !options.existingUser) {
     caps.push({
       key: `domain:${domain}`,
       max: isLargeDomain(domain)

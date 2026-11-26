@@ -74,6 +74,22 @@ describe("requesterCodeCaps", () => {
     }
   });
 
+  it("leaves the domain cap off an address that already has an account", () => {
+    const keys = requesterCodeCaps("a@gatech.edu", "203.0.113.7", {
+      existingUser: true,
+    }).map((cap) => cap.key);
+
+    expect(keys).toEqual(["ip:203.0.113.0/24"]);
+  });
+
+  it("keeps the domain cap on one that has none", () => {
+    const keys = requesterCodeCaps("a@gatech.edu", "203.0.113.7", {
+      existingUser: false,
+    }).map((cap) => cap.key);
+
+    expect(keys).toEqual(["ip:203.0.113.0/24", "domain:gatech.edu"]);
+  });
+
   it("keeps the domain cap below the deployment-wide one", () => {
     expect(CODES_PER_LARGE_DOMAIN_PER_HOUR).toBeLessThan(300);
     expect(CODES_PER_NETWORK_PER_HOUR).toBeLessThan(300);

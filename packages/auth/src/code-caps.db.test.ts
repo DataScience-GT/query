@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as DbModule from "@query/db";
 import type * as Throttle from "@query/db/services/auth-throttle";
 import type { runCodeRequest as RunCodeRequest } from "./sign-in-attempt";
@@ -33,6 +33,8 @@ type Send = (params: unknown) => Promise<void>;
 const NETWORK_CAP = 40;
 const DOMAIN_CAP = 20;
 const LARGE_DOMAIN_CAP = 120;
+// Of the deployment's 300 an hour, new addresses may use this many.
+const NEW_ADDRESS_CAP = 200;
 
 describe.skipIf(!URL)("email code caps on a real database", () => {
   const suffix = Math.random().toString(36).slice(2, 10);
@@ -55,10 +57,14 @@ describe.skipIf(!URL)("email code caps on a real database", () => {
     "ip:203.0.113.0/24",
     "ip:198.51.100.0/24",
     "domain:gatech.edu",
+    "*global-new*",
   ];
 
   const clean = async () => {
     const { sql } = await import("drizzle-orm");
+    await db().execute(
+      sql`DELETE FROM "user" WHERE "email" LIKE ${`%${suffix}%`}`,
+    );
     await db().execute(
       sql`DELETE FROM "auth_code_throttle"
           WHERE "identifier" LIKE 'ip:100.64.%' OR "identifier" LIKE ${`%${suffix}%`}
@@ -118,6 +124,21 @@ describe.skipIf(!URL)("email code caps on a real database", () => {
       );
     }
   }, 60_000);
+
+  /** Every test starts with the deployment's budget unspent. */
+  beforeEach(async () => {
+    const { sql } = await import("drizzle-orm");
+    await db().execute(
+      sql`DELETE FROM "auth_code_throttle" WHERE "identifier" IN (${throttle.GLOBAL_THROTTLE_KEY}, ${"*global-new*"})`,
+    );
+  });
+
+  /** An address with an account, as a person who has signed in before has. */
+  const withAccount = async (local: string, domain: string) => {
+    const email = `${local}-${suffix}@${domain}`;
+    await db().insert(S.users).values({ id: `caps-${suffix}-${local}`, email });
+    return email;
+  };
 
   /** One code request: from where, for whom. */
   const request = async (clientIp: string, email: string) => {
@@ -190,12 +211,15 @@ describe.skipIf(!URL)("email code caps on a real database", () => {
   it("says so when the deployment-wide cap is spent too", async () => {
     const { sql } = await import("drizzle-orm");
     await db().execute(
-      sql`UPDATE "auth_code_throttle" SET "codes_issued" = ${throttle.GLOBAL_CODES_PER_HOUR}, "issue_window_start" = now() WHERE "identifier" = ${throttle.GLOBAL_THROTTLE_KEY}`,
+      sql`INSERT INTO "auth_code_throttle" ("identifier", "issue_window_start", "codes_issued") VALUES (${throttle.GLOBAL_THROTTLE_KEY}, now(), ${throttle.GLOBAL_CODES_PER_HOUR}) ON CONFLICT ("identifier") DO UPDATE SET "issue_window_start" = now(), "codes_issued" = ${throttle.GLOBAL_CODES_PER_HOUR}`,
     );
     expect(await request("198.51.100.77", `late@global-${suffix}.test`)).toEqual({
       busy: true,
       sent: false,
     });
+    // The shared mailbox has one quota, so people with an account wait too.
+    const real = await withAccount("spent", `school-${suffix}.test`);
+    expect(await request("198.51.100.78", real)).toEqual({ busy: true, sent: false });
   });
 
   it("does not call a code sent when the same address asks again within the minute", async () => {
@@ -215,4 +239,63 @@ describe.skipIf(!URL)("email code caps on a real database", () => {
       sent: false,
     });
   });
+
+  it("does not make people who already have an account wait when fake addresses fill their domain", async () => {
+    const domain = `big-${suffix}.edu`;
+    const real = await withAccount("real", domain);
+    for (let i = 0; i < LARGE_DOMAIN_CAP; i += 1) {
+      expect(
+        (await request(`100.66.${i}.1`, `fake${i}-${suffix}@${domain}`)).busy,
+      ).toBe(false);
+    }
+    // Someone new on that domain is held back...
+    expect(await request("100.66.200.1", `new-${suffix}@${domain}`)).toEqual({
+      busy: true,
+      sent: false,
+    });
+    // ...someone with an account is not, and nor is the next person with one.
+    expect(await request("100.66.201.1", real)).toEqual({ busy: false, sent: true });
+  }, 90_000);
+
+  it("still holds an address with an account to its network", async () => {
+    const real = await withAccount("netcap", `school-${suffix}.test`);
+    const { sql } = await import("drizzle-orm");
+    await db().execute(
+      sql`INSERT INTO "auth_code_throttle" ("identifier", "issue_window_start", "codes_issued") VALUES ('ip:198.51.100.0/24', now(), ${NETWORK_CAP}) ON CONFLICT ("identifier") DO UPDATE SET "issue_window_start" = now(), "codes_issued" = ${NETWORK_CAP}`,
+    );
+
+    expect(await request("198.51.100.9", real)).toEqual({ busy: true, sent: false });
+  });
+
+  it("keeps part of the deployment's hour for people who already have an account", async () => {
+    const real = await withAccount("headroom", `school-${suffix}.test`);
+    for (let i = 0; i < NEW_ADDRESS_CAP; i += 1) {
+      const result = await request(`100.67.${i}.1`, `n${i}@fresh${i}-${suffix}.test`);
+      expect(result.busy).toBe(false);
+    }
+
+    // New addresses have used what they may of the hour.
+    expect(await request("100.67.250.1", `late@fresh-late-${suffix}.test`)).toEqual({
+      busy: true,
+      sent: false,
+    });
+    // The rest is for people who have signed in before.
+    expect(await request("100.67.251.1", real)).toEqual({ busy: false, sent: true });
+    expect(await globalIssued()).toBe(NEW_ADDRESS_CAP + 1);
+  }, 120_000);
+
+  it("spends nothing from either budget on a new address a cap refused", async () => {
+    const domain = `refused-${suffix}.test`;
+    for (let i = 0; i < DOMAIN_CAP; i += 1) {
+      await request(`100.68.${i}.1`, `x${i}@${domain}`);
+    }
+    const spent = await globalIssued();
+
+    expect(await request("100.68.200.1", `over@${domain}`)).toEqual({
+      busy: true,
+      sent: false,
+    });
+
+    expect(await globalIssued()).toBe(spent);
+  }, 60_000);
 });

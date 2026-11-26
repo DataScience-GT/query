@@ -9,7 +9,10 @@ import {
   CODES_PER_IDENTIFIER_PER_HOUR,
   GLOBAL_CODES_PER_HOUR,
   GLOBAL_THROTTLE_KEY,
+  NEW_ADDRESS_CODES_PER_HOUR,
+  NEW_ADDRESS_THROTTLE_KEY,
   clearFailures,
+  hasAccount,
   isLockedOut,
   requesterCodeCaps,
   takeCodeSlot,
@@ -167,12 +170,28 @@ export const authConfig: NextAuthConfig = {
             // still spend the others, and posted repeatedly would shut sign-in
             // off for everyone.
             if (await isLockedOut(tx, identifier)) throw new CodeCapReached();
-            for (const cap of requesterCodeCaps(identifier, currentClientIp())) {
+            // Whether the address has an account decides which caps it meets:
+            // a made-up address costs an attacker nothing, so it answers to
+            // its domain's cap and to a share of the deployment's hour, and a
+            // person who has signed in before does not, however full those are.
+            const existingUser = await hasAccount(tx, identifier);
+            for (const cap of requesterCodeCaps(identifier, currentClientIp(), {
+              existingUser,
+            })) {
               if (!(await takeCodeSlot(tx, cap.key, cap.max)))
                 throw new CodeCapReached();
             }
             if (
               !(await takeCodeSlot(tx, identifier, CODES_PER_IDENTIFIER_PER_HOUR))
+            )
+              throw new CodeCapReached();
+            if (
+              !existingUser &&
+              !(await takeCodeSlot(
+                tx,
+                NEW_ADDRESS_THROTTLE_KEY,
+                NEW_ADDRESS_CODES_PER_HOUR,
+              ))
             )
               throw new CodeCapReached();
             if (!(await takeCodeSlot(tx, GLOBAL_THROTTLE_KEY, GLOBAL_CODES_PER_HOUR)))
