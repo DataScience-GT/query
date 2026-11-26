@@ -1,9 +1,20 @@
 ---
 import MlhBadge from "@query/event-kit/components/MlhBadge.astro";
+import { deadlineStatus, describeMoment } from "@query/event-kit/dates";
 import event from "../event.config";
 import { HeroBed } from "./pixel/GardenBeds";
 
 const units = ["days", "hours", "minutes", "seconds"] as const;
+
+// The countdown counts to the moment hacking begins, and its label says so.
+const hackStartMs = Date.parse(event.hacking.start);
+const hackStart = describeMoment(event.timeZone, hackStartMs);
+
+// The deadline's text is right for the day the site was built; the script at
+// the foot of this file corrects it for the day it is read.
+const closes = event.closesMs === undefined ? null : describeMoment(event.timeZone, event.closesMs);
+const deadline =
+  event.closesMs === undefined ? null : deadlineStatus(event.timeZone, event.closesMs, Date.now());
 ---
 
 <section class="relative flex min-h-[100svh] flex-col">
@@ -56,6 +67,31 @@ const units = ["days", "hours", "minutes", "seconds"] as const;
             See tracks and prizes
           </a>
         </div>
+
+        {/* Next to Apply, where the decision is made: the date, and how long
+            is left. Without JavaScript it shows the day the site was built. */}
+        {closes && deadline && (
+          <p
+            data-deadline
+            data-closes={event.closesMs}
+            data-tz={event.timeZone}
+            class="mt-5 font-sans text-[17px] leading-7 text-ink"
+          >
+            {deadline.open ? (
+              <>
+                Applications close{" "}
+                <time datetime={event.registration.closes}>
+                  {closes.label}, {closes.year}
+                </time>{" "}
+                <span data-deadline-left class="whitespace-nowrap font-medium text-bloom">
+                  ({deadline.left})
+                </span>
+              </>
+            ) : (
+              "Applications closed"
+            )}
+          </p>
+        )}
       </div>
 
       {/* The key art: a flat globe, a ribbon of blossoms across the
@@ -77,19 +113,26 @@ const units = ["days", "hours", "minutes", "seconds"] as const;
           zeros are the static HTML, and the inline script below fills in the
           real numbers while the page is still being parsed, before first
           paint, so the figures never jump from "00" to "112". It then ticks
-          them each second. */}
-      <div class="flex flex-wrap justify-center gap-x-8 max-[340px]:gap-x-4 gap-y-4 lg:grid lg:grid-cols-[auto_auto] lg:self-center lg:justify-self-end lg:pb-10 xl:flex short:pb-4">
-        {units.map((unit) => (
-          <div class="flex flex-col">
-            <span
-              data-countdown-unit={unit}
-              class="font-display text-[2rem] leading-none tabular-nums text-ink-3/40"
-            >
-              00
-            </span>
-            <span class="font-sans text-[13px] text-ink-3 mt-2">{unit}</span>
-          </div>
-        ))}
+          them each second. The label says what they count to; once hacking
+          has begun the script swaps the figures for a line that says so. */}
+      <div data-countdown class="flex flex-col items-center gap-5 lg:self-center lg:justify-self-end lg:items-end lg:pb-10 short:pb-4">
+        <div data-countdown-units class="flex flex-wrap justify-center gap-x-8 max-[340px]:gap-x-4 gap-y-4 lg:grid lg:grid-cols-[auto_auto] xl:flex">
+          {units.map((unit) => (
+            <div class="flex flex-col">
+              <span
+                data-countdown-unit={unit}
+                class="font-display text-[2rem] leading-none tabular-nums text-ink-3/40"
+              >
+                00
+              </span>
+              <span class="font-sans text-[13px] text-ink-3 mt-2">{unit}</span>
+            </div>
+          ))}
+        </div>
+        <p data-countdown-label class="font-sans text-[13px] leading-5 text-ink-3 text-center lg:text-right">
+          <span class="block text-[15px] text-ink-2">until hacking begins</span>
+          {hackStart.weekday}, {hackStart.label} · {hackStart.time} {hackStart.zone}
+        </p>
       </div>
     </div>
   </div>
@@ -103,26 +146,56 @@ const units = ["days", "hours", "minutes", "seconds"] as const;
   </div>
 </section>
 
-<script is:inline define:vars={{ start: event.startMs }}>
+<script is:inline define:vars={{ start: hackStartMs }}>
   {
     const figures = document.querySelectorAll("[data-countdown-unit]");
+    const units = document.querySelector("[data-countdown-units]");
+    const label = document.querySelector("[data-countdown-label]");
     const tick = () => {
       const distance = start - Date.now();
-      const left =
-        distance > 0
-          ? {
-              days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-              hours: Math.floor((distance / (1000 * 60 * 60)) % 24),
-              minutes: Math.floor((distance / (1000 * 60)) % 60),
-              seconds: Math.floor((distance / 1000) % 60),
-            }
-          : null;
+      if (distance <= 0) {
+        // Hacking has begun: a count to a moment in the past would say so no longer.
+        clearInterval(timer);
+        units.hidden = true;
+        label.textContent = "Hacking has begun";
+        label.classList.replace("text-ink-3", "text-ink-2");
+        label.classList.replace("text-[13px]", "text-[15px]");
+        return;
+      }
+      const left = {
+        days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((distance / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((distance / (1000 * 60)) % 60),
+        seconds: Math.floor((distance / 1000) % 60),
+      };
       figures.forEach((figure) => {
-        figure.textContent = String((left ? left[figure.dataset.countdownUnit] : 0)).padStart(2, "0");
+        figure.textContent = String(left[figure.dataset.countdownUnit]).padStart(2, "0");
         figure.classList.replace("text-ink-3/40", "text-ink");
       });
     };
+    const timer = setInterval(tick, 1000);
     tick();
-    setInterval(tick, 1000);
+  }
+</script>
+
+<script>
+  import { deadlineStatus } from "@query/event-kit/dates";
+
+  // Days left change at midnight in Atlanta, and the page may have been built
+  // days ago. Recount for the day it is read, and once the deadline has
+  // passed say so instead.
+  const deadline = document.querySelector<HTMLElement>("[data-deadline]");
+  if (deadline) {
+    const status = deadlineStatus(
+      deadline.dataset.tz ?? "",
+      Number(deadline.dataset.closes),
+      Date.now(),
+    );
+    if (!status.open) {
+      deadline.textContent = "Applications closed";
+    } else {
+      const left = deadline.querySelector("[data-deadline-left]");
+      if (left) left.textContent = `(${status.left})`;
+    }
   }
 </script>

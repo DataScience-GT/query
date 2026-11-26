@@ -30,6 +30,7 @@
     "playwright": "1.64.1",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:astro"
+    "vite": "catalog:astro",
+    "vitest": "catalog:"
   }
 }

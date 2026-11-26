@@ -164,3 +164,89 @@ export function describeRail(
     to: (wallMs(wallClock(timeZone, hackingEndMs)) - midnight) / 36e5,
   };
 }
+
+/** One instant as the venue's clock and calendar show it. */
+export interface Moment {
+  /** Three-letter weekday: "Fri". */
+  weekday: string;
+  /** Short month and day: "Feb 26". */
+  label: string;
+  /** Full month and day: "February 26". */
+  long: string;
+  year: number;
+  /** "9:00 PM" */
+  time: string;
+  /** The zone's short name where the venue is: "EST". */
+  zone: string;
+}
+
+export function describeMoment(timeZone: string, ms: number): Moment {
+  const { year, month, day } = wallClock(timeZone, ms);
+  const utc = Date.UTC(year, month - 1, day);
+  const part = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat("en-US", { ...options, timeZone })
+      .format(ms)
+      // Newer ICU puts a narrow no-break space before AM and PM.
+      .replace(/ /g, " ");
+  const zone = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "short" })
+    .formatToParts(ms)
+    .find((p) => p.type === "timeZoneName")?.value;
+  return {
+    weekday: nameOf({ weekday: "short" }, utc),
+    label: nameOf({ month: "short", day: "numeric" }, utc),
+    long: nameOf({ month: "long", day: "numeric" }, utc),
+    year,
+    time: part({ hour: "numeric", minute: "2-digit" }),
+    zone: zone ?? timeZone,
+  };
+}
+
+/**
+ * Calendar days from `nowMs` to `targetMs` on the venue's calendar: 0 on the
+ * target's own day, 1 the day before, negative after it. Dates are compared,
+ * not hours, so a day with a clock change in it still counts as one, and
+ * 9 PM the evening before is a day left, not none.
+ */
+export function calendarDaysUntil(timeZone: string, targetMs: number, nowMs: number): number {
+  const day = (ms: number) => {
+    const c = wallClock(timeZone, ms);
+    return Date.UTC(c.year, c.month - 1, c.day);
+  };
+  return Math.round((day(targetMs) - day(nowMs)) / DAY_MS);
+}
+
+/** Whether a deadline is still open, and if so how to say how long is left. */
+export type DeadlineStatus =
+  | { open: false }
+  | {
+      open: true;
+      /** Calendar days left; 0 on the last day. */
+      days: number;
+      /** "56 days left", "1 day left", "last day". */
+      left: string;
+    };
+
+/** Open until the instant `closesMs`, counting days on the venue's calendar. */
+export function deadlineStatus(timeZone: string, closesMs: number, nowMs: number): DeadlineStatus {
+  if (nowMs >= closesMs) return { open: false };
+  const days = calendarDaysUntil(timeZone, closesMs, nowMs);
+  const left = days === 0 ? "last day" : `${days} ${days === 1 ? "day" : "days"} left`;
+  return { open: true, days, left };
+}
+
+/**
+ * Which day of the schedule to open on: today's while the event is on, and
+ * the first day otherwise. `keys` are the days' three-letter weekdays, in
+ * order. Today is the venue's today, so a visitor in another zone sees the
+ * day the hackers are in.
+ */
+export function defaultDayIndex(
+  keys: readonly string[],
+  timeZone: string,
+  startMs: number,
+  endMs: number,
+  nowMs: number,
+): number {
+  if (nowMs < startMs || nowMs >= endMs) return 0;
+  return Math.max(0, keys.indexOf(describeMoment(timeZone, nowMs).weekday));
+}

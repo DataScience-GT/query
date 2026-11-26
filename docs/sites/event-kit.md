@@ -11,7 +11,7 @@ The kit is everything a Hacklytics event site has in common: the page shell, nav
 | `defineEvent` and the `EventConfig` types, with every date label computed from ISO strings in the config's `timeZone` | `src/event.config.ts`: the dates, links and copy |
 | `Layout.astro`: `<head>`, meta, Open Graph and Twitter tags, the JSON-LD Event, the no-flash theme script, the navbar and footer | `src/styles/globals.css`: the palette, the two font families, the art's CSS |
 | `Navbar`, `Footer`, `MlhBadge`, `ThemeToggle` and their scripts (menu, hide on scroll, theme switch, service worker registration) | The hero, the 404 body and anything else only one edition has |
-| The sections `About`, `Tracks`, `PrizeAndSpeaker`, `Schedule`, `Judges`, `Sponsors`, `FAQ` and the `JudgeInterestForm` island, composed by `HomeSections.astro` | The art drawn into the sections: sprites, plots, the globe, the garden |
+| The sections `Theme`, `About`, `Tracks`, `PrizeAndSpeaker`, `Schedule`, `Judges`, `Volunteers`, `Sponsors`, `FAQ` and the `JudgeInterestForm` island, composed by `HomeSections.astro` | The art drawn into the sections: sprites, plots, the globe, the garden |
 | `styles.css`: the measure, section titles, buttons, links, the badge, the theme toggle's icon swap, and the Tailwind color tokens | `public/`: favicons, the share image, the MLH badge, fonts, `sw.js` |
 | `data-bloom` and `data-bloom-watch` markers on the track row and the schedule rail | The script that flips those markers when the row is in view (`src/scripts/bloom.ts`) |
 
@@ -22,10 +22,11 @@ The kit is everything a Hacklytics event site has in common: the page shell, nav
 | Path | Import | What |
 | --- | --- | --- |
 | `src/config.ts` | `@query/event-kit` | `defineEvent` and the types |
-| `src/dates.ts` | (internal) | Date labels, day columns and schedule rail positions |
+| `src/dates.ts` | `@query/event-kit/dates` | Date labels, day columns, schedule rail positions, calendar-day counts, the application deadline and which schedule day to open on |
 | `src/components/*.astro`, `*.tsx` | `@query/event-kit/components/<File>` | Layout, chrome and sections |
 | `src/styles/kit.css` | `@query/event-kit/styles.css` | Structural CSS and color tokens |
-| `src/scripts/*.ts` | (bundled by the components) | Navbar, theme toggle, service worker |
+| `src/scripts/*.ts` | (bundled by the components) | Navbar, theme toggle, service worker, schedule day tabs |
+| `src/tabs.ts` | (internal) | Which tab an arrow, Home or End key moves to |
 | `src/nav.ts` | (internal) | The section ids and labels the navbar and footer link to |
 
 The package has no `sideEffects` field on purpose. The components load their scripts with a bare `import "../scripts/navbar"`, and a `sideEffects: false` package lets the bundler drop that import, which leaves the navbar and theme toggle dead with no error.
@@ -63,7 +64,9 @@ A new edition does not start by hand: `pnpm turbo gen hacklytics` makes the site
 The kit never imports a site's art. It takes it two ways.
 
 - **Astro slots on `Layout`.** `head` for extra `<head>` tags, `menu-art` for the art at the foot of the mobile menu, `footer-art` for the art that closes the home page, and the default slot for the page. Hydrated islands go in a slot like any other child.
-- **React components on `HomeSections`.** `art` takes `track` (receives `{ track, index }`, drawn in the cell beside each track), `railStart` and `railEnd` (the two ends of the schedule rail), and `judges` and `sponsors` (the plot under each title). Each is rendered at build time, with no hydration. A section without its art lays out the same, with an empty cell.
+- **React components on `HomeSections`.** `art` takes `theme` (the picture beside the theme block), `track` (receives `{ track, index }`, drawn in the cell above each track's words), `railStart` and `railEnd` (the two ends of the schedule rail), `judges`, `volunteers` and `sponsors` (the plot under each title). Each is rendered at build time, with no hydration. A section without its art lays out the same, with an empty cell.
+
+The schedule shows one day at a time, as tabs under the rail. They are progressive enhancement: the page is built with the tabs hidden and every day showing, and `scripts/schedule-days.ts` turns that into an ARIA tablist (arrow keys, Home and End, `aria-selected`, `aria-controls`) that opens on today's day while the event is on and on the first day otherwise. With no JavaScript the days stay side by side from md.
 
 The boxes that hold art set `--bed: 1`, doubled from `sm` or `md`, so a sprite scales in whole pixels. Art that wants to follow that reads `var(--bed, 1)`.
 
@@ -83,9 +86,12 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `hackHours` | `36` | Copy, the rail's label |
 | `schedule.rail` | `{ span: 72, from: 21, to: 57 }` | Schedule rail positions |
 | `startMs`, `endMs` | epoch milliseconds | Countdown, season |
+| `closes`, `closesMs` | `{ weekday: "Thu", label: "Jan 20", long: "January 20", year: 2027, time: "11:59 PM", zone: "EST" }`, epoch milliseconds. Only when `registration.closes` is set | Copy ("Apply by January 20"), the hero's deadline |
 | `links.portalInterest`, `.hackerPortal`, `.judgeSignIn`, `.judgeApply` | `{portal}/login?callbackUrl=...`; `hackerPortal` is `{portal}{portalPath}` and `portalInterest` signs in to `portalPath` | Buttons, copy |
 
 `hackHours` is elapsed time, and the rail is clock time, so across a daylight-saving change a window that reads 9 PM to 9 AM is 35 hours long and still ends at hour 57.
+
+`@query/event-kit/dates` exports the date helpers a site script can use in the browser: `describeMoment` (an instant as the venue's clock shows it), `calendarDaysUntil` (calendar days, not 24-hour blocks, so a day with a clock change in it is still one day) and `deadlineStatus` (open or closed, and how many days are left). 2027's hero uses them to count days to the application deadline and, once it has passed, to say applications are closed.
 
 ## EventConfig
 
@@ -105,22 +111,23 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `organizer` | `{ name }` | Footer copyright, `author`, JSON-LD organizer |
 | `contactEmail` | string | Footer, form errors |
 | `links` | `{ portal, portalPath, devPortal?, mlh, devpost?, codeOfConduct?, social[] }` | `portal` is an origin with no trailing slash. `portalPath` is the edition's page on the portal, `/hacklytics` for 2027: a leading slash, no trailing one. `devPortal` is a local portal's origin: on a loopback host the judge-interest form posts there instead of to `portal`, so trying it in dev never touches the real list (2027 sets `http://localhost:3001`). `devpost` adds a footer link. `codeOfConduct` is `{ label, href }`, a footer link with that text; a site that also links it from the FAQ reuses its own constant. `social` is `{ label, href }` in footer order |
-| `registration` | `{ url, label, ariaLabel?, availability, validFrom, price, currency }` | One URL for every sign-up button and the JSON-LD offer. `availability` is `PreOrder`, `InStock` or `SoldOut`. `price` is a decimal string and `currency` an ISO 4217 code: `"0"` and `USD` for a free event |
+| `registration` | `{ url, label, ariaLabel?, availability, validFrom, closes?, price, currency }` | One URL for every sign-up button and the JSON-LD offer. `closes` is an ISO string with an offset: when applications close. It is optional; without it the page shows no deadline. `availability` is `PreOrder`, `InStock` or `SoldOut`. `price` is a decimal string and `currency` an ISO 4217 code: `"0"` and `USD` for a free event |
 
 **`EventContent`**, returned by `content(derived)`
 
 | Field | Type |
 | --- | --- |
 | `seo` | `{ tagline, description, shareDescription, summary, eventDescription, keywords[], url, image, twitter }` |
-| `about` | `{ heading, body: Rich[] }`: the first paragraph leads, the rest are secondary |
+| `about` | `{ heading, body: Rich[], theme?: Rich[] }`: the first paragraph leads, the rest are secondary. `theme` is what the theme is and why the edition has it: a block under the hero titled with `theme.name`, drawn only when it is set |
 | `tracks` | `{ title, description }[]` |
 | `prizes` | `{ intro, items: { label, detail }[] }` |
 | `speakers` | `{ name, title?, company? }[]`: a Speakers block under the prizes when there are any |
 | `schedule` | `{ intro, board: { when, event, accent? }[] }`: `when` starts with a day's three-letter weekday |
 | `judges` | `{ body: Rich[], people: { name, title?, company? }[] }`: the apply button follows `body`, `people` follow the button |
+| `volunteers` | `{ body: Rich[] }`, optional: a Volunteers section after Judges (`#volunteers`, not in the nav), drawn only when set. The first paragraph leads |
 | `sponsors` | `{ body: Rich[], tiers: { name, sponsors: { name, url?, logo? }[] }[] }`: logos sit on a `--logo-tile` tile in either theme |
 | `faqs` | `{ q, a: Rich }[]`, split in two columns at the halfway point |
-| `footer` | `{ headline, note? }` |
+| `footer` | `{ headline, note?, closed?: { headline, note?, cta: { text, href, external? } } }`. `closed` is what the footer says once `registration.closes` has passed, in place of the headline, note and Apply button: the Apply link has gone stale, so `cta` points somewhere else (2027: the schedule). It is decided when the site is built and again when the page loads, with the same `deadlineStatus` as the hero. Needs `registration.closes` |
 
 `Rich` is a string, or an array of strings and `{ text, href, external? }` links in reading order. Write the space beside a link inside the neighbouring string.
 
@@ -132,6 +139,8 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 - a schedule row starts with a weekday the event does not run on
 - two tracks, prizes or FAQs share a title or question
 - `registration.price` is not a decimal, or `registration.currency` is not a three-letter code
+- `registration.closes` is not after `registration.validFrom`, or is after `start`
+- `footer.closed` is set without `registration.closes`
 - `links.portal`, `links.devPortal` or `seo.url` is not a bare origin, `links.portalPath` is not a slash-led path, a `ground` color is not `#rrggbb`, or `theme.storageKey` has characters the inline script cannot hold
 
 ## Theme contract

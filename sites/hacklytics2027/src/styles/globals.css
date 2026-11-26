@@ -2,8 +2,10 @@
    globe on black with a pale-pink ribbon of cherry blossoms across it.
    Three colours come off that art (sampled from the PNG): ribbon pink
    #ffbfcf, sage #96bf98 and the dark navy outline #262731.
-   Pink is the one accent and only means "act here" or "in bloom"; sage is the
-   soil under the track plants and nothing else; navy is the hairline rule.
+   Pink is the one UI accent and only means "act here"; sage is the soil under
+   the track plants and nothing else; navy is the hairline rule. Colour lives
+   in the flowers, which open in the portal's eight tints (pixel/tints.ts),
+   never in the chrome.
    The ground is near-black with a cool cast. The light theme keeps the same
    hues but deepens each one until it reads on a pale ground; the art's own
    pastels do not.

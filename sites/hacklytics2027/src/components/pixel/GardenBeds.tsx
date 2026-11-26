@@ -49,14 +49,14 @@ export function HeroBed({ start, startLabel }: BedProps & { startLabel: string }
 
 export function MenuBed({ start }: BedProps) {
   const inBloom = useInBloom(start);
-  return <PixelBed plants={withBlooms(MENU_BED, bloomSet(inBloom))} soil />;
+  return <PixelBed plants={withBlooms(MENU_BED, bloomSet(inBloom), 5)} soil />;
 }
 
 export function FooterBed({ start }: BedProps) {
   const inBloom = useInBloom(start);
   return (
     <PixelBed
-      plants={withBlooms(FOOTER_BED, bloomSet(inBloom))}
+      plants={withBlooms(FOOTER_BED, bloomSet(inBloom), 3)}
       className="pt-6"
       plantable
       soil

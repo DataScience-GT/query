@@ -342,3 +342,83 @@ describe("defineEvent rejects editions that cannot render correctly", () => {
     ).toThrow(/theme.ground.light/);
   });
 });
+
+describe("defineEvent application deadline", () => {
+  const registration = core.registration;
+  const closes = "2027-01-20T23:59:00-05:00";
+
+  it("has no deadline unless the config gives one", () => {
+    const event = build();
+    expect(event.closesMs).toBeUndefined();
+    let seen: unknown = "unset";
+    defineEvent({
+      ...core,
+      content: ({ closes }) => {
+        seen = closes;
+        return content;
+      },
+    });
+    expect(seen).toBeUndefined();
+  });
+
+  it("keeps the instant and hands the copy its date on the venue's calendar", () => {
+    let seen: unknown;
+    const event = defineEvent({
+      ...core,
+      registration: { ...registration, closes },
+      content: ({ closes }) => {
+        seen = closes;
+        return content;
+      },
+    });
+    expect(event.closesMs).toBe(Date.parse(closes));
+    expect(seen).toMatchObject({ label: "Jan 20", long: "January 20", year: 2027 });
+  });
+
+  it("needs a timestamp with an offset", () => {
+    expect(() =>
+      build({ registration: { ...registration, closes: "2027-01-20T23:59:00" } }),
+    ).toThrow(/registration.closes/);
+  });
+
+  describe("the footer once applications have closed", () => {
+    const closed = {
+      headline: "Applications are closed",
+      cta: { text: "See the schedule", href: "/#schedule" },
+    };
+
+    it("carries the closed copy through", () => {
+      const event = build(
+        { registration: { ...registration, closes } },
+        { footer: { headline: "Applications are open", closed } },
+      );
+      expect(event.footer.closed).toEqual(closed);
+    });
+
+    it("needs a deadline to close on, or the copy would never show", () => {
+      expect(() => build({}, { footer: { headline: "Soon", closed } })).toThrow(
+        /footer.closed needs registration.closes/,
+      );
+    });
+  });
+
+  it("closes after it opens and no later than the event starts", () => {
+    expect(() =>
+      build({ registration: { ...registration, closes: "2026-07-31T00:00:00-04:00" } }),
+    ).toThrow(/after registration.validFrom/);
+    expect(() =>
+      build({ registration: { ...registration, closes: "2027-02-26T17:00:01-05:00" } }),
+    ).toThrow(/must not be after start/);
+  });
+});
+
+describe("defineEvent volunteers", () => {
+  it("has no volunteers unless the config gives some", () => {
+    expect(build().volunteers).toBeUndefined();
+  });
+
+  it("carries the volunteers copy through", () => {
+    const volunteers = { body: ["Help out.", ["Email ", { text: "us", href: "mailto:a@b.c" }, "."]] } as const;
+    expect(build({}, { volunteers }).volunteers).toEqual(volunteers);
+  });
+});
