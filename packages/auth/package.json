@@ -19,7 +19,7 @@
     "@query/db": "workspace:*",
     "drizzle-orm": "catalog:",
     "next-auth": "catalog:",
-    "nodemailer": "^10.4.0"
+    "nodemailer": "^10.6.1"
   },
   "peerDependencies": {
     "next": ">=15.0.0"
