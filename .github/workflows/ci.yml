@@ -96,6 +96,24 @@ jobs:
 
       - uses: ./.github/actions/install
 
+      # Encoding the photos is the slowest part of the build, about 50s. They
+      # change only when a source photo or the encoder does, so the key is a
+      # hash of those. No restore-keys on purpose: an older set would be marked
+      # fresh below and a changed photo would ship stale.
+      - name: Restore encoded photos
+        id: photos
+        uses: actions/cache@v6
+        with:
+          path: sites/mainweb/public/photos
+          key: photos-${{ hashFiles('sites/mainweb/assets/images/photos/*', 'sites/mainweb/image-sizes.mjs', 'sites/mainweb/scripts/build-photos.ts') }}
+
+      # build-photos.ts skips a file that is newer than its source. The sources
+      # were just checked out, so restored files would look older and be
+      # encoded again.
+      - name: Mark restored photos fresh
+        if: steps.photos.outputs.cache-hit == 'true'
+        run: find sites/mainweb/public/photos -type f -exec touch {} +
+
       - name: Build
         run: pnpm turbo run build --filter=!hacklytics2026 --no-cache
 
