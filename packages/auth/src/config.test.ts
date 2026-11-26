@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
   caps: {} as Record<string, number>,
   inserts: 0,
   dbCalls: 0,
+  cleared: [] as string[],
 }));
 
 vi.mock("@query/core", () => ({ NOREPLY_EMAIL: "n@x.test", ORG_NAME_SPOKEN: "Org" }));
@@ -21,6 +22,9 @@ vi.mock("@query/db/services/auth-throttle", async (importOriginal) => ({
   GLOBAL_CODES_PER_HOUR: 300,
   GLOBAL_THROTTLE_KEY: "*global*",
   isLockedOut: async () => false,
+  clearFailures: async (_tx: unknown, identifier: string) => {
+    state.cleared.push(identifier);
+  },
   takeCodeSlot: async (
     tx: { slots: Record<string, number> },
     key: string,
@@ -113,6 +117,29 @@ describe("email code send throttle", () => {
     state.committed = { "*global*": 300 };
     await send("b@x.test");
     expect(state.committed["b@x.test"]).toBeUndefined();
+  });
+});
+
+describe("a successful sign-in", () => {
+  beforeEach(() => {
+    state.cleared = [];
+  });
+
+  it("lifts the address's lock on code guesses, whichever way it signed in", async () => {
+    for (const provider of ["google", "discord"]) {
+      await onSignIn({
+        user: { id: "u1", email: " Mixed.Case@X.test ", name: "M" },
+        account: { provider },
+      });
+    }
+
+    expect(state.cleared).toEqual(["mixed.case@x.test", "mixed.case@x.test"]);
+  });
+
+  it("clears nothing for a sign-in that carries no address", async () => {
+    await onSignIn({ user: { id: "u1", email: undefined }, account: {} });
+
+    expect(state.cleared).toEqual([]);
   });
 });
 

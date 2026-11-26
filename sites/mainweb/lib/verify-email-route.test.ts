@@ -18,6 +18,7 @@ vi.mock("@query/db/services/auth-throttle", () => ({
   recordFailure: async () => {
     state.failures += 1;
   },
+  clearFailures: async () => undefined,
 }));
 
 vi.mock("@query/db", () => {

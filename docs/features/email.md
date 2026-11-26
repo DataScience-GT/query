@@ -38,6 +38,8 @@ The email sign-in code is sent by the NextAuth Nodemailer provider in `packages/
 
 Codes are capped per hour in `auth_code_throttle`, in the order a request meets them: the client's network (an IPv4 /24 or IPv6 /64, 40), the address's domain (20, or 120 for any `.edu` and the big mail providers), the address (5), then the deployment (300). A refused cap rolls back the slots already taken. Only the first caps are about who is asking, so one client reaches its limit before it can spend what everyone else needs. The network comes from the route (`runCodeRequest`, using `resolveClientIp` and `TRUSTED_PROXY_HOPS`), not from a header the caller can set. When any cap refuses, the route answers 429 with the error `CodesBusy` and `/login` says email codes are busy and offers Google or Discord, instead of reporting a code sent.
 
+Guessing is bounded per address, in the same table. A code survives 5 wrong guesses, and 20 wrong guesses across reissued codes lock the address out of `/api/auth/verify-email` and of new codes: first for 15 minutes, then twice as long each time it comes round again, to a day. Failures count afresh after each lock, so the guesses an address allows in a day stay few, and a code is still 6 digits. Anyone can ask for a code for any address and guess at it, so the lock must not outlast the guesser's effort by a day: it ends by itself, and a successful sign-in by any method (the right code, or the Google or Discord sign-in event) clears it and starts the backoff over (`clearFailures`). While an address is locked, `/login` says email codes are busy, as it does for the other caps.
+
 ## Fan-out
 
 `packages/api/src/services/fanout.ts`.

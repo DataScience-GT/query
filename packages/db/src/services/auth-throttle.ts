@@ -6,8 +6,15 @@ import { sql } from "drizzle-orm";
 
 /** Codes one address may be sent per hour. */
 export const CODES_PER_IDENTIFIER_PER_HOUR = 5;
-/** Wrong guesses one address absorbs per 24 hours, across reissued codes. */
-export const FAILURES_PER_IDENTIFIER_PER_DAY = 20;
+/**
+ * Wrong guesses one address absorbs, across reissued codes, before it is locked
+ * out of guessing. They count within 24 hours and start again after a lock.
+ */
+export const FAILURES_BEFORE_LOCKOUT = 20;
+/** How long the first lock lasts. Each one after it lasts twice as long. */
+export const FIRST_LOCKOUT_MINUTES = 15;
+/** The longest a lock lasts, however many came before it. */
+export const MAX_LOCKOUT_HOURS = 24;
 /**
  * Code emails the whole deployment sends per hour. A loop over many addresses
  * would otherwise drain the SMTP quota one address at a time; 300 is well above
@@ -135,22 +142,28 @@ export async function takeCodeSlot(
   return res.rows.length > 0;
 }
 
-/** True once an address has used up its failed guesses for the day. */
+/** True while an address is locked out of guessing at its codes. */
 export async function isLockedOut(
   tx: Executor,
   identifier: string,
 ): Promise<boolean> {
   const res = await tx.execute(sql`
     SELECT 1 FROM "auth_code_throttle"
-    WHERE "identifier" = ${identifier}
-      AND "failure_window_start" > now() - interval '24 hours'
-      AND "failures" >= ${FAILURES_PER_IDENTIFIER_PER_DAY}
+    WHERE "identifier" = ${identifier} AND "locked_until" > now()
     LIMIT 1
   `);
   return res.rows.length > 0;
 }
 
-/** Charges one failed guess to the address, whichever code it was aimed at. */
+/**
+ * Charges one failed guess to the address, whichever code it was aimed at.
+ * Anyone can ask for a code for any address and then guess at it, so a lock
+ * that stays a day lets a stranger keep the owner out. This one starts at
+ * FIRST_LOCKOUT_MINUTES and doubles each time it comes round again, to
+ * MAX_LOCKOUT_HOURS, and clearFailures ends it when the owner signs in some
+ * other way. Failures count afresh after each lock, so the guesses an address
+ * gets in a day are still bounded: 20 at a time, further apart each time.
+ */
 export async function recordFailure(
   tx: Executor,
   identifier: string,
@@ -165,5 +178,33 @@ export async function recordFailure(
       "failures" = CASE
         WHEN t."failure_window_start" < now() - interval '24 hours' THEN 1
         ELSE t."failures" + 1 END
+  `);
+  // A second statement reads the count the first one left: a row that reached
+  // the cap is locked, and the next lock lasts twice as long as this one.
+  await tx.execute(sql`
+    UPDATE "auth_code_throttle" SET
+      "locked_until" = now() + least(
+        interval '1 minute' * ${FIRST_LOCKOUT_MINUTES}::int * power(2, "lockouts"),
+        interval '1 hour' * ${MAX_LOCKOUT_HOURS}::int
+      ),
+      "lockouts" = least("lockouts" + 1, 16),
+      "failures" = 0,
+      "failure_window_start" = now()
+    WHERE "identifier" = ${identifier} AND "failures" >= ${FAILURES_BEFORE_LOCKOUT}
+  `);
+}
+
+/**
+ * Forgets an address's wrong guesses and any lock, and starts the backoff over.
+ * For a successful sign-in by any method: the person who owns the address is in.
+ */
+export async function clearFailures(
+  tx: Executor,
+  identifier: string,
+): Promise<void> {
+  await tx.execute(sql`
+    UPDATE "auth_code_throttle"
+    SET "failures" = 0, "lockouts" = 0, "locked_until" = NULL
+    WHERE "identifier" = ${identifier}
   `);
 }

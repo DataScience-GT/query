@@ -9,6 +9,7 @@ import {
   CODES_PER_IDENTIFIER_PER_HOUR,
   GLOBAL_CODES_PER_HOUR,
   GLOBAL_THROTTLE_KEY,
+  clearFailures,
   isLockedOut,
   requesterCodeCaps,
   takeCodeSlot,
@@ -285,6 +286,14 @@ export const authConfig: NextAuthConfig = {
     // granted must never block the sign-in.
     async signIn({ user }) {
       if (!db || !user?.id || !user.email) return;
+      // Someone who got in this way owns the address, so guesses at its code
+      // by anyone else stop counting against them. Same spelling the code
+      // route keys its rows on.
+      try {
+        await clearFailures(db, user.email.normalize("NFKC").toLowerCase().trim());
+      } catch {
+        // Nothing here may break sign-in either.
+      }
       try {
         await linkPaidPaymentByVerifiedEmail(db, {
           userId: user.id,

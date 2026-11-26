@@ -7,6 +7,7 @@ This page is the map of controls already in the product. It is not a pentest rep
 - Database sessions when Postgres is available; 30-day max age
 - Google and Discord use PKCE + state. Do not set `checks: []`
 - Email codes: CSPRNG 6-digit, 10-minute TTL, previous codes for that identifier deleted
+- Wrong guesses at an email code lock the address out of code sign-in for 15 minutes, doubling each time to 24 hours; any successful sign-in clears it
 - Email code requests are capped in the database per client network, per email domain, per address and for the whole deployment. A request any cap refuses is answered as busy, never as sent (see [email](../features/email.md#sign-in-codes-are-separate))
 - `allowDangerousEmailAccountLinking` is on so Google/Discord can attach to an existing verified email. That is why CSRF on the OAuth callback must stay on, and why Discord sign-in is refused unless Discord marks the email `verified`
 - Redirect callback only allows same-origin URLs
