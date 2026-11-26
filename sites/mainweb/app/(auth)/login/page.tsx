@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { auth, discordLoginEnabled } from "@query/auth";
 import { appRouter, createContext } from "@query/api";
 import { safeCallback } from "@/lib/safe-callback";
-import { pageDek, pageTitle } from "@query/ui/classes";
+import Image from "next/image";
+import { mastRule, pageDek, pageTitle } from "@query/ui/classes";
+import logo from "@/assets/images/dsgt/apple-touch-icon.png";
 import LoginActions from "./LoginActions";
 
 export const metadata = { title: "Sign in" };
@@ -56,7 +58,21 @@ export default async function LoginPage({
     <main className="min-h-[calc(100vh-4rem)] flex items-center px-5 sm:px-8 md:px-12">
       <div className="mx-auto grid w-full max-w-4xl grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 py-10 lg:py-14 items-center">
         <div>
-          <h1 className={pageTitle}>Sign in</h1>
+          <div className={`flex items-center gap-3 ${mastRule}`}>
+            <Image
+              src={logo}
+              alt=""
+              width={32}
+              height={32}
+              className="h-8 w-8 shrink-0 object-contain"
+            />
+            <p className="text-[13px] font-semibold text-[var(--text-primary)]">
+              DS@GT
+            </p>
+          </div>
+          <h1 className={`mt-10 ${pageTitle}`}>
+            Query<span className="text-accent">.</span>
+          </h1>
           <p className={pageDek}>
             The portal for Data Science at Georgia Tech, for members, hackers,
             judges and volunteers. No membership is needed to apply to a

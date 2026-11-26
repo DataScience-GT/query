@@ -63,7 +63,8 @@ describe("login page", () => {
 
   it("has one heading and no hackathon variant", async () => {
     const html = await render("/hacklytics");
-    expect(html).toContain(">Sign in</h1>");
+    expect(html).toMatch(/>Query<span[^>]*>\.<\/span><\/h1>/);
+    expect(html).toContain("DS@GT");
     expect(html).toContain("No membership is needed to apply to a hackathon");
     expect(html).not.toContain("For hackers");
     expect(html).not.toContain(">Hacklytics</h1>");
