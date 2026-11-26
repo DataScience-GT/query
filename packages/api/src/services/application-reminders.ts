@@ -30,7 +30,7 @@ export const REMINDER_AFTER_MS = 3 * DAY;
  * sign-in codes and acceptances and caps out near 500 a day, and a draft left
  * over from one run is picked up by the next.
  */
-export const REMINDER_BATCH = 200;
+export const REMINDER_BATCH = 100;
 
 /** Mailed at once. The mailer pools its connections; this keeps a run well inside a request. */
 const SEND_CONCURRENCY = 10;
