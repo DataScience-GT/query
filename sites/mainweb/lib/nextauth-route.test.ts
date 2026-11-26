@@ -4,8 +4,10 @@ import type { NextRequest } from "next/server";
 const state = vi.hoisted(() => ({
   allowed: true,
   busy: false,
+  linkOnly: false,
   ranFrom: null as string | null,
   posts: 0,
+  cookie: null as string | null,
 }));
 
 vi.mock("@query/core/server", () => ({
@@ -19,6 +21,7 @@ vi.mock("@query/auth", () => ({
       state.posts += 1;
       return new Response(JSON.stringify({ url: "https://query.example/verify" }), {
         status: 200,
+        headers: state.cookie ? { "set-cookie": state.cookie } : undefined,
       });
     },
   },
@@ -26,7 +29,11 @@ vi.mock("@query/auth", () => ({
   // reports whether a cap kept the code back.
   runCodeRequest: async (ip: string, handle: () => Promise<Response>) => {
     state.ranFrom = ip;
-    return { response: await handle(), busy: state.busy };
+    return {
+      response: await handle(),
+      busy: state.busy,
+      linkOnly: state.linkOnly,
+    };
   },
 }));
 
@@ -51,6 +58,7 @@ describe("POST /api/auth/signin/nodemailer", () => {
   beforeEach(() => {
     state.allowed = true;
     state.busy = false;
+    state.linkOnly = false;
     state.ranFrom = null;
     state.posts = 0;
   });
@@ -70,6 +78,23 @@ describe("POST /api/auth/signin/nodemailer", () => {
     // next-auth/react reads `error` off the url it is given.
     const { url } = (await res.json()) as { url: string };
     expect(new URL(url).searchParams.get("error")).toBe("CodesBusy");
+  });
+
+  it("tells the page a link went out instead of a code, so it does not wait for one", async () => {
+    state.linkOnly = true;
+    const res = await post("signin/nodemailer");
+
+    expect(res.status).toBe(200);
+    const { url } = (await res.json()) as { url: string };
+    expect(new URL(url).searchParams.get("notice")).toBe("CodesPaused");
+  });
+
+  it("keeps what Auth.js set on the response when it swaps the body", async () => {
+    state.linkOnly = true;
+    state.cookie = "authjs.callback-url=abc; Path=/";
+    const res = await post("signin/nodemailer");
+
+    expect(res.headers.get("set-cookie")).toContain("authjs.callback-url=abc");
   });
 
   it("answers the same way when this instance's own limiter refuses, without sending anything", async () => {

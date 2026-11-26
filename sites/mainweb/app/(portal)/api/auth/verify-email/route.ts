@@ -48,6 +48,14 @@ const TOO_MANY = {
   error: "Too many attempts. Please try again later.",
 } as const;
 
+// A lock is not a dead end for the address's owner: asking for a new email while
+// codes are paused sends a sign-in link.
+const CODES_PAUSED = {
+  success: false,
+  error:
+    "Codes for this address are paused for a while after too many wrong tries. Go back and ask for a new email: it will have a sign-in link instead of a code.",
+} as const;
+
 /**
  * Cross-site login CSRF: a page on another origin could otherwise POST an
  * attacker's own code and sign a victim's browser into the attacker's account.
@@ -120,7 +128,7 @@ export async function POST(request: NextRequest) {
       // carried across reissued codes. It ends by itself, and a successful
       // sign-in by any method lifts it, so someone else guessing at an address
       // can hold its owner off for minutes, not a day.
-      if (await isLockedOut(tx, identifier)) return { tooMany: true as const };
+      if (await isLockedOut(tx, identifier)) return { paused: true as const };
 
       // Lock the live code's row first: concurrent guesses queue behind it and
       // each sees the attempts the one before left, so the cap of
@@ -330,8 +338,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if ("tooMany" in result) {
-      return NextResponse.json(TOO_MANY, { status: 429 });
+    if ("paused" in result) {
+      return NextResponse.json(CODES_PAUSED, { status: 429 });
     }
 
     if ("error" in result) {

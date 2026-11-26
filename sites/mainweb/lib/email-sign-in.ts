@@ -1,7 +1,29 @@
 /** The `error` the sign-in route answers with when email codes are at a cap. */
 export const CODES_BUSY = "CodesBusy";
 
-type SignInResult = { ok?: boolean; error?: string } | undefined;
+/**
+ * The `notice` the sign-in route answers with when the email held a sign-in link
+ * instead of a code, because wrong guesses have paused codes for the address.
+ */
+export const CODES_PAUSED = "CodesPaused";
+
+type SignInResult =
+  | { ok?: boolean; error?: string; url?: string | null }
+  | undefined;
+
+/** Whether the email that went out holds a link, with no code to wait for. */
+export function linkOnlySent(res: SignInResult): boolean {
+  if (!res?.ok || res.error || !res.url) return false;
+  try {
+    return new URL(res.url).searchParams.get("notice") === CODES_PAUSED;
+  } catch {
+    return false;
+  }
+}
+
+/** What to tell someone whose address is locked out of codes, once a link is sent. */
+export const linkSentMessage = (email: string) =>
+  `Codes for this address are paused for a while after too many wrong tries. We emailed a sign-in link to ${email} instead. Open it on this device.`;
 
 /**
  * What to tell someone whose request for an email code did not go out, or null

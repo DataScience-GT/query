@@ -44,6 +44,10 @@ export default defineConfig({
   test: {
     maxWorkers: "100%",
     exclude: SKIPPED,
+    // next-auth imports "next/server" the way Next.js's bundler resolves it,
+    // which Node's own resolver cannot. Run through Vite, a test can drive
+    // Auth.js's real handlers (packages/auth/src/magic-link.db.test.ts).
+    server: { deps: { inline: ["next-auth"] } },
     projects: [
       {
         extends: true,

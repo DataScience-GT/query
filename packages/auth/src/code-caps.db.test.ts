@@ -1,11 +1,16 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as DbModule from "@query/db";
 import type * as Throttle from "@query/db/services/auth-throttle";
+import type * as DrizzleOps from "drizzle-orm";
+import { NextRequest } from "next/server";
+import type { handlers as Handlers } from "./auth";
 import type { runCodeRequest as RunCodeRequest } from "./sign-in-attempt";
 
 /**
- * Real-Postgres test for who can spend the sign-in code budget. The request
- * that sends a code runs against a real database with only the mail stubbed.
+ * Real-Postgres tests for the email that sign-in sends, with only the mail
+ * stubbed. They share one file because they spend the same deployment-wide
+ * counter, which two test files running side by side would corrupt for each
+ * other. First, who can spend the sign-in code budget.
  *
  * One client must not be able to use up what every other sign-in needs, so a
  * network, a domain and the whole deployment each have an hourly cap in the
@@ -17,15 +22,24 @@ import type { runCodeRequest as RunCodeRequest } from "./sign-in-attempt";
  */
 const URL = process.env.TEST_DATABASE_URL;
 
-const mail = vi.hoisted(() => ({ sent: [] as string[] }));
+const mail = vi.hoisted(() => ({
+  sent: [] as { to: string; subject: string; text: string; html: string }[],
+}));
 vi.mock("nodemailer", () => ({
   createTransport: () => ({
-    sendMail: async (message: { to: string }) => {
-      mail.sent.push(message.to);
+    sendMail: async (message: {
+      to: string;
+      subject: string;
+      text: string;
+      html: string;
+    }) => {
+      mail.sent.push(message);
       return { rejected: [], pending: [] };
     },
   }),
 }));
+
+const ORIGIN = "http://localhost:3000";
 
 type Send = (params: unknown) => Promise<void>;
 
@@ -298,4 +312,215 @@ describe.skipIf(!URL)("email code caps on a real database", () => {
 
     expect(await globalIssued()).toBe(spent);
   }, 60_000);
+});
+
+/**
+ * Getting in while an address is locked out of codes.
+ *
+ * Anyone can ask for a code for any address and then guess at it, so enough
+ * wrong guesses lock the address out of code sign-in. A stranger could keep the
+ * owner out by doing it again at each unlock, so the owner needs a way in the
+ * guesses cannot reach: while locked, the sign-in email carries Auth.js's own
+ * link, which holds a token nobody can guess, in place of a code.
+ *
+ * This drives Auth.js itself, from the sign-in request to the link being opened.
+ */
+describe.skipIf(!URL)("signing in by link while locked out of codes", () => {
+  const suffix = Math.random().toString(36).slice(2, 10);
+  let S: typeof DbModule;
+  let ops: typeof DrizzleOps;
+  let throttle: typeof Throttle;
+  let handlers: typeof Handlers;
+  const previous = {
+    secret: process.env.AUTH_SECRET,
+    url: process.env.AUTH_URL,
+  };
+
+  const database = () => {
+    const found = S.db;
+    if (!found) throw new Error("TEST_DATABASE_URL did not give a database");
+    return found;
+  };
+  const rowsOf = <T>(result: unknown) => (result as { rows: T[] }).rows;
+
+  beforeAll(async () => {
+    process.env.DATABASE_URL = URL;
+    process.env.AUTH_SECRET = "magic-link-test-secret-0123456789abcdef";
+    process.env.AUTH_URL = ORIGIN;
+    S = await import("@query/db");
+    ops = await import("drizzle-orm");
+    throttle = await import("@query/db/services/auth-throttle");
+    ({ handlers } = await import("./auth"));
+  }, 60_000);
+
+  const clean = async () => {
+    await database().execute(
+      ops.sql`DELETE FROM "user" WHERE "email" LIKE ${`%${suffix}%`}`,
+    );
+    await database().execute(
+      ops.sql`DELETE FROM "verificationToken" WHERE "identifier" LIKE ${`%${suffix}%`}`,
+    );
+    await database().execute(
+      ops.sql`DELETE FROM "auth_code_throttle" WHERE "identifier" LIKE ${`%${suffix}%`} OR "identifier" IN ('domain:example.test', '*global*', '*global-new*')`,
+    );
+  };
+  beforeEach(async () => {
+    mail.sent.length = 0;
+    await clean();
+  });
+  afterAll(async () => {
+    if (!S?.db) return;
+    await clean();
+    if (previous.secret === undefined) delete process.env.AUTH_SECRET;
+    else process.env.AUTH_SECRET = previous.secret;
+    if (previous.url === undefined) delete process.env.AUTH_URL;
+    else process.env.AUTH_URL = previous.url;
+  }, 60_000);
+
+  /** A person with an account, and an address wrong guesses have locked. */
+  async function lockedOwner(name: string) {
+    const email = `${name}-${suffix}@example.test`;
+    await database().insert(S.users).values({
+      id: `ml-${suffix}-${name}`,
+      email,
+      emailVerified: new Date(),
+    });
+    for (let i = 0; i < 20; i += 1) {
+      await throttle.recordFailure(database(), email);
+    }
+    expect(await throttle.isLockedOut(database(), email)).toBe(true);
+    return email;
+  }
+
+  /** The cookie jar a browser would carry from asking Auth.js for a sign-in. */
+  async function csrf() {
+    const res = await handlers.GET(new NextRequest(`${ORIGIN}/api/auth/csrf`));
+    const { csrfToken } = (await res.json()) as { csrfToken: string };
+    const cookie = (res.headers.getSetCookie?.() ?? [])
+      .map((line) => line.split(";")[0])
+      .join("; ");
+    return { csrfToken, cookie };
+  }
+
+  /** Asks to sign in by email, as /login does. */
+  async function requestEmail(email: string) {
+    const { csrfToken, cookie } = await csrf();
+    const res = await handlers.POST(
+      new NextRequest(`${ORIGIN}/api/auth/signin/nodemailer`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          "x-auth-return-redirect": "1",
+          cookie,
+        },
+        body: new URLSearchParams({
+          csrfToken,
+          email,
+          callbackUrl: `${ORIGIN}/dashboard`,
+        }),
+      }),
+    );
+    return { res, cookie };
+  }
+
+  const linkIn = (text: string) =>
+    /https?:\/\/\S+\/api\/auth\/callback\/nodemailer\S*/.exec(text)?.[0];
+
+  const customRows = async (email: string) =>
+    rowsOf<{ token: string }>(
+      await database().execute(
+        ops.sql`SELECT "token" FROM "verificationToken" WHERE "identifier" = ${email} AND "token" LIKE 'custom:%'`,
+      ),
+    );
+  const sessionsOf = async (email: string) =>
+    rowsOf<{ sessionToken: string }>(
+      await database().execute(
+        ops.sql`SELECT s."sessionToken" FROM "session" s JOIN "user" u ON u.id = s."userId" WHERE lower(u."email") = ${email}`,
+      ),
+    );
+
+  it("emails a sign-in link, and no code, to an address locked out of codes", async () => {
+    const email = await lockedOwner("victim");
+
+    await requestEmail(email);
+
+    expect(mail.sent).toHaveLength(1);
+    const [message] = mail.sent;
+    expect(message?.to).toBe(email);
+    expect(linkIn(message?.text ?? "")).toBeTruthy();
+    expect(message?.text).toMatch(/Use this link to sign in/);
+    expect(message?.text).toMatch(/Codes for this address are paused/);
+    // Nothing for a guesser to aim at.
+    expect(message?.text).not.toMatch(/\b\d{6}\b/);
+    expect(message?.subject).not.toMatch(/\b\d{6}\b/);
+    expect(await customRows(email)).toEqual([]);
+  });
+
+  it("lets the owner in through that link, which clears the lock", async () => {
+    const email = await lockedOwner("owner");
+    const { cookie } = await requestEmail(email);
+    const link = linkIn(mail.sent[0]?.text ?? "");
+    if (!link) throw new Error("no link in the email");
+
+    const res = await handlers.GET(
+      new NextRequest(link, { headers: { cookie } }),
+    );
+
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toContain("/dashboard");
+    expect(res.headers.getSetCookie().join("\n")).toMatch(
+      /authjs\.session-token=/,
+    );
+    expect(await sessionsOf(email)).toHaveLength(1);
+    expect(await throttle.isLockedOut(database(), email)).toBe(false);
+    const row = rowsOf<{ failures: number; lockouts: number }>(
+      await database().execute(
+        ops.sql`SELECT "failures", "lockouts" FROM "auth_code_throttle" WHERE "identifier" = ${email}`,
+      ),
+    )[0];
+    expect(row).toMatchObject({ failures: 0, lockouts: 0 });
+  });
+
+  it("works once", async () => {
+    const email = await lockedOwner("once");
+    const { cookie } = await requestEmail(email);
+    const link = linkIn(mail.sent[0]?.text ?? "");
+    if (!link) throw new Error("no link in the email");
+    await handlers.GET(new NextRequest(link, { headers: { cookie } }));
+
+    const again = await handlers.GET(
+      new NextRequest(link, { headers: { cookie } }),
+    );
+
+    expect(again.headers.get("location")).toContain("error=Verification");
+    expect(await sessionsOf(email)).toHaveLength(1);
+  });
+
+  it("makes no code for a locked address, so there is nothing to guess at", async () => {
+    const email = await lockedOwner("guessed");
+    await requestEmail(email);
+
+    // The route that takes codes is shut until the lock ends.
+    expect(await throttle.isLockedOut(database(), email)).toBe(true);
+    expect(await customRows(email)).toEqual([]);
+  });
+
+  it("still emails a code, not a link, to an address that is not locked", async () => {
+    const email = `fine-${suffix}@example.test`;
+
+    await requestEmail(email);
+
+    const [message] = mail.sent;
+    expect(message?.text).toMatch(/Your sign-in code is: \d{6}/);
+    expect(linkIn(message?.text ?? "")).toBeUndefined();
+    expect(await customRows(email)).toHaveLength(1);
+  });
+
+  it("counts a link email against the same hourly caps as a code", async () => {
+    const email = await lockedOwner("capped");
+    for (let i = 0; i < 6; i += 1) await requestEmail(email);
+
+    // Five an hour per address, then nothing more goes out.
+    expect(mail.sent).toHaveLength(5);
+  });
 });

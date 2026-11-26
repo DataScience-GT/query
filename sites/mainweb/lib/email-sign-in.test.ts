@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { CODES_BUSY, emailSignInProblem } from "./email-sign-in";
+import {
+  CODES_BUSY,
+  CODES_PAUSED,
+  emailSignInProblem,
+  linkOnlySent,
+} from "./email-sign-in";
 
 const both = { discord: true, inAppBrowser: false };
 
@@ -47,5 +52,33 @@ describe("emailSignInProblem", () => {
     ]) {
       expect(emailSignInProblem(res, both)).toMatch(/couldn't send a code/);
     }
+  });
+});
+
+describe("linkOnlySent", () => {
+  it("is true when the route says a link went out, not a code", () => {
+    expect(
+      linkOnlySent({
+        ok: true,
+        url: `https://query.example/login?notice=${CODES_PAUSED}`,
+      }),
+    ).toBe(true);
+  });
+
+  it("is false for an ordinary send, a failure, or no answer", () => {
+    expect(linkOnlySent({ ok: true, url: "https://query.example/verify" })).toBe(false);
+    expect(linkOnlySent({ ok: true })).toBe(false);
+    expect(
+      linkOnlySent({
+        ok: false,
+        error: CODES_BUSY,
+        url: `https://query.example/login?notice=${CODES_PAUSED}`,
+      }),
+    ).toBe(false);
+    expect(linkOnlySent(undefined)).toBe(false);
+  });
+
+  it("does not count a problem with the send as a link", () => {
+    expect(emailSignInProblem({ ok: true, url: `https://x/login?notice=${CODES_PAUSED}` }, { discord: false, inAppBrowser: false })).toBeNull();
   });
 });
