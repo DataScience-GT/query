@@ -11,14 +11,15 @@
  */
 import {
   describeDates,
+  describeMoment,
   describeRail,
   isTimeZone,
   parseInstant,
   yearInZone,
 } from "./dates";
-import type { EventDates, ScheduleRail } from "./dates";
+import type { EventDates, Moment, ScheduleRail } from "./dates";
 
-export type { EventDates, EventDay, ScheduleRail } from "./dates";
+export type { EventDates, EventDay, Moment, ScheduleRail } from "./dates";
 
 type NonEmpty<T> = readonly [T, ...T[]];
 
@@ -118,6 +119,11 @@ export interface Registration {
   availability: Availability;
   /** When the offer became available, as ISO with offset. */
   validFrom: string;
+  /**
+   * When applications close, as ISO with offset. Without it the page shows no
+   * deadline. After this instant the hero says applications are closed.
+   */
+  closes?: string;
   /** The offer's price as a decimal string, "0" for a free event. */
   price: string;
   /** The offer's ISO 4217 currency code, such as "USD". */
@@ -212,6 +218,8 @@ export interface EventDerived {
   dates: EventDates;
   /** Length of the hacking window in hours. */
   hackHours: number;
+  /** When applications close, as the venue's calendar shows it. Absent without `registration.closes`. */
+  closes?: Moment;
   links: PortalLinks;
 }
 
@@ -264,6 +272,8 @@ export interface EventConfig
   headline: string;
   startMs: number;
   endMs: number;
+  /** `registration.closes` as epoch milliseconds. Absent without it. */
+  closesMs?: number;
   dates: EventDates;
   hackHours: number;
   links: EventLinks & PortalLinks;
@@ -336,7 +346,17 @@ export function defineEvent(input: EventInput): EventConfig {
   if (hackStartMs < startMs || hackEndMs > endMs) {
     fail("the hacking window must sit inside start to end");
   }
-  label("registration.validFrom", core.registration.validFrom);
+  const validFromMs = label("registration.validFrom", core.registration.validFrom);
+  let closesMs: number | undefined;
+  if (core.registration.closes !== undefined) {
+    closesMs = label("registration.closes", core.registration.closes);
+    if (closesMs <= validFromMs) {
+      fail(`registration.closes (${core.registration.closes}) must be after registration.validFrom`);
+    }
+    if (closesMs > startMs) {
+      fail(`registration.closes (${core.registration.closes}) must not be after start (${core.start})`);
+    }
+  }
   if (!PRICE.test(core.registration.price)) {
     fail(`registration.price must be a decimal like "0" or "25.00" (got "${core.registration.price}")`);
   }
@@ -379,7 +399,8 @@ export function defineEvent(input: EventInput): EventConfig {
   };
   const headline = `${name}: ${core.theme.name}`;
 
-  const copy = content({ name, headline, dates, hackHours, links: portalLinks });
+  const closes = closesMs === undefined ? undefined : describeMoment(core.timeZone, closesMs);
+  const copy = content({ name, headline, dates, hackHours, closes, links: portalLinks });
   requireOrigin("seo.url", copy.seo.url);
 
   const dayKeys = new Set(dates.days.map((d) => d.key));
@@ -401,6 +422,7 @@ export function defineEvent(input: EventInput): EventConfig {
     headline,
     startMs,
     endMs,
+    closesMs,
     dates,
     hackHours,
     links: { ...core.links, ...portalLinks },

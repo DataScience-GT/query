@@ -49,7 +49,8 @@ Everything renders to HTML at build time. Only what needs the browser ships code
 | Navbar (menu, hide on scroll, section links) | `packages/event-kit/src/scripts/navbar.ts` | Plain DOM work; React would add nothing |
 | Theme toggle | `packages/event-kit/src/scripts/theme-toggle.ts`; the icon follows the theme in CSS | Right icon on first paint, even before the script runs |
 | Theme with no flash | `is:inline` script in `<head>` | Must run before first paint |
-| Countdown | Inline script after the hero markup | Fills in the zeros during parsing, before first paint, so the figures never jump, then ticks |
+| Countdown | Inline script after the hero markup | Counts to when hacking begins, and says so in its label. Fills in the zeros during parsing, before first paint, so the figures never jump, then ticks. Once hacking has begun it swaps the figures for "Hacking has begun" |
+| Application deadline | Bundled script in `Hero.astro`, using `@query/event-kit/dates` | Shows "Applications close Jan 20, 2027 (N days left)" next to Apply. The build writes the count for the day it ran; the script recounts for the day the page is read (days turn over at midnight in Atlanta) and switches to "Applications closed" after `registration.closes` |
 | Service worker | `packages/event-kit/src/scripts/service-worker.ts`, production only, after `load` | Keeps it off the critical path |
 | Hero flower bed | React island, `client:idle` | In the first screen but not needed to read it; hydrates off the critical path |
 | Footer flower bed | React island, `client:visible` | Page bottom; hydrates when scrolled near |

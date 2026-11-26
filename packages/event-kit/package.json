@@ -19,6 +19,7 @@
   "exports": {
     ".": "./src/config.ts",
     "./styles.css": "./src/styles/kit.css",
+    "./dates": "./src/dates.ts",
     "./components/*": "./src/components/*"
   },
   "publishConfig": {

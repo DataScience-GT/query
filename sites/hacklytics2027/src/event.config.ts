@@ -84,11 +84,14 @@ export default defineEvent({
     ariaLabel: "Apply to Hacklytics 2027",
     availability: "InStock",
     validFrom: "2026-11-24T00:00:00-05:00",
+    // The end of Jan 20 in Atlanta. The hero counts days to it and, once it
+    // passes, says applications are closed.
+    closes: `${YEAR}-01-20T23:59:00-05:00`,
     price: "0",
     currency: "USD",
   },
 
-  content: ({ name, dates, hackHours, links }) => ({
+  content: ({ name, dates, hackHours, closes, links }) => ({
     seo: {
       tagline: "Data Science Hackathon at Georgia Tech",
       description: `${name} is a free, ${hackHours}-hour data science and AI hackathon run by ${ORG} at Georgia Tech in Atlanta, ${dates.long}.`,
@@ -201,7 +204,7 @@ export default defineEvent({
         a: [
           "On the DS@GT portal. ",
           { text: "Apply here", href: APPLY_URL, external: true },
-          " by January 20.",
+          closes ? ` by ${closes.long}.` : ".",
         ],
       },
       {
@@ -239,7 +242,7 @@ export default defineEvent({
 
     footer: {
       headline: "Applications are open",
-      note: "Apply by January 20. It’s free.",
+      note: closes ? `Apply by ${closes.long}. It’s free.` : "It’s free.",
     },
   }),
 });

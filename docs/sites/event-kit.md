@@ -83,9 +83,12 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `hackHours` | `36` | Copy, the rail's label |
 | `schedule.rail` | `{ span: 72, from: 21, to: 57 }` | Schedule rail positions |
 | `startMs`, `endMs` | epoch milliseconds | Countdown, season |
+| `closes`, `closesMs` | `{ weekday: "Thu", label: "Jan 20", long: "January 20", year: 2027, time: "11:59 PM", zone: "EST" }`, epoch milliseconds. Only when `registration.closes` is set | Copy ("Apply by January 20"), the hero's deadline |
 | `links.portalInterest`, `.hackerPortal`, `.judgeSignIn`, `.judgeApply` | `{portal}/login?callbackUrl=...`; `hackerPortal` is `{portal}{portalPath}` and `portalInterest` signs in to `portalPath` | Buttons, copy |
 
 `hackHours` is elapsed time, and the rail is clock time, so across a daylight-saving change a window that reads 9 PM to 9 AM is 35 hours long and still ends at hour 57.
+
+`@query/event-kit/dates` exports the date helpers a site script can use in the browser: `describeMoment` (an instant as the venue's clock shows it), `calendarDaysUntil` (calendar days, not 24-hour blocks, so a day with a clock change in it is still one day) and `deadlineStatus` (open or closed, and how many days are left). 2027's hero uses them to count days to the application deadline and, once it has passed, to say applications are closed.
 
 ## EventConfig
 
@@ -105,7 +108,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `organizer` | `{ name }` | Footer copyright, `author`, JSON-LD organizer |
 | `contactEmail` | string | Footer, form errors |
 | `links` | `{ portal, portalPath, devPortal?, mlh, devpost?, codeOfConduct?, social[] }` | `portal` is an origin with no trailing slash. `portalPath` is the edition's page on the portal, `/hacklytics` for 2027: a leading slash, no trailing one. `devPortal` is a local portal's origin: on a loopback host the judge-interest form posts there instead of to `portal`, so trying it in dev never touches the real list (2027 sets `http://localhost:3001`). `devpost` adds a footer link. `codeOfConduct` is `{ label, href }`, a footer link with that text; a site that also links it from the FAQ reuses its own constant. `social` is `{ label, href }` in footer order |
-| `registration` | `{ url, label, ariaLabel?, availability, validFrom, price, currency }` | One URL for every sign-up button and the JSON-LD offer. `availability` is `PreOrder`, `InStock` or `SoldOut`. `price` is a decimal string and `currency` an ISO 4217 code: `"0"` and `USD` for a free event |
+| `registration` | `{ url, label, ariaLabel?, availability, validFrom, closes?, price, currency }` | One URL for every sign-up button and the JSON-LD offer. `closes` is an ISO string with an offset: when applications close. It is optional; without it the page shows no deadline. `availability` is `PreOrder`, `InStock` or `SoldOut`. `price` is a decimal string and `currency` an ISO 4217 code: `"0"` and `USD` for a free event |
 
 **`EventContent`**, returned by `content(derived)`
 
@@ -132,6 +135,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 - a schedule row starts with a weekday the event does not run on
 - two tracks, prizes or FAQs share a title or question
 - `registration.price` is not a decimal, or `registration.currency` is not a three-letter code
+- `registration.closes` is not after `registration.validFrom`, or is after `start`
 - `links.portal`, `links.devPortal` or `seo.url` is not a bare origin, `links.portalPath` is not a slash-led path, a `ground` color is not `#rrggbb`, or `theme.storageKey` has characters the inline script cannot hold
 
 ## Theme contract
