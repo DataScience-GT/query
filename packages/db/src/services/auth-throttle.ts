@@ -25,8 +25,10 @@ export const GLOBAL_CODES_PER_HOUR = 300;
 export const GLOBAL_THROTTLE_KEY = "*global*";
 
 /**
- * Codes one client network may be sent per hour: an IPv4 /24 or an IPv6 /64,
+ * Codes one client network may be sent per hour: an IPv4 /24 or an IPv6 /48,
  * because one host of a provider's range is as good to an attacker as the next.
+ * A site is routinely given a /48 and a host there can pick any of its 65,536
+ * /64s, so a /64 would be a cap of its own for every one of them.
  * The deployment-wide cap is shared by everyone, so this is what keeps one
  * client from spending all of it. Venue wifi shares one address among
  * hundreds of people, most of whom sign in with Google or Discord.
@@ -55,7 +57,7 @@ const isLargeDomain = (domain: string) =>
   domain.endsWith(".edu") || LARGE_MAIL_DOMAINS.has(domain);
 
 /**
- * The /24 (IPv4) or /64 (IPv6) a client address belongs to, as a row key part.
+ * The /24 (IPv4) or /48 (IPv6) a client address belongs to, as a row key part.
  * An IPv4 address written as IPv6 is the IPv4 network. Anything unreadable,
  * such as the "unknown" a request with no forwarded address resolves to, shares
  * one bucket, so it cannot be used to dodge the cap.
@@ -68,7 +70,7 @@ export function networkOf(ip: string): string {
   const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(address)?.[1];
   if (mapped && isIPv4(mapped)) return networkOf(mapped);
 
-  // Fill in what :: stands for, then keep the first four of eight groups.
+  // Fill in what :: stands for, then keep the first three of eight groups.
   const [head = "", tail] = address.toLowerCase().split("::");
   const front = head ? head.split(":") : [];
   const back = tail ? tail.split(":") : [];
@@ -76,7 +78,7 @@ export function networkOf(ip: string): string {
     tail === undefined
       ? front
       : [...front, ...Array<string>(8 - front.length - back.length).fill("0"), ...back];
-  return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, "")).join(":")}::/64`;
+  return `${groups.slice(0, 3).map((g) => g.replace(/^0+(?=.)/, "")).join(":")}::/48`;
 }
 
 /**

@@ -14,15 +14,22 @@ describe("networkOf", () => {
     expect(networkOf("203.0.114.7")).toBe("203.0.114.0/24");
   });
 
-  it("groups an IPv6 address with the rest of its /64", () => {
-    expect(networkOf("2001:db8:1:2:aaaa:bbbb:cccc:dddd")).toBe("2001:db8:1:2::/64");
-    expect(networkOf("2001:DB8:1:2::1")).toBe("2001:db8:1:2::/64");
-    expect(networkOf("2001:db8:1:3::1")).toBe("2001:db8:1:3::/64");
+  it("groups an IPv6 address with the rest of its /48", () => {
+    expect(networkOf("2001:db8:1:2:aaaa:bbbb:cccc:dddd")).toBe("2001:db8:1::/48");
+    expect(networkOf("2001:DB8:1:2::1")).toBe("2001:db8:1::/48");
+    expect(networkOf("2001:db8:2:2::1")).toBe("2001:db8:2::/48");
   });
 
-  it("expands :: before it takes the first 64 bits", () => {
-    expect(networkOf("2001:db8::1")).toBe("2001:db8:0:0::/64");
-    expect(networkOf("::1")).toBe("0:0:0:0::/64");
+  it("puts every /64 of one /48 in one network", () => {
+    // A site is routinely given a /48, and a host there picks any of its 65,536
+    // /64s: a cap per /64 would give it that many caps.
+    expect(networkOf("2001:db8:1:0::1")).toBe(networkOf("2001:db8:1:ffff::1"));
+    expect(networkOf("2001:db8:1:0::1")).not.toBe(networkOf("2001:db8:2:0::1"));
+  });
+
+  it("expands :: before it takes the first 48 bits", () => {
+    expect(networkOf("2001:db8::1")).toBe("2001:db8:0::/48");
+    expect(networkOf("::1")).toBe("0:0:0::/48");
   });
 
   it("treats an IPv4 address written as IPv6 as the IPv4 network", () => {
@@ -30,7 +37,7 @@ describe("networkOf", () => {
   });
 
   it("drops an IPv6 zone", () => {
-    expect(networkOf("fe80::1%eth0")).toBe("fe80:0:0:0::/64");
+    expect(networkOf("fe80::1%eth0")).toBe("fe80:0:0::/48");
   });
 
   it("puts anything it cannot read in one shared bucket", () => {
