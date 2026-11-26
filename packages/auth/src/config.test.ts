@@ -60,14 +60,17 @@ vi.mock("nodemailer", () => ({
 
 import { authConfig } from "./config";
 
+const authorize = authConfig.callbacks?.signIn as (params: {
+  user: unknown;
+  account: unknown;
+  profile: unknown;
+}) => Promise<unknown>;
+const onSignIn = authConfig.events?.signIn as (
+  message: unknown,
+) => Promise<void>;
+
 const signInCallback = (account: unknown, profile: unknown) =>
-  (
-    authConfig.callbacks?.signIn as (params: {
-      user: unknown;
-      account: unknown;
-      profile: unknown;
-    }) => Promise<unknown>
-  )({ user: { id: "u1", email: "m@x.test" }, account, profile });
+  authorize({ user: { id: "u1", email: "m@x.test" }, account, profile });
 
 type Provider = {
   id: string;
@@ -153,9 +156,7 @@ describe("Discord sign-in", () => {
     vi.stubGlobal("fetch", fetchSpy);
     try {
       await signInCallback(discord, { verified: true, email: "m@x.test" });
-      await (
-        authConfig.events?.signIn as (message: unknown) => Promise<void>
-      )({
+      await onSignIn({
         user: { id: "u1", email: "m@x.test", name: "M" },
         account: discord,
         isNewUser: true,
