@@ -49,8 +49,8 @@ jobs:
         uses: actions/cache@v6
         with:
           path: .turbo/cache
-          key: turbo-lint-${{ runner.os }}-${{ github.sha }}
-          restore-keys: turbo-lint-${{ runner.os }}-
+          key: turbo-lint-cold1-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-lint-cold1-${{ runner.os }}-
 
       # Every import is declared in its package.json, nothing reaches into
       # another workspace by path, and the layer tags in turbo.json hold.
@@ -126,7 +126,10 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
 
       - name: Test
-        run: pnpm test --shard=${{ matrix.shard }}/2
+        run: |
+          nproc
+          TIMEFORMAT="time real %R user %U sys %S"
+          time pnpm test --shard=${{ matrix.shard }}/2
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
           # Opts in the tests that write to a real database. Only the throwaway
@@ -162,7 +165,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: sites/mainweb/public/photos
-          key: photos-${{ hashFiles('sites/mainweb/assets/images/photos/*', 'sites/mainweb/image-sizes.mjs', 'sites/mainweb/scripts/build-photos.ts') }}
+          key: photos-cold1-${{ hashFiles('sites/mainweb/assets/images/photos/*', 'sites/mainweb/image-sizes.mjs', 'sites/mainweb/scripts/build-photos.ts') }}
 
       # build-photos.ts skips a file that is newer than its source. The sources
       # were just checked out, so restored files would look older and be
@@ -179,10 +182,10 @@ jobs:
         uses: actions/cache@v6
         with:
           path: sites/mainweb/.next/cache
-          key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          key: next-cold1-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           restore-keys: |
-            next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
-            next-${{ runner.os }}-
+            next-cold1-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            next-cold1-${{ runner.os }}-
 
       # No Turborepo cache here. The mainweb build changes with almost every
       # commit, and storing its output (.next and the photos) grew the old
