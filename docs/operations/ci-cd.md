@@ -25,6 +25,8 @@ CI installs and runs scripts with Bun. Firebase App Hosting still builds with pn
 - `packageManager` stays `pnpm`, so turbo runs each task as `pnpm run <script>`. A real pnpm would reinstall over Bun's `node_modules`, so a step puts a `pnpm` on `PATH` that only forwards `run` to `bun run`. Anything else it is asked fails loudly. Scripts that call `pnpm` themselves must use `pnpm run <script>` run from the package folder, not `pnpm --filter`: `bun run --filter` finds no workspaces in a pnpm repo.
 - `publish-packages.yml` stays on pnpm. It ships a tarball, and `pnpm publish` is the packer that rewrites `workspace:` ranges, so a release should not change with CI. The CodeQL job installs through Bun the same way as `verify`.
 - Bun ignores pnpm's `publicHoistPattern`, so `bun run prettier` is not available from the root. CI does not format.
+- Keep updating the lockfile with `pnpm install`. A plain `bun install` here writes a `bun.lock` and edits `package.json` (it adds `workspaces` and `overrides`); if a `bun.lock` were committed, Bun would install from it instead of `pnpm-lock.yaml`, and the parity check would fail. `bun install --frozen-lockfile` writes nothing.
+- Bun does not read `minimumReleaseAge` or `allowBuilds` from `pnpm-workspace.yaml`. Neither matters here: the frozen install resolves nothing, and `--ignore-scripts` stands in for `allowBuilds`.
 
 ## Security
 
