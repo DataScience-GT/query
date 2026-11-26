@@ -27,7 +27,7 @@ This is the club’s public site **and** the authenticated portal. There is no s
 
 | Path | Page |
 | --- | --- |
-| `/login` | Sign-in (Google, GitHub if configured, email code) |
+| `/login` | Sign-in (Google, Discord if configured, email code). The same page for every visitor; `callbackUrl` only sets where they land |
 | `/verify` | Email code entry |
 | `/auth/error` | NextAuth error page, where a failed sign-in lands (`pages.error` in `packages/auth/src/config.ts`) |
 | `/judge/guest/invalid-link` | Where a room QR code with a bad signature, a revoked link or an archived room ends up |
