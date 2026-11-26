@@ -32,6 +32,7 @@ function CheckoutForm({
   onCancel,
   onConfirmPayment,
   onUnconfirmed,
+  processing,
   onProcessingChange,
   amountCents,
 }: {
@@ -39,24 +40,21 @@ function CheckoutForm({
   onCancel: () => void;
   onConfirmPayment: (paymentIntentId: string) => Promise<void>;
   onUnconfirmed: () => void;
+  /** Owned by the modal, which refuses to close while a charge is under way. */
+  processing: boolean;
   onProcessingChange: (processing: boolean) => void;
   amountCents: number;
 }) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
-  const [processing, setProcessing] = useState(false);
-  useEffect(
-    () => onProcessingChange(processing),
-    [processing, onProcessingChange],
-  );
   const [succeeded, setSucceeded] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) return;
 
-    setProcessing(true);
+    onProcessingChange(true);
     setError(null);
 
     // Stripe.js rejects rather than returning { error } on an integration
@@ -66,7 +64,7 @@ function CheckoutForm({
       const { error: submitError } = await elements.submit();
       if (submitError) {
         setError(submitError.message ?? "Payment failed");
-        setProcessing(false);
+        onProcessingChange(false);
         return;
       }
 
@@ -81,7 +79,7 @@ function CheckoutForm({
 
       if (confirmError) {
         setError(confirmError.message ?? "Payment failed. Please try again.");
-        setProcessing(false);
+        onProcessingChange(false);
       } else if (paymentIntent?.status === "succeeded") {
         /**
          * The card has cleared by this point, so the money is already gone. The
@@ -107,7 +105,7 @@ function CheckoutForm({
         try {
           await confirmWithRetry();
           setSucceeded(true);
-          setProcessing(false);
+          onProcessingChange(false);
           setTimeout(() => onSuccess(), 1200);
         } catch {
           onUnconfirmed();
@@ -118,15 +116,15 @@ function CheckoutForm({
           setError(
             "Your payment went through, but activating the membership is taking a moment. It will appear automatically — reload the portal shortly.",
           );
-          setProcessing(false);
+          onProcessingChange(false);
         }
       } else {
         setError("Unexpected payment status. Please contact support.");
-        setProcessing(false);
+        onProcessingChange(false);
       }
     } catch {
       setError("Payment failed. Please try again.");
-      setProcessing(false);
+      onProcessingChange(false);
     }
   };
 
@@ -403,6 +401,7 @@ export function StripePaymentModal({
           onCancel={onClose}
           onConfirmPayment={onConfirmPayment}
           onUnconfirmed={onUnconfirmed ?? (() => {})}
+          processing={charging}
           onProcessingChange={setCharging}
           amountCents={amountCents}
         />
