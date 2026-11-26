@@ -1,7 +1,16 @@
 import { BUD, DAISY, MUSHROOM, TULIP } from "./sprites";
 import type { SpriteMap } from "./sprites";
+import { TINTS } from "./tints";
+import type { Tint } from "./tints";
 
-export type Plant = { map: SpriteMap; scale: number; blooms?: boolean; flip?: boolean };
+export type Plant = {
+  map: SpriteMap;
+  scale: number;
+  blooms?: boolean;
+  /** The colour a blooming plant opens in. */
+  tint?: Tint;
+  flip?: boolean;
+};
 
 /* Deterministic: the same bed on the server and the client. */
 const MAPS = [TULIP, DAISY, BUD, DAISY, TULIP, MUSHROOM, DAISY, TULIP];
@@ -49,6 +58,17 @@ export function bloomSet(n: number, total = BED_SIZE): Set<number> {
   return new Set(picked);
 }
 
-/** Mark the plants in `set` as blooming. */
-export const withBlooms = (plants: Plant[], set: Set<number>): Plant[] =>
-  plants.map((p, i) => ({ ...p, blooms: set.has(i) }));
+/**
+ * Mark the plants in `set` as blooming, each in its own tint: three steps
+ * round the eight per flower, so the first eight in bloom are all different
+ * and neighbours are different at every tier. `offset` starts a bed on a
+ * different colour from the next one.
+ */
+export function withBlooms(plants: Plant[], set: Set<number>, offset = 0): Plant[] {
+  let rank = 0;
+  return plants.map((p, i) =>
+    set.has(i)
+      ? { ...p, blooms: true, tint: TINTS[(offset + 3 * rank++) % TINTS.length] }
+      : { ...p, blooms: false },
+  );
+}

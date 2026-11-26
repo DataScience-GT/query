@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FOOD_GROUPS } from "@query/api/discord-config";
+import { BLOOM_TINTS } from "@query/core";
 import { BLOOM_FLOWERS, spriteUri } from "./bloom-flowers";
 
 // The Discord roles carry these same colours, so a change here is a change to
@@ -29,6 +30,12 @@ describe("BLOOM_FLOWERS", () => {
     );
     expect(new Set(flowers.map((f) => f.tint.toLowerCase())).size).toBe(
       flowers.length,
+    );
+  });
+
+  it("shares its tints with @query/core, one per food group", () => {
+    expect(Object.keys(BLOOM_TINTS).sort()).toEqual(
+      FOOD_GROUPS.map((g) => g.key).sort(),
     );
   });
 

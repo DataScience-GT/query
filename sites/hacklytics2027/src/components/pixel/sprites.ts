@@ -3,7 +3,7 @@
  *
  * Each sprite is a string[] where one character = one pixel. Characters are
  * looked up in a palette, so the same map can be drawn dormant (grey) or in
- * bloom (pink). "." is transparent.
+ * bloom, in any of the eight flower tints (tints.ts). "." is transparent.
  *
  *   p/P  petal dark / light      c  petal core      Y  bloom center
  *   W    highlight               g  stem            G  leaf
@@ -59,15 +59,35 @@ export const BLOOM: SpriteMap = [
   "....ppp....",
   "..ppPPPpp..",
   ".pPPPPPPPp.",
-  ".pPPcccPPp.",
+  ".pPPcYcPPp.",
   "pPPcYYYcPPp",
-  ".pPPcccPPp.",
+  ".pPPcYcPPp.",
   ".pPPPPPPPp.",
   "..ppPPPpp..",
   "....ppp....",
   ".....g.....",
   "..GG.g.....",
   ".G..Gg.GG..",
+  ".....gG..G.",
+  ".....g.....",
+  "....ggg....",
+];
+
+/** A star of petals on a stem: the fourth of the track flowers, 16 rows like the daisy. */
+export const ASTER: SpriteMap = [
+  ".....p.....",
+  "....pPp....",
+  ".p..pPp..p.",
+  ".pPpPcPpPp.",
+  "pPPPcYcPPPp",
+  ".pPpPcPpPp.",
+  ".p..pPp..p.",
+  "....pPp....",
+  ".....p.....",
+  ".....g.....",
+  "..GG.g.....",
+  ".G..Gg.....",
+  ".....g.GG..",
   ".....gG..G.",
   ".....g.....",
   "....ggg....",
@@ -143,10 +163,9 @@ export const SPORE: SpriteMap = [
 ];
 
 /* ─── Palettes ───────────────────────────────────────────────────────────
-   Two states, not four colours. "dormant" is the night: grey petals on green
-   stems. "bloom" is the one accent, the ribbon pink going to white at the
-   centre, like the blossoms in the globe art. Stems and leaves are the sage
-   of its land and they never change. */
+   Dormant is the night: grey petals on green stems. A flower in bloom swaps
+   its head for one of the eight tints (tints.ts). Stems and leaves are the
+   sage of the globe art's land and they never change. */
 
 const shared = {
   g: "#5f8f67",
@@ -157,18 +176,7 @@ const shared = {
   r: "#262731",
 };
 
-export const PALETTES: Record<"bloom" | "dormant", Palette> = {
-  bloom: {
-    ...shared,
-    p: "#e58aa4",
-    P: "#ffbfcf",
-    c: "#ffe3ea",
-    Y: "#ffffff",
-    W: "#ffffff",
-    m: "#e58aa4",
-    M: "#ffbfcf",
-    w: "#ffffff",
-  },
+export const PALETTES: Record<"dormant", Palette> = {
   dormant: {
     ...shared,
     p: "#3a3e4a",
@@ -183,10 +191,9 @@ export const PALETTES: Record<"bloom" | "dormant", Palette> = {
 };
 
 /* Day: the night pastels wash out on the pale ground (#f1f4f6), so the light
-   set uses the deeper pink and sage of app/globals.css. On that ground the
-   outline pink is 5.7:1, the petal pink 3.7:1, the leaves 3.9:1 and the stem
-   5.1:1. The cores stay light: the petals around them carry the shape.
-   Dormant stays quiet, all greys under 2.5:1. Sprites bake their colours, so
+   set uses the deeper sage of globals.css: on that ground the leaves are
+   3.9:1 and the stem 5.1:1. Dormant stays quiet, all greys under 2.5:1. The
+   tints deepen the same way (tints.ts). Sprites bake their colours, so
    BloomSprite draws both sets and the stylesheet shows one (.px-light). */
 
 const sharedLight = {
@@ -198,18 +205,7 @@ const sharedLight = {
   r: "#c3cad2",
 };
 
-export const PALETTES_LIGHT: Record<"bloom" | "dormant", Palette> = {
-  bloom: {
-    ...sharedLight,
-    p: "#b02a5b",
-    P: "#d0507e",
-    c: "#f4bfd0",
-    Y: "#ffffff",
-    W: "#ffffff",
-    m: "#b02a5b",
-    M: "#d0507e",
-    w: "#f4bfd0",
-  },
+export const PALETTES_LIGHT: Record<"dormant", Palette> = {
   dormant: {
     ...sharedLight,
     p: "#aab1bb",

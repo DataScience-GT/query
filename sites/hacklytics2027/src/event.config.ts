@@ -84,11 +84,14 @@ export default defineEvent({
     ariaLabel: "Apply to Hacklytics 2027",
     availability: "InStock",
     validFrom: "2026-11-24T00:00:00-05:00",
+    // The end of Jan 20 in Atlanta. The hero counts days to it and, once it
+    // passes, says applications are closed.
+    closes: `${YEAR}-01-20T23:59:00-05:00`,
     price: "0",
     currency: "USD",
   },
 
-  content: ({ name, dates, hackHours, links }) => ({
+  content: ({ name, dates, hackHours, closes, links }) => ({
     seo: {
       tagline: "Data Science Hackathon at Georgia Tech",
       description: `${name} is a free, ${hackHours}-hour data science and AI hackathon run by ${ORG} at Georgia Tech in Atlanta, ${dates.long}.`,
@@ -115,6 +118,10 @@ export default defineEvent({
       body: [
         `${BRAND} is a ${hackHours}-hour data science and AI hackathon run by ${ORG} at the Klaus Advanced Computing Building in Atlanta, ${dates.long}.`,
         "Room for 1,000+ hackers. It costs nothing to attend: meals and swag are covered.",
+      ],
+      theme: [
+        `Every project starts as a seed: a dataset and a question. Over ${hackHours} hours, your team grows it into something that works.`,
+        "That is why the site is a garden. Every accepted hacker gets a flower of their own for the weekend.",
       ],
     },
 
@@ -160,6 +167,14 @@ export default defineEvent({
       people: [],
     },
 
+    volunteers: {
+      body: [
+        "Volunteers keep the weekend running: the check-in desk, badge scans at meals and workshops, and helping hackers find their way around Klaus.",
+        ["To volunteer, email ", email, " with “Volunteer” in the subject and the times you can help."],
+        "Organizers confirm volunteers before the event.",
+      ],
+    },
+
     // An empty plot: the seedlings are the 2027 partners, not announced yet.
     sponsors: {
       body: [
@@ -197,7 +212,7 @@ export default defineEvent({
         a: [
           "On the DS@GT portal. ",
           { text: "Apply here", href: APPLY_URL, external: true },
-          " by January 20.",
+          closes ? ` by ${closes.long}.` : ".",
         ],
       },
       {
@@ -224,6 +239,10 @@ export default defineEvent({
         a: ["Email ", email, "."],
       },
       {
+        q: "How do I volunteer?",
+        a: ["Email ", email, " with “Volunteer” in the subject and the times you can help."],
+      },
+      {
         q: "What is the MLH Code of Conduct?",
         a: [
           "All participants follow the ",
@@ -235,7 +254,13 @@ export default defineEvent({
 
     footer: {
       headline: "Applications are open",
-      note: "Apply by January 20. It’s free.",
+      note: closes ? `Apply by ${closes.long}. It’s free.` : "It’s free.",
+      // After registration.closes the Apply link has nothing to apply to.
+      closed: {
+        headline: "Applications are closed",
+        note: `Hacking starts ${dates.startLabel}. See you at Klaus.`,
+        cta: { text: "See the schedule", href: "/#schedule" },
+      },
     },
   }),
 });

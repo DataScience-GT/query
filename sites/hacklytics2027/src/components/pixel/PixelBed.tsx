@@ -5,6 +5,8 @@ import { useBloomInView } from "./useInView";
 import type { Plant } from "./beds";
 import { BUD, DAISY, TULIP } from "./sprites";
 import type { SpriteMap } from "./sprites";
+import { TINTS } from "./tints";
+import type { Tint } from "./tints";
 
 /**
  * Beds run edge to edge and show more plants the wider the screen: every
@@ -23,19 +25,27 @@ const PLANT_SCALE = 5;
 const MAX_PLANTED = 12;
 const WILT_MS = 320;
 
-type Planted = { id: number; left: number; map: SpriteMap; flip: boolean; wilting: boolean };
+type Planted = {
+  id: number;
+  left: number;
+  map: SpriteMap;
+  tint: Tint;
+  flip: boolean;
+  wilting: boolean;
+};
 
 const subscribeNoop = () => () => {};
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /**
  * A full-width row of plants standing on the soil. Mostly dormant; the ones
- * marked `blooms` grow and open pink in a left-to-right wave the first time
- * the bed is seen.
+ * marked `blooms` grow and open in their tints in a left-to-right wave the
+ * first time the bed is seen.
  *
  * With `plantable`, a click or tap on the bed plants a new flower at that x,
- * snapped to the sprite pixel grid. The bed itself stays aria-hidden; a
- * "Plant a flower" button, visible on focus, does the same for keyboards.
+ * snapped to the sprite pixel grid, in a tint picked at random. The bed
+ * itself stays aria-hidden; a "Plant a flower" button, visible on focus, does
+ * the same for keyboards.
  */
 export function PixelBed({
   plants,
@@ -97,7 +107,8 @@ export function PixelBed({
         left = left + w / 2 < start + clear.offsetWidth / 2 ? start - w : end;
       }
     }
-    const fresh = { id: nextId.current++, left, map, flip: Math.random() < 0.5, wilting: false };
+    const tint = TINTS[Math.floor(Math.random() * TINTS.length)];
+    const fresh = { id: nextId.current++, left, map, tint, flip: Math.random() < 0.5, wilting: false };
 
     let next = [...planted, fresh];
     const alive = planted.filter((p) => !p.wilting);
@@ -142,6 +153,7 @@ export function PixelBed({
               map={p.map}
               scale={p.scale}
               blooms={p.blooms}
+              tint={p.tint}
               flip={p.flip}
               index={i}
             />
@@ -154,7 +166,7 @@ export function PixelBed({
           className={`absolute bottom-0 flex ${p.wilting ? "flower-wilt" : ""}`}
           style={{ left: p.left }}
         >
-          <BloomSprite map={p.map} scale={PLANT_SCALE} blooms flip={p.flip} />
+          <BloomSprite map={p.map} scale={PLANT_SCALE} blooms tint={p.tint} flip={p.flip} />
         </span>
       ))}
     </div>

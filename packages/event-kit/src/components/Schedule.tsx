@@ -14,6 +14,12 @@ const split = (when: string) => {
  * art standing where hacking begins and ends: a site's picture for "this has
  * started" and "this is done". The wrapper is marked `data-bloom-watch` for a
  * site script that starts that art on first sight.
+ *
+ * Under the rail, the days are tabs, one day at a time, so a full weekend
+ * does not become a wall. They are progressive enhancement: the page is built
+ * with the tabs hidden and every day showing, side by side from md, and
+ * scripts/schedule-days.ts turns that into tabs. Each tab sits under its
+ * share of the rail.
  */
 export default function Schedule({
   event,
@@ -77,40 +83,90 @@ export default function Schedule({
 
         {/* No column gap: each day starts exactly on its share of the rail. */}
         <div
-          className="grid grid-cols-1 md:grid-cols-[repeat(var(--days),minmax(0,1fr))] gap-y-12"
+          data-days=""
+          data-tz={event.timeZone}
+          data-start={event.startMs}
+          data-end={event.endMs}
           style={{ "--days": dates.days.length } as React.CSSProperties}
         >
-          {dates.days.map((d) => (
-            <div key={d.key} className="md:pr-10 md:last:pr-0">
-              <p className="flex items-baseline justify-between border-b border-line pb-3">
-                <span className="font-display text-[16px] text-ink">{d.name}</span>
-                <span className="font-sans text-[13px] text-ink-3 tabular-nums">{d.label}</span>
-              </p>
-              <ol>
-                {rows
-                  .filter((r) => r.day === d.key)
-                  .map((r) => (
-                    <li
-                      key={r.when}
-                      className="grid grid-cols-[5.5rem_1fr] md:grid-cols-1 lg:grid-cols-[5.5rem_1fr] gap-x-4 gap-y-1 border-b border-rule py-4"
-                    >
-                      <span
-                        className={`font-sans text-[15px] tabular-nums ${
-                          r.accent ? "text-ink font-medium" : "text-ink-3"
-                        }`}
+          <div
+            role="tablist"
+            aria-label="Day of the weekend"
+            hidden
+            className="grid grid-cols-[repeat(var(--days),minmax(0,1fr))] border-b border-line mb-2"
+          >
+            {dates.days.map((d) => (
+              <button
+                key={d.key}
+                type="button"
+                role="tab"
+                id={`day-tab-${d.key}`}
+                aria-controls={`day-panel-${d.key}`}
+                aria-selected="false"
+                tabIndex={-1}
+                data-day={d.key}
+                className="group -mb-px cursor-pointer border-b-2 border-transparent pt-2 pb-3 text-left text-ink-3 transition-colors duration-150 hover:text-ink aria-selected:border-ink aria-selected:text-ink"
+              >
+                {/* The focus ring hugs the label: around the whole tab it would run into its neighbours. */}
+                <span className="block w-fit group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-ink">
+                  <span className="block font-display text-[16px]">{d.name}</span>
+                  <span className="mt-1 block font-sans text-[13px] tabular-nums">{d.label}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div
+            data-day-panels=""
+            className="grid grid-cols-1 md:grid-cols-[repeat(var(--days),minmax(0,1fr))] gap-y-12"
+          >
+            {dates.days.map((d) => {
+              const day = rows.filter((r) => r.day === d.key);
+              return (
+                <div
+                  key={d.key}
+                  role="tabpanel"
+                  id={`day-panel-${d.key}`}
+                  aria-labelledby={`day-tab-${d.key}`}
+                  data-day-panel=""
+                  className="md:pr-10 md:last:pr-0"
+                >
+                  <p
+                    data-day-head=""
+                    className="flex items-baseline justify-between border-b border-line pb-3"
+                  >
+                    <span className="font-display text-[16px] text-ink">{d.name}</span>
+                    <span className="font-sans text-[13px] text-ink-3 tabular-nums">{d.label}</span>
+                  </p>
+                  {day.length === 0 && (
+                    <p className="font-sans text-[17px] text-ink-3 py-4">Nothing is locked in yet.</p>
+                  )}
+                  <ol>
+                    {day.map((r) => (
+                      <li
+                        key={r.when}
+                        data-day-row=""
+                        className="grid grid-cols-[5.5rem_1fr] md:grid-cols-1 lg:grid-cols-[5.5rem_1fr] gap-x-4 gap-y-1 border-b border-rule py-4"
                       >
-                        {r.time}
-                      </span>
-                      <span
-                        className={`font-sans text-[17px] text-ink ${r.accent ? "font-medium" : ""}`}
-                      >
-                        {r.event}
-                      </span>
-                    </li>
-                  ))}
-              </ol>
-            </div>
-          ))}
+                        <span
+                          className={`font-sans text-[15px] tabular-nums ${
+                            r.accent ? "text-ink font-medium" : "text-ink-3"
+                          }`}
+                        >
+                          {r.time}
+                        </span>
+                        <span
+                          className={`font-sans text-[17px] text-ink ${r.accent ? "font-medium" : ""}`}
+                        >
+                          {r.event}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>

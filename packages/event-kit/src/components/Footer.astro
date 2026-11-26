@@ -1,5 +1,6 @@
 ---
 import type { EventConfig } from "../config";
+import { deadlineStatus } from "../dates";
 import { SECTION_NAV } from "../nav";
 
 interface Props {
@@ -10,33 +11,68 @@ interface Props {
 const { event, home = false } = Astro.props;
 const { registration, links, footer } = event;
 const portalHost = new URL(links.portal).host;
+
+// The closing call to action turns to its closed copy once applications have
+// closed. The state is right for the day the site was built; the script at the
+// foot of this file recounts it for the day the page is read.
+const { closed } = footer;
+const isClosed =
+  closed !== undefined &&
+  event.closesMs !== undefined &&
+  !deadlineStatus(event.timeZone, event.closesMs, Date.now()).open;
 ---
 
 <footer class="relative w-full overflow-hidden">
   <div class:list={["wrap pb-10", home ? "pt-12 md:pt-24" : "pt-2"]}>
     {home && (
-      <>
-        <h2 class="display -ml-[0.125em] text-[32px] md:text-[40px] lg:text-[56px] xl:text-[72px] leading-[1.05] mb-8">
-          {footer.headline}
-        </h2>
+      <div data-footer-cta data-closes={event.closesMs} data-tz={event.timeZone}>
+        <div data-footer-open hidden={isClosed}>
+          <h2 class="display -ml-[0.125em] text-[32px] md:text-[40px] lg:text-[56px] xl:text-[72px] leading-[1.05] mb-8">
+            {footer.headline}
+          </h2>
 
-        <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-16">
-          <a
-            href={registration.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={registration.ariaLabel ?? registration.label}
-            class="btn btn-bloom"
-          >
-            {registration.label}
-          </a>
-          {footer.note && (
-            <p class="font-sans text-[17px] text-ink-2 max-w-sm leading-relaxed">
-              {footer.note}
-            </p>
-          )}
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-16">
+            <a
+              href={registration.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={registration.ariaLabel ?? registration.label}
+              class="btn btn-bloom"
+            >
+              {registration.label}
+            </a>
+            {footer.note && (
+              <p class="font-sans text-[17px] text-ink-2 max-w-sm leading-relaxed">
+                {footer.note}
+              </p>
+            )}
+          </div>
         </div>
-      </>
+
+        {closed && (
+          <div data-footer-closed hidden={!isClosed}>
+            <h2 class="display -ml-[0.125em] text-[32px] md:text-[40px] lg:text-[56px] xl:text-[72px] leading-[1.05] mb-8">
+              {closed.headline}
+            </h2>
+
+            <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-16">
+              <a
+                href={closed.cta.href}
+                target={closed.cta.external ? "_blank" : undefined}
+                rel={closed.cta.external ? "noopener noreferrer" : undefined}
+                class="btn btn-line"
+              >
+                {closed.cta.text}
+              </a>
+              {closed.note && (
+                <p class="font-sans text-[17px] text-ink-2 max-w-sm leading-relaxed">
+                  {closed.note}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     )}
 
     {/* Two rows at every width: side by side, the links wrapped FAQ and
@@ -128,3 +164,20 @@ const portalHost = new URL(links.portal).host;
   {/* The site's art, closing the page. */}
   {home && <slot name="art" />}
 </footer>
+
+<script>
+  import { deadlineStatus } from "../dates";
+
+  const cta = document.querySelector<HTMLElement>("[data-footer-cta]");
+  const open = cta?.querySelector<HTMLElement>("[data-footer-open]");
+  const closed = cta?.querySelector<HTMLElement>("[data-footer-closed]");
+  if (cta && open && closed) {
+    const isClosed = !deadlineStatus(
+      cta.dataset.tz ?? "",
+      Number(cta.dataset.closes),
+      Date.now(),
+    ).open;
+    open.hidden = isClosed;
+    closed.hidden = !isClosed;
+  }
+</script>

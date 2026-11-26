@@ -30,8 +30,8 @@ Astro 7 needs Vite 8 while the rest of the repo stays on Vite 7. This site and `
 | `src/pages/404.astro` | 404 (`out/404.html`) |
 | `src/layouts/Layout.astro` | Wraps the kit's layout: loads the CSS and font preloads, and puts the menu and footer flower beds in the kit's slots |
 | `src/components/Hero.astro` | Hero. The countdown is an inline script; the garden is a React island |
-| `src/components/SectionArt.tsx` | The plants drawn into the kit's sections: one per track, the Judges and Sponsors plots, the schedule rail's bud and tulip |
-| `src/components/pixel/*` | Pixel sprites and flower beds; `season.ts` holds the one bloom count, `GardenBeds.tsx` the four React islands |
+| `src/components/SectionArt.tsx` | The plants drawn into the kit's sections: the theme block's seed, bud and bloom, one per track in a box of 16 by 11 sprite pixels, each in its own tint, the Judges, Volunteers and Sponsors plots, the schedule rail's bud and tulip |
+| `src/components/pixel/*` | Pixel sprites and flower beds; `season.ts` holds the one bloom count, `GardenBeds.tsx` the four React islands, `tints.ts` the colours a flower opens in |
 | `src/scripts/bloom.ts` | Writes `data-bloom="on"` on the track row and the schedule rail when they are in view |
 | `src/styles/globals.css`, `fonts.generated.css`, `src/lib/fonts.generated.ts`, `public/fonts/` | The theme (palette, fonts, flower animations); the fonts are output of `scripts/subset-fonts.py`, committed |
 | `public/sw.js` | Service worker (Firebase header: no-cache, `Service-Worker-Allowed: /`) |
@@ -45,11 +45,14 @@ Everything renders to HTML at build time. Only what needs the browser ships code
 | Piece | How it runs | Why |
 | --- | --- | --- |
 | About, tracks, prizes, schedule, sponsors, FAQ, sprites | Build time, no JS | Nothing to do after load |
+| Schedule day tabs | `packages/event-kit/src/scripts/schedule-days.ts` | Shows the tabs and one day at a time; opens on today's day while the event is on, else Friday. Without it every day shows |
+| Footer call to action | Bundled script in the kit's `Footer.astro` | Both versions are in the HTML. The build shows "Applications are open" and Apply, or, once `registration.closes` has passed, "Applications are closed" and a link to the schedule; the script picks again for the day the page is read |
 | Tracks and schedule bloom | `src/scripts/bloom.ts` (about 300 bytes) | They only need `data-bloom="on"` written when 35% is in view |
 | Navbar (menu, hide on scroll, section links) | `packages/event-kit/src/scripts/navbar.ts` | Plain DOM work; React would add nothing |
 | Theme toggle | `packages/event-kit/src/scripts/theme-toggle.ts`; the icon follows the theme in CSS | Right icon on first paint, even before the script runs |
 | Theme with no flash | `is:inline` script in `<head>` | Must run before first paint |
-| Countdown | Inline script after the hero markup | Fills in the zeros during parsing, before first paint, so the figures never jump, then ticks |
+| Countdown | Inline script after the hero markup | Counts to when hacking begins, and says so in its label. Fills in the zeros during parsing, before first paint, so the figures never jump, then ticks. Once hacking has begun it swaps the figures for "Hacking has begun" |
+| Application deadline | Bundled script in `Hero.astro`, using `@query/event-kit/dates` | Shows "Applications close Jan 20, 2027 (N days left)" next to Apply. The build writes the count for the day it ran; the script recounts for the day the page is read (days turn over at midnight in Atlanta) and switches to "Applications closed" after `registration.closes` |
 | Service worker | `packages/event-kit/src/scripts/service-worker.ts`, production only, after `load` | Keeps it off the critical path |
 | Hero flower bed | React island, `client:idle` | In the first screen but not needed to read it; hydrates off the critical path |
 | Footer flower bed | React island, `client:visible` | Page bottom; hydrates when scrolled near |
@@ -57,6 +60,8 @@ Everything renders to HTML at build time. Only what needs the browser ships code
 | Menu flower bed | React island, `client:media="(max-width: 1023px)"` | The menu only opens below 1024px, so desktop never loads it |
 
 The beds are the one place React stays, besides the judge interest form. How many flowers are in bloom depends on the date, so the build cannot bake it, and a click plants one. The static HTML draws every plant dormant (`useInBloom` returns 0 there) and hydration brings in the real count.
+
+Flowers open in the portal’s eight flower tints, which `@query/core` exports as `BLOOM_TINTS` (the portal’s bloom pass reads the same table). Only flowers use them: buttons, links and focus stay the one pink. In a bed the first eight flowers in bloom are all different colours, and a flower you plant takes a random one.
 
 The beds take the event's start (`start`, epoch milliseconds) and first-day label (`startLabel`) as props, passed from `Hero.astro` and `layouts/Layout.astro`. They do not import `event.config.ts`: an island that imports it bundles all the page copy into the browser.
 
