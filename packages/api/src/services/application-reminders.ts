@@ -10,6 +10,9 @@ import {
   or,
   sql,
 } from "drizzle-orm";
+
+import type { DrizzleDB } from "@query/db";
+import { DAY, SITE_ORIGIN } from "@query/core";
 import {
   hackathonApplicationDrafts as drafts,
   hackathonBans,
@@ -18,8 +21,6 @@ import {
   judges,
   users,
 } from "@query/db";
-import type { DrizzleDB } from "@query/db";
-import { DAY, SITE_ORIGIN } from "@query/core";
 
 /** How long a draft sits untouched before its owner is nudged. */
 export const REMINDER_AFTER_MS = 3 * DAY;

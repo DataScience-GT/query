@@ -1,12 +1,13 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { db } from "@query/db";
+import { NextResponse } from "next/server";
+
+import { sendApplicationReminders } from "@query/api/application-reminders";
 import {
   rateLimitShared,
   resolveClientIp,
 } from "@query/api/middleware/security";
-import { sendApplicationReminders } from "@query/api/application-reminders";
+import { db } from "@query/db";
 
 /**
  * The daily nudge to finish an application. App Hosting has no scheduler, so a

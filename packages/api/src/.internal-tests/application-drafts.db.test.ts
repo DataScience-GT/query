@@ -1,8 +1,18 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type * as DbModule from "@query/db";
 import type * as DrizzleOps from "drizzle-orm";
-import type * as Reminders from "../services/application-reminders";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+
+import type * as DbModule from "@query/db";
+
 import type * as Drafts from "../services/application-drafts";
+import type * as Reminders from "../services/application-reminders";
 import { applicationAnswers } from "./_application-answers";
 
 /**
@@ -49,13 +59,19 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
   const email = (tag: string) => `ad-${suffix}-${tag}@example.test`;
   const makeUser = async (tag: string, address = email(tag)) => {
     const id = `ad-${suffix}-${tag}`;
-    await S.db!.insert(S.users).values({ id, email: address, name: `User ${tag}` });
+    await S.db!.insert(S.users).values({
+      id,
+      email: address,
+      name: `User ${tag}`,
+    });
     userIds.push(id);
     return id;
   };
-  const makeHackathon = async (tag: string, extra: Record<string, unknown> = {}) => {
-    const [row] = await S.db!
-      .insert(S.hackathons)
+  const makeHackathon = async (
+    tag: string,
+    extra: Record<string, unknown> = {},
+  ) => {
+    const [row] = await S.db!.insert(S.hackathons)
       .values({
         name: `AD ${suffix} ${tag}`,
         startDate: new Date("2027-02-26T14:00:00Z"),
@@ -71,8 +87,7 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
 
   const draftRow = async (userId: string, hackathonId: string) =>
     (
-      await S.db!
-        .select()
+      await S.db!.select()
         .from(S.hackathonApplicationDrafts)
         .where(
           ops.and(
@@ -129,13 +144,19 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
     const db = S?.db;
     if (!db) return;
     if (banEmails.length) {
-      await db.delete(S.hackathonBans).where(ops.inArray(S.hackathonBans.email, banEmails));
+      await db
+        .delete(S.hackathonBans)
+        .where(ops.inArray(S.hackathonBans.email, banEmails));
     }
     if (hackathonIds.length) {
-      await db.delete(S.hackathons).where(ops.inArray(S.hackathons.id, hackathonIds));
+      await db
+        .delete(S.hackathons)
+        .where(ops.inArray(S.hackathons.id, hackathonIds));
     }
     if (userIds.length) {
-      await db.delete(S.auditLogs).where(ops.inArray(S.auditLogs.userId, userIds));
+      await db
+        .delete(S.auditLogs)
+        .where(ops.inArray(S.auditLogs.userId, userIds));
       await db.delete(S.users).where(ops.inArray(S.users.id, userIds));
     }
   });
@@ -149,7 +170,12 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
 
       await as(u).saveMyDraft({
         hackathonId: h.id,
-        data: { firstName: "Ada", whyAttend: "To build.", dietary: ["Vegan"], needsHardware: true },
+        data: {
+          firstName: "Ada",
+          whyAttend: "To build.",
+          dietary: ["Vegan"],
+          needsHardware: true,
+        },
       });
       const first = await as(u).getMyDraft({ hackathonId: h.id });
       expect(first?.data).toEqual({
@@ -160,14 +186,18 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
       });
 
       await new Promise((r) => setTimeout(r, 15));
-      await as(u).saveMyDraft({ hackathonId: h.id, data: { firstName: "Ada", lastName: "Lovelace" } });
+      await as(u).saveMyDraft({
+        hackathonId: h.id,
+        data: { firstName: "Ada", lastName: "Lovelace" },
+      });
       const second = await as(u).getMyDraft({ hackathonId: h.id });
       // Replaced whole, not merged: the earlier answers are gone.
       expect(second?.data).toEqual({ firstName: "Ada", lastName: "Lovelace" });
-      expect(second!.updatedAt.getTime()).toBeGreaterThan(first!.updatedAt.getTime());
+      expect(second!.updatedAt.getTime()).toBeGreaterThan(
+        first!.updatedAt.getTime(),
+      );
 
-      const rows = await S.db!
-        .select()
+      const rows = await S.db!.select()
         .from(S.hackathonApplicationDrafts)
         .where(ops.eq(S.hackathonApplicationDrafts.hackathonId, h.id));
       expect(rows).toHaveLength(1);
@@ -177,7 +207,10 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
       const h = await makeHackathon("private");
       const a = await makeUser("priv-a");
       const b = await makeUser("priv-b");
-      await as(a).saveMyDraft({ hackathonId: h.id, data: { firstName: "Ada" } });
+      await as(a).saveMyDraft({
+        hackathonId: h.id,
+        data: { firstName: "Ada" },
+      });
 
       expect(await as(b).getMyDraft({ hackathonId: h.id })).toBeNull();
     });
@@ -204,7 +237,7 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
           resumeFile: "data:application/pdf;base64,AAAA",
           // Not a field at all.
           invented: "x",
-          "__proto__": { polluted: true },
+          __proto__: { polluted: true },
         } as any,
       });
 
@@ -235,9 +268,9 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
         drafts.draftByteLength(drafts.applicationDraftData.parse(data)),
       ).toBeGreaterThan(drafts.MAX_DRAFT_BYTES);
 
-      await expect(as(u).saveMyDraft({ hackathonId: h.id, data })).rejects.toThrow(
-        /too large/i,
-      );
+      await expect(
+        as(u).saveMyDraft({ hackathonId: h.id, data }),
+      ).rejects.toThrow(/too large/i);
       expect(await draftRow(u, h.id)).toBeUndefined();
     });
 
@@ -245,7 +278,10 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
       const h = await makeHackathon("limit");
       const u = await makeUser("limit");
       await expect(
-        as(u).saveMyDraft({ hackathonId: h.id, data: { whyAttend: "x".repeat(2001) } }),
+        as(u).saveMyDraft({
+          hackathonId: h.id,
+          data: { whyAttend: "x".repeat(2001) },
+        }),
       ).rejects.toThrow();
     });
   });
@@ -254,7 +290,10 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
     it("refuses once the person has applied, and register clears the draft", async () => {
       const h = await makeHackathon("register");
       const u = await makeUser("register");
-      await as(u).saveMyDraft({ hackathonId: h.id, data: { firstName: "Ada" } });
+      await as(u).saveMyDraft({
+        hackathonId: h.id,
+        data: { firstName: "Ada" },
+      });
       expect(await draftRow(u, h.id)).toBeDefined();
 
       await as(u).register({
@@ -277,8 +316,7 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
 
       // Same transaction as the participant row: no moment of one without the other.
       expect(await draftRow(u, h.id)).toBeUndefined();
-      const [participant] = await S.db!
-        .select()
+      const [participant] = await S.db!.select()
         .from(S.hackathonParticipants)
         .where(ops.eq(S.hackathonParticipants.userId, u));
       expect(participant?.registrationStatus).toBe("pending");
@@ -291,8 +329,12 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
 
     it("refuses when registration is not open", async () => {
       const closed = await makeHackathon("closed", { status: "closed" });
-      const past = await makeHackathon("past", { registrationDeadline: new Date(Date.now() - DAY) });
-      const announced = await makeHackathon("announced", { status: "announced" });
+      const past = await makeHackathon("past", {
+        registrationDeadline: new Date(Date.now() - DAY),
+      });
+      const announced = await makeHackathon("announced", {
+        status: "announced",
+      });
       const u = await makeUser("closed");
 
       for (const h of [closed, past, announced]) {
@@ -313,9 +355,10 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
       const address = email("banned").toUpperCase();
       const u = await makeUser("banned", address);
       banEmails.push(address.toLowerCase());
-      await S.db!
-        .insert(S.hackathonBans)
-        .values({ email: address.toLowerCase(), reason: "test" });
+      await S.db!.insert(S.hackathonBans).values({
+        email: address.toLowerCase(),
+        reason: "test",
+      });
 
       await expect(
         as(u).saveMyDraft({ hackathonId: h.id, data: { firstName: "Ada" } }),
@@ -330,7 +373,10 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
         results.push(
           await as(u)
             .saveMyDraft({ hackathonId: h.id, data: { firstName: `A${i}` } })
-            .then(() => "ok", (e: Error) => e.message),
+            .then(
+              () => "ok",
+              (e: Error) => e.message,
+            ),
         );
       }
       expect(results.filter((r) => r === "ok")).toHaveLength(120);
@@ -341,11 +387,14 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
   describe("the three-day reminder", () => {
     // Fixed, so ages are exact. A fresh edition per case keeps the cases apart.
     const NOW = new Date("2027-01-10T15:00:00Z");
-    const run = (now = NOW) => reminders.sendApplicationReminders(S.db as any, now);
+    const run = (now = NOW) =>
+      reminders.sendApplicationReminders(S.db as any, now);
     const deadline = new Date("2027-01-20T04:59:00Z");
 
     it("mails only stale, unsubmitted drafts on an open edition, not banned", async () => {
-      const open = await makeHackathon("rem-open", { registrationDeadline: deadline });
+      const open = await makeHackathon("rem-open", {
+        registrationDeadline: deadline,
+      });
       const noDeadline = await makeHackathon("rem-nodl");
       const closed = await makeHackathon("rem-closed", { status: "closed" });
       const lapsed = await makeHackathon("rem-lapsed", {
@@ -374,7 +423,9 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
       await add("fresh", open, 2.9, false);
       await add("closed", closed, 5, false);
       await add("lapsed", lapsed, 5, false);
-      await add("already", open, 5, false, { reminderSentAt: new Date(NOW.getTime() - DAY) });
+      await add("already", open, 5, false, {
+        reminderSentAt: new Date(NOW.getTime() - DAY),
+      });
 
       const registered = await add("registered", open, 5, false);
       await S.db!.insert(S.hackathonParticipants).values({
@@ -384,7 +435,11 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
       });
 
       const judge = await add("judge", open, 5, false);
-      await S.db!.insert(S.judges).values({ hackathonId: open.id, userId: judge, name: "J" });
+      await S.db!.insert(S.judges).values({
+        hackathonId: open.id,
+        userId: judge,
+        name: "J",
+      });
 
       const bannedAddress = email("rem-banned").toUpperCase();
       await add("banned", open, 5, false, {}, bannedAddress);
@@ -400,9 +455,13 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
 
       const stale = mailed.calls.find((c) => c.email === email("rem-stale"))!;
       expect(stale.hackathonName).toBe(open.name);
-      expect(stale.hackathonUrl).toBe(`https://datasciencegt.org/hackathons/${open.id}`);
+      expect(stale.hackathonUrl).toBe(
+        `https://datasciencegt.org/hackathons/${open.id}`,
+      );
       expect(stale.deadline).toEqual(deadline);
-      expect(mailed.calls.find((c) => c.email === email("rem-nodl"))!.deadline).toBeNull();
+      expect(
+        mailed.calls.find((c) => c.email === email("rem-nodl"))!.deadline,
+      ).toBeNull();
 
       // Stamped, so tomorrow's run mails nobody again.
       const stamped = await draftRow(`ad-${suffix}-rem-stale`, open.id);
@@ -478,9 +537,14 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
     it("sends at most one batch a run and picks up the rest next time", async () => {
       const h = await makeHackathon("rem-batch");
       const total = reminders.REMINDER_BATCH + 5;
-      const addresses = Array.from({ length: total }, (_, i) => email(`batch${i}`));
+      const addresses = Array.from({ length: total }, (_, i) =>
+        email(`batch${i}`),
+      );
       await S.db!.insert(S.users).values(
-        addresses.map((address, i) => ({ id: `ad-${suffix}-batch${i}`, email: address })),
+        addresses.map((address, i) => ({
+          id: `ad-${suffix}-batch${i}`,
+          email: address,
+        })),
       );
       userIds.push(...addresses.map((_, i) => `ad-${suffix}-batch${i}`));
       await S.db!.insert(S.hackathonApplicationDrafts).values(
@@ -497,10 +561,13 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
       const first = await run();
       expect(first.claimed).toBeLessThanOrEqual(reminders.REMINDER_BATCH);
       expect(first.sent).toBe(first.claimed);
-      expect(mailedTo(addresses).length).toBeLessThanOrEqual(reminders.REMINDER_BATCH);
+      expect(mailedTo(addresses).length).toBeLessThanOrEqual(
+        reminders.REMINDER_BATCH,
+      );
 
       // The rest follow on later runs, each person once.
-      for (let i = 0; i < 3 && new Set(mailedTo(addresses)).size < total; i++) await run();
+      for (let i = 0; i < 3 && new Set(mailedTo(addresses)).size < total; i++)
+        await run();
       expect(mailedTo(addresses)).toHaveLength(total);
       expect(new Set(mailedTo(addresses)).size).toBe(total);
     }, 120_000);
@@ -515,23 +582,32 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
 
       const first = await run();
       expect(first.failed).toBe(1);
-      expect(mailedTo([email("fail-good"), email("fail-bad")])).toEqual([email("fail-good")]);
+      expect(mailedTo([email("fail-good"), email("fail-bad")])).toEqual([
+        email("fail-good"),
+      ]);
       expect((await draftRow(good, h.id))?.reminderSentAt).toEqual(NOW);
       expect((await draftRow(bad, h.id))?.reminderSentAt).toBeNull();
 
       mailed.refuse.clear();
       mailed.calls.length = 0;
       await run(new Date(NOW.getTime() + DAY));
-      expect(mailedTo([email("fail-good"), email("fail-bad")])).toEqual([email("fail-bad")]);
+      expect(mailedTo([email("fail-good"), email("fail-bad")])).toEqual([
+        email("fail-bad"),
+      ]);
     });
 
     it("does not mail again when the draft is edited after the reminder", async () => {
-      const h = await makeHackathon("rem-edit", { registrationDeadline: new Date(Date.now() + 30 * DAY) });
+      const h = await makeHackathon("rem-edit", {
+        registrationDeadline: new Date(Date.now() + 30 * DAY),
+      });
       const u = await makeUser("edit");
       const stampedAt = new Date(Date.now() - 2 * DAY);
       await plantDraft(u, h.id, new Date(), 5, { reminderSentAt: stampedAt });
 
-      await as(u).saveMyDraft({ hackathonId: h.id, data: { firstName: "Ada", lastName: "L" } });
+      await as(u).saveMyDraft({
+        hackathonId: h.id,
+        data: { firstName: "Ada", lastName: "L" },
+      });
 
       const row = await draftRow(u, h.id);
       expect(row?.reminderSentAt).toEqual(stampedAt);

@@ -1,18 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { POST } from "./route";
+
 const run = vi.hoisted(() => vi.fn());
 vi.mock("@query/db", () => ({ db: { marker: "db" } }));
 vi.mock("@query/api/application-reminders", () => ({
   sendApplicationReminders: run,
 }));
 
-import { POST } from "./route";
-
 const SECRET = "s3cret-token-value";
 
 let counter = 0;
 /** Each call gets its own address unless told otherwise, so the limiter never crosses cases. */
-const call = (headers: Record<string, string> = {}, ip = `198.51.100.${++counter}`) =>
+const call = (
+  headers: Record<string, string> = {},
+  ip = `198.51.100.${++counter}`,
+) =>
   POST(
     new Request("http://localhost/api/cron/application-reminders", {
       method: "POST",
@@ -57,7 +60,7 @@ describe("POST /api/cron/application-reminders", () => {
     expect(res.headers.get("cache-control")).toBe("no-store");
     expect(await res.json()).toEqual({ claimed: 3, sent: 2, failed: 1 });
     expect(run).toHaveBeenCalledTimes(1);
-    expect(run.mock.calls[0]![0]).toEqual({ marker: "db" });
+    expect(run.mock.calls[0]?.[0]).toEqual({ marker: "db" });
   });
 
   it("answers 500 without the error text when a run fails", async () => {
@@ -74,12 +77,17 @@ describe("POST /api/cron/application-reminders", () => {
     vi.stubEnv("CRON_SECRET", SECRET);
     const statuses: number[] = [];
     for (let i = 0; i < 12; i++) {
-      statuses.push((await call({ authorization: "Bearer nope" }, "203.0.113.9")).status);
+      statuses.push(
+        (await call({ authorization: "Bearer nope" }, "203.0.113.9")).status,
+      );
     }
     expect(statuses.slice(0, 10).every((s) => s === 401)).toBe(true);
     expect(statuses.slice(10)).toEqual([429, 429]);
 
-    const other = await call({ authorization: `Bearer ${SECRET}` }, "203.0.113.10");
+    const other = await call(
+      { authorization: `Bearer ${SECRET}` },
+      "203.0.113.10",
+    );
     expect(other.status).toBe(200);
   });
 });
