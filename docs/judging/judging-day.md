@@ -6,7 +6,7 @@ Desk procedures are in `packages/api/src/routers/judging/desk.ts`. Every desk ca
 
 ## Entering the desk
 
-1. A member judge signs in and opens `/judge/<hackathonId>`, or scans a room QR code. A guest scans the QR code and lands on `/judge/guest/<hackathonId>`, where `GuestNameGate` asks for a name (`desk.setGuestName`, which calls `nameGuest`). Until an organizer lets them in (`admitGuest`), `GuestWaiting` shows and every judging call returns FORBIDDEN. See [QR links](./setup.md#qr-links).
+1. A member judge signs in and opens `/judge/<hackathonId>`, or scans a room QR code. A guest scans the QR code and lands on `/judge/guest/<hackathonId>`, where `GuestNameGate` asks for a name (`desk.setGuestName`, which calls `nameGuest`). Until an organizer lets them in (`admitGuest`), `GuestWaiting` shows and every judging call returns FORBIDDEN. A guest takes their seat in the room (`seatJudge`) when they are let in, not when they give a name, so a room whose only guest is waiting does not count as staffed. See [QR links](./setup.md#qr-links).
 2. `desk.context` says who the judge is and whether a name is needed. `deskProcedure` resolves the principal (`resolveDeskPrincipal`); `judgeProcedure` additionally requires a member, or a named guest an organizer has let in. `desk.context` reports `admitted`.
 3. A member picks a room with `desk.rooms` and `desk.joinRoom`. A guest is already seated in the room their link opened and cannot move (`joinRoom` and `leaveRoom` return FORBIDDEN for guests).
 

@@ -372,8 +372,8 @@ describe("activateRoomLink", () => {
       hackathonId: HACK,
       judgeId: "j1",
       userId: null,
-      admittedAt: null,
-      admittedById: null,
+      admittedAt: new Date(),
+      admittedById: "organizer",
       expiresAt: new Date(Date.now() + HOUR),
       revokedAt: null,
       ...overrides,
@@ -397,6 +397,20 @@ describe("activateRoomLink", () => {
       });
       // The session for the room they left ends.
       expect(updated).toEqual([{ expiresAt: expect.any(Date) }]);
+    });
+
+    it("leaves the room they were in, and takes no seat, when they were never let in", async () => {
+      const { result, inserted, updated } = await scan(
+        named({ admittedAt: null, admittedById: null }),
+      );
+      expect(result).toMatchObject({ kind: "guest", roomId: "r2" });
+      // The new session only: no presence row in the room they moved to.
+      expect(inserted).toHaveLength(1);
+      expect(inserted[0]).toMatchObject({ judgeId: "j1", admittedAt: null });
+      expect(updated).toEqual([
+        { expiresAt: expect.any(Date) },
+        { leftAt: expect.any(Date) },
+      ]);
     });
 
     it("recognises a session that lapsed a little while ago", async () => {

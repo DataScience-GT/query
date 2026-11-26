@@ -12,6 +12,7 @@ import type { DrizzleDB } from "@query/db";
 import { isAdmin } from "../../../middleware/procedures";
 import { recordAdminAction } from "../../../middleware/audit";
 import { lockEdition } from "../../../services/judging/challenges";
+import { seatJudge } from "../../../services/judging/principal";
 import {
   issueRoomLink,
   portalOrigin,
@@ -120,25 +121,41 @@ export const roomLinkProcedures = {
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
       const now = new Date();
-      const [session] = await db
-        .update(judgingGuestSessions)
-        .set({
-          admittedAt: sql`coalesce(${judgingGuestSessions.admittedAt}, ${now})`,
-          admittedById: sql`coalesce(${judgingGuestSessions.admittedById}, ${ctx.userId})`,
-        })
-        .where(
-          and(
-            eq(judgingGuestSessions.id, input.sessionId),
-            isNull(judgingGuestSessions.revokedAt),
-            gt(judgingGuestSessions.expiresAt, now),
-          ),
-        )
-        .returning({
-          id: judgingGuestSessions.id,
-          hackathonId: judgingGuestSessions.hackathonId,
-          roomId: judgingGuestSessions.roomId,
-          judgeId: judgingGuestSessions.judgeId,
-        });
+      const session = await db.transaction(async (tx) => {
+        const [admitted] = await tx
+          .update(judgingGuestSessions)
+          .set({
+            admittedAt: sql`coalesce(${judgingGuestSessions.admittedAt}, ${now})`,
+            admittedById: sql`coalesce(${judgingGuestSessions.admittedById}, ${ctx.userId})`,
+          })
+          .where(
+            and(
+              eq(judgingGuestSessions.id, input.sessionId),
+              isNull(judgingGuestSessions.revokedAt),
+              gt(judgingGuestSessions.expiresAt, now),
+            ),
+          )
+          .returning({
+            id: judgingGuestSessions.id,
+            hackathonId: judgingGuestSessions.hackathonId,
+            roomId: judgingGuestSessions.roomId,
+            judgeId: judgingGuestSessions.judgeId,
+          });
+        // The seat a named guest was held back from. One not yet named takes
+        // theirs when they give a name (nameGuest).
+        if (admitted?.judgeId) {
+          await seatJudge(
+            tx,
+            {
+              judgeId: admitted.judgeId,
+              roomId: admitted.roomId,
+              hackathonId: admitted.hackathonId,
+            },
+            now,
+          );
+        }
+        return admitted;
+      });
       if (!session) {
         throw new TRPCError({
           code: "NOT_FOUND",

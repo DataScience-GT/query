@@ -399,6 +399,77 @@ describe.skipIf(!URL)("guest judges and organizer admission, against a real data
     expect((await sessionOf(next.token)).admittedAt).toBeNull();
   });
 
+  describe("who counts as in a room", () => {
+    /** Rooms the board would call staffed: a judge with an open seat in them. */
+    const seatsOf = async (token: string) => {
+      const session = await sessionOf(token);
+      if (!session.judgeId) return [];
+      return S.db!
+        .select({ roomId: S.judgingPresence.roomId })
+        .from(S.judgingPresence)
+        .where(
+          ops.and(
+            ops.eq(S.judgingPresence.judgeId, session.judgeId),
+            ops.isNull(S.judgingPresence.leftAt),
+          ),
+        );
+    };
+    const seatedIn = async (roomName: string) => {
+      const { rooms } = await admin(id("organizer")).listRooms({ hackathonId });
+      return rooms.find((room: any) => room.name === roomName).judgesSeated;
+    };
+
+    it("does not seat a guest who has a name but has not been let in", async () => {
+      const before = await seatedIn("Room A");
+      const token = await arrive(linkA, "Zed");
+
+      expect(await seatsOf(token)).toEqual([]);
+      expect(await seatedIn("Room A")).toBe(before);
+    });
+
+    it("seats them in their room when an organizer lets them in", async () => {
+      const before = await seatedIn("Room A");
+      const token = await arrive(linkA, "Zia");
+      await admin(id("organizer")).admitGuest({ sessionId: (await sessionOf(token)).id });
+
+      expect(await seatsOf(token)).toEqual([{ roomId: roomA }]);
+      expect(await seatedIn("Room A")).toBe(before + 1);
+    });
+
+    it("seats a guest who was let in before they gave a name, once they do", async () => {
+      const scanned = await scan(linkA);
+      if (scanned.kind !== "guest" || !scanned.token) throw new Error("no session");
+      await admin(id("organizer")).admitGuest({ sessionId: (await sessionOf(scanned.token)).id });
+      expect(await seatsOf(scanned.token)).toEqual([]);
+
+      await desk({ token: scanned.token }).setGuestName({ hackathonId, displayName: "Zoe" });
+
+      expect(await seatsOf(scanned.token)).toEqual([{ roomId: roomA }]);
+    });
+
+    it("moves an admitted guest's seat to the next room they scan", async () => {
+      const first = await arrive(linkA, "Zack");
+      await admin(id("organizer")).admitGuest({ sessionId: (await sessionOf(first)).id });
+
+      const next = await scan(linkB, { guestToken: first });
+      if (next.kind !== "guest" || !next.token) throw new Error("no session");
+
+      expect(await seatsOf(next.token)).toEqual([{ roomId: roomB }]);
+    });
+
+    it("leaves the old room and sits nowhere when they come back as someone else", async () => {
+      const first = await arrive(linkA, "Zara", { userId: id("hacker") });
+      await admin(id("organizer")).admitGuest({ sessionId: (await sessionOf(first)).id });
+      expect(await seatsOf(first)).toEqual([{ roomId: roomA }]);
+
+      // Signed in as someone else this time: an organizer has not seen them.
+      const next = await scan(linkB, { guestToken: first, userId: id("outsider") });
+      if (next.kind !== "guest" || !next.token) throw new Error("no session");
+
+      expect(await seatsOf(next.token)).toEqual([]);
+    });
+  });
+
   it("reports the accounts a guest has shown: the scanner's and the one signed in now", async () => {
     const token = await arrive(linkA, "Yael", { userId: id("hacker") });
 

@@ -373,6 +373,7 @@ export async function nameGuest(
       .select({
         judgeId: judgingGuestSessions.judgeId,
         roomId: judgingGuestSessions.roomId,
+        admittedAt: judgingGuestSessions.admittedAt,
       })
       .from(judgingGuestSessions)
       .where(
@@ -416,15 +417,20 @@ export async function nameGuest(
       .set({ judgeId: judge.id, completedAt: now })
       .where(eq(judgingGuestSessions.id, guest.sessionId));
 
-    await seatJudge(
-      tx,
-      {
-        judgeId: judge.id,
-        roomId: session.roomId,
-        hackathonId: guest.hackathonId,
-      },
-      now,
-    );
+    // A seat tells the board the room is staffed and open to presentations,
+    // so a guest takes one when an organizer lets them in (admitGuest), not
+    // for giving a name.
+    if (session.admittedAt) {
+      await seatJudge(
+        tx,
+        {
+          judgeId: judge.id,
+          roomId: session.roomId,
+          hackathonId: guest.hackathonId,
+        },
+        now,
+      );
+    }
 
     return { judgeId: judge.id, displayName: judge.displayName };
   });
@@ -612,15 +618,29 @@ export async function activateRoomLink(
             gt(judgingGuestSessions.expiresAt, now),
           ),
         );
-      await seatJudge(
-        tx,
-        {
-          judgeId: carried.judgeId,
-          roomId: link.roomId,
-          hackathonId: link.hackathonId,
-        },
-        now,
-      );
+      if (sameAccount && carried.admittedAt) {
+        await seatJudge(
+          tx,
+          {
+            judgeId: carried.judgeId,
+            roomId: link.roomId,
+            hackathonId: link.hackathonId,
+          },
+          now,
+        );
+      } else {
+        // Not let in as who they are now, so no seat anywhere: the one they
+        // had in the room they left must not go on counting.
+        await tx
+          .update(judgingPresence)
+          .set({ leftAt: now })
+          .where(
+            and(
+              eq(judgingPresence.judgeId, carried.judgeId),
+              isNull(judgingPresence.leftAt),
+            ),
+          );
+      }
     }
   });
 
