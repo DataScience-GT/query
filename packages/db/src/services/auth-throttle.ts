@@ -108,10 +108,13 @@ export async function hasAccount(
  * the deployment's: the client's network, when the request carried one, and the
  * address's domain. Keys cannot be a real address, which always has an `@`.
  *
- * The domain cap is for addresses with no account. It exists because a
- * catch-all or a made-up address costs an attacker nothing, and it must not
- * work the other way round: fake addresses at gatech.edu filling its cap would
- * otherwise lock out everyone who signs in there by code.
+ * Both caps are for addresses with no account. They exist because a catch-all
+ * or a made-up address costs an attacker nothing, and they must not work the
+ * other way round: fake addresses at gatech.edu filling its cap would otherwise
+ * lock out everyone who signs in there by code. Nor is a network's hour for
+ * people who already have an account: on judging day a whole venue shares one
+ * address, and nearly everyone there applied and so has one. They keep the
+ * per-address cap, the lockout and the deployment's cap.
  */
 export function requesterCodeCaps(
   identifier: string,
@@ -119,6 +122,7 @@ export function requesterCodeCaps(
   options: { existingUser?: boolean } = {},
 ): { key: string; max: number }[] {
   const caps: { key: string; max: number }[] = [];
+  if (options.existingUser) return caps;
   if (clientIp) {
     caps.push({
       key: `ip:${networkOf(clientIp)}`,
@@ -127,7 +131,7 @@ export function requesterCodeCaps(
   }
   const at = identifier.lastIndexOf("@");
   const domain = at === -1 ? "" : identifier.slice(at + 1).toLowerCase();
-  if (domain && !options.existingUser) {
+  if (domain) {
     caps.push({
       key: `domain:${domain}`,
       max: isLargeDomain(domain)

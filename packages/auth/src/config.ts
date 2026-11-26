@@ -218,8 +218,10 @@ export const authConfig: NextAuthConfig = {
             // off for everyone.
             // Whether the address has an account decides which caps it meets:
             // a made-up address costs an attacker nothing, so it answers to
-            // its domain's cap and to a share of the deployment's hour, and a
-            // person who has signed in before does not, however full those are.
+            // its network's and its domain's caps and to a share of the
+            // deployment's hour, and a person who has signed in before does
+            // not, however full those are. (A venue shares one network.) They
+            // keep their own address cap, the lock and the deployment's cap.
             const existingUser = await hasAccount(tx, identifier);
             for (const cap of requesterCodeCaps(identifier, currentClientIp(), {
               existingUser,

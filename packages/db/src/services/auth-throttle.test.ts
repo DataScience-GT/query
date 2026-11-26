@@ -74,15 +74,17 @@ describe("requesterCodeCaps", () => {
     }
   });
 
-  it("leaves the domain cap off an address that already has an account", () => {
+  it("leaves the domain and network caps off an address that already has an account", () => {
+    // A venue shares one address among everyone who applied, and nearly all of
+    // them have an account already.
     const keys = requesterCodeCaps("a@gatech.edu", "203.0.113.7", {
       existingUser: true,
     }).map((cap) => cap.key);
 
-    expect(keys).toEqual(["ip:203.0.113.0/24"]);
+    expect(keys).toEqual([]);
   });
 
-  it("keeps the domain cap on one that has none", () => {
+  it("keeps both on one that has none", () => {
     const keys = requesterCodeCaps("a@gatech.edu", "203.0.113.7", {
       existingUser: false,
     }).map((cap) => cap.key);

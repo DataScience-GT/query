@@ -70,6 +70,7 @@ describe.skipIf(!URL)("email code caps on a real database", () => {
   const OWN_KEYS = [
     "ip:203.0.113.0/24",
     "ip:198.51.100.0/24",
+    "ip:192.0.2.0/24",
     "domain:gatech.edu",
     "*global-new*",
   ];
@@ -271,15 +272,35 @@ describe.skipIf(!URL)("email code caps on a real database", () => {
     expect(await request("100.66.201.1", real)).toEqual({ busy: false, sent: true });
   }, 90_000);
 
-  it("still holds an address with an account to its network", async () => {
-    const real = await withAccount("netcap", `school-${suffix}.test`);
+  it("lets everyone with an account sign in from one shared network, and still holds new addresses to its cap", async () => {
+    // The venue's wifi on judging day: one address for everyone, nearly all of
+    // whom applied and so have an account.
     const { sql } = await import("drizzle-orm");
     await db().execute(
-      sql`INSERT INTO "auth_code_throttle" ("identifier", "issue_window_start", "codes_issued") VALUES ('ip:198.51.100.0/24', now(), ${NETWORK_CAP}) ON CONFLICT ("identifier") DO UPDATE SET "issue_window_start" = now(), "codes_issued" = ${NETWORK_CAP}`,
+      sql`DELETE FROM "auth_code_throttle" WHERE "identifier" = 'ip:192.0.2.0/24'`,
     );
+    for (let i = 0; i < 50; i += 1) {
+      const real = await withAccount(`venue${i}`, `school-${suffix}.test`);
+      expect(await request(`192.0.2.${i + 1}`, real)).toEqual({
+        busy: false,
+        sent: true,
+      });
+    }
 
-    expect(await request("198.51.100.9", real)).toEqual({ busy: true, sent: false });
-  });
+    // They did not use the network's hour: strangers on it get all 40.
+    for (let i = 0; i < NETWORK_CAP; i += 1) {
+      const result = await request(`192.0.2.${i + 100}`, `new${i}@stranger${i}-${suffix}.test`);
+      expect(result).toEqual({ busy: false, sent: true });
+    }
+    // The 41st unknown address on that /24 is refused.
+    expect(await request("192.0.2.250", `late@stranger-late-${suffix}.test`)).toEqual({
+      busy: true,
+      sent: false,
+    });
+    // And one more person with an account still gets in.
+    const another = await withAccount("venue-last", `school-${suffix}.test`);
+    expect(await request("192.0.2.251", another)).toEqual({ busy: false, sent: true });
+  }, 60_000);
 
   it("keeps part of the deployment's hour for people who already have an account", async () => {
     const real = await withAccount("headroom", `school-${suffix}.test`);
