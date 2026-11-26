@@ -4,6 +4,10 @@ name: CI/CD
 # tested and built once. Hacklytics deploys only from that verified build —
 # a preview channel per PR, live on main. mainweb is not deployed here:
 # Firebase App Hosting builds it from main itself (apphosting.yaml).
+#
+# The checks run as parallel jobs, each with its own checkout and install, so a
+# run takes as long as the slowest one rather than their sum. `verify` waits
+# for all of them.
 on:
   push:
     branches: ["main", "dev"]
@@ -17,44 +21,36 @@ permissions:
   contents: read
 
 jobs:
-  verify:
-    name: Lint, typecheck, test, build
+  check:
+    name: Boundaries, lint, typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
-      # Start only the database now, in the background, so the image pull and
-      # boot overlap install and lint/typecheck. Mailpit is not used by tests.
-      # The marker file tells the next database step when this has finished.
-      - name: Start test database in the background
-        run: |
-          nohup setsid bash -c '
-            docker compose -f docker/compose.local.yml -f docker/compose.ci.yml up -d db
-            echo $? > "$RUNNER_TEMP/db-up.exit"
-          ' > "$RUNNER_TEMP/db-up.log" 2>&1 &
 
       # No version pin: the one in packageManager is the one that reads
       # overrides and allowBuilds from pnpm-workspace.yaml. Pinning here
       # silently installed an older pnpm that ignores both.
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
+      # No pnpm store cache: restoring 270 MB took longer than the install it
+      # saves.
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Each run saves under its own sha and restores the newest cache, so a
-      # PR starts from the last main or dev run. Turbo then replays any task
-      # whose inputs did not change.
+      # Each run saves under its own sha and restores the newest cache, so a PR
+      # starts from the last main or dev run. Turbo then replays any task whose
+      # inputs did not change. Only lint, typecheck and the packages' build land
+      # here, a few hundred KB.
       - name: Restore Turborepo cache
         uses: actions/cache@v6
         with:
           path: .turbo/cache
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: turbo-${{ runner.os }}-
+          key: turbo-lint-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-lint-${{ runner.os }}-
 
       # Every import is declared in its package.json, nothing reaches into
       # another workspace by path, and the layer tags in turbo.json hold.
@@ -66,6 +62,45 @@ jobs:
       # tests). Build it locally with pnpm --filter hacklytics2026 build.
       - name: Lint and typecheck
         run: pnpm turbo run lint typecheck --filter=!hacklytics2026
+
+      # Turborepo never removes an entry, and each run restores the last cache
+      # and saves it again, so the folder only grows. Drop what no run has
+      # written for a week before the save.
+      - name: Drop stale Turborepo entries
+        run: find .turbo/cache -type f -mtime +7 -delete
+
+  # Two halves of the suite, each on its own runner with its own throwaway
+  # database. Vitest splits the files; the tests never share a database across
+  # runners, as they never shared one across files.
+  test:
+    name: Test (${{ matrix.shard }}/2)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v6
+
+      # Start only the database now, in the background, so the image pull and
+      # boot overlap install. Mailpit is not used by tests. The marker file
+      # tells the next database step when this has finished.
+      - name: Start test database in the background
+        run: |
+          nohup setsid bash -c '
+            docker compose -f docker/compose.local.yml -f docker/compose.ci.yml up -d db
+            echo $? > "$RUNNER_TEMP/db-up.exit"
+          ' > "$RUNNER_TEMP/db-up.log" 2>&1 &
+
+      # Same setup as in check.
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       # The compose database with its schema and fake data. DATABASE_URL stays
       # on these steps: the build must not look for a database that is gone.
@@ -87,19 +122,66 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
 
       - name: Test
-        run: pnpm test
+        run: pnpm test --shard=${{ matrix.shard }}/2
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
           # Opts in the tests that write to a real database. Only the throwaway
           # CI database is ever set here.
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
 
-      - name: Stop test database
-        if: always()
-        run: pnpm local:down
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
 
+      # Same setup as in check.
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Encoding the photos is the slowest part of the build, about 50s. They
+      # change only when a source photo or the encoder does, so the key is a
+      # hash of those. No restore-keys on purpose: an older set would be marked
+      # fresh below and a changed photo would ship stale.
+      - name: Restore encoded photos
+        id: photos
+        uses: actions/cache@v6
+        with:
+          path: sites/mainweb/public/photos
+          key: photos-${{ hashFiles('sites/mainweb/assets/images/photos/*', 'sites/mainweb/image-sizes.mjs', 'sites/mainweb/scripts/build-photos.ts', 'pnpm-lock.yaml') }}
+
+      # build-photos.ts skips a file that is newer than its source. The sources
+      # were just checked out, so restored files would look older and be
+      # encoded again.
+      - name: Mark restored photos fresh
+        if: steps.photos.outputs.cache-hit == 'true'
+        run: find sites/mainweb/public/photos -type f -exec touch {} +
+
+      # Next 16 builds with Turbopack, which writes its cache to .next/cache and
+      # reuses it on the next build, but only if that folder comes back first.
+      # Each run saves under its own sha and restores the newest, preferring
+      # one from the same lockfile. Turborepo does not keep this folder.
+      - name: Restore Next.js build cache
+        uses: actions/cache@v6
+        with:
+          path: sites/mainweb/.next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            next-${{ runner.os }}-
+
+      # No Turborepo cache here. The mainweb build changes with almost every
+      # commit, and storing its output (.next and the photos) grew the old
+      # shared cache by about 57 MB a run, to 3.6 GB, which took 34s to restore.
+      # The two caches above hold the expensive parts instead.
       - name: Build
-        run: pnpm turbo run build --filter=!hacklytics2026
+        run: pnpm turbo run build --filter=!hacklytics2026 --no-cache
 
       - name: Upload Hacklytics build
         uses: actions/upload-artifact@v7
@@ -107,6 +189,25 @@ jobs:
           name: hacklytics-out
           path: sites/hacklytics2027/out
           retention-days: 3
+
+  # The one check the branch rulesets require. It fails unless every job above
+  # succeeded, so a skipped or cancelled job cannot read as a pass. The preview
+  # and deploy jobs wait on it, which keeps Hacklytics deploying only from a
+  # fully verified build.
+  verify:
+    name: Lint, typecheck, test, build
+    needs: [check, test, build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every job succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          for result in $RESULTS; do
+            [ "$result" = "success" ] || exit 1
+          done
 
   preview-hacklytics:
     name: Preview Hacklytics
