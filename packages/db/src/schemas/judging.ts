@@ -23,9 +23,8 @@ import { hackathons, hackathonProjects } from "./hackathons";
 // to judges seated in rooms on a generated schedule. Every table hangs off a
 // hackathon edition.
 //
-// Names are prefixed `judging_` because the older pool-dispatch tables
-// (judge.ts) and the retired panel's tables share this database: `project`,
-// `track`, `vote`, `judging_project` and `judge` are all taken.
+// Names are prefixed `judging_` because the older pool-dispatch tables in
+// judge.ts already take `judging_project` and `judge`.
 //
 // The API enforces every range. The CHECK constraints below repeat the ones
 // a wrong number would corrupt (ratings, schedule arithmetic), so a bug or a
