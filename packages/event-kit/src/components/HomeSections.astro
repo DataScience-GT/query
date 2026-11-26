@@ -10,6 +10,7 @@ import Schedule from "./Schedule";
 import SponsorsSection from "./Sponsor";
 import ThemeSection from "./ThemeSection";
 import TracksSection from "./TracksSection";
+import VolunteersSection from "./VolunteersSection";
 import type { TrackArtProps } from "./TracksSection";
 
 /**
@@ -22,6 +23,7 @@ export interface HomeArt {
   railStart?: ComponentType;
   railEnd?: ComponentType;
   judges?: ComponentType;
+  volunteers?: ComponentType;
   sponsors?: ComponentType;
 }
 
@@ -46,6 +48,7 @@ const { event, art = {} } = Astro.props;
     devPortalOrigin={event.links.devPortal}
     contactEmail={event.contactEmail}
   />
+  <VolunteersSection event={event} Plot={art.volunteers} />
   <SponsorsSection event={event} Plot={art.sponsors} />
   <FAQSection event={event} />
 </div>

@@ -167,6 +167,14 @@ export default defineEvent({
       people: [],
     },
 
+    volunteers: {
+      body: [
+        "Volunteers keep the weekend running: the check-in desk, badge scans at meals and workshops, and helping hackers find their way around Klaus.",
+        ["To volunteer, email ", email, " with “Volunteer” in the subject and the times you can help."],
+        "Organizers confirm volunteers before the event.",
+      ],
+    },
+
     // An empty plot: the seedlings are the 2027 partners, not announced yet.
     sponsors: {
       body: [
@@ -229,6 +237,10 @@ export default defineEvent({
       {
         q: "Who do I contact about judging?",
         a: ["Email ", email, "."],
+      },
+      {
+        q: "How do I volunteer?",
+        a: ["Email ", email, " with “Volunteer” in the subject and the times you can help."],
       },
       {
         q: "What is the MLH Code of Conduct?",

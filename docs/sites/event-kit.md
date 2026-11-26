@@ -11,7 +11,7 @@ The kit is everything a Hacklytics event site has in common: the page shell, nav
 | `defineEvent` and the `EventConfig` types, with every date label computed from ISO strings in the config's `timeZone` | `src/event.config.ts`: the dates, links and copy |
 | `Layout.astro`: `<head>`, meta, Open Graph and Twitter tags, the JSON-LD Event, the no-flash theme script, the navbar and footer | `src/styles/globals.css`: the palette, the two font families, the art's CSS |
 | `Navbar`, `Footer`, `MlhBadge`, `ThemeToggle` and their scripts (menu, hide on scroll, theme switch, service worker registration) | The hero, the 404 body and anything else only one edition has |
-| The sections `Theme`, `About`, `Tracks`, `PrizeAndSpeaker`, `Schedule`, `Judges`, `Sponsors`, `FAQ` and the `JudgeInterestForm` island, composed by `HomeSections.astro` | The art drawn into the sections: sprites, plots, the globe, the garden |
+| The sections `Theme`, `About`, `Tracks`, `PrizeAndSpeaker`, `Schedule`, `Judges`, `Volunteers`, `Sponsors`, `FAQ` and the `JudgeInterestForm` island, composed by `HomeSections.astro` | The art drawn into the sections: sprites, plots, the globe, the garden |
 | `styles.css`: the measure, section titles, buttons, links, the badge, the theme toggle's icon swap, and the Tailwind color tokens | `public/`: favicons, the share image, the MLH badge, fonts, `sw.js` |
 | `data-bloom` and `data-bloom-watch` markers on the track row and the schedule rail | The script that flips those markers when the row is in view (`src/scripts/bloom.ts`) |
 
@@ -64,7 +64,7 @@ A new edition does not start by hand: `pnpm turbo gen hacklytics` makes the site
 The kit never imports a site's art. It takes it two ways.
 
 - **Astro slots on `Layout`.** `head` for extra `<head>` tags, `menu-art` for the art at the foot of the mobile menu, `footer-art` for the art that closes the home page, and the default slot for the page. Hydrated islands go in a slot like any other child.
-- **React components on `HomeSections`.** `art` takes `theme` (the picture beside the theme block), `track` (receives `{ track, index }`, drawn in the cell above each track's words), `railStart` and `railEnd` (the two ends of the schedule rail), and `judges` and `sponsors` (the plot under each title). Each is rendered at build time, with no hydration. A section without its art lays out the same, with an empty cell.
+- **React components on `HomeSections`.** `art` takes `theme` (the picture beside the theme block), `track` (receives `{ track, index }`, drawn in the cell above each track's words), `railStart` and `railEnd` (the two ends of the schedule rail), `judges`, `volunteers` and `sponsors` (the plot under each title). Each is rendered at build time, with no hydration. A section without its art lays out the same, with an empty cell.
 
 The schedule shows one day at a time, as tabs under the rail. They are progressive enhancement: the page is built with the tabs hidden and every day showing, and `scripts/schedule-days.ts` turns that into an ARIA tablist (arrow keys, Home and End, `aria-selected`, `aria-controls`) that opens on today's day while the event is on and on the first day otherwise. With no JavaScript the days stay side by side from md.
 
@@ -124,6 +124,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `speakers` | `{ name, title?, company? }[]`: a Speakers block under the prizes when there are any |
 | `schedule` | `{ intro, board: { when, event, accent? }[] }`: `when` starts with a day's three-letter weekday |
 | `judges` | `{ body: Rich[], people: { name, title?, company? }[] }`: the apply button follows `body`, `people` follow the button |
+| `volunteers` | `{ body: Rich[] }`, optional: a Volunteers section after Judges (`#volunteers`, not in the nav), drawn only when set. The first paragraph leads |
 | `sponsors` | `{ body: Rich[], tiers: { name, sponsors: { name, url?, logo? }[] }[] }`: logos sit on a `--logo-tile` tile in either theme |
 | `faqs` | `{ q, a: Rich }[]`, split in two columns at the halfway point |
 | `footer` | `{ headline, note?, closed?: { headline, note?, cta: { text, href, external? } } }`. `closed` is what the footer says once `registration.closes` has passed, in place of the headline, note and Apply button: the Apply link has gone stale, so `cta` points somewhere else (2027: the schedule). It is decided when the site is built and again when the page loads, with the same `deadlineStatus` as the hero. Needs `registration.closes` |

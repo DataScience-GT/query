@@ -13,6 +13,25 @@ describe("the application deadline in the copy", () => {
   });
 });
 
+describe("volunteers", () => {
+  const mailto = `mailto:${event.contactEmail}`;
+  const link = (rich: unknown) => JSON.stringify(rich);
+
+  it("tells people what the work is and how to offer, and does not promise more", () => {
+    const [lead, how, confirmed] = event.volunteers?.body ?? [];
+    expect(lead).toContain("check-in desk");
+    expect(link(how)).toContain(mailto);
+    expect(link(how)).toContain("Volunteer");
+    expect(confirmed).toBe("Organizers confirm volunteers before the event.");
+    expect(event.volunteers?.body).toHaveLength(3);
+  });
+
+  it("answers 'How do I volunteer?' with the same email", () => {
+    const faq = event.faqs.find((f) => f.q === "How do I volunteer?");
+    expect(link(faq?.a)).toContain(mailto);
+  });
+});
+
 describe("the footer once applications have closed", () => {
   const closed = event.footer.closed;
 

@@ -73,6 +73,18 @@ const plot = (maps: SpriteMap[]) =>
   };
 
 export const JudgesPlot = plot([SPROUT, DAISY, SPROUT, TULIP, SPROUT]);
+// Five plants in five of the portal's tints, opening one after another when the
+// plot is seen: the people who keep the weekend growing.
+export const VolunteersPlot = () => (
+  <>
+    <BloomSprite map={BUD} scale={4} blooms tint="orchid" index={0} />
+    <BloomSprite map={TULIP} scale={4} blooms tint="tulip" index={1} />
+    <BloomSprite map={DAISY} scale={4} blooms tint="lotus" index={2} />
+    <BloomSprite map={BUD} scale={4} blooms tint="cherry_blossom" index={3} />
+    <BloomSprite map={TULIP} scale={4} blooms tint="lily" index={4} />
+  </>
+);
+
 // An empty plot: the seedlings are the 2027 partners, not announced yet.
 export const SponsorsPlot = plot([BUD, TULIP, BUD, DAISY, BUD]);
 

@@ -411,3 +411,14 @@ describe("defineEvent application deadline", () => {
     ).toThrow(/must not be after start/);
   });
 });
+
+describe("defineEvent volunteers", () => {
+  it("has no volunteers unless the config gives some", () => {
+    expect(build().volunteers).toBeUndefined();
+  });
+
+  it("carries the volunteers copy through", () => {
+    const volunteers = { body: ["Help out.", ["Email ", { text: "us", href: "mailto:a@b.c" }, "."]] } as const;
+    expect(build({}, { volunteers }).volunteers).toEqual(volunteers);
+  });
+});

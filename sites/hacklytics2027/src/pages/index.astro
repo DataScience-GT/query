@@ -1,7 +1,15 @@
 ---
 import Hero from "../components/Hero.astro";
 import HomeSections from "@query/event-kit/components/HomeSections.astro";
-import { JudgesPlot, RailEnd, RailStart, SponsorsPlot, ThemeArt, TrackArt } from "../components/SectionArt";
+import {
+  JudgesPlot,
+  RailEnd,
+  RailStart,
+  SponsorsPlot,
+  ThemeArt,
+  TrackArt,
+  VolunteersPlot,
+} from "../components/SectionArt";
 import event from "../event.config";
 import Layout from "../layouts/Layout.astro";
 
@@ -11,6 +19,7 @@ const art = {
   railStart: RailStart,
   railEnd: RailEnd,
   judges: JudgesPlot,
+  volunteers: VolunteersPlot,
   sponsors: SponsorsPlot,
 };
 ---

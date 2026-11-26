@@ -248,6 +248,11 @@ export interface EventContent {
     /** Shown under the apply button when there are any. */
     people: readonly Person[];
   };
+  /**
+   * Who volunteers are and how to offer, in a section after the judges. The
+   * first paragraph leads. Without it the section is not drawn.
+   */
+  volunteers?: { body: NonEmpty<Rich> };
   sponsors: {
     body: NonEmpty<Rich>;
     /** Logos by tier, shown under the text when there are any. */
