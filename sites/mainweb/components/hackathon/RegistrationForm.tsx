@@ -10,7 +10,6 @@ import {
   MAJORS,
   REFERRAL_SOURCES,
   REGISTRATION_STEPS,
-  SCHOOLS,
   SHIRT_SIZES,
   TRAVEL_DISTANCES,
   TRAVEL_METHODS,
@@ -27,6 +26,7 @@ import {
   writeLocalDraft,
 } from "@/components/hackathon/registration-draft";
 import { useDraftSave } from "@/components/hackathon/use-draft-save";
+import { useSchoolOptions } from "@/components/hackathon/use-school-options";
 import { ResumeSection } from "@/components/portal/ResumeSection";
 import { formatPhoneAsTyped, normalizePhone, phoneDigits } from "@/lib/phone";
 import { overlapsRamadan } from "@/lib/ramadan";
@@ -351,8 +351,7 @@ function RegistrationFormBody({
   // Step 2: Academic
   // 12k schools / ~450KB, so it loads on the academic step rather than in the
   // bundle. A failed fetch leaves the short list, which still works.
-  const [schoolOptions, setSchoolOptions] =
-    useState<readonly string[]>(SCHOOLS);
+  const schoolOptions = useSchoolOptions(step === 1);
   // What they told the interest list, offered only where it fits this form:
   // a school that is in the list, a graduation year that is in range.
   const interestSchool = interest?.school?.trim().toLowerCase();
@@ -440,22 +439,6 @@ function RegistrationFormBody({
   const [mlhInformationalEmails, setMlhInformationalEmails] = useState(
     start.mlhInformationalEmails,
   );
-
-  useEffect(() => {
-    if (step !== 1 || schoolOptions !== SCHOOLS) return;
-    let cancelled = false;
-    fetch("/schools.json")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText))))
-      .then((list: string[]) => {
-        if (!cancelled && Array.isArray(list) && list.length > 0) {
-          setSchoolOptions(list);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [step, schoolOptions]);
 
   // Switching tabs unmounts this one, so the answers are kept as they change.
   // The consents are left out on purpose: they are ticked fresh at submit.

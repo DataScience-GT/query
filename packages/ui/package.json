@@ -23,7 +23,7 @@
     "lint": "oxlint src"
   },
   "peerDependencies": {
-    "react": "^18.3.1 || ^19.0.0"
+    "react": "^19.2.0"
   },
   "devDependencies": {
     "@query/oxlint-config": "workspace:*",

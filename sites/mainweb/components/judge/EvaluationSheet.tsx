@@ -324,6 +324,7 @@ function EvaluationForm({
   const autosave = useDraftAutosave({
     answersKey: JSON.stringify([ratings, responses]),
     enabled: writable,
+    onSaved,
     revision: draft?.revision ?? 0,
     serverKey: JSON.stringify([serverRatings, serverResponses]),
     storageKey,
@@ -338,10 +339,6 @@ function EvaluationForm({
       }),
   });
   const { hold, release } = autosave;
-  const savedAt = autosave.status.kind === "saved" ? autosave.status.at : null;
-  useEffect(() => {
-    if (savedAt) onSaved?.();
-  }, [savedAt, onSaved]);
 
   // A phone that locks mid-presentation leaves a countdown nobody can see.
   useScreenWake(deadlineAt !== null);

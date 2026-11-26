@@ -41,6 +41,7 @@ function isFinal(error: unknown) {
 export function useDraftAutosave({
   answersKey,
   enabled,
+  onSaved,
   revision: openedRevision,
   save,
   serverKey,
@@ -49,6 +50,8 @@ export function useDraftAutosave({
   /** The answers, serialised. A change is what calls for a save. */
   answersKey: string;
   enabled: boolean;
+  /** Called each time a save reaches the server. */
+  onSaved?: () => void;
   /** The draft revision the editor opened with, 0 for none. */
   revision: number;
   /** Sends the current answers; resolves with the draft's new revision. */
@@ -65,7 +68,7 @@ export function useDraftAutosave({
   const revision = useRef(openedRevision);
   // Opening a project is not an edit: what the server held counts as saved.
   const savedKey = useRef(serverKey);
-  const latest = useRef({ key: answersKey, save, storageKey });
+  const latest = useRef({ key: answersKey, save, storageKey, onSaved });
   const inFlight = useRef<Promise<void> | null>(null);
   const failures = useRef(0);
   const retryAt = useRef(0);
@@ -73,7 +76,7 @@ export function useDraftAutosave({
   const held = useRef(false);
 
   useEffect(() => {
-    latest.current = { key: answersKey, save, storageKey };
+    latest.current = { key: answersKey, save, storageKey, onSaved };
   });
 
   // What the server lacks is on the device too; what it has is not.
@@ -112,6 +115,7 @@ export function useDraftAutosave({
             else writeMirror(mirror, current);
           }
           setStatus({ kind: "saved", at: saved.savedAt });
+          latest.current.onSaved?.();
         },
         (error: unknown) => {
           failures.current += 1;
