@@ -78,6 +78,7 @@ Without `DATABASE_URL`, `db` is null, sessions fall back to JWT, and tRPC proced
 | `DDOS_BURST_WINDOW_MS` | Code default if unset |
 | `DDOS_CLEANUP_INTERVAL_MS` | Code default if unset |
 | `CSP_ENFORCE` | `true` makes the CSP enforcing; unset it is Report-Only. Read at BUILD (headers are baked into the routes manifest), so `apphosting.yaml` sets it for BUILD and RUNTIME. Production sets it |
+| `CRON_SECRET` | Bearer token for `POST /api/cron/application-reminders`. Unset, the route answers 404 and no reminder is sent. App Hosting secret `CRON_SECRET`, RUNTIME only, and the same value as in the Cloud Scheduler job's Authorization header. See [Hackathons: Reminder setup](../features/hackathons.md#reminder-setup) |
 
 ## Shared Redis
 

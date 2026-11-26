@@ -13,6 +13,7 @@
     "./derived-counts": "./src/services/derived-counts.ts",
     "./metrics": "./src/services/metrics.ts",
     "./judge-interest": "./src/services/judge-interest.ts",
+    "./application-reminders": "./src/services/application-reminders.ts",
     "./portal-context": "./src/types/portal-context.ts",
     "./resume-list": "./src/services/resume-list.ts",
     "./judging-access": "./src/services/judging/principal.ts",

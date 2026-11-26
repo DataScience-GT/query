@@ -75,6 +75,11 @@ vi.mock("@/lib/trpc", () => {
       resume: { me: { useQuery: query } },
       hackathon: {
         myInterest: { useQuery: query },
+        // No draft on the server, and saves that go nowhere.
+        getMyDraft: { useQuery: () => ({ data: null, isPending: false }) },
+        saveMyDraft: {
+          useMutation: () => ({ mutateAsync: () => Promise.resolve() }),
+        },
         register: { useMutation: mutation("register") },
         updateMyRegistration: { useMutation: mutation("update") },
         withdrawRegistration: { useMutation: mutation("withdraw") },

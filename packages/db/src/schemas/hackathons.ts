@@ -6,6 +6,7 @@ import {
   boolean,
   integer,
   json,
+  jsonb,
   index,
   unique,
   uniqueIndex,
@@ -373,6 +374,42 @@ export const hackathonInterest = pgTable(
 );
 
 export type HackathonInterest = typeof hackathonInterest.$inferSelect;
+
+// An application someone started and has not submitted. Kept on the server so
+// it follows them to another device, and so the reminder job knows who began
+// and stopped. `data` is the form's own answers as typed (strings and chips),
+// not the submit shape, and never holds what the form keeps out of any saved
+// draft: citizenship, fasting, the consents, or the resume file. Registering
+// deletes the row. `reminderSentAt` is the claim the reminder takes before it
+// mails, so one draft is mailed at most once however many runs overlap, and a
+// later edit does not reset it.
+export const hackathonApplicationDrafts = pgTable(
+  "hackathon_application_draft",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    hackathonId: uuid("hackathon_id")
+      .notNull()
+      .references(() => hackathons.id, { onDelete: "cascade" }),
+    data: jsonb("data").$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
+  },
+  (table) => [
+    // One draft per person per edition. It is also what makes the autosave
+    // upsert safe when two tabs save at once.
+    uniqueIndex("hackathon_application_draft_user_hackathon_idx").on(
+      table.userId,
+      table.hackathonId,
+    ),
+  ],
+);
+
+export type HackathonApplicationDraft =
+  typeof hackathonApplicationDrafts.$inferSelect;
 
 // Event scheduling for hackathons
 export const hackathonEvents = pgTable(

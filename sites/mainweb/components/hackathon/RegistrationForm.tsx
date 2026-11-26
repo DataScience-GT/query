@@ -1,6 +1,7 @@
 "use client";
 
 import type { LevelOfStudy, ShirtSize } from "@/components/hackathon/constants";
+import type { ServerDraft } from "@/components/hackathon/registration-draft";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DIETARY_OPTIONS,
@@ -19,6 +20,13 @@ import {
   FormNavigation,
   StepContainer,
 } from "@/components/hackathon/FormComponents";
+import {
+  clearLocalDraft,
+  newestDraft,
+  readLocalDraft,
+  writeLocalDraft,
+} from "@/components/hackathon/registration-draft";
+import { useDraftSave } from "@/components/hackathon/use-draft-save";
 import { ResumeSection } from "@/components/portal/ResumeSection";
 import { formatPhoneAsTyped, normalizePhone, phoneDigits } from "@/lib/phone";
 import { overlapsRamadan } from "@/lib/ramadan";
@@ -27,7 +35,13 @@ import { useSession } from "next-auth/react";
 
 import type { RouterOutputs } from "@query/api";
 import { MLH_CODE_OF_CONDUCT_URL } from "@query/core";
-import { fieldHint, sectionTitle, textLink } from "@query/ui/classes";
+import {
+  body,
+  fieldHint,
+  meta,
+  sectionTitle,
+  textLink,
+} from "@query/ui/classes";
 import { FormChipSelect, FormMultiChipSelect } from "@query/ui/FormChipSelect";
 import { FormInput } from "@query/ui/FormInput";
 import { FormTextarea } from "@query/ui/FormTextarea";
@@ -63,6 +77,14 @@ const YES_NO = ["Yes", "No"];
 const YES_NO_PREFER = ["Yes", "No", "Prefer not to say"];
 const EXCITEMENT_OPTIONS = Array.from({ length: 10 }, (_, i) => String(i + 1));
 const NOT_SURE = "Not sure yet";
+
+/** The line under the buttons about the draft. Quiet: nothing until the first save. */
+const DRAFT_STATUS_TEXT = {
+  idle: "",
+  saving: "Saving…",
+  saved: "Draft saved",
+  failed: "Couldn't save your draft online. It is kept on this device.",
+} as const;
 
 // "Other" is stored in the same list as the chips, as "Other: <what they typed>",
 // so it needs no column of its own and shows up wherever the list is shown.
@@ -112,19 +134,6 @@ function useSeededField(seed: string, start: string | null) {
  *  number and saved with the wrong country code. */
 function savedPhone(stored: string | null | undefined): string {
   return formatPhoneAsTyped((stored ?? "").replace(/^\+1(?=\d{10}$)/, ""));
-}
-
-/** The saved answers, or nothing: a draft that is missing, unreadable or not
- *  an object is the same as no draft. */
-function readDraft(key: string): Record<string, unknown> {
-  try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(key) ?? "null");
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : {};
-  } catch {
-    return {};
-  }
 }
 
 type Interest = NonNullable<RouterOutputs["hackathon"]["myInterest"]>;
@@ -249,21 +258,7 @@ function startFromDraft(saved: Record<string, unknown>) {
   };
 }
 
-/** The registration form, loaded only once someone opens it. Given `saved` it
- *  edits that application; without, it is a new registration that picks up the
- *  draft kept on this browser. */
-export function RegistrationForm({
-  hackathonId,
-  hackathonName,
-  startDate,
-  endDate,
-  tracks,
-  interest,
-  saved,
-  onRegistered,
-  onUpdated,
-  onCancel,
-}: {
+type RegistrationFormProps = {
   hackathonId: string;
   hackathonName: string;
   /** When the event runs. The fasting question is asked only if it overlaps Ramadan. */
@@ -277,7 +272,38 @@ export function RegistrationForm({
   onRegistered: () => void;
   onUpdated: () => void;
   onCancel: () => void;
-}) {
+};
+
+/** The registration form, loaded only once someone opens it. Given `saved` it
+ *  edits that application; without, it is a new registration that picks up the
+ *  draft kept on the server, or on this browser if that is newer. */
+export function RegistrationForm(props: RegistrationFormProps) {
+  const editing = props.saved !== undefined;
+  // The form reads its draft once, as it opens, so it has to be here first. A
+  // failed read is not worth holding the form for: the browser's copy applies.
+  // Dropped once unmounted and never refetched while open, so reopening asks the
+  // server again and never starts from an older answer than the last save.
+  const draft = trpc.hackathon.getMyDraft.useQuery(
+    { hackathonId: props.hackathonId },
+    { enabled: !editing, gcTime: 0, staleTime: Infinity, retry: false },
+  );
+  if (!editing && draft.isPending) return <p className={body}>Loading…</p>;
+  return <RegistrationFormBody {...props} serverDraft={draft.data ?? null} />;
+}
+
+function RegistrationFormBody({
+  hackathonId,
+  hackathonName,
+  startDate,
+  endDate,
+  tracks,
+  interest,
+  saved,
+  serverDraft,
+  onRegistered,
+  onUpdated,
+  onCancel,
+}: RegistrationFormProps & { serverDraft: ServerDraft | null }) {
   const editing = saved !== undefined;
   const askRamadan = overlapsRamadan(startDate, endDate);
   const [step, setStep] = useState<RegistrationStep>(0);
@@ -293,7 +319,9 @@ export function RegistrationForm({
 
   // Read once, as the form opens.
   const [start] = useState(() =>
-    saved ? startFromRecord(saved) : startFromDraft(readDraft(draftKey)),
+    saved
+      ? startFromRecord(saved)
+      : startFromDraft(newestDraft(readLocalDraft(draftKey), serverDraft)),
   );
 
   // The account's name stands in until they type their own.
@@ -476,11 +504,7 @@ export function RegistrationForm({
     // An edit starts from the saved application, so it must not overwrite the
     // draft kept for a first submission.
     if (editing) return;
-    try {
-      localStorage.setItem(draftKey, draft);
-    } catch {
-      // Storage full or blocked: the form still works, it just is not kept.
-    }
+    writeLocalDraft(draftKey, draft);
   }, [editing, draftKey, draft]);
 
   // The form stands in for the overview, but the header and tabs are still
@@ -501,11 +525,7 @@ export function RegistrationForm({
   const utils = trpc.useUtils();
   const registerMutation = trpc.hackathon.register.useMutation({
     onSuccess: () => {
-      try {
-        localStorage.removeItem(draftKey);
-      } catch {
-        // Nothing to clear if storage is blocked.
-      }
+      clearLocalDraft(draftKey);
       utils.hackathon.myRegistrations.invalidate();
       utils.hackathon.list.invalidate();
       utils.hackathon.getById.invalidate({ id: hackathonId });
@@ -521,6 +541,16 @@ export function RegistrationForm({
       onUpdated();
     },
     onError: (e) => setError(e.message),
+  });
+
+  // Kept on the server a moment after the last change, so an application left
+  // half done follows the person to another device and can be reminded about.
+  // Stops once the application is on its way: the server drops the draft then.
+  const { status: draftStatus, flush: flushDraft } = useDraftSave({
+    hackathonId,
+    answersKey: draft,
+    enabled:
+      !editing && !registerMutation.isPending && !registerMutation.isSuccess,
   });
 
   // Every field that fails on a step, in form order, as [field, message].
@@ -686,10 +716,12 @@ export function RegistrationForm({
 
   function handleNext() {
     if (!validateStep(step)) return;
+    flushDraft();
     setStep((s) => Math.min(s + 1, LAST_STEP) as RegistrationStep);
   }
 
   function handleBack() {
+    flushDraft();
     setError("");
     setAttempted(false);
     setStep((s) => Math.max(s - 1, 0) as RegistrationStep);
@@ -1329,10 +1361,18 @@ export function RegistrationForm({
           onBack={handleBack}
           onNext={handleNext}
           onSubmit={handleSubmit}
-          onCancel={onCancel}
+          onCancel={() => {
+            flushDraft();
+            onCancel();
+          }}
           isSubmitting={registerMutation.isPending || updateMutation.isPending}
           submitLabel={editing ? "Save changes" : undefined}
         />
+        {!editing && (
+          <p role="status" className={`mt-3 min-h-5 ${meta}`}>
+            {DRAFT_STATUS_TEXT[draftStatus]}
+          </p>
+        )}
       </div>
     </section>
   );

@@ -30,6 +30,7 @@ Steps, with the procedure that does each (under `trpc.hackathon.*` unless noted)
 
 1. **Interest.** `registerInterest` stores a `hackathon_interest` row (school, country, graduation year, experience). `withdrawInterest` removes it. `getUpcoming` is public so the coming-soon page renders for signed-out visitors; `myInterest` tells a signed-in user whether they are on the list. Banned users are refused.
 2. **Register.** `register` requires status `open` and a deadline that has not passed, and refuses a second registration. It writes a `pending` participant with the consent answers (three consents must be true: the code of conduct, the MLH code of conduct and MLH data sharing). It does not claim a seat: capacity counts accepted people, so applying is never refused for being full. If the user has a membership, `member_id` is linked.
+   An application in progress is saved as a draft and mailed a reminder if left for three days: see Saved drafts and the reminder below.
    The Ramadan fasting answer (`ramadanFasting`) is optional on the server: the form asks it only when the event's dates overlap Ramadan (`overlapsRamadan` in `sites/mainweb/lib/ramadan.ts`, Umm al-Qura calendar on the venue's days) and sends nothing otherwise, so the column is empty for those events.
 3. **Edit or leave.** `updateMyRegistration` edits answers (consent fields are not re-sent) and only works while the edition is `open`, before the deadline, and while the participant is still `pending`. `withdrawRegistration` takes the registration back, but is refused once the person is on a team, checked in, or has a project, because that affects others, and once the edition is `completed` or `cancelled`.
 4. **Decision.** An organizer accepts, rejects or waitlists (see Acceptance below). `checked_in` can only be reached from `approved`.
@@ -39,6 +40,33 @@ Steps, with the procedure that does each (under `trpc.hackathon.*` unless noted)
 8. **Submit.** `submitProject` (same router) requires `checked_in`. Submissions open 12 hours after hacking starts, close at 36 and edits close at 34. Times count from `hacking_start_time`, else `start_date`. Solo entries are allowed. `withdrawProject`, `mySubmission` and `submissionWindow` are in the same file. How submissions become judging entries is covered in [Judging](../judging/README.md).
 
 Participant status values: `pending`, `approved`, `rejected`, `waitlisted`, `checked_in`.
+
+## Saved drafts and the reminder
+
+The application form saves as the person fills it in, so an unfinished application survives a closed tab or a change of device, and so the server knows who started and stopped.
+
+**Draft.** `hackathon_application_draft` holds one row per person per edition: `data` (jsonb), `created_at`, `updated_at` and `reminder_sent_at`. The form (`RegistrationForm.tsx`) saves 1.5 seconds after the last change and again on every step change and Cancel, through `saveMyDraft`, and shows "Saving…" or "Draft saved" under the buttons. `getMyDraft` reads it back. On open the form takes whichever of the server draft and the browser draft (`localStorage`, still kept as the offline fallback) was saved later.
+
+- `data` is the form's own answers, as typed. The input schema (`services/application-drafts.ts`) lists the allowed fields and drops every other key, so a draft never holds citizenship, fasting, the consents, the resume file, or phone, age, gender, race and the emergency contact, which the browser draft also leaves out. A draft over 32 KB as JSON is refused.
+- `saveMyDraft` is for signed-in people who are not banned, 120 saves an hour each. It is refused when the edition is not `open`, the deadline has passed, or the person already has a participant row. `register` deletes the draft in the same transaction that inserts the participant. Withdrawing has no draft to touch.
+
+**Reminder.** `sendApplicationReminders(db, now)` (`services/application-reminders.ts`) mails one reminder per draft. A draft qualifies when all hold:
+
+- it was last saved three days ago or more (`updated_at <= now - 3 days`) and `reminder_sent_at` is null;
+- the edition is `open` and its deadline, if any, is still ahead;
+- the person has no participant row for the edition, is not a judge for it, and is not banned.
+
+It sends at most 200 a run, oldest first, with the Hacklytics look for editions named Hacklytics (`sendApplicationReminderEmail` in `packages/auth/src/email.ts`). A draft is mailed once: the claim is one `UPDATE ... SET reminder_sent_at = now WHERE reminder_sent_at IS NULL` and only the rows it returns are mailed, so overlapping runs cannot double-send, and editing the draft later does not clear the stamp. The stamp comes before the mail, so a crash between the two costs one reminder rather than risking two. A mail the provider refuses has its stamp cleared, so the next run retries it. The 200 cap and the daily run keep this inside the mail account's daily limit, which sign-in codes and acceptances share.
+
+### Reminder setup
+
+App Hosting has no scheduler, so a daily job posts to `POST /api/cron/application-reminders` with `Authorization: Bearer <CRON_SECRET>`. The job is Cloud Scheduler, set up separately; nothing in the repository triggers it yet. The route answers 404 when `CRON_SECRET` is unset (so it does nothing until then), 401 on a wrong token, 429 past 10 calls an hour from one address, and 200 with `{ claimed, sent, failed }`. The same secret has to be in App Hosting and in the scheduler job. Once:
+
+1. Generate a value: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+2. `firebase apphosting:secrets:set CRON_SECRET` and paste it, then `firebase apphosting:secrets:grantaccess CRON_SECRET --backend query`.
+3. Uncomment the `CRON_SECRET` entry in `apphosting.yaml` and roll out. It stays commented until the secret exists, because a reference to a missing secret breaks the rollout.
+4. Create a Cloud Scheduler job that sends `POST https://datasciencegt.org/api/cron/application-reminders` once a day (mid-morning Eastern is a good hour) with the header `Authorization: Bearer <the same value>`.
+5. Run the job once by hand. A 200 means it works; a 404 means the App Hosting secret is missing, and a 401 means the two values differ. Running it again is safe: every draft is mailed at most once.
 
 ## Edition lifecycle and visibility
 
@@ -131,6 +159,7 @@ Schema: `packages/db/src/schemas/hackathons.ts`.
 | `hackathon` | Edition: dates, deadline, status, `max_participants`, prizes, tracks, challenges, `is_public`, `judging_active`. |
 | `hackathon_participant` | One per user per edition: status, form answers, consent, `acceptance_wave`, `attendance_confirmed_at`, `checked_in_at`, team link. |
 | `hackathon_interest` | Interest list, with per-recipient email sent and failed stamps. |
+| `hackathon_application_draft` | An unsubmitted application, one per user per edition, with the reminder stamp. Deleted when the person registers. |
 | `hackathon_team`, `hackathon_project` | Teams (max 4 by default) and submissions (`draft`, `submitted`, `judging`, `winner`). |
 | `hackathon_event`, `hackathon_event_attendee` | Schedule and who attended. |
 | `hackathon_check_in_flag` | Refused check-ins, for prize review. |
@@ -141,12 +170,13 @@ Schema: `packages/db/src/schemas/hackathons.ts`.
 
 - Acceptance waves are 1 to 500 per call on the server (the admin UI limits a wave to 200, `MASS_EMAIL_BATCH`), capped at remaining seats.
 - Announcements send up to 500 recipients per call.
+- Application reminders send up to 200 per run.
 - Delete is hard and cascades to participants, teams, projects and votes. Set `cancelled` instead if people should still see the edition.
 - Hackathon, roster and registration lists are cached and evicted on writes, so a stale list for a few seconds is possible.
 
 ## Code and tests
 
 - Routers: `packages/api/src/routers/hackathon/` (merged in `index.ts`) and `packages/api/src/routers/team.ts`.
-- Services: `packages/api/src/services/check-in-flags.ts`, `packages/api/src/services/fanout.ts`.
+- Services: `packages/api/src/services/check-in-flags.ts`, `packages/api/src/services/fanout.ts`, `packages/api/src/services/application-drafts.ts`, `packages/api/src/services/application-reminders.ts`.
 - Portal pages under `sites/mainweb/app/(portal)/`: `hackathons`, `hacklytics`, `submit`, `checkin`, `scan`, `admin/hackathons`. Admin components are in `sites/mainweb/components/admin/hackathons/` (`AcceptanceWaves`, `AnnouncementsTab`, `ScannerTab`).
-- Tests in `packages/api/src/.internal-tests/`: `hackathon-flow`, `hackathon-admin-edge`, `hackathon-interest`, `participant-edge`, `qr-checkin`, `announcements`.
+- Tests in `packages/api/src/.internal-tests/`: `hackathon-flow`, `hackathon-admin-edge`, `hackathon-interest`, `participant-edge`, `qr-checkin`, `announcements`, `application-drafts.db` (needs `TEST_DATABASE_URL`).

@@ -11,11 +11,17 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { notHackathonBanned } from "../../middleware/procedures";
 import { CacheKeys } from "../../middleware/cache";
-import { hackathonParticipants, memberResumes } from "@query/db";
+import {
+  hackathonApplicationDrafts,
+  hackathonParticipants,
+  memberResumes,
+} from "@query/db";
 import { eq, and, inArray, isNull, notInArray } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { evictParticipantCaches } from "./admin";
 import { teamMemberCountsForUser } from "../../services/derived-counts";
+import { saveDraftInput } from "../../services/application-drafts";
+import { rateLimitShared } from "../../middleware/security";
 
 // Postgres unique_violation on hackathon_participant_hackathon_user_idx — a second
 // submission of the same form. Drizzle wraps every driver error in a
@@ -297,6 +303,17 @@ export const hackathonRegistrationRouter = createTRPCRouter({
             })
             .returning();
 
+          // Submitted, so the draft has done its job. Same transaction, so
+          // there is no moment where someone is registered and still reminded.
+          await tx
+            .delete(hackathonApplicationDrafts)
+            .where(
+              and(
+                eq(hackathonApplicationDrafts.userId, ctx.userId as string),
+                eq(hackathonApplicationDrafts.hackathonId, input.hackathonId),
+              ),
+            );
+
           return { participant, hackathonName: hackathon.name };
         });
 
@@ -327,6 +344,105 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       }
     }),
 
+
+  // The application somebody started and has not submitted, for the form to
+  // reopen on, here or on another device. Null when there is none.
+  getMyDraft: notHackathonBanned
+    .input(z.object({ hackathonId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const [draft] = await (ctx.db as DrizzleDB)
+        .select({
+          data: hackathonApplicationDrafts.data,
+          updatedAt: hackathonApplicationDrafts.updatedAt,
+        })
+        .from(hackathonApplicationDrafts)
+        .where(
+          and(
+            eq(hackathonApplicationDrafts.userId, ctx.userId as string),
+            eq(hackathonApplicationDrafts.hackathonId, input.hackathonId),
+          ),
+        )
+        .limit(1);
+      return draft ?? null;
+    }),
+
+  // Autosave for the application form: one row per person per edition,
+  // replaced whole on every save. Refused once registration is closed or the
+  // person has already applied, since there is then nothing to finish. The
+  // input schema keeps only the fields a draft may hold and caps its size.
+  saveMyDraft: notHackathonBanned
+    .input(saveDraftInput)
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const userId = ctx.userId as string;
+
+      // The form saves a moment after each pause in typing, so a long sitting
+      // is dozens of saves. Per user, since the row is keyed that way and an
+      // address is shared by a whole campus.
+      const limit = await rateLimitShared(
+        `application-draft:${userId}`,
+        120,
+        120 / 3600,
+      );
+      if (!limit.allowed) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message:
+            "Too many saves in a short time. Your answers are still kept on this device.",
+        });
+      }
+
+      const hackathon = await db.query.hackathons.findFirst({
+        where: { id: input.hackathonId },
+        columns: { status: true, registrationDeadline: true },
+      });
+      if (!hackathon) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Hackathon not found",
+        });
+      }
+      if (
+        hackathon.status !== "open" ||
+        (hackathon.registrationDeadline &&
+          new Date() > hackathon.registrationDeadline)
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Registration is not open for this hackathon",
+        });
+      }
+
+      const applied = await db.query.hackathonParticipants.findFirst({
+        where: { hackathonId: input.hackathonId, userId },
+        columns: { id: true },
+      });
+      if (applied) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "You are already registered for this hackathon",
+        });
+      }
+
+      const savedAt = new Date();
+      await db
+        .insert(hackathonApplicationDrafts)
+        .values({
+          userId,
+          hackathonId: input.hackathonId,
+          data: input.data,
+          updatedAt: savedAt,
+        })
+        .onConflictDoUpdate({
+          target: [
+            hackathonApplicationDrafts.userId,
+            hackathonApplicationDrafts.hackathonId,
+          ],
+          set: { data: input.data, updatedAt: savedAt },
+        });
+
+      return { savedAt };
+    }),
 
   // Takes back your own registration. There was no way out at all, so an
   // accepted no-show kept a seat for good. Refused once you are part of the

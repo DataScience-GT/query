@@ -140,6 +140,7 @@ vi.mock("@query/db", async () => {
       currentParticipants: "current_participants",
       maxParticipants: "max_participants",
     },
+    hackathonApplicationDrafts: { userId: "user_id", hackathonId: "hackathon_id" },
     hackathonParticipants: {
       id: "id",
       hackathonId: "hackathon_id",
