@@ -17,44 +17,22 @@ permissions:
   contents: read
 
 jobs:
-  verify:
-    name: Lint, typecheck, test, build
+  check:
+    name: Boundaries, lint, typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
-      # Start only the database now, in the background, so the image pull and
-      # boot overlap install and lint/typecheck. Mailpit is not used by tests.
-      # The marker file tells the next database step when this has finished.
-      - name: Start test database in the background
-        run: |
-          nohup setsid bash -c '
-            docker compose -f docker/compose.local.yml -f docker/compose.ci.yml up -d db
-            echo $? > "$RUNNER_TEMP/db-up.exit"
-          ' > "$RUNNER_TEMP/db-up.log" 2>&1 &
+      - uses: ./.github/actions/install
 
-      # No version pin: the one in packageManager is the one that reads
-      # overrides and allowBuilds from pnpm-workspace.yaml. Pinning here
-      # silently installed an older pnpm that ignores both.
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      # Each run saves under its own sha and restores the newest cache, so a
-      # PR starts from the last main or dev run. Turbo then replays any task
-      # whose inputs did not change.
       - name: Restore Turborepo cache
         uses: actions/cache@v6
         with:
           path: .turbo/cache
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: turbo-${{ runner.os }}-
+          key: turbo-check-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-check-${{ runner.os }}-
+            turbo-${{ runner.os }}-
 
       # Every import is declared in its package.json, nothing reaches into
       # another workspace by path, and the layer tags in turbo.json hold.
@@ -66,6 +44,24 @@ jobs:
       # tests). Build it locally with pnpm --filter hacklytics2026 build.
       - name: Lint and typecheck
         run: pnpm turbo run lint typecheck --filter=!hacklytics2026
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # Start only the database now, in the background, so the image pull and
+      # boot overlap install. Mailpit is not used by tests. The marker file
+      # tells the next database step when this has finished.
+      - name: Start test database in the background
+        run: |
+          nohup setsid bash -c '
+            docker compose -f docker/compose.local.yml -f docker/compose.ci.yml up -d db
+            echo $? > "$RUNNER_TEMP/db-up.exit"
+          ' > "$RUNNER_TEMP/db-up.log" 2>&1 &
+
+      - uses: ./.github/actions/install
 
       # The compose database with its schema and fake data. DATABASE_URL stays
       # on these steps: the build must not look for a database that is gone.
@@ -94,9 +90,22 @@ jobs:
           # CI database is ever set here.
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
 
-      - name: Stop test database
-        if: always()
-        run: pnpm local:down
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/install
+
+      - name: Restore Turborepo cache
+        uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-build-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-build-${{ runner.os }}-
+            turbo-${{ runner.os }}-
 
       - name: Build
         run: pnpm turbo run build --filter=!hacklytics2026
@@ -107,6 +116,25 @@ jobs:
           name: hacklytics-out
           path: sites/hacklytics2027/out
           retention-days: 3
+
+  # The one check the branch rulesets require. It fails unless every job above
+  # succeeded, so a skipped or cancelled job cannot read as a pass. The preview
+  # and deploy jobs wait on it, which keeps Hacklytics deploying only from a
+  # fully verified build.
+  verify:
+    name: Lint, typecheck, test, build
+    needs: [check, test, build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every job succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          for result in $RESULTS; do
+            [ "$result" = "success" ] || exit 1
+          done
 
   preview-hacklytics:
     name: Preview Hacklytics
