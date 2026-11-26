@@ -380,7 +380,7 @@ importers:
     dependencies:
       '@auth/drizzle-adapter':
         specifier: 1.11.3
-        version: 1.11.3(patch_hash=d419af191a7c73ec9f204b14cbf4ab35acdeb95404a033f65606cfe4261b4117)(nodemailer@10.4.0)
+        version: 1.11.3(patch_hash=d419af191a7c73ec9f204b14cbf4ab35acdeb95404a033f65606cfe4261b4117)(nodemailer@10.6.1)
       '@query/core':
         specifier: workspace:*
         version: link:../core
@@ -392,10 +392,10 @@ importers:
         version: 1.0.0-rc.6(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(postgres@3.4.9)(zod@4.6.6)
       next-auth:
         specifier: 'catalog:'
-        version: 5.0.0-beta.32(next@16.4.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(nodemailer@10.4.0)(react@19.3.1)
+        version: 5.0.0-beta.32(next@16.4.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(nodemailer@10.6.1)(react@19.3.1)
       nodemailer:
-        specifier: ^10.4.0
-        version: 10.4.0
+        specifier: ^10.6.1
+        version: 10.6.1
     devDependencies:
       '@query/oxlint-config':
         specifier: workspace:*
@@ -459,7 +459,7 @@ importers:
         version: 1.0.0-rc.6(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)(postgres@3.4.9)(zod@4.6.6)
       next-auth:
         specifier: 'catalog:'
-        version: 5.0.0-beta.32(next@16.4.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(nodemailer@10.4.0)(react@19.3.1)
+        version: 5.0.0-beta.32(next@16.4.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(nodemailer@10.6.1)(react@19.3.1)
       pg:
         specifier: 8.23.0
         version: 8.23.0
@@ -756,7 +756,7 @@ importers:
         version: 16.4.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       next-auth:
         specifier: 'catalog:'
-        version: 5.0.0-beta.32(next@16.4.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(nodemailer@10.4.0)(react@19.3.1)
+        version: 5.0.0-beta.32(next@16.4.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(nodemailer@10.6.1)(react@19.3.1)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -3927,8 +3927,8 @@ packages:
   node-mock-http@1.0.5:
     resolution: {integrity: sha512-KQyt/wLjG3TAc7DOUhpqWzgd4ERxR80JOlTK5VE5R1S12IaPVN5qkj4klBce9HPG1Njuup4Sb5bljaT34lIyjw==}
 
-  nodemailer@10.4.0:
-    resolution: {integrity: sha512-fyy6r4Q5euRJ9Qr3Cts9K7SZrfe9zmz9oLOYiAR02MEJRDRci+99y0OoYBYBgpLffOqkkjXrB/d26VfiMje/kA==}
+  nodemailer@10.6.1:
+    resolution: {integrity: sha512-d7kfFfS/tR4Aca+SBvRaQ+MXKNv7d2JiRe5TxaRcFT/kYMh4GGPnW9aKksTIEvyEbA7d/7HYWE4YPDEHxzJj/g==}
     engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
@@ -5113,7 +5113,7 @@ snapshots:
       vite: 8.3.5(@types/node@24.19.2)(esbuild@0.25.12)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       zod: 4.6.7
 
-  '@auth/core@0.41.3(nodemailer@10.4.0)':
+  '@auth/core@0.41.3(nodemailer@10.6.1)':
     dependencies:
       '@panva/hkdf': 1.2.1
       jose: 6.2.3
@@ -5121,11 +5121,11 @@ snapshots:
       preact: 10.24.3
       preact-render-to-string: 6.5.11(preact@10.24.3)
     optionalDependencies:
-      nodemailer: 10.4.0
+      nodemailer: 10.6.1
 
-  '@auth/drizzle-adapter@1.11.3(patch_hash=d419af191a7c73ec9f204b14cbf4ab35acdeb95404a033f65606cfe4261b4117)(nodemailer@10.4.0)':
+  '@auth/drizzle-adapter@1.11.3(patch_hash=d419af191a7c73ec9f204b14cbf4ab35acdeb95404a033f65606cfe4261b4117)(nodemailer@10.6.1)':
     dependencies:
-      '@auth/core': 0.41.3(nodemailer@10.4.0)
+      '@auth/core': 0.41.3(nodemailer@10.6.1)
     transitivePeerDependencies:
       - '@simplewebauthn/browser'
       - '@simplewebauthn/server'
@@ -7319,13 +7319,13 @@ snapshots:
 
   neotraverse@1.0.1: {}
 
-  next-auth@5.0.0-beta.32(next@16.4.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(nodemailer@10.4.0)(react@19.3.1):
+  next-auth@5.0.0-beta.32(next@16.4.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(nodemailer@10.6.1)(react@19.3.1):
     dependencies:
-      '@auth/core': 0.41.3(nodemailer@10.4.0)
+      '@auth/core': 0.41.3(nodemailer@10.6.1)
       next: 16.4.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react: 19.3.1
     optionalDependencies:
-      nodemailer: 10.4.0
+      nodemailer: 10.6.1
 
   next-themes@0.4.6(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
@@ -7375,7 +7375,7 @@ snapshots:
 
   node-mock-http@1.0.5: {}
 
-  nodemailer@10.4.0: {}
+  nodemailer@10.6.1: {}
 
   normalize-path@3.0.0: {}
 
