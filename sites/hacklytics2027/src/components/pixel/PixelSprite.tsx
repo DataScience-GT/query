@@ -1,7 +1,9 @@
 import React from "react";
 import { PALETTES, PALETTES_LIGHT } from "./sprites";
 import { spriteToDataUri } from "./spriteUri";
+import { HEADS } from "./tints";
 import type { PaletteName, Palette, SpriteMap } from "./sprites";
+import type { Tint } from "./tints";
 
 /**
  * A sprite rendered as a single <img> off a data URI instead of ~25 <rect>
@@ -53,16 +55,14 @@ const pick = (palette: Palette, stem: boolean): Palette =>
 
 const STEM = pick(PALETTES.dormant, true);
 const BUD = pick(PALETTES.dormant, false); // the closed bud: grey
-const HEAD = pick(PALETTES.bloom, false); // open: pink
 const STEM_L = pick(PALETTES_LIGHT.dormant, true);
 const BUD_L = pick(PALETTES_LIGHT.dormant, false);
-const HEAD_L = pick(PALETTES_LIGHT.bloom, false);
 
 type Theme = "dark" | "light";
 
-const LAYERS: Record<Theme, { stem: Palette; bud: Palette; head: Palette; dormant: Palette }> = {
-  dark: { stem: STEM, bud: BUD, head: HEAD, dormant: PALETTES.dormant },
-  light: { stem: STEM_L, bud: BUD_L, head: HEAD_L, dormant: PALETTES_LIGHT.dormant },
+const LAYERS: Record<Theme, { stem: Palette; bud: Palette; dormant: Palette }> = {
+  dark: { stem: STEM, bud: BUD, dormant: PALETTES.dormant },
+  light: { stem: STEM_L, bud: BUD_L, dormant: PALETTES_LIGHT.dormant },
 };
 
 /** The plant drawn twice, in the night and the day colours, which are baked
@@ -94,16 +94,17 @@ const ms = (n: number) => `${Math.round(n)}ms`;
 
 /**
  * One plant in a bed. A dormant one is a single grey image. One that blooms
- * is three stacked copies (stem, grey bud, pink head), each drawn in the night
- * and the day colours, that the stylesheet plays in order once the bed's
+ * is three stacked copies (stem, grey bud, coloured head), each drawn in the
+ * night and the day colours, that the stylesheet plays in order once the bed's
  * data-bloom is "on": the stem grows row by row, the bud appears, then pops
- * open pink. The timings are computed here and handed over as custom
+ * open in its tint. The timings are computed here and handed over as custom
  * properties; see .flower-stem in app/globals.css.
  */
 export function BloomSprite({
   map,
   scale = 4,
   blooms = false,
+  tint = "lotus",
   index = 0,
   flip = false,
   className = "inline-block",
@@ -111,6 +112,8 @@ export function BloomSprite({
   map: SpriteMap;
   scale?: number;
   blooms?: boolean;
+  /** The colour it opens in. */
+  tint?: Tint;
   /** Place in the left-to-right wave. It starts growing index × --step
    *  (80ms unless the bed sets it) after the bed blooms. */
   index?: number;
@@ -160,7 +163,7 @@ export function BloomSprite({
           <>
             <PixelImage map={map} palette={LAYERS[theme].stem} scale={scale} className="flower-stem relative block" />
             <PixelImage map={map} palette={LAYERS[theme].bud} scale={scale} className="flower-bud absolute left-0 top-0 block" />
-            <PixelImage map={map} palette={LAYERS[theme].head} scale={scale} className="flower-head absolute left-0 top-0 block" />
+            <PixelImage map={map} palette={HEADS[theme][tint]} scale={scale} className="flower-head absolute left-0 top-0 block" />
           </>
         )}
       />

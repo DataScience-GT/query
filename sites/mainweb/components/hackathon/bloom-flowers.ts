@@ -1,4 +1,5 @@
 import type { FoodGroup } from "@query/api/discord-config";
+import { BLOOM_TINTS } from "@query/core";
 
 /**
  * One pixel flower per food group, in the house pixel style of
@@ -85,7 +86,7 @@ function flower(
 /** The key union is the type, so a food group without a flower fails typecheck. */
 export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
   cherry_blossom: flower(
-    "#4C8DF6",
+    BLOOM_TINTS.cherry_blossom,
     [
       ".....p.p.....",
       "....pPpPp....",
@@ -103,7 +104,7 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     { Y: "#f6e27a" },
   ),
   sunflower: flower(
-    "#F5C518",
+    BLOOM_TINTS.sunflower,
     [
       "....PppPp....",
       "...PpPPpPp...",
@@ -121,7 +122,7 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     ],
     { b: "#5a3a1a", B: "#7a5226", d: "#3b2410" },
   ),
-  tulip: flower("#2CC6B0", [
+  tulip: flower(BLOOM_TINTS.tulip, [
     "..p...p...p..",
     "..pp.pPp.pp..",
     "..pPpPcPpPp..",
@@ -134,7 +135,7 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     "......p......",
   ]),
   lily: flower(
-    "#F08A3C",
+    BLOOM_TINTS.lily,
     [
       "......p......",
       ".....pPp.....",
@@ -152,7 +153,7 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     ],
     { Y: "#f3e27a", w: "#8a3a12", a: "#5a2a0a" },
   ),
-  lotus: flower("#E86FA6", [
+  lotus: flower(BLOOM_TINTS.lotus, [
     "......p......",
     ".....cPp.....",
     "..ccpcPpccp..",
@@ -168,7 +169,7 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     "..pGGGpGGGp..",
   ]),
   daisy: flower(
-    "#F4F4F4",
+    BLOOM_TINTS.daisy,
     [
       "....p.p.p....",
       "....p.p.p....",
@@ -187,7 +188,7 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     { Y: "#f6c21a", y: "#c58a06", z: "#dba10d" },
   ),
   orchid: flower(
-    "#B07CE8",
+    BLOOM_TINTS.orchid,
     [
       ".....ppp.....",
       "....pPPPp....",
@@ -204,7 +205,7 @@ export const BLOOM_FLOWERS: Record<FoodGroup["key"], BloomFlower> = {
     ],
     { Y: "#f6e27a", m: "#7a3fb5", n: "#4f2a80" },
   ),
-  rose: flower("#C8143C", [
+  rose: flower(BLOOM_TINTS.rose, [
     ".....ccp.....",
     "...cpPPPcp...",
     "..pPcPppPPp..",
