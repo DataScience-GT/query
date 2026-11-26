@@ -39,7 +39,7 @@ From the root: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`. Lint, t
 
 - `build`, `lint` and `typecheck` depend on `^build`, so a package builds after what it depends on.
 - Filter to one workspace with `--filter=<name>`, for example `pnpm turbo run typecheck --filter=@query/api`.
-- CI (`verify` in `ci.yml`) runs `turbo run lint typecheck`, then `pnpm test`, then `turbo run build`. `pnpm test` alone does not lint, typecheck or build.
+- CI (`verify` in `ci.yml`) runs the same commands with Bun (`bun run turbo ...`, `bun run test`), from the same `pnpm-lock.yaml` (see `docs/operations/ci-cd.md`), in the order `turbo run lint typecheck`, `test`, `turbo run build`. `pnpm test` alone does not lint, typecheck or build.
 
 ## Tests and the database
 

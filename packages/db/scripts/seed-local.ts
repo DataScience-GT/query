@@ -434,7 +434,7 @@ async function main() {
     .onConflictDoNothing();
 
   // Club projects: reuse the roster script, owned by the seeded admin.
-  const roster = spawnSync("pnpm db:seed:club-projects", {
+  const roster = spawnSync("pnpm run db:seed:club-projects", {
     cwd: path.resolve(__dirname, ".."),
     stdio: "inherit",
     shell: true,

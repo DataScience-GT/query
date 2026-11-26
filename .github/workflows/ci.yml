@@ -33,18 +33,55 @@ jobs:
             echo $? > "$RUNNER_TEMP/db-up.exit"
           ' > "$RUNNER_TEMP/db-up.log" 2>&1 &
 
-      # No version pin: the one in packageManager is the one that reads
-      # overrides and allowBuilds from pnpm-workspace.yaml. Pinning here
-      # silently installed an older pnpm that ignores both.
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-
+      # Bun installs and runs the scripts. Firebase App Hosting still builds
+      # with pnpm from the same pnpm-lock.yaml, so that file stays the one
+      # source of truth and Bun only reads it. The scripts themselves still run
+      # on Node 24 from .nvmrc, as they do on App Hosting.
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
-          cache: "pnpm"
 
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.5"
+
+      # Downloads only, keyed by the lockfile Bun reads. Integrity is checked
+      # against pnpm-lock.yaml on every install, so a stale cache is harmless.
+      - name: Restore Bun package cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      # No bun.lock is committed. With only pnpm-lock.yaml, --frozen-lockfile
+      # migrates it in memory, versions and integrity hashes included, and
+      # fails if it disagrees with a package.json. --ignore-scripts matches
+      # allowBuilds in pnpm-workspace.yaml: no dependency runs a build script.
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      # Fails if what Bun put in node_modules differs from what pnpm would
+      # install from pnpm-lock.yaml: a package, a version a package links to,
+      # or a patch that is not applied.
+      - name: Check the install matches pnpm-lock.yaml
+        run: bun tooling/scripts/src/install-parity.ts
+
+      # packageManager says pnpm, which App Hosting reads, so turbo runs each
+      # task as `pnpm run <script>`. Real pnpm would reinstall over Bun's
+      # node_modules first. This pnpm only forwards `run` to Bun, and turbo
+      # still keys its cache on pnpm-lock.yaml.
+      - name: Run turbo's tasks with Bun
+        run: |
+          mkdir "$RUNNER_TEMP/pnpm-shim"
+          cat > "$RUNNER_TEMP/pnpm-shim/pnpm" <<'EOF'
+          #!/bin/sh
+          [ "$1" = run ] || { echo "pnpm shim: only 'pnpm run' is supported, got: $*" >&2; exit 1; }
+          shift
+          exec bun run "$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/pnpm-shim/pnpm"
+          echo "$RUNNER_TEMP/pnpm-shim" >> "$GITHUB_PATH"
 
       # Each run saves under its own sha and restores the newest cache, so a
       # PR starts from the last main or dev run. Turbo then replays any task
@@ -59,13 +96,13 @@ jobs:
       # Every import is declared in its package.json, nothing reaches into
       # another workspace by path, and the layer tags in turbo.json hold.
       - name: Package boundaries
-        run: pnpm turbo boundaries
+        run: bun run turbo boundaries
 
       # hacklytics2026 is archived: its code stays in the repo, but nothing
       # lints, typechecks, tests or builds it here (vitest.config.ts skips its
       # tests). Build it locally with pnpm --filter hacklytics2026 build.
       - name: Lint and typecheck
-        run: pnpm turbo run lint typecheck --filter=!hacklytics2026
+        run: bun run turbo run lint typecheck --filter=!hacklytics2026
 
       # The compose database with its schema and fake data. DATABASE_URL stays
       # on these steps: the build must not look for a database that is gone.
@@ -82,12 +119,12 @@ jobs:
             cat "$RUNNER_TEMP/db-up.log"
             exit 1
           fi
-          pnpm local:up db
+          bun run local:up db
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
 
       - name: Test
-        run: pnpm test
+        run: bun run test
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
           # Opts in the tests that write to a real database. Only the throwaway
@@ -96,10 +133,10 @@ jobs:
 
       - name: Stop test database
         if: always()
-        run: pnpm local:down
+        run: bun run local:down
 
       - name: Build
-        run: pnpm turbo run build --filter=!hacklytics2026
+        run: bun run turbo run build --filter=!hacklytics2026
 
       - name: Upload Hacklytics build
         uses: actions/upload-artifact@v7

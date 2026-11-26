@@ -14,6 +14,9 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+// The db scripts run from their own folder: `bun run --filter` finds no
+// workspaces in a pnpm repo, and `pnpm run` there does what --filter did.
+const db = resolve(root, "packages/db");
 // CI adds a faster, non-durable Postgres (docker/compose.ci.yml). Every compose
 // call must use the same files, or compose sees a config change and recreates
 // the container.
@@ -25,11 +28,11 @@ const compose = [
   ...(process.env.CI ? ["-f", "docker/compose.ci.yml"] : []),
 ];
 
-function run(command: string[]) {
+function run(command: string[], cwd = root) {
   // One command string: passing args alongside shell: true is deprecated, and
   // the shell is what finds pnpm.cmd on Windows.
   const { status } = spawnSync(command.join(" "), {
-    cwd: root,
+    cwd,
     stdio: "inherit",
     shell: true,
   });
@@ -55,8 +58,8 @@ if (command === "up") {
   // Before anything starts: a .env that points at a hosted database stops here.
   run(["node", "tooling/scripts/src/guard-local.ts"]);
   run([...compose, "up", "-d", "--wait", ...services]);
-  run(["pnpm", "--filter", "@query/db", "migrate:push"]);
-  run(["pnpm", "--filter", "@query/db", "db:seed"]);
+  run(["pnpm", "run", "migrate:push"], db);
+  run(["pnpm", "run", "db:seed"], db);
   console.log(`
 Local environment is up.
   pnpm dev                web on http://localhost:3001
