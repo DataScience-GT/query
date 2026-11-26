@@ -1,6 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import GitHubProvider from "next-auth/providers/github";
 import EmailProvider from "next-auth/providers/nodemailer";
 import { db } from "@query/db";
 import { NOREPLY_EMAIL, ORG_NAME_SPOKEN } from "@query/core";
@@ -15,8 +14,7 @@ import {
 } from "@query/db/services/auth-throttle";
 import { sql } from "drizzle-orm";
 import { randomInt } from "node:crypto";
-import { fetchGitHubProfile, verifiedGitHubEmail } from "./github";
-import type { GitHubEmail } from "./github";
+import { discordProviders, hasVerifiedDiscordEmail } from "./discord";
 
 function html(params: { code: string; host: string }) {
   const { code, host } = params;
@@ -102,44 +100,10 @@ export const authConfig: NextAuthConfig = {
         },
       },
     }),
-    // GitHub is optional: only registered when credentials are configured, so
-    // deployments without a GitHub OAuth app keep working.
-    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
-      ? [
-          GitHubProvider({
-            clientId: process.env.GITHUB_CLIENT_ID,
-            clientSecret: process.env.GITHUB_CLIENT_SECRET,
-            // Matches the Google provider: a member who first signed in with Google can
-            // also use GitHub on the same verified email instead of hitting
-            // OAuthAccountNotLinked.
-            allowDangerousEmailAccountLinking: true,
-            // GitHub omits the email from the profile unless this scope is requested, and
-            // the adapter requires an email.
-            authorization: { params: { scope: "read:user user:email" } },
-            // The linking flag above trusts the email to be the user's own, and
-            // Auth.js's default reads it from /user/emails without checking
-            // `verified`. Only a verified address is ever used; with none, the
-            // sign-in has no email and fails.
-            userinfo: {
-              url: "https://api.github.com/user",
-              async request({ tokens }: { tokens: { access_token?: string } }) {
-                const headers = {
-                  Authorization: `Bearer ${tokens.access_token}`,
-                  "User-Agent": "authjs",
-                };
-                const profile = await fetchGitHubProfile(headers);
-                const res = await fetch("https://api.github.com/user/emails", {
-                  headers,
-                });
-                const emails = res.ok
-                  ? ((await res.json()) as GitHubEmail[])
-                  : [];
-                return { ...profile, email: verifiedGitHubEmail(emails) };
-              },
-            },
-          }),
-        ]
-      : []),
+    // Discord is optional: only registered when both client variables are set,
+    // so deployments without them keep working. Signing in grants no Discord
+    // roles; see discord.ts.
+    ...discordProviders(),
     EmailProvider({
       server: {
         host: process.env.EMAIL_SERVER_HOST as string,
@@ -269,9 +233,14 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     // allowDangerousEmailAccountLinking trusts the address to be the user's own.
     // Auth.js's Google provider never checks email_verified, so an unverified
-    // Google address could be linked into the member who owns it.
+    // Google address could be linked into the member who owns it. Discord's
+    // profile has the same hole, so it must say `verified: true` and carry an
+    // email; anything else is refused before an account is created or linked.
     async signIn({ account, profile }) {
       if (account?.provider === "google" && profile?.email_verified === false) {
+        return false;
+      }
+      if (account?.provider === "discord" && !hasVerifiedDiscordEmail(profile)) {
         return false;
       }
       return true;
