@@ -345,6 +345,7 @@ beforeEach(() => {
       roomId: A1,
       createdAt: NOW,
       expiresAt: new Date(NOW.getTime() + 8 * 3600_000),
+      admittedAt: NOW,
     },
   ]);
 });
@@ -1414,6 +1415,25 @@ describe("re-balancing judges on their own", () => {
         roomId: A1,
         createdAt: new Date(NOW.getTime() - 8 * 3600_000 - 60_000),
         expiresAt: new Date(NOW.getTime() - 60_000),
+      },
+    ]);
+
+    await get();
+
+    expect(gives(P4)).toBeTruthy();
+    expect(gives(P4)).not.toBe(GS);
+    expect(gives(P2)).toBe(M3);
+  });
+
+  it("gives nothing to a guest no organizer has let in", async () => {
+    // Grace scanned the room's code and gave a name, and is waiting at the door.
+    store.set(judgingGuestSessions, [
+      {
+        judgeId: GS,
+        roomId: A1,
+        createdAt: NOW,
+        expiresAt: new Date(NOW.getTime() + 8 * 3600_000),
+        admittedAt: null,
       },
     ]);
 

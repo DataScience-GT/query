@@ -118,6 +118,8 @@ describe("asJudge", () => {
     roomChallengeId: "c",
     judgeId: null,
     displayName: null,
+    admitted: true,
+    accountIds: [],
   };
 
   it("holds back a guest who has not given a name", () => {
@@ -239,6 +241,8 @@ describe("resolveDeskPrincipal", () => {
     roomChallengeId: "c1",
     judgeId: null,
     displayName: null,
+    userId: null,
+    admittedAt: null,
   };
 
   it("is nobody without a judge account or a guest cookie", async () => {
@@ -256,7 +260,42 @@ describe("resolveDeskPrincipal", () => {
         hackathonId: HACK,
         cookieHeader: "query_judging_guest=abc",
       }),
-    ).resolves.toEqual({ kind: "guest", ...session });
+    ).resolves.toEqual({
+      kind: "guest",
+      sessionId: "s1",
+      hackathonId: HACK,
+      linkId: "l1",
+      roomId: "r1",
+      roomChallengeId: "c1",
+      judgeId: null,
+      displayName: null,
+      admitted: false,
+      accountIds: [],
+    });
+  });
+
+  it("is admitted once an organizer has let them in", async () => {
+    const { db } = fakeDb({
+      select: [[{ ...session, admittedAt: new Date() }]],
+    });
+    await expect(
+      resolveDeskPrincipal(db, {
+        hackathonId: HACK,
+        cookieHeader: "query_judging_guest=abc",
+      }),
+    ).resolves.toMatchObject({ admitted: true });
+  });
+
+  it("knows the account that scanned the code, and the one signed in now", async () => {
+    const { db } = fakeDb({
+      select: [[], [], [{ ...session, userId: "scanner" }]],
+    });
+    const guest = await resolveDeskPrincipal(db, {
+      hackathonId: HACK,
+      userId: "now",
+      cookieHeader: "query_judging_guest=abc",
+    });
+    expect(guest).toMatchObject({ accountIds: ["scanner", "now"] });
   });
 
   it("does not let a guest cookie into another edition", async () => {
@@ -277,7 +316,11 @@ describe("resolveDeskPrincipal", () => {
         userId: "u9",
         cookieHeader: "query_judging_guest=abc",
       }),
-    ).resolves.toMatchObject({ kind: "guest", sessionId: "s1" });
+    ).resolves.toMatchObject({
+      kind: "guest",
+      sessionId: "s1",
+      accountIds: ["u9"],
+    });
   });
 });
 
@@ -328,6 +371,9 @@ describe("activateRoomLink", () => {
       sessionId: "s1",
       hackathonId: HACK,
       judgeId: "j1",
+      userId: null,
+      admittedAt: null,
+      admittedById: null,
       expiresAt: new Date(Date.now() + HOUR),
       revokedAt: null,
       ...overrides,

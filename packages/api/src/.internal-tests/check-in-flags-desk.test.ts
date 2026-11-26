@@ -178,6 +178,8 @@ const guestAnswers = (): Answers => ({
       roomChallengeId: CHALLENGE,
       judgeId: JUDGE_ID,
       displayName: "Guest Judge",
+      userId: null,
+      admittedAt: new Date(),
     },
   ],
   [via(judgingChallenges)]: challenges,

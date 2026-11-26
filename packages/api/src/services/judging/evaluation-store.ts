@@ -40,7 +40,7 @@ import type { JudgingDb, JudgingTx } from "./config";
 import { checkAnswers, snapshotOf } from "./evaluation";
 import type { CheckedAnswers } from "./evaluation";
 import { gradingLockKey, gradingRefusal, gradingStateOf } from "./grading-hold";
-import { GUEST_SESSION_ENDED } from "./principal";
+import { GUEST_NOT_ADMITTED, GUEST_SESSION_ENDED } from "./principal";
 import type { Judge } from "./principal";
 import {
   descendantsOf,
@@ -277,7 +277,10 @@ export async function assertJudgingOpen(tx: JudgingTx, hackathonId: string) {
 export async function assertGuestSeated(tx: JudgingTx, judge: Judge) {
   if (judge.kind !== "guest") return;
   const [session] = await tx
-    .select({ id: judgingGuestSessions.id })
+    .select({
+      id: judgingGuestSessions.id,
+      admittedAt: judgingGuestSessions.admittedAt,
+    })
     .from(judgingGuestSessions)
     .innerJoin(
       judgingRoomLinks,
@@ -297,6 +300,11 @@ export async function assertGuestSeated(tx: JudgingTx, judge: Judge) {
     .limit(1);
   if (!session) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: GUEST_SESSION_ENDED });
+  }
+  // The desk refuses an unadmitted guest before it gets here. This is the
+  // same rule where the write happens, so a new write path cannot skip it.
+  if (!session.admittedAt) {
+    throw new TRPCError({ code: "FORBIDDEN", message: GUEST_NOT_ADMITTED });
   }
 }
 
@@ -410,19 +418,23 @@ export async function loadEntryInChallenge(
 
   // A judge who also competed must not score their own team. Registering is
   // refused for judges, but a judge can be added to a Devpost entry by email
-  // or invited onto a team; guests have no account, so nothing to compare.
-  if (input.judge?.kind === "member") {
-    if (
-      await isOnEntryTeam(db, {
-        hackathonId: input.hackathonId,
-        entry,
-        userId: input.judge.userId,
-      })
-    ) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "You are on this project's team, so you can't grade it.",
-      });
+  // or invited onto a team. A guest has no judge account of their own, so the
+  // accounts they were signed in as stand in for it: the one that scanned the
+  // room's code and the one signed in now.
+  if (input.judge) {
+    const accounts =
+      input.judge.kind === "member"
+        ? [input.judge.userId]
+        : input.judge.accountIds;
+    for (const userId of accounts) {
+      if (
+        await isOnEntryTeam(db, { hackathonId: input.hackathonId, entry, userId })
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are on this project's team, so you can't grade it.",
+        });
+      }
     }
   }
 

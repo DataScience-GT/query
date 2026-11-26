@@ -43,6 +43,18 @@ describe.skipIf(!URL)("a judge on a project's team, against a real database", ()
     judgeId: crypto.randomUUID(),
     displayName: name,
   });
+  const asGuest = (...accountIds: string[]): Judge => ({
+    kind: "guest",
+    hackathonId,
+    sessionId: crypto.randomUUID(),
+    linkId: crypto.randomUUID(),
+    roomId: crypto.randomUUID(),
+    roomChallengeId: challenge.id,
+    judgeId: crypto.randomUUID(),
+    displayName: "Guest",
+    admitted: true,
+    accountIds,
+  });
   const load = (judge: Judge) =>
     store.loadEntryInChallenge(S.db!, { hackathonId, entryId, challenge, judge });
 
@@ -153,6 +165,28 @@ describe.skipIf(!URL)("a judge on a project's team, against a real database", ()
     await expect(load(asMember("outsider"))).resolves.toMatchObject({
       id: entryId,
       title: "Tidewater",
+    });
+  });
+
+  describe("a guest judge", () => {
+    it("is refused when the account that scanned the code is linked to the entry", async () => {
+      await expect(load(asGuest(id("by-user")))).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message: expect.stringMatching(mine),
+      });
+    });
+
+    it("is refused when an account they are signed in as is listed by email", async () => {
+      await expect(
+        load(asGuest(id("outsider"), id("by-email"))),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+
+    it("can grade a project none of their accounts is on", async () => {
+      await expect(load(asGuest(id("outsider")))).resolves.toMatchObject({
+        id: entryId,
+      });
+      await expect(load(asGuest())).resolves.toMatchObject({ id: entryId });
     });
   });
 });

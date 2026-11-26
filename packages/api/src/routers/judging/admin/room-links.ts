@@ -2,8 +2,12 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray, isNull, notExists, sql } from "drizzle-orm";
-import { judgingRoomLinks, judgingRooms } from "@query/db";
+import { and, eq, gt, inArray, isNull, notExists, sql } from "drizzle-orm";
+import {
+  judgingGuestSessions,
+  judgingRoomLinks,
+  judgingRooms,
+} from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { isAdmin } from "../../../middleware/procedures";
 import { recordAdminAction } from "../../../middleware/audit";
@@ -104,6 +108,56 @@ export const roomLinkProcedures = {
         });
       }
       return { issued };
+    }),
+
+  /**
+   * Lets a guest judge in. The room's code is posted on its door, so anyone
+   * can scan it and give a name; a guest cannot judge until an organizer says
+   * this person is who they should be. Saying it twice changes nothing.
+   */
+  admitGuest: isAdmin
+    .input(z.object({ sessionId: uuid }))
+    .mutation(async ({ ctx, input }) => {
+      const db = ctx.db as DrizzleDB;
+      const now = new Date();
+      const [session] = await db
+        .update(judgingGuestSessions)
+        .set({
+          admittedAt: sql`coalesce(${judgingGuestSessions.admittedAt}, ${now})`,
+          admittedById: sql`coalesce(${judgingGuestSessions.admittedById}, ${ctx.userId})`,
+        })
+        .where(
+          and(
+            eq(judgingGuestSessions.id, input.sessionId),
+            isNull(judgingGuestSessions.revokedAt),
+            gt(judgingGuestSessions.expiresAt, now),
+          ),
+        )
+        .returning({
+          id: judgingGuestSessions.id,
+          hackathonId: judgingGuestSessions.hackathonId,
+          roomId: judgingGuestSessions.roomId,
+          judgeId: judgingGuestSessions.judgeId,
+        });
+      if (!session) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message:
+            "That guest's session has ended. Ask them to scan the room's code again.",
+        });
+      }
+
+      await recordAdminAction(db, {
+        userId: ctx.userId,
+        action: "judging.admitGuest",
+        resourceId: session.id,
+        metadata: {
+          hackathonId: session.hackathonId,
+          roomId: session.roomId,
+          judgeId: session.judgeId,
+        },
+      });
+      return { sessionId: session.id };
     }),
 
   /** Retires the room's QR link and signs out its guest judges. */
