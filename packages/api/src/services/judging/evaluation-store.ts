@@ -32,6 +32,8 @@ import {
   judgingSchedules,
   hackathonParticipants,
   hackathonProjects,
+  judges,
+  users,
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import type { JudgingDb, JudgingTx } from "./config";
@@ -298,6 +300,68 @@ export async function assertGuestSeated(tx: JudgingTx, judge: Judge) {
   }
 }
 
+/**
+ * Whether `userId` is on the team behind an entry: linked to one of its
+ * members, listed on it by email, or on the portal team that submitted it.
+ *
+ * Email counts because a Devpost entry keeps its members as a name and an
+ * address, unlinked until they claim it, and claiming needs a checked-in
+ * participant row that an approved judge cannot have. The address is compared
+ * with the one on the account and the one on the judge application, in lower
+ * case, since either may be what Devpost has.
+ */
+async function isOnEntryTeam(
+  db: JudgingDb,
+  input: {
+    hackathonId: string;
+    entry: { id: string; sourceProjectId: string | null };
+    userId: string;
+  },
+) {
+  const { entry, userId } = input;
+  const [onEntry] = await db
+    .select({ id: judgingEntryMembers.id })
+    .from(judgingEntryMembers)
+    .where(
+      and(
+        eq(judgingEntryMembers.entryId, entry.id),
+        or(
+          eq(judgingEntryMembers.userId, userId),
+          sql`lower(${judgingEntryMembers.email}) in (
+            select lower(${users.email}) from ${users} where ${users.id} = ${userId}
+            union
+            select lower(${judges.email}) from ${judges}
+              where ${judges.userId} = ${userId}
+                and ${judges.hackathonId} = ${input.hackathonId}
+                and ${judges.email} is not null
+          )`,
+        ),
+      ),
+    )
+    .limit(1);
+  if (onEntry) return true;
+  if (!entry.sourceProjectId) return false;
+
+  const [row] = await db
+    .select({ id: hackathonParticipants.id })
+    .from(hackathonProjects)
+    .innerJoin(
+      hackathonParticipants,
+      or(
+        eq(hackathonParticipants.teamId, hackathonProjects.teamId),
+        eq(hackathonParticipants.id, hackathonProjects.submittedById),
+      ),
+    )
+    .where(
+      and(
+        eq(hackathonProjects.id, entry.sourceProjectId),
+        eq(hackathonParticipants.userId, userId),
+      ),
+    )
+    .limit(1);
+  return !!row;
+}
+
 /** A live project entered in the challenge, or NOT_FOUND. */
 export async function loadEntryInChallenge(
   db: JudgingDb,
@@ -348,39 +412,13 @@ export async function loadEntryInChallenge(
   // refused for judges, but a judge can be added to a Devpost entry by email
   // or invited onto a team; guests have no account, so nothing to compare.
   if (input.judge?.kind === "member") {
-    const userId = input.judge.userId;
-    const [onEntry] = await db
-      .select({ id: judgingEntryMembers.id })
-      .from(judgingEntryMembers)
-      .where(
-        and(
-          eq(judgingEntryMembers.entryId, entry.id),
-          eq(judgingEntryMembers.userId, userId),
-        ),
-      )
-      .limit(1);
-    let onTeam = !!onEntry;
-    if (!onTeam && entry.sourceProjectId) {
-      const [row] = await db
-        .select({ id: hackathonParticipants.id })
-        .from(hackathonProjects)
-        .innerJoin(
-          hackathonParticipants,
-          or(
-            eq(hackathonParticipants.teamId, hackathonProjects.teamId),
-            eq(hackathonParticipants.id, hackathonProjects.submittedById),
-          ),
-        )
-        .where(
-          and(
-            eq(hackathonProjects.id, entry.sourceProjectId),
-            eq(hackathonParticipants.userId, userId),
-          ),
-        )
-        .limit(1);
-      onTeam = !!row;
-    }
-    if (onTeam) {
+    if (
+      await isOnEntryTeam(db, {
+        hackathonId: input.hackathonId,
+        entry,
+        userId: input.judge.userId,
+      })
+    ) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "You are on this project's team, so you can't grade it.",
