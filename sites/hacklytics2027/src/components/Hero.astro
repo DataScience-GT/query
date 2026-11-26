@@ -137,12 +137,12 @@ const deadline =
     </div>
   </div>
 
-  {/* The flower bed the hero stands in. Its share in bloom tracks the
-      season; visitors can plant their own. The garden is the one part of the
-      first screen that needs React, and nothing on it is needed to read the
-      page, so it hydrates once the browser is idle. */}
+  {/* The flower bed the hero stands in: every flower opens in its own colour
+      when it is seen, and visitors can plant their own. The garden is the one
+      part of the first screen that needs React, and nothing on it is needed
+      to read the page, so it hydrates once the browser is idle. */}
   <div class="pb-6">
-    <HeroBed client:idle start={event.startMs} startLabel={event.dates.startLabel} />
+    <HeroBed client:idle />
   </div>
 </section>
 

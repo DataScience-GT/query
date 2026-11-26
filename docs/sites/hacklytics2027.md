@@ -31,7 +31,7 @@ Astro 7 needs Vite 8 while the rest of the repo stays on Vite 7. This site and `
 | `src/layouts/Layout.astro` | Wraps the kit's layout: loads the CSS and font preloads, and puts the menu and footer flower beds in the kit's slots |
 | `src/components/Hero.astro` | Hero. The countdown is an inline script; the garden is a React island |
 | `src/components/SectionArt.tsx` | The plants drawn into the kit's sections: the theme block's seed, bud and bloom, one per track in a box of 16 by 11 sprite pixels, each in its own tint, the Judges, Volunteers and Sponsors plots, the schedule rail's bud and tulip |
-| `src/components/pixel/*` | Pixel sprites and flower beds; `season.ts` holds the one bloom count, `GardenBeds.tsx` the four React islands, `tints.ts` the colours a flower opens in |
+| `src/components/pixel/*` | Pixel sprites and flower beds; `GardenBeds.tsx` the four React islands, `tints.ts` the colours a flower opens in |
 | `src/scripts/bloom.ts` | Writes `data-bloom="on"` on the track row and the schedule rail when they are in view |
 | `src/styles/globals.css`, `fonts.generated.css`, `src/lib/fonts.generated.ts`, `public/fonts/` | The theme (palette, fonts, flower animations); the fonts are output of `scripts/subset-fonts.py`, committed |
 | `public/sw.js` | Service worker (Firebase header: no-cache, `Service-Worker-Allowed: /`) |
@@ -59,11 +59,11 @@ Everything renders to HTML at build time. Only what needs the browser ships code
 | 404 flower bed | React island, `client:visible` | Same |
 | Menu flower bed | React island, `client:media="(max-width: 1023px)"` | The menu only opens below 1024px, so desktop never loads it |
 
-The beds are the one place React stays, besides the judge interest form. How many flowers are in bloom depends on the date, so the build cannot bake it, and a click plants one. The static HTML draws every plant dormant (`useInBloom` returns 0 there) and hydration brings in the real count.
+The beds are the one place React stays, besides the judge interest form. A click plants a flower, and a bed opens when it scrolls into view, neither of which the static HTML can do. Every plant in a bed opens, in a tint of its own: there are no grey, dormant or unopened plants anywhere on the site.
 
-Flowers open in the portal’s eight flower tints, which `@query/core` exports as `BLOOM_TINTS` (the portal’s bloom pass reads the same table). Only flowers use them: buttons, links and focus stay the one pink. In a bed the first eight flowers in bloom are all different colours, and a flower you plant takes a random one.
+Flowers open in the portal’s eight flower tints, which `@query/core` exports as `BLOOM_TINTS` (the portal’s bloom pass reads the same table). Only flowers use them: buttons, links and focus stay the one pink. The site uses seven of the eight: the daisy's white has no hue to tell it from grey. Neighbours in a bed are never the same colour at any width, and a flower you plant takes a random one. `pixel/palettes.test.ts` fails if any petal or head colour is grey (HSL saturation under 0.15) or near-black (relative luminance under 0.02), in either theme.
 
-The beds take the event's start (`start`, epoch milliseconds) and first-day label (`startLabel`) as props, passed from `Hero.astro` and `layouts/Layout.astro`. They do not import `event.config.ts`: an island that imports it bundles all the page copy into the browser.
+The beds take no props. They do not import `event.config.ts`: an island that imports it bundles all the page copy into the browser.
 
 React Compiler is not enabled: the islands are small, and it would add its runtime for no change in output.
 
