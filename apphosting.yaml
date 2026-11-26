@@ -41,15 +41,6 @@ env:
     secret: AUTH_GOOGLE_ID
   - variable: GOOGLE_CLIENT_SECRET
     secret: AUTH_GOOGLE_SECRET
-  # GitHub sign-in. The provider is only registered when BOTH of these are
-  # present (packages/auth/src/config.ts), so until the secrets exist the
-  # login page hides the button rather than offering one that cannot work.
-  # Callback URL to register on the GitHub OAuth app:
-  #   https://datasciencegt.org/api/auth/callback/github
-  - variable: GITHUB_CLIENT_ID
-    secret: AUTH_GITHUB_ID
-  - variable: GITHUB_CLIENT_SECRET
-    secret: AUTH_GITHUB_SECRET
   # Shared cache invalidation and rate limits (Upstash Redis, REST). Without
   # these two every instance falls back to its own in-memory state, which is
   # correct but stale across instances. Left commented out because a reference
@@ -79,7 +70,11 @@ env:
   #   firebase apphosting:secrets:grantaccess GITHUB_REPO_CHECK_TOKEN
   # - variable: GITHUB_TOKEN
   #   secret: GITHUB_REPO_CHECK_TOKEN
-  # Discord link for accepted Hacklytics hackers (docs/features/discord.md).
+  # Discord: the same application serves Discord sign-in (login grants no roles)
+  # and the link for accepted Hacklytics hackers (docs/features/discord.md).
+  # Redirect URIs to register on the application:
+  #   https://datasciencegt.org/api/auth/callback/discord  (sign-in)
+  #   https://datasciencegt.org/api/discord/callback       (link)
   # The app id and the invite are public; only the client secret is secret.
   - variable: DISCORD_CLIENT_ID
     value: "1575184200972378302"
