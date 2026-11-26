@@ -222,6 +222,12 @@ export interface EventContent {
     heading: string;
     /** The first paragraph leads; the rest are secondary. */
     body: NonEmpty<Rich>;
+    /**
+     * What the theme is and why the edition has it, shown under the hero as a
+     * block titled with `theme.name`. The first paragraph leads. Without it
+     * the block is not drawn.
+     */
+    theme?: NonEmpty<Rich>;
   };
   tracks: NonEmpty<Track>;
   prizes: { intro: string; items: NonEmpty<Prize> };

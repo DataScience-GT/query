@@ -11,7 +11,7 @@ The kit is everything a Hacklytics event site has in common: the page shell, nav
 | `defineEvent` and the `EventConfig` types, with every date label computed from ISO strings in the config's `timeZone` | `src/event.config.ts`: the dates, links and copy |
 | `Layout.astro`: `<head>`, meta, Open Graph and Twitter tags, the JSON-LD Event, the no-flash theme script, the navbar and footer | `src/styles/globals.css`: the palette, the two font families, the art's CSS |
 | `Navbar`, `Footer`, `MlhBadge`, `ThemeToggle` and their scripts (menu, hide on scroll, theme switch, service worker registration) | The hero, the 404 body and anything else only one edition has |
-| The sections `About`, `Tracks`, `PrizeAndSpeaker`, `Schedule`, `Judges`, `Sponsors`, `FAQ` and the `JudgeInterestForm` island, composed by `HomeSections.astro` | The art drawn into the sections: sprites, plots, the globe, the garden |
+| The sections `Theme`, `About`, `Tracks`, `PrizeAndSpeaker`, `Schedule`, `Judges`, `Sponsors`, `FAQ` and the `JudgeInterestForm` island, composed by `HomeSections.astro` | The art drawn into the sections: sprites, plots, the globe, the garden |
 | `styles.css`: the measure, section titles, buttons, links, the badge, the theme toggle's icon swap, and the Tailwind color tokens | `public/`: favicons, the share image, the MLH badge, fonts, `sw.js` |
 | `data-bloom` and `data-bloom-watch` markers on the track row and the schedule rail | The script that flips those markers when the row is in view (`src/scripts/bloom.ts`) |
 
@@ -63,7 +63,7 @@ A new edition does not start by hand: `pnpm turbo gen hacklytics` makes the site
 The kit never imports a site's art. It takes it two ways.
 
 - **Astro slots on `Layout`.** `head` for extra `<head>` tags, `menu-art` for the art at the foot of the mobile menu, `footer-art` for the art that closes the home page, and the default slot for the page. Hydrated islands go in a slot like any other child.
-- **React components on `HomeSections`.** `art` takes `track` (receives `{ track, index }`, drawn in the cell beside each track), `railStart` and `railEnd` (the two ends of the schedule rail), and `judges` and `sponsors` (the plot under each title). Each is rendered at build time, with no hydration. A section without its art lays out the same, with an empty cell.
+- **React components on `HomeSections`.** `art` takes `theme` (the picture beside the theme block), `track` (receives `{ track, index }`, drawn in the cell beside each track), `railStart` and `railEnd` (the two ends of the schedule rail), and `judges` and `sponsors` (the plot under each title). Each is rendered at build time, with no hydration. A section without its art lays out the same, with an empty cell.
 
 The boxes that hold art set `--bed: 1`, doubled from `sm` or `md`, so a sprite scales in whole pixels. Art that wants to follow that reads `var(--bed, 1)`.
 
@@ -112,7 +112,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | Field | Type |
 | --- | --- |
 | `seo` | `{ tagline, description, shareDescription, summary, eventDescription, keywords[], url, image, twitter }` |
-| `about` | `{ heading, body: Rich[] }`: the first paragraph leads, the rest are secondary |
+| `about` | `{ heading, body: Rich[], theme?: Rich[] }`: the first paragraph leads, the rest are secondary. `theme` is what the theme is and why the edition has it: a block under the hero titled with `theme.name`, drawn only when it is set |
 | `tracks` | `{ title, description }[]` |
 | `prizes` | `{ intro, items: { label, detail }[] }` |
 | `speakers` | `{ name, title?, company? }[]`: a Speakers block under the prizes when there are any |

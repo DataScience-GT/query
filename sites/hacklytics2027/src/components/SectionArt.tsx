@@ -27,6 +27,15 @@ export function TrackArt({ track, index }: { track: { title: string }; index: nu
   return <BloomSprite map={map} scale={6} blooms tint={tint} index={index} />;
 }
 
+// A seed, a bud and a bloom, growing one after another when the block is seen.
+export const ThemeArt = () => (
+  <>
+    <BloomSprite map={SPROUT} scale={6} blooms index={0} />
+    <BloomSprite map={BUD} scale={8} blooms tint="tulip" index={1} />
+    <BloomSprite map={DAISY} scale={6} blooms tint="sunflower" index={2} />
+  </>
+);
+
 const plot = (maps: SpriteMap[]) =>
   function Plot() {
     return (

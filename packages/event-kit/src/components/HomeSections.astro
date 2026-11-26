@@ -8,6 +8,7 @@ import JudgesSection from "./JudgesSection";
 import PrizeAndSpeakerSection from "./PrizeAndSpeakerSection";
 import Schedule from "./Schedule";
 import SponsorsSection from "./Sponsor";
+import ThemeSection from "./ThemeSection";
 import TracksSection from "./TracksSection";
 import type { TrackArtProps } from "./TracksSection";
 
@@ -16,6 +17,7 @@ import type { TrackArtProps } from "./TracksSection";
  * rendered at build time; a section without its art lays out the same, empty.
  */
 export interface HomeArt {
+  theme?: ComponentType;
   track?: ComponentType<TrackArtProps>;
   railStart?: ComponentType;
   railEnd?: ComponentType;
@@ -31,6 +33,7 @@ const { event, art = {} } = Astro.props;
 ---
 
 <div class="relative">
+  <ThemeSection event={event} Art={art.theme} />
   <AboutSection event={event} />
   <TracksSection event={event} Art={art.track} />
   <PrizeAndSpeakerSection event={event} />

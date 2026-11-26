@@ -116,6 +116,10 @@ export default defineEvent({
         `${BRAND} is a ${hackHours}-hour data science and AI hackathon run by ${ORG} at the Klaus Advanced Computing Building in Atlanta, ${dates.long}.`,
         "Room for 1,000+ hackers. It costs nothing to attend: meals and swag are covered.",
       ],
+      theme: [
+        `Every project starts as a seed: a dataset and a question. Over ${hackHours} hours, your team grows it into something that works.`,
+        "That is why the site is a garden. Every accepted hacker gets a flower of their own for the weekend.",
+      ],
     },
 
     tracks: [
