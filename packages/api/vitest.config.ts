@@ -34,6 +34,10 @@ export default defineConfig({
         __dirname,
         "../db/src/services/pricing.ts",
       ),
+      "@query/db/services/auth-throttle": resolve(
+        __dirname,
+        "../db/src/services/auth-throttle.ts",
+      ),
       "@query/db/constants": resolve(__dirname, "../db/src/constants/index.ts"),
       "@query/db": resolve(__dirname, "../db/src/index.ts"),
       "@query/auth/email": resolve(__dirname, "../auth/src/email.ts"),

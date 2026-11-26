@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  venueDate,
   venueDayNumber,
   venueFormat,
   venueParts,
@@ -29,6 +30,13 @@ describe("venueFormat", () => {
     const hour = { hour: "numeric", minute: "2-digit" } as const;
     expect(venueFormat("2026-07-01T16:00:00Z", hour)).toBe("12:00 PM");
     expect(venueFormat("2026-12-01T16:00:00Z", hour)).toBe("11:00 AM");
+  });
+});
+
+describe("venueDate", () => {
+  it("prints the venue's day with a short month and the year", () => {
+    expect(venueDate(LATE_NIGHT_UTC)).toBe("Nov 5, 2026");
+    expect(venueDate("2027-01-01T04:59:00Z")).toBe("Dec 31, 2026");
   });
 });
 

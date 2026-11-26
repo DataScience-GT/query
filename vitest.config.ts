@@ -5,7 +5,13 @@ import { resolve } from "path";
 // Agent worktrees live under .claude/worktrees inside the repo, and the path
 // filters in `pnpm test` would otherwise match their copies too. `next build`
 // copies the tests into .next/standalone, where they fail on every import.
-const SKIPPED = [...configDefaults.exclude, ".claude/**", "**/.next/**"];
+// sites/hacklytics2026 is archived: kept in the repo, not tested by CI.
+const SKIPPED = [
+  ...configDefaults.exclude,
+  ".claude/**",
+  "**/.next/**",
+  "sites/hacklytics2026/**",
+];
 
 // A test file that swaps a module or the environment leaves that behind for
 // whatever runs next in its worker: a mocked @query/db made the next file fail

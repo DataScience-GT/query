@@ -10,7 +10,7 @@ import { InterestForm } from "@/components/hackathon/InterestForm";
 import { hackathonSlug, isHacklyticsName } from "@/lib/hackathon-slug";
 import { isAdmitted } from "@/lib/hackathon-next-step";
 import { trpc } from "@/lib/trpc";
-import { venueFormat } from "@/lib/venue-time";
+import { venueDate } from "@/lib/venue-time";
 
 import { Alert } from "@query/ui/Alert";
 import {
@@ -48,14 +48,6 @@ const preloadRegistrationForm = {
 // skip the decision); the server refuses all three anyway.
 const WITHDRAWABLE = new Set(["pending", "approved"]);
 
-function formatDate(d: Date | string) {
-  return venueFormat(d, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 export function InfoTab({
   hackathon,
   isRegistered,
@@ -67,6 +59,8 @@ export function InfoTab({
     description?: string | null;
     prizes?: { place: string; amount: number; description?: string }[] | null;
     rules?: string | null;
+    startDate: string | Date;
+    endDate: string | Date;
     registrationDeadline?: string | Date | null;
     websiteUrl?: string | null;
     status: string;
@@ -276,7 +270,7 @@ export function InfoTab({
               <p className={`mt-2 ${body}`}>
                 Five steps: personal info, school, experience, logistics, and a few just-for-fun questions.
                 {hackathon.registrationDeadline
-                  ? ` Closes ${formatDate(hackathon.registrationDeadline)}.`
+                  ? ` Closes ${venueDate(hackathon.registrationDeadline)}.`
                   : ""}
               </p>
               {isFull && (
@@ -381,7 +375,7 @@ export function InfoTab({
                       : "Registration closes"}
                   </dt>
                   <dd className="mt-0.5 text-[15px] text-[var(--text-primary)]">
-                    {formatDate(hackathon.registrationDeadline)}
+                    {venueDate(hackathon.registrationDeadline)}
                   </dd>
                 </div>
               )}
@@ -469,6 +463,8 @@ export function InfoTab({
         <RegistrationForm
           hackathonId={hackathon.id}
           hackathonName={hackathon.name}
+          startDate={hackathon.startDate}
+          endDate={hackathon.endDate}
           tracks={hackathon.tracks}
           interest={interest.data}
           saved={form.saved}
