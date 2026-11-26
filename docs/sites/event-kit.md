@@ -22,10 +22,11 @@ The kit is everything a Hacklytics event site has in common: the page shell, nav
 | Path | Import | What |
 | --- | --- | --- |
 | `src/config.ts` | `@query/event-kit` | `defineEvent` and the types |
-| `src/dates.ts` | (internal) | Date labels, day columns and schedule rail positions |
+| `src/dates.ts` | `@query/event-kit/dates` | Date labels, day columns, schedule rail positions, calendar-day counts, the application deadline and which schedule day to open on |
 | `src/components/*.astro`, `*.tsx` | `@query/event-kit/components/<File>` | Layout, chrome and sections |
 | `src/styles/kit.css` | `@query/event-kit/styles.css` | Structural CSS and color tokens |
-| `src/scripts/*.ts` | (bundled by the components) | Navbar, theme toggle, service worker |
+| `src/scripts/*.ts` | (bundled by the components) | Navbar, theme toggle, service worker, schedule day tabs |
+| `src/tabs.ts` | (internal) | Which tab an arrow, Home or End key moves to |
 | `src/nav.ts` | (internal) | The section ids and labels the navbar and footer link to |
 
 The package has no `sideEffects` field on purpose. The components load their scripts with a bare `import "../scripts/navbar"`, and a `sideEffects: false` package lets the bundler drop that import, which leaves the navbar and theme toggle dead with no error.
@@ -64,6 +65,8 @@ The kit never imports a site's art. It takes it two ways.
 
 - **Astro slots on `Layout`.** `head` for extra `<head>` tags, `menu-art` for the art at the foot of the mobile menu, `footer-art` for the art that closes the home page, and the default slot for the page. Hydrated islands go in a slot like any other child.
 - **React components on `HomeSections`.** `art` takes `theme` (the picture beside the theme block), `track` (receives `{ track, index }`, drawn in the cell above each track's words), `railStart` and `railEnd` (the two ends of the schedule rail), and `judges` and `sponsors` (the plot under each title). Each is rendered at build time, with no hydration. A section without its art lays out the same, with an empty cell.
+
+The schedule shows one day at a time, as tabs under the rail. They are progressive enhancement: the page is built with the tabs hidden and every day showing, and `scripts/schedule-days.ts` turns that into an ARIA tablist (arrow keys, Home and End, `aria-selected`, `aria-controls`) that opens on today's day while the event is on and on the first day otherwise. With no JavaScript the days stay side by side from md.
 
 The boxes that hold art set `--bed: 1`, doubled from `sm` or `md`, so a sprite scales in whole pixels. Art that wants to follow that reads `var(--bed, 1)`.
 

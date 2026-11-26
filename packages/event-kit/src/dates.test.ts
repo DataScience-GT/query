@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calendarDaysUntil, deadlineStatus, describeMoment } from "./dates";
+import { calendarDaysUntil, deadlineStatus, defaultDayIndex, describeMoment } from "./dates";
 
 const NY = "America/New_York";
 const at = (iso: string) => Date.parse(iso);
@@ -75,5 +75,39 @@ describe("deadlineStatus", () => {
   it("is closed from the closing instant on, so the page never promises a deadline that has gone", () => {
     expect(status("2027-01-20T23:59:00-05:00")).toEqual({ open: false });
     expect(status("2027-02-01T12:00:00-05:00")).toEqual({ open: false });
+  });
+});
+
+describe("defaultDayIndex", () => {
+  const keys = ["Fri", "Sat", "Sun"];
+  const start = at("2027-02-26T17:00:00-05:00");
+  const end = at("2027-02-28T16:00:00-05:00");
+  const index = (nowIso: string) => defaultDayIndex(keys, NY, start, end, at(nowIso));
+
+  it("opens on the first day before the event", () => {
+    expect(index("2026-11-25T12:00:00-05:00")).toBe(0);
+    expect(index("2027-02-26T16:59:00-05:00")).toBe(0);
+  });
+
+  it("opens on today's day while the event is on", () => {
+    expect(index("2027-02-26T18:00:00-05:00")).toBe(0);
+    expect(index("2027-02-27T12:00:00-05:00")).toBe(1);
+    expect(index("2027-02-28T10:00:00-05:00")).toBe(2);
+  });
+
+  it("opens on the first day again once the event is over", () => {
+    expect(index("2027-02-28T16:00:00-05:00")).toBe(0);
+    expect(index("2027-03-05T12:00:00-05:00")).toBe(0);
+  });
+
+  it("goes by the venue's day, not the visitor's", () => {
+    // 03:00 UTC on Saturday is 10 PM Friday in Atlanta.
+    expect(index("2027-02-27T03:00:00Z")).toBe(0);
+    // 05:30 UTC is 12:30 AM Saturday in Atlanta.
+    expect(index("2027-02-27T05:30:00Z")).toBe(1);
+  });
+
+  it("opens on the first day when today is not one of the days", () => {
+    expect(defaultDayIndex(["Fri", "Sat"], NY, start, end, at("2027-02-28T10:00:00-05:00"))).toBe(0);
   });
 });

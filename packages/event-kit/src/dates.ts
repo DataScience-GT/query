@@ -233,3 +233,20 @@ export function deadlineStatus(timeZone: string, closesMs: number, nowMs: number
   const left = days === 0 ? "last day" : `${days} ${days === 1 ? "day" : "days"} left`;
   return { open: true, days, left };
 }
+
+/**
+ * Which day of the schedule to open on: today's while the event is on, and
+ * the first day otherwise. `keys` are the days' three-letter weekdays, in
+ * order. Today is the venue's today, so a visitor in another zone sees the
+ * day the hackers are in.
+ */
+export function defaultDayIndex(
+  keys: readonly string[],
+  timeZone: string,
+  startMs: number,
+  endMs: number,
+  nowMs: number,
+): number {
+  if (nowMs < startMs || nowMs >= endMs) return 0;
+  return Math.max(0, keys.indexOf(describeMoment(timeZone, nowMs).weekday));
+}

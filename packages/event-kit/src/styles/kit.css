@@ -173,6 +173,24 @@ body {
   scroll-margin-top: calc(var(--navbar-height) + 1.5rem);
 }
 
+/* The schedule's day tabs (components/Schedule.tsx, scripts/schedule-days.ts).
+   Built without the script, every day shows, side by side from md. The script
+   sets data-ready on the schedule: the tabs appear, one day shows at a time
+   and the rows, no longer in a third of the width, spread across it. The days
+   stack in one grid cell, so the section is as tall as the fullest day and
+   the page below does not jump when the tab changes; the others are hidden
+   with visibility, which takes them out of the tab order and the reader. */
+[data-days][data-ready] [data-day-panels] { display: grid; grid-template-columns: minmax(0, 1fr); }
+[data-days][data-ready] [data-day-panel] { grid-area: 1 / 1; padding-right: 0; }
+[data-days][data-ready] [data-day-panel][data-off] { visibility: hidden; }
+/* A tab's focus ring is drawn around its label (Schedule.tsx), not the tab. */
+[data-days] [role="tab"]:focus-visible { outline: none; }
+[data-days][data-ready] [data-day-head] { display: none; }
+[data-days][data-ready] [data-day-row] { grid-template-columns: 5.5rem minmax(0, 1fr); }
+@media (min-width: 768px) {
+  [data-days][data-ready] [data-day-row] { grid-template-columns: 9rem minmax(0, 1fr); }
+}
+
 /* ThemeToggle shows the sun on the night theme and the moon on the day one,
    decided here so the icon is right before any script runs. Same selectors as
    the theme's color tokens: an explicit choice on <html data-theme>, else the
