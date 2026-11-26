@@ -4,6 +4,10 @@ name: CI/CD
 # tested and built once. Hacklytics deploys only from that verified build —
 # a preview channel per PR, live on main. mainweb is not deployed here:
 # Firebase App Hosting builds it from main itself (apphosting.yaml).
+#
+# The checks run as parallel jobs, each with its own checkout and install, so a
+# run takes as long as the slowest one rather than their sum. `verify` waits
+# for all of them.
 on:
   push:
     branches: ["main", "dev"]
@@ -23,8 +27,24 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: ./.github/actions/install
+      # No version pin: the one in packageManager is the one that reads
+      # overrides and allowBuilds from pnpm-workspace.yaml. Pinning here
+      # silently installed an older pnpm that ignores both.
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
+      # No pnpm store cache: restoring 270 MB took longer than the install it
+      # saves.
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Each run saves under its own sha and restores the newest cache, so a PR
+      # starts from the last main or dev run. Turbo then replays any task whose
+      # inputs did not change. Only lint, typecheck and the packages' build land
+      # here, a few hundred KB.
       - name: Restore Turborepo cache
         uses: actions/cache@v6
         with:
@@ -42,6 +62,12 @@ jobs:
       # tests). Build it locally with pnpm --filter hacklytics2026 build.
       - name: Lint and typecheck
         run: pnpm turbo run lint typecheck --filter=!hacklytics2026
+
+      # Turborepo never removes an entry, and each run restores the last cache
+      # and saves it again, so the folder only grows. Drop what no run has
+      # written for a week before the save.
+      - name: Drop stale Turborepo entries
+        run: find .turbo/cache -type f -mtime +7 -delete
 
   # Two halves of the suite, each on its own runner with its own throwaway
   # database. Vitest splits the files; the tests never share a database across
@@ -66,7 +92,19 @@ jobs:
             echo $? > "$RUNNER_TEMP/db-up.exit"
           ' > "$RUNNER_TEMP/db-up.log" 2>&1 &
 
-      - uses: ./.github/actions/install
+      # No version pin: the one in packageManager is the one that reads
+      # overrides and allowBuilds from pnpm-workspace.yaml. Pinning here
+      # silently installed an older pnpm that ignores both.
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      # No pnpm store cache: restoring 270 MB took longer than the install it
+      # saves.
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       # The compose database with its schema and fake data. DATABASE_URL stays
       # on these steps: the build must not look for a database that is gone.
@@ -101,7 +139,19 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: ./.github/actions/install
+      # No version pin: the one in packageManager is the one that reads
+      # overrides and allowBuilds from pnpm-workspace.yaml. Pinning here
+      # silently installed an older pnpm that ignores both.
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      # No pnpm store cache: restoring 270 MB took longer than the install it
+      # saves.
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       # Encoding the photos is the slowest part of the build, about 50s. They
       # change only when a source photo or the encoder does, so the key is a
@@ -134,11 +184,12 @@ jobs:
             next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
             next-${{ runner.os }}-
 
+      # No Turborepo cache here. The mainweb build changes with almost every
+      # commit, and storing its output (.next and the photos) grew the old
+      # shared cache by about 57 MB a run, to 3.6 GB, which took 34s to restore.
+      # The two caches above hold the expensive parts instead.
       - name: Build
         run: pnpm turbo run build --filter=!hacklytics2026 --no-cache
-
-      - name: bench diagnostic
-        run: grep -rho "Check your email [0-9]*" sites/mainweb/.next/server | sort -u
 
       - name: Upload Hacklytics build
         uses: actions/upload-artifact@v7
