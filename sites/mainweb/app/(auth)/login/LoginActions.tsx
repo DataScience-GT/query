@@ -10,6 +10,7 @@ import {
   btnSecondary,
   fieldLabel,
   input,
+  meta,
 } from "@query/ui/classes";
 
 /**
@@ -214,6 +215,14 @@ export default function LoginActions({
             </button>
           ))}
       </div>
+
+      {/* GitHub sign-in was removed. Accounts link by verified email, so the
+          same address through any method reaches the same account. */}
+      <p className={`mt-5 ${meta}`}>
+        Used GitHub before? GitHub sign-in is gone. Sign in with{" "}
+        {discord ? "Google, Discord" : "Google"} or an email code using the same
+        email, and you&apos;ll land in the same account.
+      </p>
     </div>
   );
 }

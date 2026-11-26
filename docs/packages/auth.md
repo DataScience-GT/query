@@ -36,6 +36,14 @@ Registered only when **both** `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` ex
 - **Verified email only.** Discord's profile carries `verified`. The `signIn` callback refuses the sign-in unless it is `true` and an email is present, before any account is created or linked. Without that, email linking would let someone attach an address they never confirmed to the member who owns it.
 - **No roles from login.** The scope is `identify email` (`DISCORD_LOGIN_SCOPE`), never `role_connections.write`, so a sign-in token cannot publish Linked Roles metadata. Nothing on the sign-in path calls Discord or writes `hackathon_participants.discord_*`. Roles come only from the post-acceptance link flow. Tests in `discord.test.ts` and `config.test.ts` pin all three.
 
+**People who used GitHub.** GitHub sign-in was removed. `/login` tells them to sign in with Google, Discord or an email code using the same email. All three look the user up by email, case-insensitively (the adapter's `getUserByEmail`, the code route's `lower(email)`, one row per address by `user_email_lower_unique_idx`), so they reach the same account. Live database sessions are left alone. `/api/auth/signin/github` and `/api/auth/callback/github` redirect to `/login` (`next.config.mjs`) instead of ending on `/auth/error`. To count who is affected, read-only:
+
+```sql
+SELECT count(*) FROM "user" u
+WHERE EXISTS (SELECT 1 FROM account a WHERE a."userId" = u.id AND a.provider = 'github')
+  AND NOT EXISTS (SELECT 1 FROM account a WHERE a."userId" = u.id AND a.provider <> 'github');
+```
+
 Redirect URI to register on the Discord application (next to the link flow's `/api/discord/callback`):
 
 ```
