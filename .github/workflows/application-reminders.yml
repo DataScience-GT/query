@@ -1,0 +1,53 @@
+name: Application reminders
+
+# Mails each person who started a Hacklytics application, stopped, and has not
+# touched it for three days, once. App Hosting has no scheduler, so this posts
+# once a day to /api/cron/application-reminders, which does the work and answers
+# with how many it sent. Running it twice, or by hand from the Actions tab, is
+# safe: every saved draft is mailed at most once.
+#
+# Needs the CRON_SECRET repository secret, the same value as the CRON_SECRET
+# secret in App Hosting (docs/features/hackathons.md, "Reminder setup"). Until
+# both exist this job fails, which is the point: a reminder that quietly never
+# runs is worse than a red check.
+on:
+  schedule:
+    - cron: "0 14 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: application-reminders
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  remind:
+    name: Send reminders
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Post to the reminder route
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::The CRON_SECRET repository secret is not set."
+            exit 1
+          fi
+          status=$(curl --silent --show-error --max-time 120 \
+            --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            --output response.json \
+            --write-out '%{http_code}' \
+            https://datasciencegt.org/api/cron/application-reminders)
+          cat response.json
+          echo
+          case "$status" in
+            200) ;;
+            404) echo "::error::404: CRON_SECRET is not set in App Hosting, or this deploy predates the route."; exit 1 ;;
+            401) echo "::error::401: the repository secret and the App Hosting secret differ."; exit 1 ;;
+            *) echo "::error::The reminder route answered $status."; exit 1 ;;
+          esac
