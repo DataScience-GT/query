@@ -10,9 +10,9 @@ import {
 import { db } from "@query/db";
 
 /**
- * The daily nudge to finish an application. App Hosting has no scheduler, so a
- * GitHub Actions workflow (.github/workflows/application-reminders.yml) posts
- * here with the shared secret.
+ * The daily nudge to finish an application. App Hosting has no scheduler, so
+ * Cloud Scheduler (set up separately, docs/features/hackathons.md) posts here
+ * with the shared secret.
  *
  * Node runtime and never cached: every call has to do the work.
  *
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     const run = await sendApplicationReminders(db);
     return NextResponse.json(run, { headers: noStore });
   } catch (error) {
-    // Logged here, not returned: the workflow's log is public to collaborators.
+    // Logged here, not returned: the caller only needs to know it failed.
     console.error("[application-reminders] run failed:", error);
     return NextResponse.json(
       { error: "Run failed" },

@@ -60,13 +60,13 @@ It sends at most 200 a run, oldest first, with the Hacklytics look for editions 
 
 ### Reminder setup
 
-App Hosting has no scheduler, so a GitHub Actions workflow (`.github/workflows/application-reminders.yml`, daily at 14:00 UTC, or Run workflow by hand) posts to `POST /api/cron/application-reminders` with `Authorization: Bearer <CRON_SECRET>`. The route answers 404 when `CRON_SECRET` is unset, 401 on a wrong token, 429 past 10 calls an hour from one address, and 200 with `{ claimed, sent, failed }`. The same secret must exist in both places. Once:
+App Hosting has no scheduler, so a daily job posts to `POST /api/cron/application-reminders` with `Authorization: Bearer <CRON_SECRET>`. The job is Cloud Scheduler, set up separately; nothing in the repository triggers it yet. The route answers 404 when `CRON_SECRET` is unset (so it does nothing until then), 401 on a wrong token, 429 past 10 calls an hour from one address, and 200 with `{ claimed, sent, failed }`. The same secret has to be in App Hosting and in the scheduler job. Once:
 
 1. Generate a value: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
 2. `firebase apphosting:secrets:set CRON_SECRET` and paste it, then `firebase apphosting:secrets:grantaccess CRON_SECRET --backend query`.
 3. Uncomment the `CRON_SECRET` entry in `apphosting.yaml` and roll out. It stays commented until the secret exists, because a reference to a missing secret breaks the rollout.
-4. `gh secret set CRON_SECRET` and paste the same value, or add it under Settings, Secrets and variables, Actions.
-5. Run the workflow once by hand. A 200 means it works; the workflow prints which of 404 (no App Hosting secret) or 401 (the two differ) it got.
+4. Create a Cloud Scheduler job that sends `POST https://datasciencegt.org/api/cron/application-reminders` once a day (mid-morning Eastern is a good hour) with the header `Authorization: Bearer <the same value>`.
+5. Run the job once by hand. A 200 means it works; a 404 means the App Hosting secret is missing, and a 401 means the two values differ. Running it again is safe: every draft is mailed at most once.
 
 ## Edition lifecycle and visibility
 
