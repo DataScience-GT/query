@@ -118,6 +118,8 @@ describe("asJudge", () => {
     roomChallengeId: "c",
     judgeId: null,
     displayName: null,
+    admitted: true,
+    accountIds: [],
   };
 
   it("holds back a guest who has not given a name", () => {
@@ -239,6 +241,8 @@ describe("resolveDeskPrincipal", () => {
     roomChallengeId: "c1",
     judgeId: null,
     displayName: null,
+    userId: null,
+    admittedAt: null,
   };
 
   it("is nobody without a judge account or a guest cookie", async () => {
@@ -256,7 +260,42 @@ describe("resolveDeskPrincipal", () => {
         hackathonId: HACK,
         cookieHeader: "query_judging_guest=abc",
       }),
-    ).resolves.toEqual({ kind: "guest", ...session });
+    ).resolves.toEqual({
+      kind: "guest",
+      sessionId: "s1",
+      hackathonId: HACK,
+      linkId: "l1",
+      roomId: "r1",
+      roomChallengeId: "c1",
+      judgeId: null,
+      displayName: null,
+      admitted: false,
+      accountIds: [],
+    });
+  });
+
+  it("is admitted once an organizer has let them in", async () => {
+    const { db } = fakeDb({
+      select: [[{ ...session, admittedAt: new Date() }]],
+    });
+    await expect(
+      resolveDeskPrincipal(db, {
+        hackathonId: HACK,
+        cookieHeader: "query_judging_guest=abc",
+      }),
+    ).resolves.toMatchObject({ admitted: true });
+  });
+
+  it("knows the account that scanned the code, and the one signed in now", async () => {
+    const { db } = fakeDb({
+      select: [[], [], [{ ...session, userId: "scanner" }]],
+    });
+    const guest = await resolveDeskPrincipal(db, {
+      hackathonId: HACK,
+      userId: "now",
+      cookieHeader: "query_judging_guest=abc",
+    });
+    expect(guest).toMatchObject({ accountIds: ["scanner", "now"] });
   });
 
   it("does not let a guest cookie into another edition", async () => {
@@ -277,7 +316,11 @@ describe("resolveDeskPrincipal", () => {
         userId: "u9",
         cookieHeader: "query_judging_guest=abc",
       }),
-    ).resolves.toMatchObject({ kind: "guest", sessionId: "s1" });
+    ).resolves.toMatchObject({
+      kind: "guest",
+      sessionId: "s1",
+      accountIds: ["u9"],
+    });
   });
 });
 
@@ -313,8 +356,16 @@ describe("activateRoomLink", () => {
         row && !row.revokedAt && (row.expiresAt as Date) > new Date()
           ? [{ sessionId: "s1", hackathonId: row.hackathonId, linkId: "l1" }]
           : [];
+      // Then, inside the transaction: the link, locked and still open, and the
+      // session being carried over, still live.
       const { db, inserted, updated } = fakeDb({
-        select: [[{ hackathonId: HACK, roomId: "r2" }], live, row ? [row] : []],
+        select: [
+          [{ hackathonId: HACK, roomId: "r2" }],
+          live,
+          row ? [row] : [],
+          [{ id: "l2" }],
+          [{ id: "s1" }],
+        ],
       });
       const result = await activateRoomLink(db as unknown as DrizzleDB, {
         linkId: LINK,
@@ -328,6 +379,9 @@ describe("activateRoomLink", () => {
       sessionId: "s1",
       hackathonId: HACK,
       judgeId: "j1",
+      userId: null,
+      admittedAt: new Date(),
+      admittedById: "organizer",
       expiresAt: new Date(Date.now() + HOUR),
       revokedAt: null,
       ...overrides,
@@ -351,6 +405,20 @@ describe("activateRoomLink", () => {
       });
       // The session for the room they left ends.
       expect(updated).toEqual([{ expiresAt: expect.any(Date) }]);
+    });
+
+    it("leaves the room they were in, and takes no seat, when they were never let in", async () => {
+      const { result, inserted, updated } = await scan(
+        named({ admittedAt: null, admittedById: null }),
+      );
+      expect(result).toMatchObject({ kind: "guest", roomId: "r2" });
+      // The new session only: no presence row in the room they moved to.
+      expect(inserted).toHaveLength(1);
+      expect(inserted[0]).toMatchObject({ judgeId: "j1", admittedAt: null });
+      expect(updated).toEqual([
+        { expiresAt: expect.any(Date) },
+        { leftAt: expect.any(Date) },
+      ]);
     });
 
     it("recognises a session that lapsed a little while ago", async () => {

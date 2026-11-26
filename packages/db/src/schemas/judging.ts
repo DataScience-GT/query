@@ -465,6 +465,19 @@ export const judgingGuestSessions = pgTable(
     judgeId: uuid("judge_id").references(() => judgingJudges.id, {
       onDelete: "set null",
     }),
+    // The portal account signed in on the browser that scanned the code, if
+    // any. Anyone holding the link gets a session, so this is what lets the
+    // desk refuse a guest who is on the project's team.
+    userId: text("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    // Set when an organiser lets the guest in. Until then the guest has a
+    // name and a seat but cannot judge. A guest who scans another room's code
+    // keeps what they were given.
+    admittedAt: timestamp("admitted_at", { withTimezone: true }),
+    admittedById: text("admitted_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),

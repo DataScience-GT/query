@@ -39,7 +39,7 @@ The default for a new challenge is `scheduled`. The starter groups made by `init
 | --- | --- | --- |
 | Organiser | Staff admin, `isAdmin` procedures under `/admin/judging` | Everything in setup, the live board, announcements, results |
 | Member judge | Signed-in portal user with an approved, active `judge` row for the edition, or any active staff admin. A `judging_judge` row of kind `member` is made on first desk visit. | Joins any open room, grades untimed general challenges anywhere (a scheduled one needs a seat in a room serving it once a schedule is saved) and a sponsor challenge only from a seat in its room, keeps a private shortlist |
-| Guest judge | Scans a room's QR code with no judge account. A cookie session (8 hours) is created, and typing a name makes a `judging_judge` row of kind `guest`. | Locked to that room's challenge and what sits under it. Cannot move rooms. |
+| Guest judge | Scans a room's QR code with no judge account. A cookie session (8 hours) is created, and typing a name makes a `judging_judge` row of kind `guest`. An organizer must let them in before they can judge. | Locked to that room's challenge and what sits under it. Cannot move rooms. Cannot grade a project their signed-in account is on. |
 | Hacker | Checked-in portal user who holds a place on a project (claimed by email, claim link, or portal submission) | Looks up their itinerary, reads shared feedback and public results |
 
 Judge accounts, applications and approval live in the judge portal feature, see [judge-portal](../features/judge-portal.md). Hackathon records, registration and check-in are in [hackathons](../features/hackathons.md).

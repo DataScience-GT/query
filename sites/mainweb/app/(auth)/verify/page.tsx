@@ -13,6 +13,7 @@ import {
   textLink,
 } from "@query/ui/classes";
 import { safeCallback } from "@/lib/safe-callback";
+import { linkOnlySent, linkSentMessage } from "@/lib/email-sign-in";
 
 /**
  * The server sends one code per address per minute and silently drops a repeat
@@ -32,6 +33,8 @@ function VerifyContent() {
   const [sends, setSends] = useState(0);
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
+  // The resend went out as a sign-in link: codes for this address are paused.
+  const [linkSent, setLinkSent] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const email = searchParams?.get("email") || "";
@@ -171,6 +174,7 @@ function VerifyContent() {
     if (!email || cooldown > 0 || resending) return;
     setResending(true);
     setResent(false);
+    setLinkSent(false);
     setError("");
 
     try {
@@ -185,6 +189,10 @@ function VerifyContent() {
 
       if (!res?.ok || res.error) {
         setError("We couldn't send a new code. Try again.");
+      } else if (linkOnlySent(res)) {
+        setLinkSent(true);
+        setCooldown(RESEND_COOLDOWN_SECONDS);
+        setSends((n) => n + 1);
       } else {
         // A new code replaces the last one, so the boxes start over.
         setResent(true);
@@ -298,6 +306,14 @@ function VerifyContent() {
             className="mt-1 text-[15px] text-[var(--text-muted)]"
           >
             New code sent. The last one no longer works.
+          </p>
+        )}
+        {linkSent && (
+          <p
+            role="status"
+            className="mt-1 text-[15px] text-[var(--text-muted)]"
+          >
+            {linkSentMessage(email)}
           </p>
         )}
       </div>

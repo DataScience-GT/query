@@ -28,7 +28,7 @@ Run: `node sites/mainweb/.next/standalone/sites/mainweb/server.js`
 
 Secrets are GCP Secret Manager. Grant the App Hosting backend access once per secret, e.g. `firebase apphosting:secrets:grantaccess DATABASE_URL --backend query`.
 
-Env mapping (names only) is in `apphosting.yaml`: `DATABASE_URL`, `AUTH_SECRET` (also copied to `NEXTAUTH_SECRET`), Google/Discord OAuth, Stripe, SMTP, DDoS ceilings, `TRUSTED_PROXY_HOPS=1`.
+Env mapping (names only) is in `apphosting.yaml`: `DATABASE_URL`, `AUTH_SECRET` (also copied to `NEXTAUTH_SECRET`), Google/Discord OAuth, Stripe, SMTP, DDoS ceilings, `TRUSTED_PROXY_HOPS=2`.
 
 ## Hacklytics — Firebase Hosting
 

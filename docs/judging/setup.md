@@ -97,6 +97,8 @@ Scanning is handled by `activateRoomLink` (`services/judging/principal.ts`):
 
 - A signed-in member judge is seated in the room and sent to `/judge/<hackathonId>`.
 - Anyone else gets a guest session. The cookie `query_judging_guest` holds 32 random bytes; only the sha256 is stored in `judging_guest_session`. The session lasts 8 hours (`GUEST_SESSION_SECONDS`), and the cookie outlives it by 4 hours so a named guest scanning another room's code stays the same judge.
+- The code is on the room's door, so a guest session cannot judge until an organizer lets that guest in. The guest gives a name, then waits on `GuestWaiting`. The Rooms tab lists named guests waiting, with the account each scanned on if they were signed in, and `admitGuest` (the "Let in" button) sets `admitted_at` on the session. A guest who scans another room's code keeps their admission unless they sign in as a different account.
+- A signed-in scan stores the account on the session (`user_id`). A guest is refused any project that account is on, or the one signed in at the time of the request, by the same check member judges get.
 - A revoked link, an archived room or a bad signature goes to `/judge/guest/invalid-link`.
 
 ## Judges
@@ -104,7 +106,7 @@ Scanning is handled by `activateRoomLink` (`services/judging/principal.ts`):
 Judges are tracked per edition in `judging_judge` with a `kind`.
 
 - Member judges apply and are approved in the judge portal; the roster lives in the `judge` and `judge_assignment` tables (Drizzle exports `judges` and `judgeAssignments`; see [judge-portal](../features/judge-portal.md)). The desk accepts a user with an active `judge` row for the edition, or any active staff admin (`resolveMemberJudge`). The `judging_judge` row is created the first time they reach the desk. A judge's preferred track from their application is used to highlight matching rooms in the room list.
-- Guest judges need no setup beyond a room QR link.
+- Guest judges need no setup beyond a room QR link. An organizer lets each one in on the Rooms tab.
 
 Who grades which presentation is the scheduler's job: `assignJudges` and `setAssignedJudge` in `routers/judging/schedule.ts`. See [scheduler](./scheduler.md).
 

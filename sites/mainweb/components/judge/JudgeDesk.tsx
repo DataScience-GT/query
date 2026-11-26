@@ -22,6 +22,7 @@ import {
 } from "@query/ui/classes";
 import { DeskAnnouncements } from "./DeskAnnouncements";
 import { GuestNameGate } from "./GuestNameGate";
+import { GuestWaiting } from "./GuestWaiting";
 import { Itinerary } from "./Itinerary";
 import { DEFAULT_FILTERS, NO_SKIPS, ProjectQueue } from "./ProjectQueue";
 import type { QueueFilters, SkipState } from "./ProjectQueue";
@@ -213,6 +214,10 @@ export function JudgeDesk({
 
   if (context.data.needsName) {
     return <GuestNameGate hackathonId={hackathonId} context={context.data} />;
+  }
+
+  if (!context.data.admitted) {
+    return <GuestWaiting hackathonId={hackathonId} context={context.data} />;
   }
 
   return <Desk hackathonId={hackathonId} context={context.data} />;

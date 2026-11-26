@@ -18,6 +18,7 @@ vi.mock("@query/db/services/auth-throttle", () => ({
   recordFailure: async () => {
     state.failures += 1;
   },
+  clearFailures: async () => undefined,
 }));
 
 vi.mock("@query/db", () => {
@@ -154,6 +155,10 @@ describe("verify-email wrong guesses", () => {
     expect(res.status).toBe(429);
     expect(state.updates).toHaveLength(0);
     expect(state.deletes).toBe(0);
+    // Not a dead end: the owner is told how to get in while codes are paused.
+    expect(((await res.json()) as { error: string }).error).toMatch(
+      /sign-in link/i,
+    );
   });
 });
 

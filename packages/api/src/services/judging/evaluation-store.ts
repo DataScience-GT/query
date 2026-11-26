@@ -32,13 +32,15 @@ import {
   judgingSchedules,
   hackathonParticipants,
   hackathonProjects,
+  judges,
+  users,
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import type { JudgingDb, JudgingTx } from "./config";
 import { checkAnswers, snapshotOf } from "./evaluation";
 import type { CheckedAnswers } from "./evaluation";
 import { gradingLockKey, gradingRefusal, gradingStateOf } from "./grading-hold";
-import { GUEST_SESSION_ENDED } from "./principal";
+import { GUEST_NOT_ADMITTED, GUEST_SESSION_ENDED } from "./principal";
 import type { Judge } from "./principal";
 import {
   descendantsOf,
@@ -275,7 +277,10 @@ export async function assertJudgingOpen(tx: JudgingTx, hackathonId: string) {
 export async function assertGuestSeated(tx: JudgingTx, judge: Judge) {
   if (judge.kind !== "guest") return;
   const [session] = await tx
-    .select({ id: judgingGuestSessions.id })
+    .select({
+      id: judgingGuestSessions.id,
+      admittedAt: judgingGuestSessions.admittedAt,
+    })
     .from(judgingGuestSessions)
     .innerJoin(
       judgingRoomLinks,
@@ -296,6 +301,73 @@ export async function assertGuestSeated(tx: JudgingTx, judge: Judge) {
   if (!session) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: GUEST_SESSION_ENDED });
   }
+  // The desk refuses an unadmitted guest before it gets here. This is the
+  // same rule where the write happens, so a new write path cannot skip it.
+  if (!session.admittedAt) {
+    throw new TRPCError({ code: "FORBIDDEN", message: GUEST_NOT_ADMITTED });
+  }
+}
+
+/**
+ * Whether `userId` is on the team behind an entry: linked to one of its
+ * members, listed on it by email, or on the portal team that submitted it.
+ *
+ * Email counts because a Devpost entry keeps its members as a name and an
+ * address, unlinked until they claim it, and claiming needs a checked-in
+ * participant row that an approved judge cannot have. The address is compared
+ * with the one on the account and the one on the judge application, in lower
+ * case, since either may be what Devpost has.
+ */
+async function isOnEntryTeam(
+  db: JudgingDb,
+  input: {
+    hackathonId: string;
+    entry: { id: string; sourceProjectId: string | null };
+    userId: string;
+  },
+) {
+  const { entry, userId } = input;
+  const [onEntry] = await db
+    .select({ id: judgingEntryMembers.id })
+    .from(judgingEntryMembers)
+    .where(
+      and(
+        eq(judgingEntryMembers.entryId, entry.id),
+        or(
+          eq(judgingEntryMembers.userId, userId),
+          sql`lower(${judgingEntryMembers.email}) in (
+            select lower(${users.email}) from ${users} where ${users.id} = ${userId}
+            union
+            select lower(${judges.email}) from ${judges}
+              where ${judges.userId} = ${userId}
+                and ${judges.hackathonId} = ${input.hackathonId}
+                and ${judges.email} is not null
+          )`,
+        ),
+      ),
+    )
+    .limit(1);
+  if (onEntry) return true;
+  if (!entry.sourceProjectId) return false;
+
+  const [row] = await db
+    .select({ id: hackathonParticipants.id })
+    .from(hackathonProjects)
+    .innerJoin(
+      hackathonParticipants,
+      or(
+        eq(hackathonParticipants.teamId, hackathonProjects.teamId),
+        eq(hackathonParticipants.id, hackathonProjects.submittedById),
+      ),
+    )
+    .where(
+      and(
+        eq(hackathonProjects.id, entry.sourceProjectId),
+        eq(hackathonParticipants.userId, userId),
+      ),
+    )
+    .limit(1);
+  return !!row;
 }
 
 /** A live project entered in the challenge, or NOT_FOUND. */
@@ -346,45 +418,23 @@ export async function loadEntryInChallenge(
 
   // A judge who also competed must not score their own team. Registering is
   // refused for judges, but a judge can be added to a Devpost entry by email
-  // or invited onto a team; guests have no account, so nothing to compare.
-  if (input.judge?.kind === "member") {
-    const userId = input.judge.userId;
-    const [onEntry] = await db
-      .select({ id: judgingEntryMembers.id })
-      .from(judgingEntryMembers)
-      .where(
-        and(
-          eq(judgingEntryMembers.entryId, entry.id),
-          eq(judgingEntryMembers.userId, userId),
-        ),
-      )
-      .limit(1);
-    let onTeam = !!onEntry;
-    if (!onTeam && entry.sourceProjectId) {
-      const [row] = await db
-        .select({ id: hackathonParticipants.id })
-        .from(hackathonProjects)
-        .innerJoin(
-          hackathonParticipants,
-          or(
-            eq(hackathonParticipants.teamId, hackathonProjects.teamId),
-            eq(hackathonParticipants.id, hackathonProjects.submittedById),
-          ),
-        )
-        .where(
-          and(
-            eq(hackathonProjects.id, entry.sourceProjectId),
-            eq(hackathonParticipants.userId, userId),
-          ),
-        )
-        .limit(1);
-      onTeam = !!row;
-    }
-    if (onTeam) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "You are on this project's team, so you can't grade it.",
-      });
+  // or invited onto a team. A guest has no judge account of their own, so the
+  // accounts they were signed in as stand in for it: the one that scanned the
+  // room's code and the one signed in now.
+  if (input.judge) {
+    const accounts =
+      input.judge.kind === "member"
+        ? [input.judge.userId]
+        : input.judge.accountIds;
+    for (const userId of accounts) {
+      if (
+        await isOnEntryTeam(db, { hackathonId: input.hackathonId, entry, userId })
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are on this project's team, so you can't grade it.",
+        });
+      }
     }
   }
 

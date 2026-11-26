@@ -8,13 +8,25 @@ import { linkPaidPaymentByVerifiedEmail } from "@query/db/services/membership";
 import {
   CODES_PER_IDENTIFIER_PER_HOUR,
   GLOBAL_CODES_PER_HOUR,
+  DAILY_CODES_PER_DAY,
+  DAILY_THROTTLE_KEY,
   GLOBAL_THROTTLE_KEY,
+  NEW_ADDRESS_CODES_PER_HOUR,
+  NEW_ADDRESS_THROTTLE_KEY,
+  clearFailures,
+  hasAccount,
   isLockedOut,
+  requesterCodeCaps,
   takeCodeSlot,
 } from "@query/db/services/auth-throttle";
 import { sql } from "drizzle-orm";
 import { randomInt } from "node:crypto";
 import { discordProviders, hasVerifiedDiscordEmail } from "./discord";
+import {
+  currentClientIp,
+  markCodesBusy,
+  markLinkOnly,
+} from "./sign-in-attempt";
 
 function html(params: { code: string; host: string }) {
   const { code, host } = params;
@@ -77,6 +89,38 @@ function html(params: { code: string; host: string }) {
 `;
 }
 
+/** How long a sign-in link emailed to an address locked out of codes works. */
+const LINK_MAX_AGE_SECONDS = 60 * 60;
+
+const escapeHtml = (value: string) =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+
+/** The email for an address locked out of codes: Auth.js's link, no code. */
+function linkHtml(params: { url: string; host: string }) {
+  const url = escapeHtml(params.url);
+  return `
+<body style="background: #0f172a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; margin: 0;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: #0f172a; max-width: 600px; margin: auto; border-radius: 16px; overflow: hidden;">
+    <tr><td style="background: linear-gradient(90deg, #10b981 0%, #0ea5e9 100%); height: 4px;"></td></tr>
+    <tr>
+      <td style="padding: 40px 20px; text-align: center; background: rgba(255, 255, 255, 0.03);">
+        <h2 style="color: #f8fafc; font-size: 20px; font-weight: 400; margin: 0 0 16px;">Use this link to sign in</h2>
+        <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+          Codes for this address are paused for a while after too many wrong tries, so this email has a link, not a code. It works once and expires in an hour.
+        </p>
+        <a href="${url}" style="display: inline-block; background: #10b981; color: #052e16; font-weight: 600; text-decoration: none; padding: 12px 28px; border-radius: 8px;">Sign in to ${escapeHtml(params.host)}</a>
+        <p style="color: #64748b; font-size: 12px; margin-top: 32px;">If you didn't request this email, you can safely ignore it.</p>
+      </td>
+    </tr>
+  </table>
+</body>
+`;
+}
+
 class CodeCapReached extends Error {}
 
 export const authConfig: NextAuthConfig = {
@@ -115,13 +159,20 @@ export const authConfig: NextAuthConfig = {
         pool: true,
       },
       from: process.env.EMAIL_FROM || NOREPLY_EMAIL,
-      // 6-digit code flow — no magic link, user types the code.
-      sendVerificationRequest: async ({ identifier, provider }) => {
+      // Auth.js writes a link token for every request, but the email only
+      // carries the link while an address is locked out of codes. One hour.
+      maxAge: LINK_MAX_AGE_SECONDS,
+      // 6-digit code flow: the user types the code. While wrong guesses have
+      // locked the address out of codes, the email carries Auth.js's own link
+      // instead, so whoever owns the inbox can still get in.
+      sendVerificationRequest: async ({ identifier, provider, url }) => {
         // This 6-digit code is the sole factor for email sign-in, so it must come
         // from a CSPRNG — Math.random() is predictable from observed outputs.
         const code = randomInt(100000, 1000000).toString();
         const customToken = `custom:${code}`;
         const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        // Set below when the address is locked out of codes.
+        let linkOnly = false;
 
         // Outstanding codes for this identifier are dropped first: leaving them live
         // lets anyone spam sign-in requests to stack up valid codes, and every extra
@@ -144,29 +195,73 @@ export const authConfig: NextAuthConfig = {
             await tx.execute(
               sql`SELECT pg_advisory_xact_lock(hashtext(${identifier}))`,
             );
+            // Wrong guesses lock an address out of codes, and anyone can make
+            // them for any address, so a lock must not keep its owner out. A
+            // locked address is sent the link instead of a code.
+            const locked = await isLockedOut(tx, identifier);
             const recent = await tx.execute<Record<string, unknown>>(sql`
               SELECT 1 FROM "verificationToken"
               WHERE "identifier" = ${identifier} AND "token" LIKE 'custom:%'
                 AND "expires" > ${issuedWithinMinute}::timestamptz
               LIMIT 1
             `);
-            if (recent.rows.length > 0) return false;
+            if (!locked && recent.rows.length > 0) return null;
 
             // Database-backed caps (see auth-throttle). Beyond any of them
-            // nothing is sent and nothing says why, so the response cannot be
-            // used to probe the limits. Failed guesses carry across reissued
-            // codes, so a locked-out address gets no new code either. The
-            // per-address slot goes first and a refused cap throws so the
-            // transaction rolls back any slot already taken: otherwise an
-            // address past its own cap, posted repeatedly, would still spend
-            // the deployment-wide slots and shut sign-in off for everyone.
-            if (await isLockedOut(tx, identifier)) return false;
+            // nothing is sent, and the sign-in route is told, so the page says
+            // codes are busy instead of reporting one sent. They hold for a
+            // link as for a code: it is mail from the same shared account.
+            // Whoever is asking goes first (their network, the address's
+            // domain), then the address, then the deployment: one client
+            // reaches its own limit before it can spend what everyone else
+            // needs. A refused cap throws so the transaction rolls back any
+            // slot already taken: otherwise a request past one cap would
+            // still spend the others, and posted repeatedly would shut sign-in
+            // off for everyone.
+            // Whether the address has an account decides which caps it meets:
+            // a made-up address costs an attacker nothing, so it answers to
+            // its network's and its domain's caps and to a share of the
+            // deployment's hour, and a person who has signed in before does
+            // not, however full those are. (A venue shares one network.) They
+            // have a larger network bucket of their own, and keep their own
+            // address cap, the lock and the deployment's cap.
+            const existingUser = await hasAccount(tx, identifier);
+            for (const cap of requesterCodeCaps(identifier, currentClientIp(), {
+              existingUser,
+            })) {
+              if (!(await takeCodeSlot(tx, cap.key, cap.max)))
+                throw new CodeCapReached();
+            }
             if (
               !(await takeCodeSlot(tx, identifier, CODES_PER_IDENTIFIER_PER_HOUR))
             )
               throw new CodeCapReached();
+            if (
+              !existingUser &&
+              !(await takeCodeSlot(
+                tx,
+                NEW_ADDRESS_THROTTLE_KEY,
+                NEW_ADDRESS_CODES_PER_HOUR,
+              ))
+            )
+              throw new CodeCapReached();
             if (!(await takeCodeSlot(tx, GLOBAL_THROTTLE_KEY, GLOBAL_CODES_PER_HOUR)))
               throw new CodeCapReached();
+            // And the day's: the mailbox's quota is shared with every other
+            // mail the club sends, whoever is asking.
+            if (
+              !(await takeCodeSlot(
+                tx,
+                DAILY_THROTTLE_KEY,
+                DAILY_CODES_PER_DAY,
+                "utc-day",
+              ))
+            )
+              throw new CodeCapReached();
+
+            // No code for a locked address: nothing to guess at, and the
+            // code route is shut to it until the lock ends.
+            if (locked) return "link" as const;
 
             await tx.execute(sql`
               DELETE FROM "verificationToken"
@@ -176,12 +271,16 @@ export const authConfig: NextAuthConfig = {
               INSERT INTO "verificationToken" ("identifier", "token", "expires")
               VALUES (${identifier}, ${customToken}, ${expiresISO}::timestamptz)
             `);
-            return true;
+            return "code" as const;
           }).catch((error: unknown) => {
-            if (error instanceof CodeCapReached) return false;
+            if (error instanceof CodeCapReached) {
+              markCodesBusy();
+              return null;
+            }
             throw error;
           });
           if (!issued) return;
+          if (issued === "link") linkOnly = true;
         }
 
         const { createTransport } = await import("nodemailer");
@@ -194,9 +293,17 @@ export const authConfig: NextAuthConfig = {
           const result = await transport.sendMail({
             to: identifier,
             from: provider.from,
-            subject: `${code} — Your sign-in code for ${host}`,
-            text: `Your sign-in code is: ${code}\n\nEnter this code on ${host} to sign in. It expires in 10 minutes.\n\nIf you didn't request this, you can safely ignore this email.\n`,
-            html: html({ code, host }),
+            ...(linkOnly
+              ? {
+                  subject: `Your sign-in link for ${host}`,
+                  text: `Use this link to sign in to ${host}:\n\n${url}\n\nCodes for this address are paused for a while after too many wrong tries, so this email has a link, not a code. It works once and expires in an hour.\n\nIf you didn't request this, you can safely ignore this email.\n`,
+                  html: linkHtml({ url, host }),
+                }
+              : {
+                  subject: `${code} — Your sign-in code for ${host}`,
+                  text: `Your sign-in code is: ${code}\n\nEnter this code on ${host} to sign in. It expires in 10 minutes.\n\nIf you didn't request this, you can safely ignore this email.\n`,
+                  html: html({ code, host }),
+                }),
           });
 
           const failed = result.rejected
@@ -208,7 +315,8 @@ export const authConfig: NextAuthConfig = {
         } catch {
           // The row above now looks freshly issued; left in place it would make
           // the retry inside the next minute send nothing and report success.
-          if (db) {
+          // (A link has no row of its own to take back.)
+          if (db && !linkOnly) {
             await db
               .execute(
                 sql`
@@ -222,6 +330,8 @@ export const authConfig: NextAuthConfig = {
             "Failed to send verification email. Please try again later.",
           );
         }
+        // Only once it is sent: a failed send is an error, not a link.
+        if (linkOnly) markLinkOnly();
       },
     }),
   ],
@@ -273,6 +383,14 @@ export const authConfig: NextAuthConfig = {
     // granted must never block the sign-in.
     async signIn({ user }) {
       if (!db || !user?.id || !user.email) return;
+      // Someone who got in this way owns the address, so guesses at its code
+      // by anyone else stop counting against them. Same spelling the code
+      // route keys its rows on.
+      try {
+        await clearFailures(db, user.email.normalize("NFKC").toLowerCase().trim());
+      } catch {
+        // Nothing here may break sign-in either.
+      }
       try {
         await linkPaidPaymentByVerifiedEmail(db, {
           userId: user.id,

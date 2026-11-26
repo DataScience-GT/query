@@ -45,6 +45,7 @@ import { confirmDialog } from "@query/ui/ConfirmDialog";
 type RoomList = RouterOutputs["judging"]["admin"]["listRooms"];
 type Room = RoomList["rooms"][number];
 type Building = RoomList["buildings"][number];
+type WaitingGuest = RoomList["guestsWaiting"][number];
 type Kind = Room["kind"];
 
 /** Judges sit in a room but at a table. */
@@ -165,6 +166,10 @@ export function RoomsSection({
       </div>
 
       {added && <NoticeLine>{added}</NoticeLine>}
+
+      {rooms.data && rooms.data.guestsWaiting.length > 0 && (
+        <WaitingGuests guests={rooms.data.guestsWaiting} />
+      )}
 
       {creating === "room" && (
         <section className={sectionRule}>
@@ -320,6 +325,71 @@ export function RoomsSection({
         </section>
       )}
     </div>
+  );
+}
+
+/**
+ * Guests who scanned a room's code and gave a name, waiting to be let in. The
+ * code is on the door, so anyone can get this far; letting a guest in is how an
+ * organizer says this person is someone they expect to judge.
+ */
+function WaitingGuests({ guests }: { guests: WaitingGuest[] }) {
+  const readOnly = useReadOnly();
+  const refresh = useRefreshJudging();
+  const [error, setError] = useState<string | null>(null);
+  const admit = trpc.judging.admin.admitGuest.useMutation({
+    onSuccess: () => {
+      setError(null);
+      void refresh();
+    },
+    onError: (e) => setError(trpcErrorMessage(e, "Could not let the guest in.")),
+  });
+
+  return (
+    <section className={sectionRule} aria-labelledby="waiting-guests">
+      <h3 id="waiting-guests" className={label}>
+        {plural(guests.length, "guest")} waiting to be let in
+      </h3>
+      <p className={`mt-1 ${meta}`}>
+        Anyone with a room&apos;s QR code can scan it, so a guest cannot judge
+        until you let them in. Let in only people you expect. A guest who was
+        signed in shows the account they used.
+      </p>
+      {error && (
+        <div className="mt-3">
+          <ErrorLine>{error}</ErrorLine>
+        </div>
+      )}
+      <ul className="mt-3 border-t border-[var(--border-subtle)]">
+        {guests.map((guest) => (
+          <li
+            key={guest.sessionId}
+            className="flex flex-col gap-2 border-b border-[var(--border-subtle)] py-3 sm:flex-row sm:items-center"
+          >
+            <div className="min-w-0 flex-1">
+              <p className={`${itemTitle} break-words`}>{guest.name}</p>
+              <p className={`mt-0.5 break-words ${data}`}>
+                {guest.roomName}
+                {SEP}
+                {shortTime(guest.since)}
+                {guest.account ? `${SEP}${guest.account}` : `${SEP}Not signed in`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => admit.mutate({ sessionId: guest.sessionId })}
+              disabled={readOnly || admit.isPending}
+              title={readOnly ? READ_ONLY_TITLE : undefined}
+              className={`${btnInk} shrink-0`}
+            >
+              {admit.isPending && admit.variables?.sessionId === guest.sessionId
+                ? "Letting in…"
+                : `Let ${guest.name} in`}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

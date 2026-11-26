@@ -101,4 +101,11 @@ export const authCodeThrottle = pgTable("auth_code_throttle", {
     .notNull()
     .defaultNow(),
   failures: integer("failures").notNull().default(0),
+  // How many times wrong guesses have locked this address since it last signed
+  // in, and when the current lock ends. The lock grows with each one.
+  lockouts: integer("lockouts").notNull().default(0),
+  lockedUntil: timestamp("locked_until", {
+    mode: "date",
+    withTimezone: true,
+  }),
 });
