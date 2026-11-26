@@ -6,6 +6,7 @@ import {
   ORG_NAME_SPOKEN,
   ORG_SHORT,
   SITE_ORIGIN,
+  VENUE_TZ,
 } from "@query/core";
 
 // Owns the pooled SMTP connection for the process. `pool: true` only does
@@ -539,6 +540,49 @@ export async function sendJudgingClaimEmail({
     ],
     ctaLabel: "Claim your place",
     ctaUrl: claimUrl,
+  });
+}
+
+// Sent once, three days after somebody last touched an application they never
+// submitted. The only message here that nobody asked for, so it is short, says
+// plainly that nothing is lost, and tells them they can ignore it.
+export async function sendApplicationReminderEmail({
+  email,
+  hackathonName,
+  hackathonUrl,
+  deadline,
+}: {
+  email: string;
+  hackathonName: string;
+  /** The edition's page in the portal, where the form reopens on their draft. */
+  hackathonUrl: string;
+  /** When applications close, if the edition has a deadline. */
+  deadline?: Date | null;
+}) {
+  const hacklytics = /^hacklytics/i.test(hackathonName);
+  await sendTransactionalEmail({
+    email,
+    subject: hacklytics
+      ? "Finish your Hacklytics application"
+      : `Finish your ${hackathonName} application`,
+    heading: "Finish your application",
+    paragraphs: [
+      `You started your ${hackathonName} application but haven't submitted it yet. Your answers are saved, so you can pick up where you left off.`,
+      ...(deadline
+        ? [
+            `Applications close ${new Intl.DateTimeFormat("en-US", {
+              timeZone: VENUE_TZ,
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            }).format(deadline)}.`,
+          ]
+        : []),
+      "If you've changed your mind, ignore this email. We won't send another reminder.",
+    ],
+    ctaLabel: "Finish your application",
+    ctaUrl: hackathonUrl,
+    theme: hacklytics ? "hacklytics" : undefined,
   });
 }
 

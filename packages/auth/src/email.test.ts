@@ -12,7 +12,7 @@ vi.mock("nodemailer", () => ({
   },
 }));
 
-const { sendAcceptanceEmail } = await import("./email");
+const { sendAcceptanceEmail, sendApplicationReminderEmail } = await import("./email");
 
 describe("sendAcceptanceEmail", () => {
   beforeEach(() => {
@@ -57,5 +57,58 @@ describe("sendAcceptanceEmail", () => {
 
     expect(sent[0]?.html).toContain("Hacklytics &lt;b&gt;2027&lt;/b&gt;");
     expect(sent[0]?.html).not.toContain("<b>2027</b>");
+  });
+});
+
+describe("sendApplicationReminderEmail", () => {
+  beforeEach(() => {
+    sent.length = 0;
+  });
+
+  const hackathonUrl = "https://datasciencegt.org/hackathons/abc";
+
+  it("asks a Hacklytics applicant to finish, with the deadline and a way out", async () => {
+    await sendApplicationReminderEmail({
+      email: "ada@example.com",
+      hackathonName: "Hacklytics: Digital Bloom",
+      hackathonUrl,
+      // Late evening in Atlanta is already the next day in UTC.
+      deadline: new Date("2027-01-16T03:30:00Z"),
+    });
+
+    const [message] = sent;
+    expect(message?.subject).toBe("Finish your Hacklytics application");
+    expect(message?.text).toContain(
+      "You started your Hacklytics: Digital Bloom application but haven't submitted it yet.",
+    );
+    expect(message?.text).toContain("Your answers are saved");
+    expect(message?.text).toContain("Applications close January 15, 2027.");
+    expect(message?.text).toContain("ignore this email");
+    expect(message?.text).toContain(`Finish your application: ${hackathonUrl}`);
+    expect(message?.html).toContain(`href="${hackathonUrl}"`);
+    expect(message?.html).toContain("hacklytics-wordmark.png");
+  });
+
+  it("leaves the deadline out when the edition has none", async () => {
+    await sendApplicationReminderEmail({
+      email: "ada@example.com",
+      hackathonName: "Hacklytics: Digital Bloom",
+      hackathonUrl,
+      deadline: null,
+    });
+
+    expect(sent[0]?.text).not.toContain("Applications close");
+  });
+
+  it("names another hackathon and keeps the DS@GT look", async () => {
+    await sendApplicationReminderEmail({
+      email: "ada@example.com",
+      hackathonName: "Spring Build Jam",
+      hackathonUrl,
+    });
+
+    expect(sent[0]?.subject).toBe("Finish your Spring Build Jam application");
+    expect(sent[0]?.html).toContain("DataScience<span");
+    expect(sent[0]?.html).not.toContain("hacklytics-wordmark.png");
   });
 });
