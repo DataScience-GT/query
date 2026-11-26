@@ -142,6 +142,24 @@ describe.skipIf(!URL)("guest judges and organizer admission, against a real data
       guestToken: over.guestToken ?? null,
     });
 
+  /**
+   * A database whose next transaction starts after `before` has run, as if
+   * another request had committed between this one's reads and its writes.
+   */
+  const interleaved = (before: () => Promise<void>) =>
+    new Proxy(S.db!, {
+      get(target, prop) {
+        if (prop === "transaction") {
+          return async (...args: unknown[]) => {
+            await before();
+            return Reflect.apply(target.transaction, target, args);
+          };
+        }
+        const value = Reflect.get(target, prop, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+
   const ctx = (opts: { userId?: string; token?: string | null } = {}) => ({
     db: S.db!,
     session: opts.userId ? { user: { id: opts.userId, name: opts.userId } } : null,
@@ -467,6 +485,83 @@ describe.skipIf(!URL)("guest judges and organizer admission, against a real data
       if (next.kind !== "guest" || !next.token) throw new Error("no session");
 
       expect(await seatsOf(next.token)).toEqual([]);
+    });
+  });
+
+  describe("when an organizer revokes while a guest moves rooms", () => {
+    const sessionsOn = async (linkId: string) =>
+      S.db!
+        .select({ id: S.judgingGuestSessions.id })
+        .from(S.judgingGuestSessions)
+        .where(ops.eq(S.judgingGuestSessions.linkId, linkId));
+
+    it("starts no session in a room whose code was revoked after the scan was checked", async () => {
+      const [room] = await S.db!
+        .insert(S.judgingRooms)
+        .values({ hackathonId, challengeId, name: `Revoked ${suffix}` })
+        .returning({ id: S.judgingRooms.id });
+      const [link] = await S.db!
+        .insert(S.judgingRoomLinks)
+        .values({ hackathonId, roomId: room!.id })
+        .returning({ id: S.judgingRoomLinks.id });
+      const first = await arrive(linkA, "Rio");
+      await admin(id("organizer")).admitGuest({ sessionId: (await sessionOf(first)).id });
+
+      const revokedFirst = interleaved(async () => {
+        await S.db!
+          .update(S.judgingRoomLinks)
+          .set({ revokedAt: new Date() })
+          .where(ops.eq(S.judgingRoomLinks.id, link!.id));
+      });
+      const result = await principal.activateRoomLink(revokedFirst, {
+        linkId: link!.id,
+        sig: links.signRoomLink(link!.id),
+        guestToken: first,
+      });
+
+      expect(result).toEqual({ kind: "invalid" });
+      expect(await sessionsOn(link!.id)).toEqual([]);
+      const seats = await S.db!
+        .select({ id: S.judgingPresence.id })
+        .from(S.judgingPresence)
+        .where(ops.eq(S.judgingPresence.roomId, room!.id));
+      expect(seats).toEqual([]);
+    });
+
+    it("does not carry admission from a session that was revoked after it was read", async () => {
+      const first = await arrive(linkA, "Rex");
+      const firstSession = await sessionOf(first);
+      await admin(id("organizer")).admitGuest({ sessionId: firstSession.id });
+
+      const revokedFirst = interleaved(async () => {
+        await S.db!
+          .update(S.judgingGuestSessions)
+          .set({ revokedAt: new Date() })
+          .where(ops.eq(S.judgingGuestSessions.id, firstSession.id));
+      });
+      const next = await principal.activateRoomLink(revokedFirst, {
+        linkId: linkB,
+        sig: links.signRoomLink(linkB),
+        guestToken: first,
+      });
+      if (next.kind !== "guest" || !next.token) throw new Error("no session");
+
+      // A stranger to the organizers again: no judge, no admission, no seat.
+      expect(await sessionOf(next.token)).toMatchObject({
+        roomId: roomB,
+        judgeId: null,
+        admittedAt: null,
+      });
+      const seats = await S.db!
+        .select({ id: S.judgingPresence.id })
+        .from(S.judgingPresence)
+        .where(
+          ops.and(
+            ops.eq(S.judgingPresence.judgeId, firstSession.judgeId!),
+            ops.eq(S.judgingPresence.roomId, roomB),
+          ),
+        );
+      expect(seats).toEqual([]);
     });
   });
 

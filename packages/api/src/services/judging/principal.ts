@@ -584,29 +584,66 @@ export async function activateRoomLink(
     ? await carriedGuest(db, input.guestToken, link.hackathonId, now)
     : null;
 
-  const sameAccount =
-    !!carried && (!input.userId || !carried.userId || input.userId === carried.userId);
-
   const token = newGuestToken();
   const expiresAt = new Date(now.getTime() + GUEST_SESSION_SECONDS * 1000);
-  await db.transaction(async (tx) => {
+  const started = await db.transaction(async (tx) => {
+    // Everything above was read before this transaction, and an organizer can
+    // revoke in between. Lock the link and look again, so a revoke that commits
+    // first ends this scan, and one that comes after waits for the session to
+    // exist and then signs it out with the rest of the room's.
+    const [stillOpen] = await tx
+      .select({ id: judgingRoomLinks.id })
+      .from(judgingRoomLinks)
+      .innerJoin(judgingRooms, eq(judgingRooms.id, judgingRoomLinks.roomId))
+      .where(
+        and(
+          eq(judgingRoomLinks.id, input.linkId),
+          isNull(judgingRoomLinks.revokedAt),
+          isNull(judgingRooms.archivedAt),
+        ),
+      )
+      .for("update", { of: judgingRoomLinks })
+      .limit(1);
+    if (!stillOpen) return false;
+
+    // The session being carried over may have been revoked the same way. If it
+    // was, the guest starts again as someone nobody has let in.
+    let moving = carried;
+    if (carried) {
+      const [live] = await tx
+        .select({ id: judgingGuestSessions.id })
+        .from(judgingGuestSessions)
+        .where(
+          and(
+            eq(judgingGuestSessions.id, carried.sessionId),
+            isNull(judgingGuestSessions.revokedAt),
+          ),
+        )
+        .for("update")
+        .limit(1);
+      if (!live) moving = null;
+    }
+    const sameAccount =
+      !!moving &&
+      (!input.userId || !moving.userId || input.userId === moving.userId);
+
     await tx.insert(judgingGuestSessions).values({
       tokenHash: hashGuestToken(token),
       linkId: input.linkId,
       roomId: link.roomId,
       hackathonId: link.hackathonId,
-      judgeId: carried?.judgeId ?? null,
-      completedAt: carried ? now : null,
+      judgeId: moving?.judgeId ?? null,
+      completedAt: moving ? now : null,
       // A guest who moves to another room stays who they were: scanning the
       // second time signed out must not shed the account they had. Signing in
       // as someone else is a different person to an organizer, so the
       // admission waits for them again.
-      userId: input.userId ?? carried?.userId ?? null,
-      admittedAt: sameAccount ? carried!.admittedAt : null,
-      admittedById: sameAccount ? carried!.admittedById : null,
+      userId: input.userId ?? moving?.userId ?? null,
+      admittedAt: sameAccount ? moving!.admittedAt : null,
+      admittedById: sameAccount ? moving!.admittedById : null,
       expiresAt,
     });
-    if (carried) {
+    if (moving) {
       // The browser moves to the new session. The old one ends now rather
       // than counting as a guest in the room they left until it lapses.
       await tx
@@ -614,15 +651,15 @@ export async function activateRoomLink(
         .set({ expiresAt: now })
         .where(
           and(
-            eq(judgingGuestSessions.id, carried.sessionId),
+            eq(judgingGuestSessions.id, moving.sessionId),
             gt(judgingGuestSessions.expiresAt, now),
           ),
         );
-      if (sameAccount && carried.admittedAt) {
+      if (sameAccount && moving.admittedAt) {
         await seatJudge(
           tx,
           {
-            judgeId: carried.judgeId,
+            judgeId: moving.judgeId,
             roomId: link.roomId,
             hackathonId: link.hackathonId,
           },
@@ -636,13 +673,15 @@ export async function activateRoomLink(
           .set({ leftAt: now })
           .where(
             and(
-              eq(judgingPresence.judgeId, carried.judgeId),
+              eq(judgingPresence.judgeId, moving.judgeId),
               isNull(judgingPresence.leftAt),
             ),
           );
       }
     }
+    return true;
   });
+  if (!started) return { kind: "invalid" };
 
   return {
     kind: "guest",

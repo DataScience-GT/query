@@ -356,8 +356,16 @@ describe("activateRoomLink", () => {
         row && !row.revokedAt && (row.expiresAt as Date) > new Date()
           ? [{ sessionId: "s1", hackathonId: row.hackathonId, linkId: "l1" }]
           : [];
+      // Then, inside the transaction: the link, locked and still open, and the
+      // session being carried over, still live.
       const { db, inserted, updated } = fakeDb({
-        select: [[{ hackathonId: HACK, roomId: "r2" }], live, row ? [row] : []],
+        select: [
+          [{ hackathonId: HACK, roomId: "r2" }],
+          live,
+          row ? [row] : [],
+          [{ id: "l2" }],
+          [{ id: "s1" }],
+        ],
       });
       const result = await activateRoomLink(db as unknown as DrizzleDB, {
         linkId: LINK,
