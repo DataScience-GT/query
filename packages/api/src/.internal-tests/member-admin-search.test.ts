@@ -56,12 +56,12 @@ beforeEach(() => {
   });
 });
 
-const search = (query: string) =>
+const search = (query: string, userId = "search_user") =>
   appRouter
     .createCaller({
       db,
-      session: { user: { id: "search_user" } },
-      userId: "search_user",
+      session: { user: { id: userId } },
+      userId,
       cache,
       clientIp: "127.0.0.1",
       req: { headers: { get: () => null } },
@@ -93,5 +93,23 @@ describe("member.adminSearch", () => {
   it("escapes a backslash too", async () => {
     await search("a\\b");
     expect(stringsIn(wheres[0])).toContain("%a\\\\b%");
+  });
+
+  // Searching by address confirms an account exists, which admin.findUserByEmail
+  // already refuses a read-only bug tester. This search is a superset of it.
+  it("is closed to a bug tester, as findUserByEmail is", async () => {
+    // Its own user: the admin row is cached per user for a minute.
+    mockFindFirst.mockResolvedValue({
+      id: "ad_2",
+      userId: "tester_user",
+      role: "bug_tester",
+      isActive: true,
+      expiresAt: null,
+    });
+
+    await expect(search("someone@gatech.edu", "tester_user")).rejects.toThrow(
+      /Admin access required/,
+    );
+    expect(wheres).toHaveLength(0);
   });
 });
