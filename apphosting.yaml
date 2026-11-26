@@ -167,3 +167,18 @@ env:
     secret: METRICS_TOKEN
     availability:
       - RUNTIME
+  # Authorises the daily application-reminder run: a GitHub Actions workflow
+  # posts to /api/cron/application-reminders with this value
+  # (docs/features/hackathons.md, "Reminder setup"). Without it the route
+  # answers 404 and no reminder is sent. RUNTIME only: nothing in the build
+  # reads it. Left commented out because a reference to a secret that does not
+  # exist breaks the rollout. Create it first, then uncomment:
+  #   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+  #   firebase apphosting:secrets:set CRON_SECRET
+  #   firebase apphosting:secrets:grantaccess CRON_SECRET --backend query
+  # and save the same value as the CRON_SECRET repository secret in GitHub:
+  #   gh secret set CRON_SECRET
+  # - variable: CRON_SECRET
+  #   secret: CRON_SECRET
+  #   availability:
+  #     - RUNTIME
