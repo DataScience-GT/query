@@ -20,7 +20,7 @@ Member-facing overview — what it is, what members use, current status, and how
 | `sites/hacklytics2027` | `hacklytics2027` | Hacklytics 2027 marketing site, Astro static build (Firebase Hosting) |
 | `sites/hacklytics2026` | `hacklytics2026` | Archived Hacklytics 2026 site, Astro static output (kept in the repo; CI does not build or deploy it) |
 | `packages/api` | `@query/api` | tRPC routers, middleware, pricing |
-| `packages/auth` | `@query/auth` | NextAuth (Google, GitHub, email codes) |
+| `packages/auth` | `@query/auth` | NextAuth (Google, Discord, email codes) |
 | `packages/core` | `@query/core` | Org, site and time constants shared by every workspace |
 | `packages/db` | `@query/db` | Drizzle schema, client, membership rules |
 | `packages/ui` | `@query/ui` | Design system: tokens, classes, primitives |
@@ -30,7 +30,7 @@ Member-facing overview — what it is, what members use, current status, and how
 
 ### About the site
 
-Data Science at Georgia Tech runs on one codebase. The public club site (home, team, events, projects, history, bootcamp) needs no login. Behind it sits the member portal, where people sign in with Google, GitHub or an emailed code, pay dues through Stripe, check in at events, follow bootcamp, apply to club projects (initiatives) and subteams, and upload a resume. Staff use the admin tools under `/admin`. Hackathons (interest, registration, teams, submissions, check-in, point store, room-based judging) live in the same portal, and the Hacklytics 2027 marketing site is a separate static site that sends visitors to the portal to register. Details: [`docs/club-project.md`](./docs/club-project.md).
+Data Science at Georgia Tech runs on one codebase. The public club site (home, team, events, projects, history, bootcamp) needs no login. Behind it sits the member portal, where people sign in with Google, Discord or an emailed code, pay dues through Stripe, check in at events, follow bootcamp, apply to club projects (initiatives) and subteams, and upload a resume. Staff use the admin tools under `/admin`. Hackathons (interest, registration, teams, submissions, check-in, point store, room-based judging) live in the same portal, and the Hacklytics 2027 marketing site is a separate static site that sends visitors to the portal to register. Details: [`docs/club-project.md`](./docs/club-project.md).
 
 ### System overview
 
@@ -55,7 +55,7 @@ flowchart LR
   stripe["Stripe"]
   smtp["SMTP email provider"]
   gcs["Cloud Storage buckets: resumes, bootcamp materials"]
-  oauth["Google and GitHub OAuth"]
+  oauth["Google and Discord OAuth"]
   devpost["Devpost export (judging import)"]
 
   visitor --> pub
@@ -98,7 +98,7 @@ mainweb is built by Firebase App Hosting from the repo itself; CI only verifies 
 ```mermaid
 flowchart TD
   v["Visitor browses the public site"]
-  s["Signs in with Google, GitHub or an emailed code"]
+  s["Signs in with Google, Discord or an emailed code"]
   p["Member portal"]
   m["Optional: pay dues through Stripe and become a member"]
   e["Events check-in"]

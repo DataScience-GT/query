@@ -26,7 +26,7 @@ Locally, the same app is [http://localhost:3001](http://localhost:3001). See [Ge
 
 ## What members use it for
 
-After sign-in (Google, GitHub if configured, or email code):
+After sign-in (Google, Discord if configured, or email code):
 
 | Need                                     | Where                                                                                                                   |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |

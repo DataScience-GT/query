@@ -1,5 +1,6 @@
 export { auth, signIn, signOut, handlers } from "./auth";
 export { authConfig } from "./config";
 export { adapter } from "./adapter";
+export { discordLoginEnabled } from "./discord";
 export { getSession, requireAuth, getCurrentUserId } from "./utils";
 export { sendAcceptanceEmail } from "./email";

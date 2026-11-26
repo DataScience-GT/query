@@ -135,7 +135,7 @@ export function InterestForm({
       <div className="space-y-4">
         <h2 className={sectionTitle}>Get told the moment it opens</h2>
         <p className={`${body} max-w-2xl`}>
-          Sign in so we have a verified address to reach you at. Google, GitHub,
+          Sign in so we have a verified address to reach you at. Google, Discord,
           or a code sent to any email — no account needed beforehand, and it
           works wherever you are in the world.
         </p>

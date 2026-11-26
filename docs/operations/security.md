@@ -5,9 +5,9 @@ This page is the map of controls already in the product. It is not a pentest rep
 ## Authentication and sessions
 
 - Database sessions when Postgres is available; 30-day max age
-- Google and GitHub use PKCE + state. Do not set `checks: []`
+- Google and Discord use PKCE + state. Do not set `checks: []`
 - Email codes: CSPRNG 6-digit, 10-minute TTL, previous codes for that identifier deleted
-- `allowDangerousEmailAccountLinking` is on so Google/GitHub can attach to an existing verified email. That is why CSRF on the OAuth callback must stay on
+- `allowDangerousEmailAccountLinking` is on so Google/Discord can attach to an existing verified email. That is why CSRF on the OAuth callback must stay on, and why Discord sign-in is refused unless Discord marks the email `verified`
 - Redirect callback only allows same-origin URLs
 
 ## Authorization

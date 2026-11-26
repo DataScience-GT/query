@@ -37,7 +37,7 @@ export const STACK: Row[] = [
   },
   {
     term: "NextAuth v5",
-    body: "Google, GitHub and a 6-digit code sent by email. Database sessions.",
+    body: "Google, Discord and a 6-digit code sent by email. Database sessions.",
   },
   {
     term: "Stripe",
@@ -262,7 +262,7 @@ export const PUBLIC_ROUTES: Row[] = [
 export const PORTAL_ROUTES: Row[] = [
   {
     term: "/login, /verify",
-    body: "Sign in with Google, GitHub or an emailed code.",
+    body: "Sign in with Google, Discord or an emailed code.",
   },
   { term: "/dashboard, /settings", body: "Member home and profile." },
   { term: "/club", body: "Membership, pass and club events." },
