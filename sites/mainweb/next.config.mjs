@@ -237,6 +237,13 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // GitHub sign-in is gone. A stale button, bookmark or in-flight callback
+      // would otherwise end on "Sign-in is unavailable"; /login says what to do.
+      {
+        source: "/api/auth/:action(signin|callback)/github",
+        destination: "/login",
+        permanent: false,
+      },
       // The nav button says "Portal", so people type /portal. Not permanent:
       // a cached 308 would outlive any later /portal page.
       { source: "/portal", destination: "/dashboard", permanent: false },

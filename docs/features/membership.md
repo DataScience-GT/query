@@ -2,7 +2,7 @@
 
 Every person who signs in gets an account. Members are the subset who paid dues and still have time left on them. Signed-in users manage their profile in Settings. Staff grant or revoke memberships by hand when someone pays another way. The portal reads one cached payload, the portal context, to decide what each person sees.
 
-Sign-in itself (Google, GitHub, email code, sessions) is in [`@query/auth`](../packages/auth.md). Paying for dues is in [Payments](./payments.md). Tables are in [`@query/db`](../packages/db.md).
+Sign-in itself (Google, Discord, email code, sessions) is in [`@query/auth`](../packages/auth.md). Paying for dues is in [Payments](./payments.md). Tables are in [`@query/db`](../packages/db.md).
 
 ## Three separate things
 
@@ -22,7 +22,7 @@ Hackathon participation does not need membership. See [Hackathons](./hackathons.
 
 ```mermaid
 flowchart TD
-  A["Sign in: Google, GitHub or email code"] --> B["member.register writes a profile<br/>isActive false, no end date"]
+  A["Sign in: Google, Discord or email code"] --> B["member.register writes a profile<br/>isActive false, no end date"]
   B --> C["stripe.createPaymentIntent<br/>price decided on the server"]
   C --> D["Stripe Payment Element in the browser"]
   D --> E["stripe.confirmMembershipAfterPayment"]
@@ -112,7 +112,7 @@ Text limits: name 100, bio 500, website 500, location 200.
 
 | Route | What |
 | --- | --- |
-| `/login` | Sign-in. Hides the GitHub button when that provider is not registered |
+| `/login` | Sign-in. One page for everyone, whatever `callbackUrl` says. Hides the Discord button when that provider is not registered |
 | `/dashboard` | Home. Calls `stripe.attemptAutoLink`. Non-members and lapsed members see the pay or link block (`LinkStripeAccount`); members see it again when the term ends soon |
 | `/settings` | Tabs: profile (name, photo, bio, resume), membership, appearance, account. `MembershipTab` reads `member.me`, `checkStatus`, `history` and calls `member.register` and `member.update` |
 | `/club` | Member hub, redirects non-members to `/dashboard`: pass card (`MemberPassCard`), event check-in, stats |

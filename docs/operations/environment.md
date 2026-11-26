@@ -20,8 +20,8 @@ Without `DATABASE_URL`, `db` is null, sessions fall back to JWT, and tRPC proced
 | --- | --- |
 | `GOOGLE_CLIENT_ID` | Google (App Hosting secret `AUTH_GOOGLE_ID`) |
 | `GOOGLE_CLIENT_SECRET` | Google (`AUTH_GOOGLE_SECRET`) |
-| `GITHUB_CLIENT_ID` | GitHub (`AUTH_GITHUB_ID`) — optional; both GitHub vars required to register the provider |
-| `GITHUB_CLIENT_SECRET` | GitHub (`AUTH_GITHUB_SECRET`) |
+| `DISCORD_CLIENT_ID` | Discord sign-in, and the [Discord link](../features/discord.md). Optional for sign-in; both Discord vars are required to register the provider. A plain value in `apphosting.yaml` |
+| `DISCORD_CLIENT_SECRET` | Discord (secret `discord-client-secret`) |
 | `GITHUB_TOKEN` | Optional. Lets the judging [repo check](../judging/repo-check.md) read repos at 5000 requests an hour instead of 60. Needs no scopes for public repos. |
 
 ## Email

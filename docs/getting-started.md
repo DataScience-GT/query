@@ -33,7 +33,7 @@ pnpm dev
 
 `local:up` copies `.env.example` to `.env` and `sites/mainweb/.env.local` (never overwriting), starts `docker/compose.local.yml` (Postgres on **5434** and [Mailpit](https://mailpit.axllent.org)), pushes the schema and seeds fake data. Nothing in it reaches an outside service. `pnpm local:down` stops the containers and keeps the data; `pnpm local:reset` also deletes it.
 
-**Signing in.** Google and GitHub need real OAuth apps, so use the email code instead. Enter `admin@example.test` (super admin) on `/login`, open Mailpit at [http://localhost:8025](http://localhost:8025) and type the 6-digit code from the message. Any address works; it is delivered to Mailpit and nowhere else. Other seeded accounts, all at `example.test`: `member-new`, `member-cont`, `member-lapsed`, `visitor-1`, `visitor-2`, `hacker-1` to `hacker-8` and `judge`.
+**Signing in.** Google and Discord need real OAuth apps, so use the email code instead. Enter `admin@example.test` (super admin) on `/login`, open Mailpit at [http://localhost:8025](http://localhost:8025) and type the 6-digit code from the message. Any address works; it is delivered to Mailpit and nowhere else. Other seeded accounts, all at `example.test`: `member-new`, `member-cont`, `member-lapsed`, `visitor-1`, `visitor-2`, `hacker-1` to `hacker-8` and `judge`.
 
 **What the seed holds.** An admin, three members (one with the current bootcamp, one lapsed) and non-members; club events and four bootcamp sessions for the current term with workshops and check-ins; an in-progress hackathon edition with eight registrations in every status, two teams and submitted projects; an open judging setup (challenges, rooms, rubric, judges, entries); 144 `status_sample` rows for `/status`; and the club project roster. `pnpm --filter @query/db db:seed` is safe to re-run.
 
@@ -70,7 +70,7 @@ AUTH_URL=http://localhost:3001
 NEXTAUTH_URL=http://localhost:3001
 ```
 
-Google / GitHub OAuth, SMTP, and Stripe are optional for browsing public pages. Login, membership checkout, and email codes need the corresponding secrets.
+Google / Discord OAuth, SMTP, and Stripe are optional for browsing public pages. Login, membership checkout, and email codes need the corresponding secrets.
 
 If you have GCP access to project `dsgt-website`, you can pull secrets instead of typing them. See [GCP setup](./operations/gcp-setup.md) and [Deployment](./operations/deployment.md).
 

@@ -183,7 +183,7 @@ NextAuth v5 (`next-auth@5` beta) with a **database session** strategy when `DATA
 Providers:
 
 - Google (always registered; PKCE + state)
-- GitHub (only if both client id and secret are set)
+- Discord (only if both client id and secret are set; `identify email` scope, verified email only, no roles)
 - Email 6-digit code via nodemailer (CSPRNG, 10-minute TTL, previous codes deleted)
 
 On every successful sign-in, `linkPaidPaymentByVerifiedEmail` claims a paid-but-unlinked Stripe payment for that verified address and grants membership. Failures are swallowed so a membership glitch cannot block login.

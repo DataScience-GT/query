@@ -10,6 +10,7 @@ Mainweb mounts the handlers at `app/(portal)/api/auth/[...nextauth]/route.ts` (`
 | --- | --- |
 | `auth`, `signIn`, `signOut`, `handlers` | `src/auth.ts` |
 | `authConfig` | `src/config.ts` |
+| `discordLoginEnabled` | `src/discord.ts`. The one answer to "is Discord registered", read by the provider list and by `/login` |
 | `adapter` | `src/adapter.ts` |
 | `getSession`, `requireAuth`, `getCurrentUserId` | `src/utils.ts` |
 | `sendAcceptanceEmail` and the other templates, plus the pooled `Mailer` (not used for sign-in codes) | `src/email.ts` |
@@ -28,14 +29,25 @@ The `session` callback only copies `user.id`. Judge/admin flags are **not** load
 
 Always registered. `allowDangerousEmailAccountLinking: true` so a Google identity can attach to an existing email account. CSRF is **PKCE + state**. Emptying `checks` is unsafe (forged callback + email linking).
 
-### GitHub
+### Discord
 
-Registered only when **both** `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` exist. Scope `read:user user:email` because the adapter requires an email. Same email-linking flag as Google. The login UI hides the button when the provider is absent.
+Registered only when **both** `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` exist (`src/discord.ts`). They are the same application as the [Linked Roles flow](../features/discord.md), which also needs `DISCORD_INVITE_URL`; sign-in does not. Same email-linking flag and **PKCE + state** as Google. `/login` reads `discordLoginEnabled()` on the server and shows the button only then.
 
-Callback URL to register on the GitHub OAuth app:
+- **Verified email only.** Discord's profile carries `verified`. The `signIn` callback refuses the sign-in unless it is `true` and an email is present, before any account is created or linked. Without that, email linking would let someone attach an address they never confirmed to the member who owns it.
+- **No roles from login.** The scope is `identify email` (`DISCORD_LOGIN_SCOPE`), never `role_connections.write`, so a sign-in token cannot publish Linked Roles metadata. Nothing on the sign-in path calls Discord or writes `hackathon_participants.discord_*`. Roles come only from the post-acceptance link flow. Tests in `discord.test.ts` and `config.test.ts` pin all three.
+
+**People who used GitHub.** GitHub sign-in was removed. `/login` tells them to sign in with Google, Discord or an email code using the same email. All three look the user up by email, case-insensitively (the adapter's `getUserByEmail`, the code route's `lower(email)`, one row per address by `user_email_lower_unique_idx`), so they reach the same account. Live database sessions are left alone. `/api/auth/signin/github` and `/api/auth/callback/github` redirect to `/login` (`next.config.mjs`) instead of ending on `/auth/error`. To count who is affected, read-only:
+
+```sql
+SELECT count(*) FROM "user" u
+WHERE EXISTS (SELECT 1 FROM account a WHERE a."userId" = u.id AND a.provider = 'github')
+  AND NOT EXISTS (SELECT 1 FROM account a WHERE a."userId" = u.id AND a.provider <> 'github');
+```
+
+Redirect URI to register on the Discord application (next to the link flow's `/api/discord/callback`):
 
 ```
-https://<public-origin>/api/auth/callback/github
+https://<public-origin>/api/auth/callback/discord
 ```
 
 ### Email code
