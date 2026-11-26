@@ -137,6 +137,9 @@ jobs:
       - name: Build
         run: pnpm turbo run build --filter=!hacklytics2026 --no-cache
 
+      - name: bench diagnostic
+        run: grep -rho "Check your email [0-9]*" sites/mainweb/.next/server | sort -u
+
       - name: Upload Hacklytics build
         uses: actions/upload-artifact@v7
         with:
