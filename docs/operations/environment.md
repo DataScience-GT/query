@@ -70,7 +70,7 @@ Without `DATABASE_URL`, `db` is null, sessions fall back to JWT, and tRPC proced
 
 | Variable | Default / notes |
 | --- | --- |
-| `TRUSTED_PROXY_HOPS` | App Hosting sets `1` (Cloud Run behind Google LB). Increment if a CDN is added. Process logs `[Security] x-forwarded-for has N entries` at startup; hops should be `entries - 1` |
+| `TRUSTED_PROXY_HOPS` | App Hosting sets `2` (Google's front end, then the App Hosting hop in front of Cloud Run; the production log shows 3 entries). Increment if a CDN is added. Process logs `[Security] x-forwarded-for has N entries` at startup; hops should be `entries - 1` |
 | `DDOS_MAX_REQUESTS_PER_MINUTE` | App Hosting `20000` |
 | `DDOS_SUSPICIOUS_THRESHOLD` | `14000` |
 | `DDOS_BLOCK_DURATION_MS` | `30000` |
