@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { emailSignInProblem } from "@/lib/email-sign-in";
 import { Alert } from "@query/ui/Alert";
 import {
   body,
@@ -73,11 +74,10 @@ export default function LoginActions({
         redirect: false,
       });
 
-      if (!res?.ok || res.error) {
+      const problem = emailSignInProblem(res, { discord, inAppBrowser });
+      if (problem) {
         setEmailSending(false);
-        setEmailError(
-          "We couldn't send a code to that address. Check it and try again.",
-        );
+        setEmailError(problem);
         return;
       }
 

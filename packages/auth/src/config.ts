@@ -10,11 +10,13 @@ import {
   GLOBAL_CODES_PER_HOUR,
   GLOBAL_THROTTLE_KEY,
   isLockedOut,
+  requesterCodeCaps,
   takeCodeSlot,
 } from "@query/db/services/auth-throttle";
 import { sql } from "drizzle-orm";
 import { randomInt } from "node:crypto";
 import { discordProviders, hasVerifiedDiscordEmail } from "./discord";
+import { currentClientIp, markCodesBusy } from "./sign-in-attempt";
 
 function html(params: { code: string; host: string }) {
   const { code, host } = params;
@@ -153,14 +155,21 @@ export const authConfig: NextAuthConfig = {
             if (recent.rows.length > 0) return false;
 
             // Database-backed caps (see auth-throttle). Beyond any of them
-            // nothing is sent and nothing says why, so the response cannot be
-            // used to probe the limits. Failed guesses carry across reissued
-            // codes, so a locked-out address gets no new code either. The
-            // per-address slot goes first and a refused cap throws so the
-            // transaction rolls back any slot already taken: otherwise an
-            // address past its own cap, posted repeatedly, would still spend
-            // the deployment-wide slots and shut sign-in off for everyone.
-            if (await isLockedOut(tx, identifier)) return false;
+            // nothing is sent, and the sign-in route is told, so the page says
+            // codes are busy instead of reporting one sent. Failed guesses carry
+            // across reissued codes, so a locked-out address gets no new code
+            // either. Whoever is asking goes first (their network, the
+            // address's domain), then the address, then the deployment: one
+            // client reaches its own limit before it can spend what everyone
+            // else needs. A refused cap throws so the transaction rolls back
+            // any slot already taken: otherwise a request past one cap would
+            // still spend the others, and posted repeatedly would shut sign-in
+            // off for everyone.
+            if (await isLockedOut(tx, identifier)) throw new CodeCapReached();
+            for (const cap of requesterCodeCaps(identifier, currentClientIp())) {
+              if (!(await takeCodeSlot(tx, cap.key, cap.max)))
+                throw new CodeCapReached();
+            }
             if (
               !(await takeCodeSlot(tx, identifier, CODES_PER_IDENTIFIER_PER_HOUR))
             )
@@ -178,7 +187,10 @@ export const authConfig: NextAuthConfig = {
             `);
             return true;
           }).catch((error: unknown) => {
-            if (error instanceof CodeCapReached) return false;
+            if (error instanceof CodeCapReached) {
+              markCodesBusy();
+              return false;
+            }
             throw error;
           });
           if (!issued) return;

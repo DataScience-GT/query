@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type * as Throttle from "@query/db/services/auth-throttle";
 
 const state = vi.hoisted(() => ({
   // Committed slot counts; a transaction works on a copy and commits on success.
@@ -13,7 +14,9 @@ vi.mock("@query/core/server", () => ({ siteOrigin: () => "https://query.example"
 vi.mock("@query/db/services/membership", () => ({
   linkPaidPaymentByVerifiedEmail: async () => undefined,
 }));
-vi.mock("@query/db/services/auth-throttle", () => ({
+vi.mock("@query/db/services/auth-throttle", async (importOriginal) => ({
+  // The caps and how a request maps onto them are the real ones.
+  ...(await importOriginal<typeof Throttle>()),
   CODES_PER_IDENTIFIER_PER_HOUR: 5,
   GLOBAL_CODES_PER_HOUR: 300,
   GLOBAL_THROTTLE_KEY: "*global*",

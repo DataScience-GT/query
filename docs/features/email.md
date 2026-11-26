@@ -36,6 +36,8 @@ Templates:
 
 The email sign-in code is sent by the NextAuth Nodemailer provider in `packages/auth/src/config.ts`, not by `Mailer`. It builds its own transport from the same `EMAIL_SERVER_*` settings, so it shares the account but not the pool. The code is 6 digits from `randomInt`, expires in 10 minutes, and replaces any earlier code for that address. One code email goes out per address per minute: a repeat inside that minute sends nothing and the live code stays valid. An advisory lock per address stops parallel requests from each sending one.
 
+Codes are capped per hour in `auth_code_throttle`, in the order a request meets them: the client's network (an IPv4 /24 or IPv6 /64, 40), the address's domain (20, or 120 for any `.edu` and the big mail providers), the address (5), then the deployment (300). A refused cap rolls back the slots already taken. Only the first caps are about who is asking, so one client reaches its limit before it can spend what everyone else needs. The network comes from the route (`runCodeRequest`, using `resolveClientIp` and `TRUSTED_PROXY_HOPS`), not from a header the caller can set. When any cap refuses, the route answers 429 with the error `CodesBusy` and `/login` says email codes are busy and offers Google or Discord, instead of reporting a code sent.
+
 ## Fan-out
 
 `packages/api/src/services/fanout.ts`.
