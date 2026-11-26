@@ -567,18 +567,18 @@ export async function sendApplicationReminderEmail({
       : `Finish your ${hackathonName} application`,
     heading: "Finish your application",
     paragraphs: [
-      `You started your ${hackathonName} application but haven't submitted it yet. Your answers are saved, so you can pick up where you left off.`,
+      `You started your ${hackathonName} application but haven't sent it yet. Your answers are saved, so you can pick up where you left off.`,
       ...(deadline
         ? [
             `Applications close ${new Intl.DateTimeFormat("en-US", {
               timeZone: VENUE_TZ,
               month: "long",
               day: "numeric",
-              year: "numeric",
             }).format(deadline)}.`,
           ]
         : []),
       "If you've changed your mind, ignore this email. We won't send another reminder.",
+      hacklytics ? "Hacklytics team" : "DS@GT",
     ],
     ctaLabel: "Finish your application",
     ctaUrl: hackathonUrl,

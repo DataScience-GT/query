@@ -79,11 +79,14 @@ describe("sendApplicationReminderEmail", () => {
     const [message] = sent;
     expect(message?.subject).toBe("Finish your Hacklytics application");
     expect(message?.text).toContain(
-      "You started your Hacklytics: Digital Bloom application but haven't submitted it yet.",
+      "You started your Hacklytics: Digital Bloom application but haven't sent it yet.",
     );
     expect(message?.text).toContain("Your answers are saved");
-    expect(message?.text).toContain("Applications close January 15, 2027.");
+    expect(message?.text).toContain("Applications close January 15.");
     expect(message?.text).toContain("ignore this email");
+    expect(message?.text).toContain("Hacklytics team");
+    // Calm copy: no exclamation marks, none of the stock phrases.
+    expect(message?.text).not.toMatch(/!|journey|unlock|seamless/i);
     expect(message?.text).toContain(`Finish your application: ${hackathonUrl}`);
     expect(message?.html).toContain(`href="${hackathonUrl}"`);
     expect(message?.html).toContain("hacklytics-wordmark.png");
@@ -108,6 +111,7 @@ describe("sendApplicationReminderEmail", () => {
     });
 
     expect(sent[0]?.subject).toBe("Finish your Spring Build Jam application");
+    expect(sent[0]?.text).toContain("DS@GT");
     expect(sent[0]?.html).toContain("DataScience<span");
     expect(sent[0]?.html).not.toContain("hacklytics-wordmark.png");
   });
