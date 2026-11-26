@@ -258,6 +258,17 @@ export interface EventContent {
     /** The closing line above the footer's sign-up button. */
     headline: string;
     note?: string;
+    /**
+     * What the footer says once `registration.closes` has passed, in place of
+     * the headline, note and sign-up button above: the sign-up link has gone
+     * stale, so `cta` points somewhere that still makes sense. Needs
+     * `registration.closes`. Without it the footer stays as it is.
+     */
+    closed?: {
+      headline: string;
+      note?: string;
+      cta: Link;
+    };
   };
 }
 
@@ -414,6 +425,9 @@ export function defineEvent(input: EventInput): EventConfig {
   requireUnique("track", copy.tracks.map((t) => t.title));
   requireUnique("prize", copy.prizes.items.map((p) => p.label));
   requireUnique("faq question", copy.faqs.map((f) => f.q));
+  if (copy.footer.closed && closesMs === undefined) {
+    fail("footer.closed needs registration.closes: without a deadline the footer never closes");
+  }
 
   return {
     ...core,

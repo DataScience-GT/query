@@ -46,6 +46,7 @@ Everything renders to HTML at build time. Only what needs the browser ships code
 | --- | --- | --- |
 | About, tracks, prizes, schedule, sponsors, FAQ, sprites | Build time, no JS | Nothing to do after load |
 | Schedule day tabs | `packages/event-kit/src/scripts/schedule-days.ts` | Shows the tabs and one day at a time; opens on today's day while the event is on, else Friday. Without it every day shows |
+| Footer call to action | Bundled script in the kit's `Footer.astro` | Both versions are in the HTML. The build shows "Applications are open" and Apply, or, once `registration.closes` has passed, "Applications are closed" and a link to the schedule; the script picks again for the day the page is read |
 | Tracks and schedule bloom | `src/scripts/bloom.ts` (about 300 bytes) | They only need `data-bloom="on"` written when 35% is in view |
 | Navbar (menu, hide on scroll, section links) | `packages/event-kit/src/scripts/navbar.ts` | Plain DOM work; React would add nothing |
 | Theme toggle | `packages/event-kit/src/scripts/theme-toggle.ts`; the icon follows the theme in CSS | Right icon on first paint, even before the script runs |

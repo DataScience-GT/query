@@ -126,7 +126,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `judges` | `{ body: Rich[], people: { name, title?, company? }[] }`: the apply button follows `body`, `people` follow the button |
 | `sponsors` | `{ body: Rich[], tiers: { name, sponsors: { name, url?, logo? }[] }[] }`: logos sit on a `--logo-tile` tile in either theme |
 | `faqs` | `{ q, a: Rich }[]`, split in two columns at the halfway point |
-| `footer` | `{ headline, note? }` |
+| `footer` | `{ headline, note?, closed?: { headline, note?, cta: { text, href, external? } } }`. `closed` is what the footer says once `registration.closes` has passed, in place of the headline, note and Apply button: the Apply link has gone stale, so `cta` points somewhere else (2027: the schedule). It is decided when the site is built and again when the page loads, with the same `deadlineStatus` as the hero. Needs `registration.closes` |
 
 `Rich` is a string, or an array of strings and `{ text, href, external? }` links in reading order. Write the space beside a link inside the neighbouring string.
 
@@ -139,6 +139,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 - two tracks, prizes or FAQs share a title or question
 - `registration.price` is not a decimal, or `registration.currency` is not a three-letter code
 - `registration.closes` is not after `registration.validFrom`, or is after `start`
+- `footer.closed` is set without `registration.closes`
 - `links.portal`, `links.devPortal` or `seo.url` is not a bare origin, `links.portalPath` is not a slash-led path, a `ground` color is not `#rrggbb`, or `theme.storageKey` has characters the inline script cannot hold
 
 ## Theme contract

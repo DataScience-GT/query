@@ -381,6 +381,27 @@ describe("defineEvent application deadline", () => {
     ).toThrow(/registration.closes/);
   });
 
+  describe("the footer once applications have closed", () => {
+    const closed = {
+      headline: "Applications are closed",
+      cta: { text: "See the schedule", href: "/#schedule" },
+    };
+
+    it("carries the closed copy through", () => {
+      const event = build(
+        { registration: { ...registration, closes } },
+        { footer: { headline: "Applications are open", closed } },
+      );
+      expect(event.footer.closed).toEqual(closed);
+    });
+
+    it("needs a deadline to close on, or the copy would never show", () => {
+      expect(() => build({}, { footer: { headline: "Soon", closed } })).toThrow(
+        /footer.closed needs registration.closes/,
+      );
+    });
+  });
+
   it("closes after it opens and no later than the event starts", () => {
     expect(() =>
       build({ registration: { ...registration, closes: "2026-07-31T00:00:00-04:00" } }),

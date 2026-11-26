@@ -243,6 +243,12 @@ export default defineEvent({
     footer: {
       headline: "Applications are open",
       note: closes ? `Apply by ${closes.long}. It’s free.` : "It’s free.",
+      // After registration.closes the Apply link has nothing to apply to.
+      closed: {
+        headline: "Applications are closed",
+        note: `Hacking starts ${dates.startLabel}. See you at Klaus.`,
+        cta: { text: "See the schedule", href: "/#schedule" },
+      },
     },
   }),
 });
