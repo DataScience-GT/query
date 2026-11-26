@@ -154,7 +154,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: sites/mainweb/public/photos
-          key: photos-${{ hashFiles('sites/mainweb/assets/images/photos/*', 'sites/mainweb/image-sizes.mjs', 'sites/mainweb/scripts/build-photos.ts') }}
+          key: photos-${{ hashFiles('sites/mainweb/assets/images/photos/*', 'sites/mainweb/image-sizes.mjs', 'sites/mainweb/scripts/build-photos.ts', 'pnpm-lock.yaml') }}
 
       # build-photos.ts skips a file that is newer than its source. The sources
       # were just checked out, so restored files would look older and be
