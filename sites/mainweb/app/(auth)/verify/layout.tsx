@@ -1,4 +1,4 @@
-export const metadata = { title: "Check your email 3" };
+export const metadata = { title: "Check your email 4" };
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return children;
