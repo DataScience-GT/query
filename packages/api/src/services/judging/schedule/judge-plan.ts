@@ -83,6 +83,10 @@ export function rosterOf(source: {
       roomChallengeId: room.challengeId,
       judgeId: row.id,
       displayName: row.displayName,
+      // Only the scope is read from this principal; the roster already holds
+      // back guests no organizer has let in.
+      admitted: true,
+      accountIds: [],
     };
     judges.push({
       id: row.id,

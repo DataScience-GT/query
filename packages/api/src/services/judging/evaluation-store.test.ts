@@ -63,6 +63,8 @@ const guest: Judge = {
   roomChallengeId: "mlh",
   judgeId: "g",
   displayName: "Grace",
+  admitted: true,
+  accountIds: [],
 };
 const seat = (challengeId: string): Seat => ({
   roomId: "room",

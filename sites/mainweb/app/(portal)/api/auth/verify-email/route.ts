@@ -14,7 +14,11 @@ import { createOrUpdateMembership } from "@query/db/services/membership";
 import { entitlementForPayment } from "@query/db/services/pricing";
 import { eq, and, isNull, like, sql } from "drizzle-orm";
 import { timingSafeEqual } from "node:crypto";
-import { isLockedOut, recordFailure } from "@query/db/services/auth-throttle";
+import {
+  clearFailures,
+  isLockedOut,
+  recordFailure,
+} from "@query/db/services/auth-throttle";
 import { rateLimit, cache, resolveClientIp } from "@query/api";
 import type { DrizzleDB } from "@query/db";
 
@@ -42,6 +46,14 @@ function maskEmail(email: string) {
 const TOO_MANY = {
   success: false,
   error: "Too many attempts. Please try again later.",
+} as const;
+
+// A lock is not a dead end for the address's owner: asking for a new email while
+// codes are paused sends a sign-in link.
+const CODES_PAUSED = {
+  success: false,
+  error:
+    "Codes for this address are paused for a while after too many wrong tries. Go back and ask for a new email: it will have a sign-in link instead of a code.",
 } as const;
 
 /**
@@ -112,9 +124,11 @@ export async function POST(request: NextRequest) {
     const safeEmail = maskEmail(email);
 
     const result = await db.transaction(async (tx) => {
-      // Daily failure cap per address, shared by every instance and carried
-      // across reissued codes.
-      if (await isLockedOut(tx, identifier)) return { tooMany: true as const };
+      // Lock on wrong guesses per address, shared by every instance and
+      // carried across reissued codes. It ends by itself, and a successful
+      // sign-in by any method lifts it, so someone else guessing at an address
+      // can hold its owner off for minutes, not a day.
+      if (await isLockedOut(tx, identifier)) return { paused: true as const };
 
       // Lock the live code's row first: concurrent guesses queue behind it and
       // each sees the attempts the one before left, so the cap of
@@ -133,8 +147,7 @@ export async function POST(request: NextRequest) {
 
       // Failures return (not throw) so the charge commits.
       if (!live) {
-        // Not charged: nothing is being guessed at, and charging it would let
-        // anyone lock a chosen address out of sign-in with bogus guesses.
+        // Not charged: nothing is being guessed at.
         console.warn(`[verify-email] No live code for ${safeEmail}`);
         return null;
       }
@@ -170,6 +183,8 @@ export async function POST(request: NextRequest) {
       // Consume the code.
       await tx.delete(verificationTokens).where(ownRow);
       const invite = live;
+      // The right code, from whoever has the inbox: the guessing is over.
+      await clearFailures(tx, identifier);
 
       // Check expiry
       if (new Date(invite.expires) < new Date()) {
@@ -323,8 +338,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if ("tooMany" in result) {
-      return NextResponse.json(TOO_MANY, { status: 429 });
+    if ("paused" in result) {
+      return NextResponse.json(CODES_PAUSED, { status: 429 });
     }
 
     if ("error" in result) {

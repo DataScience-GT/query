@@ -3,6 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import {
+  emailSignInProblem,
+  linkOnlySent,
+  linkSentMessage,
+} from "@/lib/email-sign-in";
 import { Alert } from "@query/ui/Alert";
 import {
   body,
@@ -37,6 +42,7 @@ export default function LoginActions({
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState("");
+  const [emailNotice, setEmailNotice] = useState("");
   const emailInputRef = useRef<HTMLInputElement>(null);
 
   // A redirect to this page, such as /docs sending a signed-out visitor here,
@@ -73,11 +79,18 @@ export default function LoginActions({
         redirect: false,
       });
 
-      if (!res?.ok || res.error) {
+      const problem = emailSignInProblem(res, { discord, inAppBrowser });
+      if (problem) {
         setEmailSending(false);
-        setEmailError(
-          "We couldn't send a code to that address. Check it and try again.",
-        );
+        setEmailError(problem);
+        return;
+      }
+
+      if (linkOnlySent(res)) {
+        // A link went out, not a code: nothing to type on /verify.
+        setEmailSending(false);
+        setEmailSent(true);
+        setEmailNotice(linkSentMessage(email));
         return;
       }
 
@@ -143,6 +156,11 @@ export default function LoginActions({
         <Alert size={13} className="mt-2">
           {emailError}
         </Alert>
+      )}
+      {emailNotice && (
+        <p role="status" className={`mt-2 ${meta}`}>
+          {emailNotice}
+        </p>
       )}
     </div>
   );

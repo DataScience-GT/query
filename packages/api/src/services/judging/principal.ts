@@ -37,6 +37,9 @@ import {
 
 export { JUDGING_GUEST_COOKIE };
 
+/** What a guest sees until an organizer lets them in. */
+export const GUEST_NOT_ADMITTED = "Waiting for an organizer to let you in.";
+
 export const GUEST_SESSION_ENDED =
   "Your guest judging session has ended. Scan the QR code at your room or table again to keep judging.";
 
@@ -59,6 +62,17 @@ export type GuestJudge = {
   /** Null until the guest has given a name. */
   judgeId: string | null;
   displayName: string | null;
+  /**
+   * An organizer has let this guest in. Anyone who holds the room's code gets
+   * a session, so until then the guest cannot judge.
+   */
+  admitted: boolean;
+  /**
+   * The portal accounts this guest has shown: the one signed in when the code
+   * was scanned, and the one signed in now. A guest is on a project's team
+   * when any of them is.
+   */
+  accountIds: readonly string[];
 };
 
 export type DeskPrincipal = MemberJudge | GuestJudge;
@@ -225,6 +239,8 @@ export async function resolveGuestSession(
       roomChallengeId: judgingRooms.challengeId,
       judgeId: judgingJudges.id,
       displayName: judgingJudges.displayName,
+      userId: judgingGuestSessions.userId,
+      admittedAt: judgingGuestSessions.admittedAt,
     })
     .from(judgingGuestSessions)
     .innerJoin(
@@ -245,7 +261,13 @@ export async function resolveGuestSession(
     .limit(1);
 
   if (!row) return null;
-  return { kind: "guest", ...row };
+  const { userId, admittedAt, ...session } = row;
+  return {
+    kind: "guest",
+    ...session,
+    admitted: Boolean(admittedAt),
+    accountIds: userId ? [userId] : [],
+  };
 }
 
 /**
@@ -274,7 +296,12 @@ export async function resolveDeskPrincipal(
   const token = readCookie(input.cookieHeader, JUDGING_GUEST_COOKIE);
   if (!token) return null;
   const guest = await resolveGuestSession(db, token);
-  return guest?.hackathonId === input.hackathonId ? guest : null;
+  if (guest?.hackathonId !== input.hackathonId) return null;
+  // Signed in as someone who is not a judge: their account counts too, whether
+  // or not they were signed in when they scanned.
+  return input.userId && !guest.accountIds.includes(input.userId)
+    ? { ...guest, accountIds: [...guest.accountIds, input.userId] }
+    : guest;
 }
 
 /**
@@ -346,6 +373,7 @@ export async function nameGuest(
       .select({
         judgeId: judgingGuestSessions.judgeId,
         roomId: judgingGuestSessions.roomId,
+        admittedAt: judgingGuestSessions.admittedAt,
       })
       .from(judgingGuestSessions)
       .where(
@@ -389,15 +417,20 @@ export async function nameGuest(
       .set({ judgeId: judge.id, completedAt: now })
       .where(eq(judgingGuestSessions.id, guest.sessionId));
 
-    await seatJudge(
-      tx,
-      {
-        judgeId: judge.id,
-        roomId: session.roomId,
-        hackathonId: guest.hackathonId,
-      },
-      now,
-    );
+    // A seat tells the board the room is staffed and open to presentations,
+    // so a guest takes one when an organizer lets them in (admitGuest), not
+    // for giving a name.
+    if (session.admittedAt) {
+      await seatJudge(
+        tx,
+        {
+          judgeId: judge.id,
+          roomId: session.roomId,
+          hackathonId: guest.hackathonId,
+        },
+        now,
+      );
+    }
 
     return { judgeId: judge.id, displayName: judge.displayName };
   });
@@ -431,12 +464,21 @@ async function carriedGuest(
   token: string,
   hackathonId: string,
   now: Date,
-): Promise<{ sessionId: string; judgeId: string } | null> {
+): Promise<{
+  sessionId: string;
+  judgeId: string;
+  userId: string | null;
+  admittedAt: Date | null;
+  admittedById: string | null;
+} | null> {
   const [row] = await db
     .select({
       sessionId: judgingGuestSessions.id,
       hackathonId: judgingGuestSessions.hackathonId,
       judgeId: judgingGuestSessions.judgeId,
+      userId: judgingGuestSessions.userId,
+      admittedAt: judgingGuestSessions.admittedAt,
+      admittedById: judgingGuestSessions.admittedById,
       expiresAt: judgingGuestSessions.expiresAt,
       revokedAt: judgingGuestSessions.revokedAt,
     })
@@ -448,7 +490,13 @@ async function carriedGuest(
   }
   const lapsedMs = now.getTime() - row.expiresAt.getTime();
   return lapsedMs <= GUEST_CARRY_OVER_SECONDS * 1000
-    ? { sessionId: row.sessionId, judgeId: row.judgeId }
+    ? {
+        sessionId: row.sessionId,
+        judgeId: row.judgeId,
+        userId: row.userId,
+        admittedAt: row.admittedAt,
+        admittedById: row.admittedById,
+      }
     : null;
 }
 
@@ -538,17 +586,64 @@ export async function activateRoomLink(
 
   const token = newGuestToken();
   const expiresAt = new Date(now.getTime() + GUEST_SESSION_SECONDS * 1000);
-  await db.transaction(async (tx) => {
+  const started = await db.transaction(async (tx) => {
+    // Everything above was read before this transaction, and an organizer can
+    // revoke in between. Lock the link and look again, so a revoke that commits
+    // first ends this scan, and one that comes after waits for the session to
+    // exist and then signs it out with the rest of the room's.
+    const [stillOpen] = await tx
+      .select({ id: judgingRoomLinks.id })
+      .from(judgingRoomLinks)
+      .innerJoin(judgingRooms, eq(judgingRooms.id, judgingRoomLinks.roomId))
+      .where(
+        and(
+          eq(judgingRoomLinks.id, input.linkId),
+          isNull(judgingRoomLinks.revokedAt),
+          isNull(judgingRooms.archivedAt),
+        ),
+      )
+      .for("update", { of: judgingRoomLinks })
+      .limit(1);
+    if (!stillOpen) return false;
+
+    // The session being carried over may have been revoked the same way. If it
+    // was, the guest starts again as someone nobody has let in.
+    let moving = carried;
+    if (carried) {
+      const [live] = await tx
+        .select({ id: judgingGuestSessions.id })
+        .from(judgingGuestSessions)
+        .where(
+          and(
+            eq(judgingGuestSessions.id, carried.sessionId),
+            isNull(judgingGuestSessions.revokedAt),
+          ),
+        )
+        .for("update")
+        .limit(1);
+      if (!live) moving = null;
+    }
+    const sameAccount =
+      !!moving &&
+      (!input.userId || !moving.userId || input.userId === moving.userId);
+
     await tx.insert(judgingGuestSessions).values({
       tokenHash: hashGuestToken(token),
       linkId: input.linkId,
       roomId: link.roomId,
       hackathonId: link.hackathonId,
-      judgeId: carried?.judgeId ?? null,
-      completedAt: carried ? now : null,
+      judgeId: moving?.judgeId ?? null,
+      completedAt: moving ? now : null,
+      // A guest who moves to another room stays who they were: scanning the
+      // second time signed out must not shed the account they had. Signing in
+      // as someone else is a different person to an organizer, so the
+      // admission waits for them again.
+      userId: input.userId ?? moving?.userId ?? null,
+      admittedAt: sameAccount ? moving!.admittedAt : null,
+      admittedById: sameAccount ? moving!.admittedById : null,
       expiresAt,
     });
-    if (carried) {
+    if (moving) {
       // The browser moves to the new session. The old one ends now rather
       // than counting as a guest in the room they left until it lapses.
       await tx
@@ -556,21 +651,37 @@ export async function activateRoomLink(
         .set({ expiresAt: now })
         .where(
           and(
-            eq(judgingGuestSessions.id, carried.sessionId),
+            eq(judgingGuestSessions.id, moving.sessionId),
             gt(judgingGuestSessions.expiresAt, now),
           ),
         );
-      await seatJudge(
-        tx,
-        {
-          judgeId: carried.judgeId,
-          roomId: link.roomId,
-          hackathonId: link.hackathonId,
-        },
-        now,
-      );
+      if (sameAccount && moving.admittedAt) {
+        await seatJudge(
+          tx,
+          {
+            judgeId: moving.judgeId,
+            roomId: link.roomId,
+            hackathonId: link.hackathonId,
+          },
+          now,
+        );
+      } else {
+        // Not let in as who they are now, so no seat anywhere: the one they
+        // had in the room they left must not go on counting.
+        await tx
+          .update(judgingPresence)
+          .set({ leftAt: now })
+          .where(
+            and(
+              eq(judgingPresence.judgeId, moving.judgeId),
+              isNull(judgingPresence.leftAt),
+            ),
+          );
+      }
     }
+    return true;
   });
+  if (!started) return { kind: "invalid" };
 
   return {
     kind: "guest",

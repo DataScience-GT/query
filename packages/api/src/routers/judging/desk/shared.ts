@@ -18,6 +18,7 @@ import type { DrizzleDB ,
   judgingEvaluations} from "@query/db";
 import { publicProcedure } from "../../../trpc";
 import {
+  GUEST_NOT_ADMITTED,
   asJudge,
   resolveDeskPrincipal,
 } from "../../../services/judging/principal";
@@ -46,7 +47,11 @@ export const deskProcedure = publicProcedure
     return next({ ctx: { ...ctx, principal } });
   });
 
-/** A desk procedure for someone who can judge: a member, or a named guest. */
+/**
+ * A desk procedure for someone who can judge: a member, or a named guest an
+ * organizer has let in. The room's code is posted on its door, so anyone can
+ * scan it and name themselves; only an organizer's say-so makes that a judge.
+ */
 export const judgeProcedure = deskProcedure.use(async ({ ctx, next }) => {
   const judge = asJudge(ctx.principal);
   if (!judge) {
@@ -54,6 +59,9 @@ export const judgeProcedure = deskProcedure.use(async ({ ctx, next }) => {
       code: "UNAUTHORIZED",
       message: "Enter your name before you start judging.",
     });
+  }
+  if (judge.kind === "guest" && !judge.admitted) {
+    throw new TRPCError({ code: "FORBIDDEN", message: GUEST_NOT_ADMITTED });
   }
   return next({ ctx: { ...ctx, judge } });
 });

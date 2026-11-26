@@ -18,9 +18,11 @@ import {
   judgingAppointments,
   judgingBuildings,
   judgingGuestSessions,
+  judgingJudges,
   judgingPresence,
   judgingRoomLinks,
   judgingRooms,
+  users,
 } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { isAdmin } from "../../../middleware/procedures";
@@ -67,7 +69,17 @@ export const roomProcedures = {
     const seatedSince = new Date(Date.now() - SEATED_WINDOW_MS);
     const now = new Date();
 
-    const [buildings, rooms, challenges, links, seated, guests, appointments, notices] =
+    const [
+      buildings,
+      rooms,
+      challenges,
+      links,
+      seated,
+      guests,
+      waiting,
+      appointments,
+      notices,
+    ] =
       await Promise.all([
         db
           .select({ id: judgingBuildings.id, name: judgingBuildings.name })
@@ -123,6 +135,33 @@ export const roomProcedures = {
             ),
           )
           .groupBy(judgingGuestSessions.roomId),
+        // Guests who have given a name and are waiting to be let in. One who
+        // has only scanned has nothing an organizer could recognise yet.
+        db
+          .select({
+            sessionId: judgingGuestSessions.id,
+            roomId: judgingGuestSessions.roomId,
+            name: judgingJudges.displayName,
+            since: judgingGuestSessions.createdAt,
+            accountName: users.name,
+            accountEmail: users.email,
+          })
+          .from(judgingGuestSessions)
+          .innerJoin(
+            judgingJudges,
+            eq(judgingJudges.id, judgingGuestSessions.judgeId),
+          )
+          .leftJoin(users, eq(users.id, judgingGuestSessions.userId))
+          .where(
+            and(
+              eq(judgingGuestSessions.hackathonId, id),
+              isNull(judgingGuestSessions.revokedAt),
+              isNull(judgingGuestSessions.admittedAt),
+              gte(judgingGuestSessions.expiresAt, now),
+            ),
+          )
+          .orderBy(asc(judgingGuestSessions.createdAt))
+          .limit(200),
         db
           .select({ roomId: judgingAppointments.roomId, value: count() })
           .from(judgingAppointments)
@@ -155,6 +194,18 @@ export const roomProcedures = {
       list.find((row) => row.roomId === roomId)?.value ?? 0;
 
     return {
+      // Who to let in, oldest first, with the account each one scanned the
+      // code on so an organizer can tell a judge from a competitor.
+      guestsWaiting: waiting.map((guest) => ({
+        sessionId: guest.sessionId,
+        roomId: guest.roomId,
+        roomName: rooms.find((room) => room.id === guest.roomId)?.name ?? "",
+        name: guest.name,
+        since: guest.since,
+        account: guest.accountEmail
+          ? `${guest.accountName ?? "Signed in"} (${guest.accountEmail})`
+          : null,
+      })),
       buildings: buildings.map((building) => {
         const inside = rooms.filter((room) => room.buildingId === building.id);
         return {

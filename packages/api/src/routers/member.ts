@@ -12,6 +12,7 @@ import {
   invalidatePortalContext,
 } from "../middleware/cache";
 import { isAdmin } from "../middleware/procedures";
+import { isBugTesterRole } from "../types/portal-context";
 import { escapeLike } from "./judging/admin/shared";
 import { recordAdminAction } from "../middleware/audit";
 import { splitName } from "@query/db/services/membership";
@@ -414,6 +415,15 @@ export const memberRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
+      // Same rule as admin.findUserByEmail: searching by address confirms that
+      // an account exists, which a read-only QA account has no need to do.
+      if (isBugTesterRole(ctx.admin.role)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Admin access required",
+        });
+      }
+
       // A literal search: a pasted % or _ must not turn into a wildcard.
       const pattern = `%${escapeLike(input.query)}%`;
 

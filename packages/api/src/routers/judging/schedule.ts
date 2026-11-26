@@ -226,8 +226,9 @@ type Inventory = Awaited<ReturnType<typeof readInventory>>;
 
 /**
  * The judges an edition can give presentations to, with every judge's name.
- * A guest whose session has run out is not here: they are off the roster, so
- * nothing is handed to them and what they hold is given again.
+ * A guest whose session has run out, or who no organizer has let in, is not
+ * here: they are off the roster, so nothing is handed to them and what they
+ * hold is given again.
  */
 async function readRoster(
   db: JudgingDb,
@@ -251,6 +252,7 @@ async function readRoster(
         roomId: judgingGuestSessions.roomId,
         createdAt: judgingGuestSessions.createdAt,
         expiresAt: judgingGuestSessions.expiresAt,
+        admittedAt: judgingGuestSessions.admittedAt,
       })
       .from(judgingGuestSessions)
       .where(
@@ -264,7 +266,7 @@ async function readRoster(
     hackathonId,
     judges,
     seats: sessions.flatMap((s) =>
-      s.judgeId && s.expiresAt > now
+      s.judgeId && s.admittedAt && s.expiresAt > now
         ? [{ judgeId: s.judgeId, roomId: s.roomId, createdAt: s.createdAt }]
         : [],
     ),

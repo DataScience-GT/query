@@ -40,7 +40,8 @@ import {
 
 export const seatingProcedures = {
   // Who is at the desk, which edition, which room, and where judging stands.
-  // A guest who has not given a name yet gets `needsName` and little else.
+  // A guest who has not given a name yet gets `needsName` and little else, and
+  // one not yet let in gets `admitted: false`.
   context: deskProcedure.query(async ({ ctx, input }) => {
     const db = ctx.db;
     const { principal } = ctx;
@@ -75,6 +76,8 @@ export const seatingProcedures = {
     return {
       kind: principal.kind,
       needsName: !judge,
+      // A guest the organizers have not let in yet waits on their own screen.
+      admitted: principal.kind === "member" || principal.admitted,
       judge: judge
         ? { id: judge.judgeId, displayName: judge.displayName }
         : null,

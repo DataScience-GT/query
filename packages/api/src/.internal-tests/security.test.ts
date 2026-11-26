@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import {
+  ClientIpResolver,
   validateRequestSize,
   rateLimit,
   ddosProtection,
@@ -321,5 +323,58 @@ describe("Security and Protection Verification Suite", () => {
       expect(ddosProtection(ip).allowed).toBe(true);
       vi.useRealTimers();
     });
+  });
+});
+
+/**
+ * The client address comes from the right-hand end of X-Forwarded-For, counting
+ * back over the proxies that append to it. The production log shows App Hosting
+ * sends three entries (Google's front end, then the App Hosting hop in front of
+ * Cloud Run, then the client's own), so two proxies sit between the client and
+ * this process. Counting one would key every per-IP limit on a proxy.
+ */
+describe("Client address from X-Forwarded-For", () => {
+  const CLIENT = "203.0.113.7";
+  const FRONT_END = "34.8.0.1";
+  const APP_HOSTING = "10.0.0.2";
+  const quietly = () => vi.spyOn(console, "log").mockImplementation(() => {});
+
+  it("takes the client when two proxies are trusted and the header has three entries", () => {
+    quietly();
+    const header = [CLIENT, FRONT_END, APP_HOSTING].join(", ");
+
+    expect(new ClientIpResolver(2).resolve(header)).toBe(CLIENT);
+  });
+
+  it("takes the same client when the caller sends a prefix of its own", () => {
+    quietly();
+    // Whatever a caller writes lands on the left, past where the count starts.
+    const header = ["198.51.100.99", CLIENT, FRONT_END, APP_HOSTING].join(", ");
+
+    expect(new ClientIpResolver(2).resolve(header)).toBe(CLIENT);
+    const forged = ["1.1.1.1, 2.2.2.2", CLIENT, FRONT_END, APP_HOSTING].join(", ");
+    expect(new ClientIpResolver(2).resolve(forged)).toBe(CLIENT);
+  });
+
+  it("would take a proxy with one hop on the same three entries", () => {
+    quietly();
+    const header = [CLIENT, FRONT_END, APP_HOSTING].join(", ");
+
+    // Everyone's limit would be keyed on Google's front end.
+    expect(new ClientIpResolver(1).resolve(header)).toBe(FRONT_END);
+    expect(new ClientIpResolver(1).resolve(header)).not.toBe(CLIENT);
+  });
+
+  it("reads the hop count the app is deployed with", () => {
+    // The hosting file is the one place the count is set for production, and the
+    // startup log line it cites ("x-forwarded-for has 3 entries") says what it
+    // must be: entries minus one.
+    const yaml = readFileSync(
+      new URL("../../../../apphosting.yaml", import.meta.url),
+      "utf8",
+    );
+    const hops = /- variable: TRUSTED_PROXY_HOPS\s+value: "(\d+)"/.exec(yaml)?.[1];
+
+    expect(hops).toBe("2");
   });
 });

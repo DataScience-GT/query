@@ -212,9 +212,13 @@ const guestWorld = (over: Answers = {}): Answers => ({
       roomChallengeId: SPONSOR,
       judgeId: ME,
       displayName: "Guest Judge",
+      userId: null,
+      admittedAt: new Date(),
     },
   ],
-  [via(judgingGuestSessions, judgingRoomLinks, judgingRooms)]: [{ id: "s" }],
+  [via(judgingGuestSessions, judgingRoomLinks, judgingRooms)]: [
+    { id: "s", admittedAt: new Date() },
+  ],
   [via(judgingChallenges)]: [general, sponsor],
   [via(judgingConfigs)]: [
     { state: "open", showAllScores: false, closedAt: null },

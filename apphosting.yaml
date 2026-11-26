@@ -153,12 +153,16 @@ env:
     value: "30000"
   # Proxies between the client and this process that append to
   # X-Forwarded-For. Set explicitly rather than left to the code default so
-  # the value is reviewable here. Cloud Run behind Google's load balancer is
-  # 1; if a CDN is added in front, this becomes 2 — and getting it wrong is
-  # silent. The process logs the observed header shape once at startup
-  # ("[Security] x-forwarded-for has N entries"); expect hops = entries - 1.
+  # the value is reviewable here. App Hosting has 2: Google's front end and
+  # the App Hosting hop in front of Cloud Run. The production log says so:
+  # "[Security] x-forwarded-for has 3 entries; ... Expect hops = entries - 1."
+  # At 1 every per-IP limit keyed on a proxy's address, not the client's. Getting
+  # it wrong is silent, and the process logs the observed header shape once at
+  # startup, so check it again if the hosting path changes (a CDN in front would
+  # make it 3). A caller's own X-Forwarded-For lands on the left of the
+  # entries counted, so this stays safe against a spoofed prefix.
   - variable: TRUSTED_PROXY_HOPS
-    value: "1"
+    value: "2"
   # Gates /api/metrics, the Prometheus scrape target that carries the tRPC
   # duration histogram. Without it the route answers 404 in production — by
   # design, so it does not announce itself — and the p99 exists but is
