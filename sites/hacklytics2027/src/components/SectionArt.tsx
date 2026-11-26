@@ -61,18 +61,27 @@ export const ThemeArt = () => (
   </>
 );
 
-const plot = (maps: SpriteMap[]) =>
+/* A plot is a row of plants standing open and still, each in a tint of its
+   own. A sprout has no head, so it needs none. */
+type Planting = { map: SpriteMap; tint?: Tint };
+const plot = (plants: Planting[]) =>
   function Plot() {
     return (
       <>
-        {maps.map((map, i) => (
-          <BloomSprite key={i} map={map} scale={4} />
+        {plants.map(({ map, tint }, i) => (
+          <BloomSprite key={i} map={map} scale={4} tint={tint} />
         ))}
       </>
     );
   };
 
-export const JudgesPlot = plot([SPROUT, DAISY, SPROUT, TULIP, SPROUT]);
+export const JudgesPlot = plot([
+  { map: SPROUT },
+  { map: DAISY, tint: "cherry_blossom" },
+  { map: SPROUT },
+  { map: TULIP, tint: "rose" },
+  { map: SPROUT },
+]);
 // Five plants in five of the portal's tints, opening one after another when the
 // plot is seen: the people who keep the weekend growing.
 export const VolunteersPlot = () => (
@@ -85,9 +94,15 @@ export const VolunteersPlot = () => (
   </>
 );
 
-// An empty plot: the seedlings are the 2027 partners, not announced yet.
-export const SponsorsPlot = plot([BUD, TULIP, BUD, DAISY, BUD]);
+// The buds are the 2027 partners, not announced yet.
+export const SponsorsPlot = plot([
+  { map: BUD, tint: "orchid" },
+  { map: TULIP, tint: "sunflower" },
+  { map: BUD, tint: "tulip" },
+  { map: DAISY, tint: "lily" },
+  { map: BUD, tint: "lotus" },
+]);
 
 // A bud where hacking begins, in bloom where it ends.
-export const RailStart = () => <BloomSprite map={BUD} scale={3} />;
+export const RailStart = () => <BloomSprite map={BUD} scale={3} tint="orchid" />;
 export const RailEnd = () => <BloomSprite map={TULIP} scale={3} blooms tint="sunflower" />;

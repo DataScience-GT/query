@@ -1,8 +1,8 @@
 import React from "react";
-import { PALETTES, PALETTES_LIGHT } from "./sprites";
+import { STEM_COLORS } from "./sprites";
 import { spriteToDataUri } from "./spriteUri";
-import { HEADS } from "./tints";
-import type { PaletteName, Palette, SpriteMap } from "./sprites";
+import { HEADS, TINTS } from "./tints";
+import type { Palette, SpriteMap } from "./sprites";
 import type { Tint } from "./tints";
 
 /**
@@ -13,13 +13,13 @@ import type { Tint } from "./tints";
  */
 export function PixelImage({
   map,
-  palette = "dormant",
+  palette,
   scale = 4,
   className = "",
   style,
 }: {
   map: SpriteMap;
-  palette?: PaletteName | Palette;
+  palette: Palette;
   /** Pixels per sprite pixel. */
   scale?: number;
   className?: string;
@@ -49,21 +49,23 @@ export function PixelImage({
 }
 
 /* Stem pixels grow from the soil; everything else is the head. */
-const STEM_KEYS = new Set(["g", "G", "s", "S", "d", "r"]);
-const pick = (palette: Palette, stem: boolean): Palette =>
-  Object.fromEntries(Object.entries(palette).filter(([k]) => STEM_KEYS.has(k) === stem));
-
-const STEM = pick(PALETTES.dormant, true);
-const BUD = pick(PALETTES.dormant, false); // the closed bud: grey
-const STEM_L = pick(PALETTES_LIGHT.dormant, true);
-const BUD_L = pick(PALETTES_LIGHT.dormant, false);
+export const STEM_KEYS = new Set(["g", "G", "d", "r"]);
 
 type Theme = "dark" | "light";
 
-const LAYERS: Record<Theme, { stem: Palette; bud: Palette; dormant: Palette }> = {
-  dark: { stem: STEM, bud: BUD, dormant: PALETTES.dormant },
-  light: { stem: STEM_L, bud: BUD_L, dormant: PALETTES_LIGHT.dormant },
-};
+/** A flower drawn whole, stem and head, in one image: what a plant is when it
+ *  does not grow in. Never grey: the head is always one of the tints. */
+export const spritePalette = (theme: Theme, tint: Tint): Palette => ({
+  ...STEM_COLORS[theme],
+  ...HEADS[theme][tint],
+});
+
+const WHOLE = Object.fromEntries(
+  (["dark", "light"] as const).map((theme) => [
+    theme,
+    Object.fromEntries(TINTS.map((tint) => [tint, spritePalette(theme, tint)])),
+  ]),
+) as Record<Theme, Record<Tint, Palette>>;
 
 /** The plant drawn twice, in the night and the day colours, which are baked
  *  into the images. The day copy sits on top of the night one, and .px-light
@@ -80,7 +82,7 @@ function BothThemes({ draw }: { draw: (theme: Theme) => React.ReactNode }) {
   );
 }
 
-/** Per-row growth speed of a stem, and how long the grey bud holds. */
+/** Per-row growth speed of a stem, and how long the closed bud holds. */
 const ROW_MS = 40;
 const BUD_MS = 220;
 
@@ -93,11 +95,12 @@ function stemTop(map: SpriteMap) {
 const ms = (n: number) => `${Math.round(n)}ms`;
 
 /**
- * One plant in a bed. A dormant one is a single grey image. One that blooms
- * is three stacked copies (stem, grey bud, coloured head), each drawn in the
- * night and the day colours, that the stylesheet plays in order once the bed's
- * data-bloom is "on": the stem grows row by row, the bud appears, then pops
- * open in its tint. The timings are computed here and handed over as custom
+ * A plant in a bed. One that does not bloom is a single image of the whole
+ * flower, open, in its tint. One that blooms is two stacked copies (stem and
+ * head), each drawn in the night and the day colours, that the stylesheet plays
+ * in order once the bed's data-bloom is "on": the stem grows row by row, the
+ * head appears as a small bud in its tint, then pops open. Nothing on the site
+ * is ever grey. The timings are computed here and handed over as custom
  * properties; see .flower-stem in app/globals.css.
  */
 export function BloomSprite({
@@ -129,7 +132,7 @@ export function BloomSprite({
       <span className={`relative shrink-0 ${className}`} style={flipStyle}>
         <BothThemes
           draw={(theme) => (
-            <PixelImage map={map} palette={LAYERS[theme].dormant} scale={scale} className="block" />
+            <PixelImage map={map} palette={WHOLE[theme][tint]} scale={scale} className="block" />
           )}
         />
       </span>
@@ -161,8 +164,7 @@ export function BloomSprite({
       <BothThemes
         draw={(theme) => (
           <>
-            <PixelImage map={map} palette={LAYERS[theme].stem} scale={scale} className="flower-stem relative block" />
-            <PixelImage map={map} palette={LAYERS[theme].bud} scale={scale} className="flower-bud absolute left-0 top-0 block" />
+            <PixelImage map={map} palette={STEM_COLORS[theme]} scale={scale} className="flower-stem relative block" />
             <PixelImage map={map} palette={HEADS[theme][tint]} scale={scale} className="flower-head absolute left-0 top-0 block" />
           </>
         )}

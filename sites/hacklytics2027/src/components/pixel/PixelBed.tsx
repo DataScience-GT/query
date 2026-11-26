@@ -38,9 +38,8 @@ const subscribeNoop = () => () => {};
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /**
- * A full-width row of plants standing on the soil. Mostly dormant; the ones
- * marked `blooms` grow and open in their tints in a left-to-right wave the
- * first time the bed is seen.
+ * A full-width row of plants standing on the soil. Every one grows and opens
+ * in its tint, in a left-to-right wave, the first time the bed is seen.
  *
  * With `plantable`, a click or tap on the bed plants a new flower at that x,
  * snapped to the sprite pixel grid, in a tint picked at random. The bed
@@ -53,7 +52,6 @@ export function PixelBed({
   soil = false,
   plantable = false,
   hint = false,
-  caption,
   big = false,
   gap,
   heading,
@@ -66,8 +64,6 @@ export function PixelBed({
   plantable?: boolean;
   /** Show the one-time "Click the soil" hint (hides after the first plant). */
   hint?: boolean;
-  /** Small meta line under the bed. */
-  caption?: string;
   /** Twice the size from sm up. */
   big?: boolean;
   /** Classes for a clear space across the middle of the bed: its display and
@@ -152,7 +148,7 @@ export function PixelBed({
             <BloomSprite
               map={p.map}
               scale={p.scale}
-              blooms={p.blooms}
+              blooms
               tint={p.tint}
               flip={p.flip}
               index={i}
@@ -185,7 +181,7 @@ export function PixelBed({
   return (
     <>
       {soil ? <div className="border-b border-rule">{row}</div> : row}
-      {hint || caption ? (
+      {hint ? (
         <div className="wrap flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-x-6 gap-y-1 pt-3 font-sans text-[13px] text-ink-3">
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
             {heading}
@@ -201,7 +197,6 @@ export function PixelBed({
             )}
           </div>
           {button}
-          {caption && <span className="sm:text-right">{caption}</span>}
         </div>
       ) : (
         <div className="wrap">{button}</div>

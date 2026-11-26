@@ -70,7 +70,7 @@ The schedule shows one day at a time, as tabs under the rail. They are progressi
 
 The boxes that hold art set `--bed: 1`, doubled from `sm` or `md`, so a sprite scales in whole pixels. Art that wants to follow that reads `var(--bed, 1)`.
 
-Islands cannot import the config. `event.config.ts` carries the whole page's copy, and an island that imports it ships that copy to every visitor. Pass islands the few values they need as props. The 2027 beds take `start` (epoch milliseconds) and `startLabel`.
+Islands cannot import the config. `event.config.ts` carries the whole page's copy, and an island that imports it ships that copy to every visitor. Pass islands the few values they need as props. The 2027 beds need none.
 
 ## Dates
 
@@ -81,11 +81,11 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `name` | `Hacklytics 2027` | Title, meta, FAQ copy |
 | `headline` | `Hacklytics 2027: Digital Bloom` | Title, Open Graph, JSON-LD |
 | `dates.short`, `dates.long` | `Feb 26–28, 2027`, `February 26–28, 2027` | Hero, copy |
-| `dates.startLabel`, `dates.endLabel` | `Feb 26`, `Feb 28` | Copy, bed caption |
+| `dates.startLabel`, `dates.endLabel` | `Feb 26`, `Feb 28` | Copy |
 | `dates.days` | `{ key: "Fri", name: "Friday", label: "Feb 26" }`, one per calendar day | Schedule columns |
 | `hackHours` | `36` | Copy, the rail's label |
 | `schedule.rail` | `{ span: 72, from: 21, to: 57 }` | Schedule rail positions |
-| `startMs`, `endMs` | epoch milliseconds | Countdown, season |
+| `startMs`, `endMs` | epoch milliseconds | The schedule's day to open on |
 | `closes`, `closesMs` | `{ weekday: "Thu", label: "Jan 20", long: "January 20", year: 2027, time: "11:59 PM", zone: "EST" }`, epoch milliseconds. Only when `registration.closes` is set | Copy ("Apply by January 20"), the hero's deadline |
 | `links.portalInterest`, `.hackerPortal`, `.judgeSignIn`, `.judgeApply` | `{portal}/login?callbackUrl=...`; `hackerPortal` is `{portal}{portalPath}` and `portalInterest` signs in to `portalPath` | Buttons, copy |
 
@@ -185,7 +185,7 @@ Nothing that differs between editions is a literal in the kit. These are the sam
 The kit was introduced without visible change to the 2027 site. The check that proved it, and that a later edit to the kit can rerun against any site:
 
 1. Build the site before the change and serve `out/` statically.
-2. Capture full-page Playwright screenshots of `/` and `/404` at 375, 768 and 1280 px, in light and dark, with `reducedMotion: "reduce"`, fonts loaded, every island hydrated and the clock frozen with `page.clock.setFixedTime` (the countdown and the bloom count both read the date). Add the open mobile menu and an opened FAQ.
+2. Capture full-page Playwright screenshots of `/` and `/404` at 375, 768 and 1280 px, in light and dark, with `reducedMotion: "reduce"`, fonts loaded, every island hydrated and the clock frozen with `page.clock.setFixedTime` (the countdown reads the date). Add the open mobile menu and an opened FAQ.
 3. Rebuild after the change, capture the same set and compare pixel by pixel with `pixelmatch` at threshold 0. Compare the JSON-LD string and the visible text of the built HTML too.
 
 The scripts for this are not committed.

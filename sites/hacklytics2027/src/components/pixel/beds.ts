@@ -1,4 +1,4 @@
-import { BUD, DAISY, MUSHROOM, TULIP } from "./sprites";
+import { BLOOM, BUD, DAISY, TULIP } from "./sprites";
 import type { SpriteMap } from "./sprites";
 import { TINTS } from "./tints";
 import type { Tint } from "./tints";
@@ -6,69 +6,35 @@ import type { Tint } from "./tints";
 export type Plant = {
   map: SpriteMap;
   scale: number;
-  blooms?: boolean;
-  /** The colour a blooming plant opens in. */
-  tint?: Tint;
+  /** The colour it opens in. */
+  tint: Tint;
   flip?: boolean;
 };
 
 /* Deterministic: the same bed on the server and the client. */
-const MAPS = [TULIP, DAISY, BUD, DAISY, TULIP, MUSHROOM, DAISY, TULIP];
+const MAPS = [TULIP, DAISY, BUD, DAISY, TULIP, BLOOM, DAISY, TULIP];
 
 /** Plants in a full bed (the xl tier); phones show a quarter of them. */
 export const BED_SIZE = 20;
 
-/** A bed of BED_SIZE dormant plants. Choose which bloom with bloomSet. */
+/**
+ * The tint plant `i` opens in. Three tints on per plant, so neighbours are
+ * different at every tier a visitor sees (the phone's every fourth plant, the
+ * md tier's every other, the full bed) and the phone's five and the md tier's
+ * ten between them show all seven. `seed` starts a bed on a different colour
+ * from the next bed's.
+ */
+export const tintAt = (i: number, seed = 0): Tint => TINTS[(3 * (i + seed)) % TINTS.length];
+
+/** A bed of BED_SIZE plants, every one a flower that opens in a tint of its own. */
 export function plantBed(seed = 0): Plant[] {
   return Array.from({ length: BED_SIZE }, (_, i) => {
     const n = (seed * 7 + i * 5) % 13;
     return {
       map: MAPS[(i + seed) % MAPS.length],
       scale: 4 + (n % 3),
+      tint: tintAt(i, seed),
       flip: n % 2 === 1,
     };
   });
-}
-
-/** `n` items of `list`, spread evenly across it. */
-const spread = <T,>(list: T[], n: number) =>
-  Array.from({ length: n }, (_, k) => list[Math.floor(((k + 0.5) * list.length) / n)]);
-
-/**
- * Which `n` plants of a bed bloom: evenly spaced, and shared between the tiers
- * by size, so the share in bloom reads the same on a phone as on a desktop.
- * The phone tier rounds up first, so two in bloom still shows one there.
- */
-export function bloomSet(n: number, total = BED_SIZE): Set<number> {
-  const all = Array.from({ length: total }, (_, i) => i);
-  const tiers = [
-    all.filter((i) => i % 4 === 0),
-    all.filter((i) => i % 4 === 2),
-    all.filter((i) => i % 2 === 1),
-  ];
-  const picked: number[] = [];
-  let left = Math.min(n, total);
-  let room = total;
-  for (const tier of tiers) {
-    const take = Math.round((left * tier.length) / room);
-    picked.push(...spread(tier, take));
-    left -= take;
-    room -= tier.length;
-  }
-  return new Set(picked);
-}
-
-/**
- * Mark the plants in `set` as blooming, each in its own tint: three steps
- * round the eight per flower, so the first eight in bloom are all different
- * and neighbours are different at every tier. `offset` starts a bed on a
- * different colour from the next one.
- */
-export function withBlooms(plants: Plant[], set: Set<number>, offset = 0): Plant[] {
-  let rank = 0;
-  return plants.map((p, i) =>
-    set.has(i)
-      ? { ...p, blooms: true, tint: TINTS[(offset + 3 * rank++) % TINTS.length] }
-      : { ...p, blooms: false },
-  );
 }

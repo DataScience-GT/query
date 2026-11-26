@@ -1,12 +1,10 @@
-import { PALETTES    } from "./sprites";
-import type {Palette, PaletteName, SpriteMap} from "./sprites";
+import type { Palette, SpriteMap } from "./sprites";
 
 /**
  * Serialize a pixel map to an inline SVG data URI so it can be tiled with
  * `background-repeat`, and to back the <img> sprites in PixelSprite.
  */
-export function spriteToDataUri(map: SpriteMap, palette: PaletteName | Palette = "dormant") {
-  const colors = typeof palette === "string" ? PALETTES[palette] : palette;
+export function spriteToDataUri(map: SpriteMap, colors: Palette) {
   const w = Math.max(...map.map((r) => r.length));
   const h = map.length;
 

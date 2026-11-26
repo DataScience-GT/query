@@ -1,6 +1,6 @@
 import { BLOOM_TINTS } from "@query/core";
 import { describe, expect, it } from "vitest";
-import { BED_SIZE, bloomSet, plantBed, withBlooms } from "./beds";
+import { BED_SIZE, plantBed, tintAt } from "./beds";
 import { HEADS, TINTS, headPalette } from "./tints";
 
 // The light theme's --ground in styles/globals.css.
@@ -20,69 +20,84 @@ const contrast = (a: string, b: string) => {
 
 describe("headPalette", () => {
   it("opens night flowers in the portal's tint, one colour per flower", () => {
-    expect(TINTS).toHaveLength(8);
     for (const tint of TINTS) expect(HEADS.dark[tint].P).toBe(BLOOM_TINTS[tint]);
     expect(new Set(TINTS.map((t) => HEADS.dark[t].P)).size).toBe(TINTS.length);
+  });
+
+  it("uses seven of the portal's eight: the white daisy has no hue to tell it from grey", () => {
+    expect(TINTS).toHaveLength(7);
+    expect(TINTS).not.toContain("daisy");
+    expect(Object.keys(BLOOM_TINTS).sort()).toEqual([...TINTS, "daisy"].sort());
   });
 
   it("colours every key a sprite head uses", () => {
     for (const theme of ["dark", "light"] as const) {
       for (const tint of TINTS) {
-        expect(Object.keys(HEADS[theme][tint]).sort(), `${theme} ${tint}`).toEqual(
-          ["M", "P", "W", "Y", "c", "m", "p", "w"],
-        );
+        expect(Object.keys(HEADS[theme][tint]).sort(), `${theme} ${tint}`).toEqual([
+          "P",
+          "W",
+          "Y",
+          "c",
+          "p",
+        ]);
       }
     }
   });
 
-  it("keeps the day outline readable on the pale ground, even for the white daisy", () => {
+  it("keeps the day outline readable on the pale ground", () => {
     for (const tint of TINTS) {
       const { p } = headPalette(tint, "light");
       expect(contrast(p, LIGHT_GROUND), tint).toBeGreaterThanOrEqual(3);
     }
   });
 
-  it("gives the white and yellow flowers a centre that shows", () => {
-    for (const tint of ["daisy", "sunflower"] as const) {
-      const { Y, P } = HEADS.dark[tint];
-      expect(Y, tint).not.toBe(P);
-      expect(contrast(Y, P), tint).toBeGreaterThanOrEqual(1.5);
-    }
+  it("gives the yellow flower a centre that shows", () => {
+    const { Y, P } = HEADS.dark.sunflower;
+    expect(Y).not.toBe(P);
+    expect(contrast(Y, P)).toBeGreaterThanOrEqual(1.5);
   });
 });
 
-describe("a bed in bloom", () => {
-  const bedWith = (n: number, offset = 0) => withBlooms(plantBed(2), bloomSet(n), offset);
-  // The tiers a visitor can see: every fourth plant on a phone, every other
-  // from md, all of them from xl.
+describe("a bed", () => {
+  // The tiers a visitor sees: every fourth plant on a phone, every other from
+  // md, all of them from xl.
   const tiers = [4, 2, 1];
+  const seeds = [0, 2, 3];
+  const tintsOf = (seed: number, step: number) =>
+    plantBed(seed)
+      .filter((_, i) => i % step === 0)
+      .map((p) => p.tint);
 
   it("is deterministic, so the server and the client draw the same garden", () => {
-    expect(bedWith(7, 3)).toEqual(bedWith(7, 3));
+    expect(plantBed(2)).toEqual(plantBed(2));
   });
 
-  it("opens each of the first eight flowers in a different colour", () => {
-    for (let n = 1; n <= TINTS.length; n++) {
-      const tints = bedWith(n).filter((p) => p.blooms).map((p) => p.tint);
-      expect(tints).toHaveLength(n);
-      expect(new Set(tints).size, `${n} in bloom`).toBe(n);
+  it("gives every plant a tint, so none has to be drawn without one", () => {
+    for (const seed of seeds) {
+      expect(plantBed(seed)).toHaveLength(BED_SIZE);
+      expect(plantBed(seed).every((p) => TINTS.includes(p.tint))).toBe(true);
     }
   });
 
-  it("never opens two flowers of the same colour side by side at any tier", () => {
-    for (let n = 1; n <= BED_SIZE; n++) {
+  it("never puts the same colour next to itself at any tier", () => {
+    for (const seed of seeds) {
       for (const step of tiers) {
-        const shown = bedWith(n, 3)
-          .filter((p, i) => i % step === 0 && p.blooms)
-          .map((p) => p.tint);
-        shown.slice(1).forEach((tint, k) => {
-          expect(tint, `${n} in bloom, every ${step}: ${shown.join()}`).not.toBe(shown[k]);
+        const tints = tintsOf(seed, step);
+        tints.slice(1).forEach((tint, k) => {
+          expect(tint, `seed ${seed}, every ${step}: ${tints.join()}`).not.toBe(tints[k]);
         });
       }
     }
   });
 
-  it("leaves dormant plants without a colour", () => {
-    expect(bedWith(3).filter((p) => !p.blooms).every((p) => p.tint === undefined)).toBe(true);
+  it("shows five different colours on a phone, and all seven from md", () => {
+    for (const seed of seeds) {
+      expect(new Set(tintsOf(seed, 4)).size).toBe(5);
+      expect(new Set(tintsOf(seed, 2)).size).toBe(TINTS.length);
+    }
+  });
+
+  it("starts each bed on a different colour", () => {
+    expect(new Set(seeds.map((seed) => tintAt(0, seed))).size).toBe(seeds.length);
   });
 });

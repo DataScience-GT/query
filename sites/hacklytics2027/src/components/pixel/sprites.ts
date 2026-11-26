@@ -2,12 +2,11 @@
  * Pixel-art sprite maps — Terraria-style flora for the Digital Bloom theme.
  *
  * Each sprite is a string[] where one character = one pixel. Characters are
- * looked up in a palette, so the same map can be drawn dormant (grey) or in
- * bloom, in any of the eight flower tints (tints.ts). "." is transparent.
+ * looked up in a palette, so the same map can be drawn in any of the flower
+ * tints (tints.ts). "." is transparent.
  *
  *   p/P  petal dark / light      c  petal core      Y  bloom center
  *   W    highlight               g  stem            G  leaf
- *   m/M  cap dark / light        w  cap spots       s/S stalk
  *   d    soil                    r  rock
  */
 
@@ -117,18 +116,6 @@ export const SPROUT: SpriteMap = [
   "..ggg..",
 ];
 
-export const MUSHROOM: SpriteMap = [
-  "..mmmmm..",
-  ".mMwwwMm.",
-  "mMwwwwwMm",
-  "mMwwwwwMm",
-  ".mmMMMmm.",
-  "...sss...",
-  "...sSs...",
-  "...sss...",
-  "..ddddd..",
-];
-
 /** Vertically tileable vine segment. */
 export const VINE: SpriteMap = [
   "...g...",
@@ -163,60 +150,27 @@ export const SPORE: SpriteMap = [
 ];
 
 /* ─── Palettes ───────────────────────────────────────────────────────────
-   Dormant is the night: grey petals on green stems. A flower in bloom swaps
-   its head for one of the eight tints (tints.ts). Stems and leaves are the
-   sage of the globe art's land and they never change. */
+   Stems, leaves and soil only. A flower's petals and heads are never grey:
+   they take one of the portal's flower tints (tints.ts). Stems and leaves are
+   the sage of the globe art's land and they never change. */
 
-const shared = {
+const night: Palette = {
   g: "#5f8f67",
   G: "#96bf98",
-  s: "#5a6070",
-  S: "#3a3e4a",
   d: "#1a1c23",
   r: "#262731",
 };
 
-export const PALETTES: Record<"dormant", Palette> = {
-  dormant: {
-    ...shared,
-    p: "#3a3e4a",
-    P: "#5a6070",
-    c: "#8a90a0",
-    Y: "#c9cdd6",
-    W: "#c9cdd6",
-    m: "#3a3e4a",
-    M: "#5a6070",
-    w: "#8a90a0",
-  },
-};
-
 /* Day: the night pastels wash out on the pale ground (#f1f4f6), so the light
    set uses the deeper sage of globals.css: on that ground the leaves are
-   3.9:1 and the stem 5.1:1. Dormant stays quiet, all greys under 2.5:1. The
-   tints deepen the same way (tints.ts). Sprites bake their colours, so
-   BloomSprite draws both sets and the stylesheet shows one (.px-light). */
-
-const sharedLight = {
+   3.9:1 and the stem 5.1:1. The tints deepen the same way (tints.ts). Sprites
+   bake their colours, so BloomSprite draws both sets and the stylesheet shows
+   one (.px-light). */
+const day: Palette = {
   g: "#3b7440",
   G: "#4a8750",
-  s: "#a6adb8",
-  S: "#bcc3cc",
   d: "#d5dbe1",
   r: "#c3cad2",
 };
 
-export const PALETTES_LIGHT: Record<"dormant", Palette> = {
-  dormant: {
-    ...sharedLight,
-    p: "#aab1bb",
-    P: "#c3c9d1",
-    c: "#d4d9df",
-    Y: "#e3e7ec",
-    W: "#e3e7ec",
-    m: "#aab1bb",
-    M: "#c3c9d1",
-    w: "#d4d9df",
-  },
-};
-
-export type PaletteName = keyof typeof PALETTES;
+export const STEM_COLORS = { dark: night, light: day } as const;
