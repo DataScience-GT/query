@@ -1,9 +1,9 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "@query/auth";
+import { auth, discordLoginEnabled } from "@query/auth";
 import { appRouter, createContext } from "@query/api";
 import { safeCallback } from "@/lib/safe-callback";
-import { kicker, pageDek, pageTitle } from "@query/ui/classes";
+import { pageDek, pageTitle } from "@query/ui/classes";
 import LoginActions from "./LoginActions";
 
 export const metadata = { title: "Sign in" };
@@ -48,11 +48,6 @@ export default async function LoginPage({
   const session = await auth();
   if (session?.user) redirect(callbackUrl ?? (await roleHome()));
 
-  // Hackers come from /hacklytics or /hackathons and need no membership, so
-  // the member-portal framing would tell them they are in the wrong place.
-  const forHacklytics = !!callbackUrl && callbackUrl.startsWith("/hacklytics");
-  const forHackers =
-    forHacklytics || (!!callbackUrl && callbackUrl.startsWith("/hackathons"));
   const inAppBrowser = IN_APP_BROWSER.test(
     (await headers()).get("user-agent") ?? "",
   );
@@ -61,20 +56,17 @@ export default async function LoginPage({
     <main className="min-h-[calc(100vh-4rem)] flex items-center px-5 sm:px-8 md:px-12">
       <div className="mx-auto grid w-full max-w-4xl grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 py-10 lg:py-14 items-center">
         <div>
-          {forHackers && <p className={kicker}>For hackers</p>}
-          <h1 className={`${forHackers ? "mt-2" : ""} ${pageTitle}`}>
-            {forHacklytics ? "Hacklytics" : forHackers ? "Hackathons" : "Sign in"}
-          </h1>
+          <h1 className={pageTitle}>Sign in</h1>
           <p className={pageDek}>
-            {forHackers
-              ? `Sign in to apply${forHacklytics ? " to Hacklytics" : ""}. No membership needed; any email works.`
-              : "The portal for Data Science at Georgia Tech members, judges and volunteers."}
+            The portal for Data Science at Georgia Tech, for members, hackers,
+            judges and volunteers. No membership is needed to apply to a
+            hackathon.
           </p>
         </div>
 
         <LoginActions
           callbackUrl={callbackUrl}
-          forHackers={forHackers}
+          discord={discordLoginEnabled()}
           inAppBrowser={inAppBrowser}
         />
       </div>
