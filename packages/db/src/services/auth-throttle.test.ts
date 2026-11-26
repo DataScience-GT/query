@@ -74,14 +74,25 @@ describe("requesterCodeCaps", () => {
     }
   });
 
-  it("leaves the domain and network caps off an address that already has an account", () => {
+  it("gives an address that already has an account a bucket of its own, with no domain cap", () => {
     // A venue shares one address among everyone who applied, and nearly all of
-    // them have an account already.
-    const keys = requesterCodeCaps("a@gatech.edu", "203.0.113.7", {
-      existingUser: true,
-    }).map((cap) => cap.key);
+    // them have an account already, so they are not held to a stranger's 40. But
+    // accounts cost an attacker little, so one network still cannot take it all.
+    expect(
+      requesterCodeCaps("a@gatech.edu", "203.0.113.7", { existingUser: true }),
+    ).toEqual([{ key: "ip-known:203.0.113.0/24", max: 150 }]);
+  });
 
-    expect(keys).toEqual([]);
+  it("buckets accounts by the same /24 and /48 as everyone else", () => {
+    expect(
+      requesterCodeCaps("a@gatech.edu", "2001:db8:1:2::9", { existingUser: true }),
+    ).toEqual([{ key: "ip-known:2001:db8:1::/48", max: 150 }]);
+  });
+
+  it("has nothing to bucket an account by when the request carries no address", () => {
+    expect(
+      requesterCodeCaps("a@gatech.edu", null, { existingUser: true }),
+    ).toEqual([]);
   });
 
   it("keeps both on one that has none", () => {

@@ -42,6 +42,14 @@ export const NEW_ADDRESS_THROTTLE_KEY = "*global-new*";
  * hundreds of people, most of whom sign in with Google or Discord.
  */
 export const CODES_PER_NETWORK_PER_HOUR = 40;
+/**
+ * Codes one client network may be sent per hour for addresses that already have
+ * an account. Much higher than for strangers, because on judging or check-in day
+ * a whole venue shares one address and nearly everyone there applied. Not
+ * unlimited, because an account costs an attacker one code on a catch-all
+ * domain, and about 60 of them would take the deployment's whole 300 an hour.
+ */
+export const CODES_PER_KNOWN_NETWORK_PER_HOUR = 150;
 /** Codes one email domain may be sent per hour: a catch-all costs nothing. */
 export const CODES_PER_DOMAIN_PER_HOUR = 20;
 /** The same for a big school or a mail provider, where many people share it. */
@@ -108,13 +116,14 @@ export async function hasAccount(
  * the deployment's: the client's network, when the request carried one, and the
  * address's domain. Keys cannot be a real address, which always has an `@`.
  *
- * Both caps are for addresses with no account. They exist because a catch-all
- * or a made-up address costs an attacker nothing, and they must not work the
- * other way round: fake addresses at gatech.edu filling its cap would otherwise
- * lock out everyone who signs in there by code. Nor is a network's hour for
- * people who already have an account: on judging day a whole venue shares one
- * address, and nearly everyone there applied and so has one. They keep the
- * per-address cap, the lockout and the deployment's cap.
+ * The domain cap, and the network's hour at 40, are for addresses with no
+ * account. They exist because a catch-all or a made-up address costs an attacker
+ * nothing, and they must not work the other way round: fake addresses at
+ * gatech.edu filling its cap would otherwise lock out everyone who signs in
+ * there by code. An address that has an account is held to a network bucket of
+ * its own instead (`ip-known:`, 150 an hour), so a venue sharing one address
+ * still gets in and one network still cannot take the deployment's whole hour.
+ * They keep the per-address cap, the lockout and the deployment's cap too.
  */
 export function requesterCodeCaps(
   identifier: string,
@@ -122,7 +131,15 @@ export function requesterCodeCaps(
   options: { existingUser?: boolean } = {},
 ): { key: string; max: number }[] {
   const caps: { key: string; max: number }[] = [];
-  if (options.existingUser) return caps;
+  if (options.existingUser) {
+    if (clientIp) {
+      caps.push({
+        key: `ip-known:${networkOf(clientIp)}`,
+        max: CODES_PER_KNOWN_NETWORK_PER_HOUR,
+      });
+    }
+    return caps;
+  }
   if (clientIp) {
     caps.push({
       key: `ip:${networkOf(clientIp)}`,

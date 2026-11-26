@@ -71,6 +71,7 @@ describe.skipIf(!URL)("email code caps on a real database", () => {
     "ip:203.0.113.0/24",
     "ip:198.51.100.0/24",
     "ip:192.0.2.0/24",
+    "ip-known:192.0.2.0/24",
     "domain:gatech.edu",
     "*global-new*",
   ];
@@ -82,7 +83,8 @@ describe.skipIf(!URL)("email code caps on a real database", () => {
     );
     await db().execute(
       sql`DELETE FROM "auth_code_throttle"
-          WHERE "identifier" LIKE 'ip:100.64.%' OR "identifier" LIKE ${`%${suffix}%`}
+          WHERE "identifier" LIKE 'ip:100.64.%' OR "identifier" LIKE 'ip-known:198.18.%'
+             OR "identifier" LIKE ${`%${suffix}%`}
              OR "identifier" IN (${sql.join(OWN_KEYS.map((key) => sql`${key}`), sql`, `)})`,
     );
     await db().execute(
@@ -301,6 +303,34 @@ describe.skipIf(!URL)("email code caps on a real database", () => {
     const another = await withAccount("venue-last", `school-${suffix}.test`);
     expect(await request("192.0.2.251", another)).toEqual({ busy: false, sent: true });
   }, 60_000);
+
+  it("caps the accounts one network can ask for, so it cannot take the whole deployment's hour", async () => {
+    // Accounts cost an attacker one code each, so a catch-all domain makes them
+    // cheap. Held to a bucket of their own, one network cannot take all 300.
+    const KNOWN_CAP = 150;
+    const people = Array.from({ length: KNOWN_CAP + 2 }, (_, i) => ({
+      id: `caps-${suffix}-known${i}`,
+      email: `known${i}-${suffix}@catchall-${suffix}.test`,
+    }));
+    await db().insert(S.users).values(people);
+    const emailOf = (i: number) => people[i]?.email ?? "";
+
+    for (let i = 0; i < KNOWN_CAP; i += 1) {
+      const result = await request(`198.18.0.${(i % 250) + 1}`, emailOf(i));
+      expect(result).toEqual({ busy: false, sent: true });
+    }
+    // The 151st from that /24 is refused...
+    expect(await request("198.18.0.251", emailOf(KNOWN_CAP))).toEqual({
+      busy: true,
+      sent: false,
+    });
+    // ...and the rest of the deployment's hour is still there for another network.
+    expect(await request("198.18.1.1", emailOf(KNOWN_CAP + 1))).toEqual({
+      busy: false,
+      sent: true,
+    });
+    expect(await globalIssued()).toBe(KNOWN_CAP + 1);
+  }, 120_000);
 
   it("keeps part of the deployment's hour for people who already have an account", async () => {
     const real = await withAccount("headroom", `school-${suffix}.test`);

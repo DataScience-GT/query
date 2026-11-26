@@ -221,7 +221,8 @@ export const authConfig: NextAuthConfig = {
             // its network's and its domain's caps and to a share of the
             // deployment's hour, and a person who has signed in before does
             // not, however full those are. (A venue shares one network.) They
-            // keep their own address cap, the lock and the deployment's cap.
+            // have a larger network bucket of their own, and keep their own
+            // address cap, the lock and the deployment's cap.
             const existingUser = await hasAccount(tx, identifier);
             for (const cap of requesterCodeCaps(identifier, currentClientIp(), {
               existingUser,
