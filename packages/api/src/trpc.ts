@@ -433,6 +433,10 @@ const CACHE_INVALIDATION_MAP: Record<string, string[]> = {
   // every attendee's cached registrations.
   "hackathon.updateMyRegistration": [],
   "hackathon.confirmAttendance": [],
+  // An autosave writes one private row and nothing cached. It fires every few
+  // seconds while someone types, so the namespace fallback would be a sweep of
+  // every cached hackathon read each time.
+  "hackathon.saveMyDraft": [],
   // `hackathons:list*`, not `hackathons:list`: deletePattern anchors with `$`,
   // and every real key carries a viewer/status/limit suffix. With an entry
   // present the namespace fallback is skipped, so nothing was evicted at all.
