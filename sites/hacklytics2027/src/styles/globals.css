@@ -105,44 +105,41 @@
 .pixelated { image-rendering: pixelated; }
 
 /* ─── The bloom ───────────────────────────────────────────────────────────
-   A blooming flower is three stacked copies of one sprite (see BloomSprite):
-   its stem, a grey closed bud, and the pink head. All of it is hidden until
+   A blooming flower is two stacked copies of one sprite (see BloomSprite): its
+   stem, and its head in the flower's tint (never grey), which first shows as a
+   small closed bud and then pops open. All of it is hidden until
    the bed's data-bloom flips to "on" (useBloomInView, or a click that plants
    a flower), and then plays out once on per-flower delays set inline by
    BloomSprite:
 
      --d    stem starts growing (the 80ms left-to-right stagger)
-     --t1   stem done: the grey bud appears, small
-     --t2   the bud pops open pink
+     --t1   stem done: the bud appears, small
+     --t2   the bud pops open
 
    Everything steps; nothing fades, and nothing loops. */
 
 .flower-stem { clip-path: inset(100% 0 0 0); }
-.flower-bud,
-.flower-head { visibility: hidden; }
-.flower-bud {
-  transform: scale(0.6);
+.flower-head {
+  visibility: hidden;
   transform-origin: 50% var(--top);
 }
 
 [data-bloom="on"] .flower-stem {
   animation: flower-stem var(--grow) steps(var(--rows), end) var(--d) forwards;
 }
-[data-bloom="on"] .flower-bud {
-  animation: flower-bud var(--bud) steps(1, end) var(--t1) forwards;
-}
 [data-bloom="on"] .flower-head {
-  animation: flower-open 110ms steps(1, end) var(--t2) forwards;
+  animation:
+    flower-bud var(--bud) steps(1, end) var(--t1),
+    flower-open 110ms steps(1, end) var(--t2) forwards;
 }
 
 @keyframes flower-stem {
   from { clip-path: inset(100% 0 0 0); }
   to   { clip-path: inset(var(--top) 0 0 0); }
 }
-/* Shown for the whole run, hidden once it ends. */
+/* The head as a small closed bud, until it opens. */
 @keyframes flower-bud {
-  from { visibility: visible; }
-  to   { visibility: hidden; }
+  from, to { visibility: visible; transform: scale(0.6); }
 }
 /* Opens one sprite pixel high, then settles: the "pop". */
 @keyframes flower-open {
@@ -175,8 +172,6 @@
 @media (prefers-reduced-motion: reduce) {
   .flower-stem,
   [data-bloom="on"] .flower-stem { clip-path: none; animation: none; }
-  .flower-bud,
-  [data-bloom="on"] .flower-bud { visibility: hidden; animation: none; }
   .flower-head,
   [data-bloom="on"] .flower-head {
     visibility: visible;

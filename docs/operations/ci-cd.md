@@ -6,13 +6,31 @@ All workflows live in `.github/workflows/`.
 
 `ci.yml` is the one CI/CD pipeline, on every PR and every push to `main`/`dev`:
 
-1. `verify` — `pnpm install --frozen-lockfile`, then `turbo run lint typecheck`, `pnpm test`, `turbo run build` (Node from `.nvmrc`; pnpm from `packageManager`, unpinned in the workflow so it cannot drift). Uploads `sites/hacklytics2027/out` (artifact `hacklytics-out`). The archived `sites/hacklytics2026` is skipped: lint, typecheck and build run with `--filter=!hacklytics2026`, `vitest.config.ts` excludes its tests, and nothing uploads or deploys it.
-2. `preview-hacklytics` — PRs from this repo (not forks, not Dependabot): deploys that build to Firebase Hosting channel `pr-N`.
-3. `deploy-hacklytics` — push to `main` only: deploys the same build to the live `hacklytics` target.
+1. `check`, `test` and `build` run in parallel, so a run takes as long as the slowest rather than their sum. Each has its own checkout and `pnpm install --frozen-lockfile` (Node from `.nvmrc`; pnpm from `packageManager`, unpinned in the workflow so it cannot drift).
+   - `check` — `turbo boundaries`, then `turbo run lint typecheck`.
+   - `test` — `pnpm test` split in two with vitest `--shard`, each half on its own runner with its own database.
+   - `build` — `turbo run build`, then uploads `sites/hacklytics2027/out` (artifact `hacklytics-out`).
 
-`verify` restores `.turbo/cache` with `actions/cache`, keyed by commit sha and restored from the newest run, so unchanged tasks replay from cache. Env vars hash only into `mainweb`'s `build` (`sites/mainweb/turbo.json`) and `test`, never into lint or typecheck; the rest of the list in the root `turbo.json` is `globalPassThroughEnv`.
+   The archived `sites/hacklytics2026` is skipped: lint, typecheck and build run with `--filter=!hacklytics2026`, `vitest.config.ts` excludes its tests, and nothing uploads or deploys it.
+2. `verify` — named `Lint, typecheck, test, build`. It waits for the three jobs above and fails unless every one succeeded, so a skipped or cancelled job cannot read as a pass. This is the check the branch rulesets require; keep the name.
+3. `preview-hacklytics` — PRs from this repo (not forks, not Dependabot): deploys that build to Firebase Hosting channel `pr-N`.
+4. `deploy-hacklytics` — push to `main` only: deploys the same build to the live `hacklytics` target.
 
-`verify` starts the test database right after checkout, in the background, with only the `db` service (Mailpit is not used by tests). The image pull and boot then overlap install and lint/typecheck instead of adding about 30 seconds in front of the tests. The "Start test database" step waits for that start, then runs `pnpm local:up db` to push the schema and seed. In CI, `tooling/scripts/src/local.ts` also layers `docker/compose.ci.yml` on the compose file (fsync off, data on tmpfs); every compose call must use the same files or compose recreates the container.
+### Caches
+
+All three are `actions/cache`, so nothing outside GitHub storage. Each run saves under its own sha and restores the newest, so a PR starts from the last `main` or `dev` run.
+
+| Job | Path | Key | Why |
+| --- | --- | --- | --- |
+| `check` | `.turbo/cache` | `turbo-lint-<os>-<sha>` | Lint, typecheck and the packages' build replay when their inputs did not change. A few hundred KB; entries older than a week are dropped before the save. |
+| `build` | `sites/mainweb/public/photos` | hash of the source photos, `image-sizes.mjs` and `build-photos.ts` | Encoding the photos takes about 50s. No `restore-keys`: the restored files are touched so `build-photos.ts` sees them as fresh, which is only right for the exact same sources. |
+| `build` | `sites/mainweb/.next/cache` | `next-<os>-<lockfile hash>-<sha>` | Turbopack's build cache. A build after a small change compiles in about 1s instead of 27s. |
+
+`build` runs turbo with `--no-cache`. The mainweb build changes with almost every commit, and storing its output in `.turbo/cache` once grew that cache by about 57 MB per run, to 3.6 GB, which took 34s to restore and 14s to save. Env vars hash only into `mainweb`'s `build` (`sites/mainweb/turbo.json`) and `test`, never into lint or typecheck; the rest of the list in the root `turbo.json` is `globalPassThroughEnv`.
+
+If a cached build ever looks wrong, change the key prefix in `ci.yml` (for example `next-` to `next-v2-`) to start from nothing.
+
+Each `test` job starts the test database right after checkout, in the background, with only the `db` service (Mailpit is not used by tests). The image pull and boot then overlap install instead of adding about 30 seconds in front of the tests. The "Start test database" step waits for that start, then runs `pnpm local:up db` to push the schema and seed. In CI, `tooling/scripts/src/local.ts` also layers `docker/compose.ci.yml` on the compose file (fsync off, data on tmpfs); every compose call must use the same files or compose recreates the container.
 
 Both deploy jobs `need` `verify`, so nothing ships that failed lint, typecheck, tests, or build.
 

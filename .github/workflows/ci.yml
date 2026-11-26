@@ -49,8 +49,8 @@ jobs:
         uses: actions/cache@v6
         with:
           path: .turbo/cache
-          key: turbo-lint-cold1-${{ runner.os }}-${{ github.sha }}
-          restore-keys: turbo-lint-cold1-${{ runner.os }}-
+          key: turbo-lint-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-lint-${{ runner.os }}-
 
       # Every import is declared in its package.json, nothing reaches into
       # another workspace by path, and the layer tags in turbo.json hold.
@@ -92,13 +92,9 @@ jobs:
             echo $? > "$RUNNER_TEMP/db-up.exit"
           ' > "$RUNNER_TEMP/db-up.log" 2>&1 &
 
-      # No version pin: the one in packageManager is the one that reads
-      # overrides and allowBuilds from pnpm-workspace.yaml. Pinning here
-      # silently installed an older pnpm that ignores both.
+      # Same setup as in check.
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
-      # No pnpm store cache: restoring 270 MB took longer than the install it
-      # saves.
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -126,10 +122,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
 
       - name: Test
-        run: |
-          nproc
-          TIMEFORMAT="time real %R user %U sys %S"
-          time pnpm test --shard=${{ matrix.shard }}/2
+        run: pnpm test --shard=${{ matrix.shard }}/2
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/neondb
           # Opts in the tests that write to a real database. Only the throwaway
@@ -142,13 +135,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # No version pin: the one in packageManager is the one that reads
-      # overrides and allowBuilds from pnpm-workspace.yaml. Pinning here
-      # silently installed an older pnpm that ignores both.
+      # Same setup as in check.
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
-      # No pnpm store cache: restoring 270 MB took longer than the install it
-      # saves.
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -165,7 +154,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: sites/mainweb/public/photos
-          key: photos-cold1-${{ hashFiles('sites/mainweb/assets/images/photos/*', 'sites/mainweb/image-sizes.mjs', 'sites/mainweb/scripts/build-photos.ts') }}
+          key: photos-${{ hashFiles('sites/mainweb/assets/images/photos/*', 'sites/mainweb/image-sizes.mjs', 'sites/mainweb/scripts/build-photos.ts') }}
 
       # build-photos.ts skips a file that is newer than its source. The sources
       # were just checked out, so restored files would look older and be
@@ -182,10 +171,10 @@ jobs:
         uses: actions/cache@v6
         with:
           path: sites/mainweb/.next/cache
-          key: next-cold1-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           restore-keys: |
-            next-cold1-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
-            next-cold1-${{ runner.os }}-
+            next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            next-${{ runner.os }}-
 
       # No Turborepo cache here. The mainweb build changes with almost every
       # commit, and storing its output (.next and the photos) grew the old

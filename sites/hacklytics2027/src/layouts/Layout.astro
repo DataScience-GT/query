@@ -22,13 +22,13 @@ const { home = false } = Astro.props;
   <slot name="head" slot="head" />
   {/* The menu only opens below 1024px, so its bed hydrates only there. */}
   <Fragment slot="menu-art">
-    <MenuBed client:media="(max-width: 1023px)" start={event.startMs} />
+    <MenuBed client:media="(max-width: 1023px)" />
   </Fragment>
   {/* The page ends in the same bed it started in. */}
   {home && (
     <Fragment slot="footer-art">
       <h2 class="wrap font-display text-[16px] text-ink pt-10">Plant a flower</h2>
-      <FooterBed client:visible start={event.startMs} />
+      <FooterBed client:visible />
     </Fragment>
   )}
   <slot />
