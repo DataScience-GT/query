@@ -29,10 +29,8 @@ jobs:
         uses: actions/cache@v6
         with:
           path: .turbo/cache
-          key: turbo-check-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-check-${{ runner.os }}-
-            turbo-${{ runner.os }}-
+          key: turbo-lint-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-lint-${{ runner.os }}-
 
       # Every import is declared in its package.json, nothing reaches into
       # another workspace by path, and the layer tags in turbo.json hold.
@@ -98,17 +96,8 @@ jobs:
 
       - uses: ./.github/actions/install
 
-      - name: Restore Turborepo cache
-        uses: actions/cache@v6
-        with:
-          path: .turbo/cache
-          key: turbo-build-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-build-${{ runner.os }}-
-            turbo-${{ runner.os }}-
-
       - name: Build
-        run: pnpm turbo run build --filter=!hacklytics2026
+        run: pnpm turbo run build --filter=!hacklytics2026 --no-cache
 
       - name: Upload Hacklytics build
         uses: actions/upload-artifact@v7
