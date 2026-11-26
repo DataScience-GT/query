@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import type { ReactNode } from "react";
 
 interface ModalProps {
@@ -37,20 +37,17 @@ export function Modal({
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Read through a ref so the effect below runs once per open. Keyed on
+  // An effect event, so the effect below runs once per open. Keyed on
   // onClose, a caller whose handler changes identity (one that depends on a
   // pending flag) ran the cleanup mid-dialog: focus went back to the page and
   // then jumped to the panel, out of whatever control the user was in.
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
+  const closeOnEscape = useEffectEvent(onClose);
 
   useEffect(() => {
     const returnFocusTo = document.activeElement as HTMLElement | null;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCloseRef.current();
+      if (e.key === "Escape") closeOnEscape();
     };
     document.addEventListener("keydown", onKeyDown);
 

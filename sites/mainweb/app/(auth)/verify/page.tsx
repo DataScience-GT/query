@@ -42,11 +42,6 @@ function VerifyContent() {
     ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
     : "/login";
 
-  // Auto-focus first input on mount
-  useEffect(() => {
-    inputRefs.current[0]?.focus();
-  }, []);
-
   // Counted against the clock, not by ticks: a phone pauses timers while the
   // visitor is off in their mail app, and a tick count would still be waiting
   // when they come back for a new code.
@@ -250,6 +245,7 @@ function VerifyContent() {
                   : "border-[var(--border-medium)] focus:border-accent focus:ring-[var(--accent-dim)]"
               }`}
               autoComplete={i === 0 ? "one-time-code" : "off"}
+              autoFocus={i === 0}
             />
           ))}
         </div>

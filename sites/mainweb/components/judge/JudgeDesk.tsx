@@ -324,6 +324,7 @@ function Desk({
         {hydrated ? (
           <Suspense fallback={<SheetPending onClose={close} />}>
             <EvaluationSheet
+              key={projectId}
               hackathonId={hackathonId}
               judgeId={context.judge?.id ?? null}
               entryId={projectId}

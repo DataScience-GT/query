@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as React from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -66,18 +67,21 @@ function render(
   document.body.appendChild(el);
   const root = createRoot(el);
   mounted.push({ root, el });
+  // The form loads its school list through React Query, as it does in the portal.
   act(() =>
     root.render(
-      <RegistrationForm
-        hackathonId="h1"
-        hackathonName="Hacklytics: Digital Bloom"
-        startDate="2027-02-26T14:00:00Z"
-        endDate="2027-02-28T17:00:00Z"
-        saved={props.saved}
-        onRegistered={() => undefined}
-        onUpdated={() => undefined}
-        onCancel={props.onCancel ?? (() => undefined)}
-      />,
+      <QueryClientProvider client={new QueryClient()}>
+        <RegistrationForm
+          hackathonId="h1"
+          hackathonName="Hacklytics: Digital Bloom"
+          startDate="2027-02-26T14:00:00Z"
+          endDate="2027-02-28T17:00:00Z"
+          saved={props.saved}
+          onRegistered={() => undefined}
+          onUpdated={() => undefined}
+          onCancel={props.onCancel ?? (() => undefined)}
+        />
+      </QueryClientProvider>,
     ),
   );
   return el;

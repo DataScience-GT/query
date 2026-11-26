@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Root } from "react-dom/client";
 import * as React from "react";
 import { act } from "react";
@@ -9,7 +10,8 @@ import { InfoTab } from "./InfoTab";
 
 // The registration form is a separate module that InfoTab loads when it is
 // opened, so these run the real InfoTab and the real form together with only
-// the session, router and tRPC hooks stubbed.
+// the session, router and tRPC hooks stubbed. The form loads its school list
+// through React Query, so a real client wraps it, as the portal's does.
 
 Object.assign(globalThis, { React, IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -110,7 +112,9 @@ async function mount(
   root = createRoot(host);
   await act(async () => {
     root.render(
-      <InfoTab hackathon={hackathon} isRegistered={false} {...props} />,
+      <QueryClientProvider client={new QueryClient()}>
+        <InfoTab hackathon={hackathon} isRegistered={false} {...props} />
+      </QueryClientProvider>,
     );
   });
 }
