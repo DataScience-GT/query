@@ -218,8 +218,8 @@ export function StripePaymentModal({
     () => (!isMock && publishableKey ? loadStripe(publishableKey) : null),
     [publishableKey, isMock],
   );
-  // Used only by the mock branch below; the real flow keeps its own state
-  // inside the Elements form and reports it through `charging`.
+  // Used only by the mock branch below; the real flow's state is `charging`,
+  // which this modal owns and passes down to CheckoutForm.
   const [processing, setProcessing] = useState(false);
   const [charging, setCharging] = useState(false);
   const [error, setError] = useState<string | null>(null);
