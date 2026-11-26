@@ -74,6 +74,7 @@ describe.skipIf(!URL)("email code caps on a real database", () => {
     "ip-known:192.0.2.0/24",
     "domain:gatech.edu",
     "*global-new*",
+    "*daily*",
   ];
 
   const clean = async () => {
@@ -146,7 +147,7 @@ describe.skipIf(!URL)("email code caps on a real database", () => {
   beforeEach(async () => {
     const { sql } = await import("drizzle-orm");
     await db().execute(
-      sql`DELETE FROM "auth_code_throttle" WHERE "identifier" IN (${throttle.GLOBAL_THROTTLE_KEY}, ${"*global-new*"})`,
+      sql`DELETE FROM "auth_code_throttle" WHERE "identifier" IN (${throttle.GLOBAL_THROTTLE_KEY}, ${"*global-new*"}, ${"*daily*"})`,
     );
   });
 
@@ -237,6 +238,72 @@ describe.skipIf(!URL)("email code caps on a real database", () => {
     // The shared mailbox has one quota, so people with an account wait too.
     const real = await withAccount("spent", `school-${suffix}.test`);
     expect(await request("198.51.100.78", real)).toEqual({ busy: true, sent: false });
+  });
+
+  describe("a day's mail", () => {
+    // The mailbox sends about 500 a day, shared with acceptances and reminders.
+    const DAILY_CAP = 400;
+    const setDaily = async (issued: number, hoursAgo = 0) => {
+      const { sql } = await import("drizzle-orm");
+      await db().execute(
+        sql`INSERT INTO "auth_code_throttle" ("identifier", "issue_window_start", "codes_issued") VALUES ('*daily*', now() - ${hoursAgo} * interval '1 hour', ${issued}) ON CONFLICT ("identifier") DO UPDATE SET "issue_window_start" = now() - ${hoursAgo} * interval '1 hour', "codes_issued" = ${issued}`,
+      );
+    };
+    const dailyIssued = async () => {
+      const { sql } = await import("drizzle-orm");
+      const res = await db().execute(
+        sql`SELECT "codes_issued" FROM "auth_code_throttle" WHERE "identifier" = '*daily*'`,
+      );
+      return rowsOf<{ codes_issued: number }>(res)[0]?.codes_issued ?? 0;
+    };
+
+    it("counts every code that goes out", async () => {
+      for (let i = 0; i < 3; i += 1) {
+        await request(`100.69.${i}.1`, `day${i}@daily-${suffix}.test`);
+      }
+
+      expect(await dailyIssued()).toBe(3);
+    });
+
+    it("stops all sign-in email at the cap for the rest of the day, for people with an account too", async () => {
+      const real = await withAccount("daily", `school-${suffix}.test`);
+      await setDaily(DAILY_CAP - 1);
+
+      // The last one of the day goes out...
+      expect(await request("100.69.10.1", `last@daily-${suffix}.test`)).toEqual({
+        busy: false,
+        sent: true,
+      });
+      // ...then nothing does, and the page is told.
+      expect(await request("100.69.11.1", `after@daily-${suffix}.test`)).toEqual({
+        busy: true,
+        sent: false,
+      });
+      expect(await request("100.69.12.1", real)).toEqual({ busy: true, sent: false });
+      expect(await dailyIssued()).toBe(DAILY_CAP);
+    });
+
+    it("starts over when the UTC day turns", async () => {
+      await setDaily(DAILY_CAP, 25);
+
+      expect(await request("100.69.20.1", `new-day@daily-${suffix}.test`)).toEqual({
+        busy: false,
+        sent: true,
+      });
+      expect(await dailyIssued()).toBe(1);
+    });
+
+    it("spends nothing from the day on a request another cap refused", async () => {
+      const domain = `daily-refused-${suffix}.test`;
+      for (let i = 0; i < DOMAIN_CAP; i += 1) {
+        await request(`100.69.${30 + i}.1`, `y${i}@${domain}`);
+      }
+      const spent = await dailyIssued();
+
+      await request("100.69.99.1", `over@${domain}`);
+
+      expect(await dailyIssued()).toBe(spent);
+    });
   });
 
   it("does not call a code sent when the same address asks again within the minute", async () => {
@@ -412,7 +479,7 @@ describe.skipIf(!URL)("signing in by link while locked out of codes", () => {
       ops.sql`DELETE FROM "verificationToken" WHERE "identifier" LIKE ${`%${suffix}%`}`,
     );
     await database().execute(
-      ops.sql`DELETE FROM "auth_code_throttle" WHERE "identifier" LIKE ${`%${suffix}%`} OR "identifier" IN ('domain:example.test', '*global*', '*global-new*')`,
+      ops.sql`DELETE FROM "auth_code_throttle" WHERE "identifier" LIKE ${`%${suffix}%`} OR "identifier" IN ('domain:example.test', '*global*', '*global-new*', '*daily*')`,
     );
   };
   beforeEach(async () => {
@@ -565,6 +632,18 @@ describe.skipIf(!URL)("signing in by link while locked out of codes", () => {
     expect(message?.text).toMatch(/Your sign-in code is: \d{6}/);
     expect(linkIn(message?.text ?? "")).toBeUndefined();
     expect(await customRows(email)).toHaveLength(1);
+  });
+
+  it("counts a link email against the day's mail as well as the hour's", async () => {
+    const email = await lockedOwner("daily");
+    await requestEmail(email);
+
+    const res = rowsOf<{ codes_issued: number }>(
+      await database().execute(
+        ops.sql`SELECT "codes_issued" FROM "auth_code_throttle" WHERE "identifier" = '*daily*'`,
+      ),
+    );
+    expect(res[0]?.codes_issued).toBe(1);
   });
 
   it("counts a link email against the same hourly caps as a code", async () => {

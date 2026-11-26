@@ -24,6 +24,14 @@ export const GLOBAL_CODES_PER_HOUR = 300;
 /** Row key for the deployment-wide counter; not a valid email address. */
 export const GLOBAL_THROTTLE_KEY = "*global*";
 /**
+ * Sign-in emails, codes and links, the whole deployment sends per UTC day. The
+ * mailbox is a consumer Gmail account that sends about 500 a day, shared with
+ * acceptances and reminders, so sign-in leaves the rest of it alone.
+ */
+export const DAILY_CODES_PER_DAY = 400;
+/** Row key for that day's count; not a valid email address. */
+export const DAILY_THROTTLE_KEY = "*daily*";
+/**
  * Of the deployment's hour, what addresses with no account yet may use. Anyone
  * can ask for a code for an address that does not exist, and the mailbox's
  * quota is shared, so the rest stays for people who have signed in before.
@@ -169,25 +177,32 @@ type Executor = {
 
 /**
  * Takes one code-issuance slot for `key`. One atomic statement, so concurrent
- * instances cannot both slip under the cap. False when the hour's cap is spent.
+ * instances cannot both slip under the cap. False when the cap is spent. The cap
+ * is per hour, or per UTC day for `window: "utc-day"`, which starts over when
+ * the date in UTC turns.
  */
 export async function takeCodeSlot(
   tx: Executor,
   key: string,
-  maxPerHour: number,
+  max: number,
+  window: "hour" | "utc-day" = "hour",
 ): Promise<boolean> {
+  const expired =
+    window === "utc-day"
+      ? sql`(t."issue_window_start" AT TIME ZONE 'UTC')::date < (now() AT TIME ZONE 'UTC')::date`
+      : sql`t."issue_window_start" < now() - interval '1 hour'`;
   const res = await tx.execute(sql`
     INSERT INTO "auth_code_throttle" AS t ("identifier", "issue_window_start", "codes_issued")
     VALUES (${key}, now(), 1)
     ON CONFLICT ("identifier") DO UPDATE SET
       "issue_window_start" = CASE
-        WHEN t."issue_window_start" < now() - interval '1 hour' THEN now()
+        WHEN ${expired} THEN now()
         ELSE t."issue_window_start" END,
       "codes_issued" = CASE
-        WHEN t."issue_window_start" < now() - interval '1 hour' THEN 1
+        WHEN ${expired} THEN 1
         ELSE t."codes_issued" + 1 END
-    WHERE t."issue_window_start" < now() - interval '1 hour'
-       OR t."codes_issued" < ${maxPerHour}
+    WHERE ${expired}
+       OR t."codes_issued" < ${max}
     RETURNING 1
   `);
   return res.rows.length > 0;

@@ -8,6 +8,8 @@ import { linkPaidPaymentByVerifiedEmail } from "@query/db/services/membership";
 import {
   CODES_PER_IDENTIFIER_PER_HOUR,
   GLOBAL_CODES_PER_HOUR,
+  DAILY_CODES_PER_DAY,
+  DAILY_THROTTLE_KEY,
   GLOBAL_THROTTLE_KEY,
   NEW_ADDRESS_CODES_PER_HOUR,
   NEW_ADDRESS_THROTTLE_KEY,
@@ -244,6 +246,17 @@ export const authConfig: NextAuthConfig = {
             )
               throw new CodeCapReached();
             if (!(await takeCodeSlot(tx, GLOBAL_THROTTLE_KEY, GLOBAL_CODES_PER_HOUR)))
+              throw new CodeCapReached();
+            // And the day's: the mailbox's quota is shared with every other
+            // mail the club sends, whoever is asking.
+            if (
+              !(await takeCodeSlot(
+                tx,
+                DAILY_THROTTLE_KEY,
+                DAILY_CODES_PER_DAY,
+                "utc-day",
+              ))
+            )
               throw new CodeCapReached();
 
             // No code for a locked address: nothing to guess at, and the
