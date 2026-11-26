@@ -1145,6 +1145,17 @@ describe("Participant edge cases", () => {
       });
     });
 
+    it("clears a Ramadan answer the form did not ask for", async () => {
+      wire(pending);
+      mockUpdate.mockReturnValueOnce([{ id: PARTICIPANT_A }]);
+
+      await callerFor("user_a").hackathon.updateMyRegistration(
+        editInput({ ramadanFasting: undefined }),
+      );
+
+      expect(writes()[0]?.[2][0]).toMatchObject({ ramadanFasting: null });
+    });
+
     it("refuses an application with no resume link and no upload on file", async () => {
       wire(pending);
       // The resume check is the mutation's first read: nothing on file.

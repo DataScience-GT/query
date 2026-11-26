@@ -21,6 +21,12 @@ const mocks = vi.hoisted(() => ({
   fetchRecord: vi.fn(),
   invalidate: vi.fn(),
   onSuccess: {} as Record<string, () => void>,
+  mutate: {
+    register: vi.fn(),
+    update: vi.fn(),
+    withdraw: vi.fn(),
+    confirm: vi.fn(),
+  } as Record<string, ReturnType<typeof vi.fn>>,
 }));
 
 vi.mock("next-auth/react", () => ({
@@ -51,7 +57,7 @@ vi.mock("@/lib/trpc", () => {
       isPending: false,
       isSuccess: false,
       isError: false,
-      mutate: vi.fn(),
+      mutate: mocks.mutate[name],
     };
   };
   const query = () => ({ data: undefined, isLoading: false });
@@ -83,6 +89,8 @@ const hackathon = {
   name: "Test Hack",
   description: "About this event.",
   status: "open",
+  startDate: "2027-09-17T14:00:00Z",
+  endDate: "2027-09-19T22:00:00Z",
   currentParticipants: 0,
 };
 
@@ -144,6 +152,7 @@ beforeEach(() => {
   localStorage.clear();
   mocks.fetchRecord.mockReset();
   mocks.invalidate.mockReset();
+  for (const mutate of Object.values(mocks.mutate)) mutate.mockReset();
 });
 
 afterEach(async () => {
@@ -242,5 +251,107 @@ describe("InfoTab registration form", () => {
 
     expect(host.textContent).toContain("Application updated.");
     expect(host.textContent).not.toContain("Personal information");
+  });
+});
+
+// Hacklytics ran 26 to 28 February 2027, inside Ramadan. A September event is not.
+const duringRamadan = {
+  startDate: "2027-02-26T14:00:00Z",
+  endDate: "2027-02-28T22:00:00Z",
+};
+const outsideRamadan = {
+  startDate: "2027-09-17T14:00:00Z",
+  endDate: "2027-09-19T22:00:00Z",
+};
+
+// An application that passes every step, so an edit can walk to the logistics
+// step and save without typing.
+const savedApplication = {
+  firstName: "Ada",
+  lastName: "Lovelace",
+  phone: "+15551234567",
+  age: 22,
+  usCitizen: "Yes",
+  school: "Georgia Tech",
+  major: "Computer Science",
+  graduationYear: new Date().getFullYear() + 1,
+  levelOfStudy: "Junior",
+  country: "United States",
+  isGtStudent: true,
+  isDsgtMember: false,
+  attendedHacklyticsBefore: false,
+  whyAttend: "To build with data.",
+  techJourney: "Two years of coding.",
+  helpfulFeedback: "Ask for help sooner.",
+  trackInterest: "Not sure yet",
+  dreamBuild: "A study spot finder.",
+  referralSource: "A friend",
+  resumeUrl: "https://example.com/resume.pdf",
+  travelReimbursement: false,
+  travelFromCity: "Atlanta",
+  travelFromCountry: "United States",
+  travelDistance: "I'm already in Atlanta",
+  travelMethod: "Walk or transit",
+  excitement: 8,
+  ramadanFasting: "Yes",
+};
+
+async function editToLogistics(dates: typeof duringRamadan) {
+  mocks.fetchRecord.mockResolvedValue(savedApplication);
+  await mount({
+    hackathon: { ...hackathon, ...dates },
+    isRegistered: true,
+    myReg: { registrationStatus: "pending" },
+  });
+  await click("Edit application");
+  for (let step = 0; step < 3; step++) await click("Continue");
+}
+
+describe("InfoTab fasting question", () => {
+  it("asks it, and sends the answer, for an event that overlaps Ramadan", async () => {
+    await editToLogistics(duringRamadan);
+    expect(host.textContent).toContain("falls during Ramadan");
+
+    await click("Continue");
+    await click("Save changes");
+
+    expect(mocks.mutate.update).toHaveBeenCalledTimes(1);
+    expect(mocks.mutate.update.mock.calls[0]?.[0]).toMatchObject({
+      ramadanFasting: "Yes",
+    });
+  });
+
+  it("holds the form at that step until it is answered", async () => {
+    mocks.fetchRecord.mockResolvedValue({
+      ...savedApplication,
+      ramadanFasting: null,
+    });
+    await mount({
+      hackathon: { ...hackathon, ...duringRamadan },
+      isRegistered: true,
+      myReg: { registrationStatus: "pending" },
+    });
+    await click("Edit application");
+    for (let step = 0; step < 3; step++) await click("Continue");
+
+    await click("Continue");
+
+    expect(host.textContent).toContain("falls during Ramadan");
+    expect(host.textContent).toContain(
+      "Tell us if you will be fasting during the event.",
+    );
+  });
+
+  it("does not ask it, or send a stale answer, for an event outside Ramadan", async () => {
+    await editToLogistics(outsideRamadan);
+    expect(host.textContent).not.toContain("falls during Ramadan");
+
+    await click("Continue");
+    await click("Save changes");
+
+    expect(mocks.mutate.update).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.mutate.update.mock.calls[0]?.[0]?.ramadanFasting,
+    ).toBeUndefined();
   });
 });

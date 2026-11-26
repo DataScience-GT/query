@@ -9,8 +9,7 @@
     "build": "node scripts/build-photos.ts && next build",
     "start": "next start",
     "lint": "oxlint .",
-    "typecheck": "tsrs --noEmit",
-    "analyze": "cross-env ANALYZE=true next build"
+    "typecheck": "tsrs --noEmit"
   },
   "dependencies": {
     "@google-cloud/storage": "^9.0.0",
@@ -47,7 +46,6 @@
     "superjson": "catalog:"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "catalog:",
     "@query/oxlint-config": "workspace:*",
     "@query/scripts": "workspace:*",
     "@query/tsconfig": "workspace:*",
@@ -58,8 +56,6 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@types/three": "^0.186.0",
-    "autoprefixer": "^10.6.1",
-    "cross-env": "^10.1.0",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "postcss": "catalog:",
