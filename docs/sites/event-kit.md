@@ -63,7 +63,7 @@ A new edition does not start by hand: `pnpm turbo gen hacklytics` makes the site
 The kit never imports a site's art. It takes it two ways.
 
 - **Astro slots on `Layout`.** `head` for extra `<head>` tags, `menu-art` for the art at the foot of the mobile menu, `footer-art` for the art that closes the home page, and the default slot for the page. Hydrated islands go in a slot like any other child.
-- **React components on `HomeSections`.** `art` takes `theme` (the picture beside the theme block), `track` (receives `{ track, index }`, drawn in the cell beside each track), `railStart` and `railEnd` (the two ends of the schedule rail), and `judges` and `sponsors` (the plot under each title). Each is rendered at build time, with no hydration. A section without its art lays out the same, with an empty cell.
+- **React components on `HomeSections`.** `art` takes `theme` (the picture beside the theme block), `track` (receives `{ track, index }`, drawn in the cell above each track's words), `railStart` and `railEnd` (the two ends of the schedule rail), and `judges` and `sponsors` (the plot under each title). Each is rendered at build time, with no hydration. A section without its art lays out the same, with an empty cell.
 
 The boxes that hold art set `--bed: 1`, doubled from `sm` or `md`, so a sprite scales in whole pixels. Art that wants to follow that reads `var(--bed, 1)`.
 

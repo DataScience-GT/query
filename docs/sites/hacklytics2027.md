@@ -30,7 +30,7 @@ Astro 7 needs Vite 8 while the rest of the repo stays on Vite 7. This site and `
 | `src/pages/404.astro` | 404 (`out/404.html`) |
 | `src/layouts/Layout.astro` | Wraps the kit's layout: loads the CSS and font preloads, and puts the menu and footer flower beds in the kit's slots |
 | `src/components/Hero.astro` | Hero. The countdown is an inline script; the garden is a React island |
-| `src/components/SectionArt.tsx` | The plants drawn into the kit's sections: the theme block's seed, bud and bloom, one per track, the Judges and Sponsors plots, the schedule rail's bud and tulip |
+| `src/components/SectionArt.tsx` | The plants drawn into the kit's sections: the theme block's seed, bud and bloom, one per track in a box of 16 by 11 sprite pixels, each in its own tint, the Judges and Sponsors plots, the schedule rail's bud and tulip |
 | `src/components/pixel/*` | Pixel sprites and flower beds; `season.ts` holds the one bloom count, `GardenBeds.tsx` the four React islands, `tints.ts` the colours a flower opens in |
 | `src/scripts/bloom.ts` | Writes `data-bloom="on"` on the track row and the schedule rail when they are in view |
 | `src/styles/globals.css`, `fonts.generated.css`, `src/lib/fonts.generated.ts`, `public/fonts/` | The theme (palette, fonts, flower animations); the fonts are output of `scripts/subset-fonts.py`, committed |
