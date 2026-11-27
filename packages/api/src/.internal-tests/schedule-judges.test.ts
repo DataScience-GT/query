@@ -27,7 +27,7 @@ import {
   judgingSchedules,
 } from "@query/db";
 import { testCaller } from "./_caller";
-import { id, render } from "./_fake-db";
+import { id, render, tryMatcher } from "./_fake-db";
 import { rebalanceIfDue, rebalanceThrottle } from "../routers/judging/schedule";
 import { cache } from "../middleware/cache";
 import { assignJudges } from "../services/judging/schedule/judges";
@@ -71,23 +71,8 @@ const SCHEDULE = id(60);
 const NOW = new Date("2027-02-06T15:00:00Z");
 const at = (time: string) => new Date(`2027-02-06T${time}:00Z`);
 
-
 type Row = Record<string, any>;
 type Write = { table: unknown; values: Row | Row[]; where?: unknown };
-
-const camel = (name: string) =>
-  name.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
-const TERM = /"[a-z_]+"\."([a-z_]+)" = \$(\d+)/g;
-
-/** A row filter from a where of `column = value` terms, or null for anything else. */
-function matcher(where: unknown) {
-  const { sql: text, params } = render(where);
-  const terms = [...text.matchAll(TERM)].map(
-    (match) => [camel(match[1]!), params[Number(match[2]) - 1]] as const,
-  );
-  if (text.replace(TERM, "").replace(/[()\s]|and/g, "")) return null;
-  return (row: Row) => terms.every(([key, value]) => row[key] === value);
-}
 
 let adminRow: Row | undefined;
 const store = new Map<unknown, Row[]>();
@@ -108,7 +93,7 @@ const fakeDb: any = {
         const count = (reads.get(table) ?? 0) + 1;
         reads.set(table, count);
         const rows = onRead?.(table, count) ?? store.get(table) ?? [];
-        const keep = where ? matcher(where) : null;
+        const keep = where ? tryMatcher(where) : null;
         return Promise.resolve(keep ? rows.filter(keep) : [...rows]).then(
           ok,
           err,
@@ -140,7 +125,7 @@ const fakeDb: any = {
   update: (table: unknown) => ({
     set: (values: Row) => ({
       where: (where: unknown) => {
-        const keep = matcher(where);
+        const keep = tryMatcher(where);
         const hit = keep ? (store.get(table) ?? []).filter(keep) : [];
         for (const row of hit) Object.assign(row, values);
         updates.push({ table, values, where });

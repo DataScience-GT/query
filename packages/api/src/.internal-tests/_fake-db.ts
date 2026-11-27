@@ -17,19 +17,28 @@ const TERM = /"[a-z_]+"\."([a-z_]+)" = \$(\d+)/g;
 
 /**
  * A row filter from a where made only of `column = value` terms joined by
- * `and`. Anything else throws, so the fake never quietly ignores a condition
- * it does not understand.
+ * `and`, or null for anything else.
  */
-export function matcher(where: unknown) {
+export function tryMatcher(where: unknown) {
   const { sql: text, params } = render(where);
+  if (text.replace(TERM, "").replace(/[()\s]|and/g, "")) return null;
   const terms = [...text.matchAll(TERM)].map(
     (match) => [camel(match[1]!), params[Number(match[2]) - 1]] as const,
   );
-  if (text.replace(TERM, "").replace(/[()\s]|and/g, "")) {
-    throw new Error(`The fake database cannot evaluate: ${text}`);
-  }
   return (row: Record<string, any>) =>
     terms.every(([key, value]) => row[key] === value);
+}
+
+/**
+ * Like `tryMatcher`, but throws on a where it cannot evaluate, so the fake
+ * never quietly ignores a condition it does not understand.
+ */
+export function matcher(where: unknown) {
+  const keep = tryMatcher(where);
+  if (!keep) {
+    throw new Error(`The fake database cannot evaluate: ${render(where).sql}`);
+  }
+  return keep;
 }
 
 /**
