@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { trpc } from "@/lib/trpc";
 import { csvCell } from "@/lib/csv";
+import { downloadBlob } from "@/components/admin/download-blob";
 import { foodGroupByKey } from "@query/api/discord-config";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import {
@@ -338,21 +339,10 @@ export function AttendeesTab({
       headers.map(csvCell).join(","),
       ...rows.map((r) => r.map(csvCell).join(",")),
     ].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
+    downloadBlob(
+      new Blob([csvContent], { type: "text/csv;charset=utf-8;" }),
       `${hackathonName.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_attendees.csv`,
     );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    // The blob is retained until its URL is revoked; without this every export
-    // leaks the full attendee CSV for the lifetime of the page.
-    URL.revokeObjectURL(url);
   };
 
   const handleStatusUpdate = (

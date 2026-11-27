@@ -13,6 +13,7 @@ import {
   volunteerOnlineBlockLabel,
 } from "@/lib/volunteer-blocks";
 import { volunteerCsv } from "@/lib/volunteer-csv";
+import { downloadBlob } from "@/components/admin/download-blob";
 import { VolunteerSummary } from "@/components/volunteer/VolunteerSummary";
 import {
   VOLUNTEER_BLOCKS,
@@ -227,21 +228,12 @@ export function VolunteersTab({
         setError("Nothing to export with these filters.");
         return;
       }
-      const blob = new Blob([volunteerCsv(rows, startDate)], {
-        type: "text/csv;charset=utf-8;",
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
+      downloadBlob(
+        new Blob([volunteerCsv(rows, startDate)], {
+          type: "text/csv;charset=utf-8;",
+        }),
         `${hackathonName.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_volunteers.csv`,
       );
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
       setError(null);
     } catch (e) {
       setError(
