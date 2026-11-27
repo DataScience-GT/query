@@ -1,7 +1,7 @@
 "use client";
 
 import { venueFormat } from "@/lib/venue-time";
-import React, { useState } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import {
   body as bodyText,

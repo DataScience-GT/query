@@ -1,7 +1,7 @@
 "use client";
 
 import { venueFormat } from "@/lib/venue-time";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { trpc } from "@/lib/trpc";
