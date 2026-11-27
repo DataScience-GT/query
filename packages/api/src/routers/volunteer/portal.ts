@@ -6,8 +6,11 @@ import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { notHackathonBanned } from "../../middleware/procedures";
 import {
+  allowsEdits,
   assertEditionNotOver,
   assertTakingApplications,
+  loadEdition,
+  takesNewApplications,
   volunteerAnswers,
 } from "../../services/volunteer";
 
@@ -18,13 +21,15 @@ const submitInput = hackathonInput.extend({ answers: volunteerAnswers });
 // Deciding is organisers' (admin.ts). Judging has its own application in
 // routers/judge: a volunteer runs the weekend and does not score projects.
 export const volunteerPortalRouter = createTRPCRouter({
-  // The caller's application for one edition, or null. The review columns stay
+  // The caller's application for one edition (or null), and what the edition
+  // still allows: new applications, and corrections. The review columns stay
   // off: who decided is the organisers' business.
   myApplication: protectedProcedure
     .input(hackathonInput)
     .query(async ({ ctx, input }) => {
-      const row = await (ctx.db as DrizzleDB).query.hackathonVolunteerApplications.findFirst(
-        {
+      const db = ctx.db as DrizzleDB;
+      const [application, edition] = await Promise.all([
+        db.query.hackathonVolunteerApplications.findFirst({
           where: {
             userId: ctx.userId as string,
             hackathonId: input.hackathonId,
@@ -37,9 +42,14 @@ export const volunteerPortalRouter = createTRPCRouter({
             createdAt: true,
             updatedAt: true,
           },
-        },
-      );
-      return row ?? null;
+        }),
+        loadEdition(db, input.hackathonId),
+      ]);
+      return {
+        application: application ?? null,
+        accepting: !!edition && takesNewApplications(edition),
+        canEdit: !!edition && allowsEdits(edition),
+      };
     }),
 
   // Applies, or applies again after withdrawing. A declined or approved

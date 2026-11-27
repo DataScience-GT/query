@@ -172,16 +172,24 @@ describe.skipIf(!URL)("volunteer application against a real database", () => {
       const h = await makeHackathon("submit");
       const u = await makeUser("submit");
 
-      expect(await as(u).myApplication({ hackathonId: h.id })).toBeNull();
+      expect(await as(u).myApplication({ hackathonId: h.id })).toEqual({
+        application: null,
+        accepting: true,
+        canEdit: true,
+      });
 
       const result = await as(u).submit({ hackathonId: h.id, answers: answers() });
       expect(result).toEqual({ status: "pending" });
 
-      const mine = await as(u).myApplication({ hackathonId: h.id });
+      const { application: mine } = await as(u).myApplication({
+        hackathonId: h.id,
+      });
       expect(mine?.status).toBe("pending");
       // Held in the form's own order, whatever order they were picked in.
       expect(mine?.answers.availability).toEqual(["fri_setup", "sat_morning"]);
       expect(mine?.answers.phone).toBe("(404) 555-0142");
+      // Who decides stays off what the applicant reads.
+      expect(mine).not.toHaveProperty("reviewedById");
     });
 
     it("keeps each person's application to themselves", async () => {
@@ -190,7 +198,9 @@ describe.skipIf(!URL)("volunteer application against a real database", () => {
       const b = await makeUser("priv-b");
       await as(a).submit({ hackathonId: h.id, answers: answers() });
 
-      expect(await as(b).myApplication({ hackathonId: h.id })).toBeNull();
+      expect(
+        (await as(b).myApplication({ hackathonId: h.id })).application,
+      ).toBeNull();
     });
 
     it("strips keys the form never asked, in the answers and around them", async () => {
@@ -314,6 +324,11 @@ describe.skipIf(!URL)("volunteer application against a real database", () => {
     it("refuses a closed edition", async () => {
       const h = await makeHackathon("closed", { status: "closed" });
       const u = await makeUser("closed");
+      // The page asks the same question before it shows a form.
+      expect(await as(u).myApplication({ hackathonId: h.id })).toMatchObject({
+        accepting: false,
+        canEdit: true,
+      });
       await expect(
         as(u).submit({ hackathonId: h.id, answers: answers() }),
       ).rejects.toThrow(/closed/);
@@ -327,6 +342,9 @@ describe.skipIf(!URL)("volunteer application against a real database", () => {
         endDate: new Date(Date.now() + DAY),
       });
       const u = await makeUser("started");
+      expect(await as(u).myApplication({ hackathonId: h.id })).toMatchObject({
+        accepting: false,
+      });
       await expect(
         as(u).submit({ hackathonId: h.id, answers: answers() }),
       ).rejects.toThrow(/closed/);

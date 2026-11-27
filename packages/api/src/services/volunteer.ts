@@ -87,31 +87,59 @@ export async function isApprovedVolunteer(
   return !!row;
 }
 
+type Edition = {
+  isPublic: boolean;
+  status: string;
+  startDate: Date | string;
+  endDate: Date | string;
+};
+
+const editionColumns = {
+  isPublic: true,
+  status: true,
+  startDate: true,
+  endDate: true,
+} as const;
+
 /**
- * A new application, or one reopened after a withdrawal, needs an edition
- * people can see, still announced or open, and the event not yet started.
- * The deadline is the event's start date: after that, organizers are
- * confirming a roster, not recruiting.
+ * Whether new applications are taken: an edition people can see, announced or
+ * open, with the event not yet started. The deadline is the event's start
+ * date; after that organizers are confirming a roster, not recruiting. A
+ * withdrawn applicant applying again is held to the same window.
  */
+export const takesNewApplications = (
+  edition: Edition,
+  now: Date = new Date(),
+) =>
+  edition.isPublic &&
+  (ACCEPTING_STATUSES as readonly string[]).includes(edition.status) &&
+  now < new Date(edition.startDate);
+
+/** A pending application can be corrected until the edition is over. */
+export const allowsEdits = (edition: Edition, now: Date = new Date()) =>
+  (EDITABLE_STATUSES as readonly string[]).includes(edition.status) &&
+  now <= new Date(edition.endDate);
+
+export async function loadEdition(db: DrizzleDB, hackathonId: string) {
+  return db.query.hackathons.findFirst({
+    where: { id: hackathonId },
+    columns: editionColumns,
+  });
+}
+
 export async function assertTakingApplications(
   db: DrizzleDB,
   hackathonId: string,
   now: Date = new Date(),
 ) {
-  const hackathon = await db.query.hackathons.findFirst({
-    where: { id: hackathonId },
-    columns: { isPublic: true, status: true, startDate: true },
-  });
-  if (!hackathon || !hackathon.isPublic || hackathon.status === "draft") {
+  const edition = await loadEdition(db, hackathonId);
+  if (!edition || !edition.isPublic || edition.status === "draft") {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "That hackathon is not taking volunteer applications.",
     });
   }
-  if (
-    !(ACCEPTING_STATUSES as readonly string[]).includes(hackathon.status) ||
-    now >= new Date(hackathon.startDate)
-  ) {
+  if (!takesNewApplications(edition, now)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Volunteer applications for this hackathon are closed.",
@@ -119,21 +147,13 @@ export async function assertTakingApplications(
   }
 }
 
-/** A pending application can be corrected until the edition is over. */
 export async function assertEditionNotOver(
   db: DrizzleDB,
   hackathonId: string,
   now: Date = new Date(),
 ) {
-  const hackathon = await db.query.hackathons.findFirst({
-    where: { id: hackathonId },
-    columns: { status: true, endDate: true },
-  });
-  if (
-    !hackathon ||
-    !(EDITABLE_STATUSES as readonly string[]).includes(hackathon.status) ||
-    now > new Date(hackathon.endDate)
-  ) {
+  const edition = await loadEdition(db, hackathonId);
+  if (!edition || !allowsEdits(edition, now)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "This hackathon is over, so applications can't be edited.",
