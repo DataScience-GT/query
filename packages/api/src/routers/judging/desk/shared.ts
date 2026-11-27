@@ -26,6 +26,7 @@ import type { Judge } from "../../../services/judging/principal";
 import { guestScope, seatOf } from "../../../services/judging/evaluation-store";
 import type { ChallengeRow } from "../../../services/judging/evaluation-store";
 import { effectiveMode } from "../../../services/judging/scope";
+import { forbidden } from "../../errors";
 
 const NOT_A_JUDGE =
   "Judge access needed. Sign in with the account an organizer approved as a judge, or scan the QR code at your judging room or table.";
@@ -61,7 +62,7 @@ export const judgeProcedure = deskProcedure.use(async ({ ctx, next }) => {
     });
   }
   if (judge.kind === "guest" && !judge.admitted) {
-    throw new TRPCError({ code: "FORBIDDEN", message: GUEST_NOT_ADMITTED });
+    throw forbidden(GUEST_NOT_ADMITTED);
   }
   return next({ ctx: { ...ctx, judge } });
 });

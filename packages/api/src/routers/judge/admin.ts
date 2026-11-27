@@ -12,7 +12,7 @@ import { CacheKeys, invalidatePortalContext } from "../../middleware/cache";
 import { portalOrigin } from "../../services/judging/claims";
 import { syncDiscordRoles } from "../../services/discord";
 import type { DrizzleDB } from "@query/db";
-import { notFound } from "../errors";
+import { badRequest, notFound } from "../errors";
 
 // The organiser's side of the judge roster: who applied, who is approved, and
 // adding or removing someone. Judging itself lives in routers/judging.
@@ -96,10 +96,7 @@ export const judgeAdminRouter = createTRPCRouter({
       });
 
       if (existing) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "User is already a judge for this hackathon",
-        });
+        throw badRequest("User is already a judge for this hackathon");
       }
 
       const result = await (ctx.db as DrizzleDB)
@@ -271,11 +268,9 @@ export const judgeAdminRouter = createTRPCRouter({
       });
 
       if (existingVote) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "This judge has already submitted votes and cannot be removed without discarding them.",
-        });
+        throw badRequest(
+          "This judge has already submitted votes and cannot be removed without discarding them.",
+        );
       }
 
       const [removed] = await (ctx.db as DrizzleDB)

@@ -101,7 +101,7 @@ import {
 } from "../../services/judging/schedule/slots";
 import type { ScheduleTiming } from "../../services/judging/schedule/slots";
 import type { Placement, PlanInputs } from "../../services/judging/schedule/inputs";
-import { notFound } from "../errors";
+import { badRequest, conflict, notFound, preconditionFailed } from "../errors";
 
 // Building, saving and adjusting the presentation schedule. The solver and
 // its rules live in services/judging/schedule as pure code; this file reads
@@ -145,11 +145,9 @@ const plural = (n: number, one: string, many = `${one}s`) =>
 
 function assertWindowAhead(timing: ScheduleTiming) {
   if (timing.windowStart <= new Date()) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message:
-        "The judging window has already started. Pick a start time in the future.",
-    });
+    throw badRequest(
+      "The judging window has already started. Pick a start time in the future.",
+    );
   }
 }
 
@@ -333,11 +331,9 @@ function explain(
 function planOf(inventory: Inventory, timing: ScheduleTiming) {
   const plan = selectPlan(inventory);
   if (plan.tasks.length === 0) {
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message:
-        "No project is entered in a scheduled challenge yet. Import or promote projects, then build the schedule.",
-    });
+    throw preconditionFailed(
+      "No project is entered in a scheduled challenge yet. Import or promote projects, then build the schedule.",
+    );
   }
   return {
     inputs: planInputs(plan, timing),
@@ -528,11 +524,9 @@ async function writeSchedule(
 
     const current = await readInventory(tx, input.hackathonId);
     if (planFingerprint(selectPlan(current), input.timing) !== schedule.fingerprint) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message:
-          "Projects, rooms or tables changed while the schedule was being saved. Preview again and check it before saving.",
-      });
+      throw conflict(
+        "Projects, rooms or tables changed while the schedule was being saved. Preview again and check it before saving.",
+      );
     }
 
     const [row] = await tx
@@ -595,7 +589,7 @@ function readUpload(
   const { inputs, fingerprint } = planOf(inventory, timing);
   const read = readCpsatSolution(inputs, fingerprint, solution, judges);
   if (!read.ok) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: read.reason });
+    throw badRequest(read.reason);
   }
   return {
     inputs,
@@ -1150,35 +1144,28 @@ function pickChoice(
       c.startsAt.getTime() === wanted.startsAt.getTime(),
   );
   if (!choice) {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message:
-        "That time at that room or table is no longer open for this project. Reload the choices and pick another.",
-    });
+    throw conflict(
+      "That time at that room or table is no longer open for this project. Reload the choices and pick another.",
+    );
   }
   if (choice.reducedBreaks > 0 && !wanted.acknowledgeReducedBreaks) {
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message: `That time leaves the team less than ${timing.crossBuildingBreakMinutes} minutes to change buildings. Confirm the shorter break to book it.`,
-    });
+    throw preconditionFailed(
+      `That time leaves the team less than ${timing.crossBuildingBreakMinutes} minutes to change buildings. Confirm the shorter break to book it.`,
+    );
   }
   return choice;
 }
 
 function assertMovable(status: Board["appointments"][number]["status"]) {
   if (status === "pending") {
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message:
-        "This presentation is happening now, so it stays where it is. Move it once its slot has passed if nobody judged it.",
-    });
+    throw preconditionFailed(
+      "This presentation is happening now, so it stays where it is. Move it once its slot has passed if nobody judged it.",
+    );
   }
   if (status === "complete" || status === "incomplete") {
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message:
-        "Judges have already evaluated this presentation, so it stays where it is.",
-    });
+    throw preconditionFailed(
+      "Judges have already evaluated this presentation, so it stays where it is.",
+    );
   }
 }
 
@@ -1345,17 +1332,14 @@ export const judgingScheduleRouter = createTRPCRouter({
         });
       }
       if (key !== input.candidateKey) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message:
-            "Projects, rooms, tables, judges or timing changed since this preview, so it is not the schedule that would be saved. Preview again and check it before saving.",
-        });
+        throw conflict(
+          "Projects, rooms, tables, judges or timing changed since this preview, so it is not the schedule that would be saved. Preview again and check it before saving.",
+        );
       }
       if (result.relaxed && !input.acknowledgeReducedBreaks) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: `This schedule gives ${plural(result.reducedBreaks.length, "change", "changes")} of building only the ${input.timing.sameBuildingBreakMinutes}-minute break. Confirm the shorter breaks to save it.`,
-        });
+        throw preconditionFailed(
+          `This schedule gives ${plural(result.reducedBreaks.length, "change", "changes")} of building only the ${input.timing.sameBuildingBreakMinutes}-minute break. Confirm the shorter breaks to save it.`,
+        );
       }
 
       const written = await writeSchedule(db, ctx.userId, input, {
@@ -1392,11 +1376,9 @@ export const judgingScheduleRouter = createTRPCRouter({
         const schedule = await findSchedule(tx, input.hackathonId, true);
         if (!schedule) throw noSchedule();
         if (schedule.firstResultAt) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "Judges have submitted results against this schedule, so it can no longer be dropped. Move appointments one at a time instead.",
-          });
+          throw conflict(
+            "Judges have submitted results against this schedule, so it can no longer be dropped. Move appointments one at a time instead.",
+          );
         }
         const removed = await tx
           .delete(judgingAppointments)
@@ -1508,17 +1490,14 @@ export const judgingScheduleRouter = createTRPCRouter({
         roster.judges,
       );
       if (key !== input.candidateKey) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message:
-            "This is not the schedule that was previewed. Upload the solution again and check it before saving.",
-        });
+        throw conflict(
+          "This is not the schedule that was previewed. Upload the solution again and check it before saving.",
+        );
       }
       if (read.relaxed && !input.acknowledgeReducedBreaks) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: `This schedule gives ${plural(read.reducedBreaks.length, "change", "changes")} of building only the ${input.timing.sameBuildingBreakMinutes}-minute break. Confirm the shorter breaks to save it.`,
-        });
+        throw preconditionFailed(
+          `This schedule gives ${plural(read.reducedBreaks.length, "change", "changes")} of building only the ${input.timing.sameBuildingBreakMinutes}-minute break. Confirm the shorter breaks to save it.`,
+        );
       }
 
       const written = await writeSchedule(db, ctx.userId, input, {
@@ -1580,7 +1559,7 @@ export const judgingScheduleRouter = createTRPCRouter({
       assertWindowAhead(input.timing);
       if (await findSchedule(db, input.hackathonId)) throw scheduleExists();
       if (!cpsatAvailable()) {
-        throw new TRPCError({ code: "PRECONDITION_FAILED", message: CPSAT_UNAVAILABLE });
+        throw preconditionFailed(CPSAT_UNAVAILABLE);
       }
 
       const inventory = await readInventory(db, input.hackathonId);
@@ -1596,14 +1575,12 @@ export const judgingScheduleRouter = createTRPCRouter({
         { seconds: input.seconds, signal },
       );
       if (run.status === "failed") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: run.reason });
+        throw badRequest(run.reason);
       }
       if (run.status === "timedOut") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "CP-SAT ran out of time before finding a schedule. Give it more seconds, or download the problem and run the script with a larger --time-limit.",
-        });
+        throw badRequest(
+          "CP-SAT ran out of time before finding a schedule. Give it more seconds, or download the problem and run the script with a larger --time-limit.",
+        );
       }
       // A proof of infeasibility is refused here with its reasons; a schedule
       // has to pass the same checks as an upload.
@@ -1990,11 +1967,9 @@ export const judgingScheduleRouter = createTRPCRouter({
         const saved = judging.saved.find((s) => s.id === appointment.id);
         if (!saved || saved.removed) throw noJudgeNeeded();
         if (!saved.open) {
-          throw new TRPCError({
-            code: "PRECONDITION_FAILED",
-            message:
-              "This presentation has started, or a judge has begun on it, so its judge stays.",
-          });
+          throw preconditionFailed(
+            "This presentation has started, or a judge has begun on it, so its judge stays.",
+          );
         }
 
         if (input.judgeId) {
@@ -2006,19 +1981,17 @@ export const judgingScheduleRouter = createTRPCRouter({
           }
           const name = judging.roster.names.get(judge.id) ?? "That judge";
           if (!mayGrade(judge, saved)) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `${name} cannot grade ${board.names.label(saved.challengeId)} at ${board.names.room(saved.roomId).roomName}.`,
-            });
+            throw badRequest(
+              `${name} cannot grade ${board.names.label(saved.challengeId)} at ${board.names.room(saved.roomId).roomName}.`,
+            );
           }
           const booked = judgeChoices(judging.roster, saved, judging.saved).find(
             (c) => c.judgeId === judge.id,
           )?.bookedWith;
           if (booked) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: `${name} is already grading ${board.appointments.find((a) => a.id === booked)?.entryTitle ?? "another project"} at that time.`,
-            });
+            throw conflict(
+              `${name} is already grading ${board.appointments.find((a) => a.id === booked)?.entryTitle ?? "another project"} at that time.`,
+            );
           }
         }
 
@@ -2072,11 +2045,9 @@ export const judgingScheduleRouter = createTRPCRouter({
       if (!first.schedule) throw noSchedule();
       const before = await loadJudging(db, first, first.schedule, firstNow);
       if (before.roster.judges.length === 0) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message:
-            "No judge can be assigned yet. Judges appear here once they have joined a room or table.",
-        });
+        throw preconditionFailed(
+          "No judge can be assigned yet. Judges appear here once they have joined a room or table.",
+        );
       }
       const hereBefore = hereOf(before, first, firstNow);
       const made = await makeAssignments(
@@ -2093,11 +2064,9 @@ export const judgingScheduleRouter = createTRPCRouter({
           staleJudging(judging, before) ||
           stalePresence(hereOf(judging, board, now), hereBefore)
         ) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "Appointments or judges changed while judges were being assigned. Assign judges again.",
-          });
+          throw conflict(
+            "Appointments or judges changed while judges were being assigned. Assign judges again.",
+          );
         }
 
         const changes = judgeChanges(judging.saved, made.assignments);
@@ -2263,10 +2232,9 @@ function assertAssignable(
     );
   }
   if (board.appointments.some((a) => taskKey(a.entryId, a.challengeId) === key)) {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: "That presentation already has an appointment. Move it instead.",
-    });
+    throw conflict(
+      "That presentation already has an appointment. Move it instead.",
+    );
   }
   return board.schedule;
 }

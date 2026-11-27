@@ -27,7 +27,7 @@ import {
 import { isAdmin, notHackathonBanned } from "../../middleware/procedures";
 import { rateLimitShared } from "../../middleware/security";
 import { VOLATILE_TTL } from "../../middleware/cache";
-import { notFound } from "../errors";
+import { badRequest, notFound } from "../errors";
 
 // The interest list for an edition announced but not yet taking
 // registrations. Its own table rather than a participant row with a new
@@ -285,11 +285,9 @@ export const hackathonInterestRouter = createTRPCRouter({
       // failure this message cannot recover from — everyone who acts on it lands on
       // a closed page.
       if (hackathon.status !== "open" && hackathon.status !== "in_progress") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Registration is not open for this hackathon yet, so there is nothing to announce.",
-        });
+        throw badRequest(
+          "Registration is not open for this hackathon yet, so there is nothing to announce.",
+        );
       }
 
       // Claim before sending, exactly as announce.ts does. Reading the pending rows

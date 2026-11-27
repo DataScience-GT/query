@@ -25,6 +25,7 @@ import { isAdmin } from "../middleware/procedures";
 import { isUniqueViolation } from "../middleware/db-errors";
 import { requireActiveMember } from "./initiative";
 import { escapeLike } from "./judging/admin/shared";
+import { badRequest, conflict } from "./errors";
 
 const notFound = (message = "Subteam not found") =>
   new TRPCError({ code: "NOT_FOUND", message });
@@ -230,10 +231,7 @@ export const subteamRouter = createTRPCRouter({
         );
 
         if (!subteam.isOpen) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "This subteam is not taking applications.",
-          });
+          throw badRequest("This subteam is not taking applications.");
         }
 
         // Answers are matched to the questions as they are now; anything for a
@@ -245,10 +243,7 @@ export const subteamRouter = createTRPCRouter({
         for (const question of subteam.questions) {
           const answer = given.get(question.id) ?? "";
           if (question.required && !answer) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `"${question.prompt}" needs an answer.`,
-            });
+            throw badRequest(`"${question.prompt}" needs an answer.`);
           }
           if (answer) {
             answers.push({
@@ -289,10 +284,7 @@ export const subteamRouter = createTRPCRouter({
           // The read above only rules out rows committed before this
           // transaction began; the partial unique index settles a double submit.
           if (isUniqueViolation(error)) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: "You have already applied to this subteam.",
-            });
+            throw conflict("You have already applied to this subteam.");
           }
           throw error;
         }
@@ -407,10 +399,7 @@ export const subteamRouter = createTRPCRouter({
       if (!subteam) throw notFound();
 
       if (subteam.archivedAt !== null && input.isOpen) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Restore this subteam before opening it.",
-        });
+        throw badRequest("Restore this subteam before opening it.");
       }
 
       // Nullable columns go in as explicit nulls: drizzle drops undefined from
@@ -562,10 +551,9 @@ export const subteamRouter = createTRPCRouter({
       });
       if (!subteam) throw notFound();
       if (subteam.archivedAt !== null) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Restore this subteam before deciding on applications.",
-        });
+        throw badRequest(
+          "Restore this subteam before deciding on applications.",
+        );
       }
 
       if (application.status !== "pending") {
@@ -597,10 +585,7 @@ export const subteamRouter = createTRPCRouter({
         .returning({ id: subteamApplications.id });
 
       if (!decided) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "That application has already been decided.",
-        });
+        throw badRequest("That application has already been decided.");
       }
 
       const applicant = await db.query.users.findFirst({

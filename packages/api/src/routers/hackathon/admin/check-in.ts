@@ -1,7 +1,6 @@
 // Event check-in at the door: scans, manual admits and attendance fixes.
 
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { isScanner } from "../../../middleware/procedures";
 import { recordAdminAction } from "../../../middleware/audit";
 import {
@@ -15,7 +14,7 @@ import { hackathonEventAttendees, hackathonParticipants } from "@query/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { checkInParticipant } from "./check-in-participant";
-import { notFound } from "../../errors";
+import { forbidden, notFound } from "../../errors";
 
 export const checkInProcedures = {
   // Who scanned into one event. The scanner writes these rows and nothing ever
@@ -295,19 +294,17 @@ export const checkInProcedures = {
       );
 
       if (participant.registrationStatus !== "checked_in") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `${name} has not checked in at the registration desk yet. Send them there first.`,
-        });
+        throw forbidden(
+          `${name} has not checked in at the registration desk yet. Send them there first.`,
+        );
       }
 
       // Same bound as the pass scan, for the same reason: a station left on
       // a finished event keeps handing out its points.
       if (event.endTime < new Date()) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `${event.name} has already ended. Credit somebody who was there with a points adjustment.`,
-        });
+        throw forbidden(
+          `${event.name} has already ended. Credit somebody who was there with a points adjustment.`,
+        );
       }
 
       const { pointsAwarded } = await flaggingRuleBreaks(

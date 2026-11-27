@@ -34,6 +34,7 @@ import {
   describeKeyProblem,
   getStripe,
 } from "./client";
+import { badRequest, forbidden, preconditionFailed } from "../errors";
 
 // The Stripe client for taking a new payment. Members see a generic outage;
 // the cause goes to the log, like describeKeyProblem.
@@ -70,10 +71,7 @@ export const checkoutProcedures = {
       // Stripe sends the buyer back to this URL, and the mock flow redirects
       // there directly: anything but our own origin is an open redirect.
       if (new URL(input.returnUrl).origin !== siteOrigin()) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "That return address is not allowed.",
-        });
+        throw badRequest("That return address is not allowed.");
       }
 
       const user = await ctx.db!.query.users.findFirst({
@@ -81,10 +79,9 @@ export const checkoutProcedures = {
       });
 
       if (!user?.email) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "User must have an email address to checkout.",
-        });
+        throw preconditionFailed(
+          "User must have an email address to checkout.",
+        );
       }
 
       // Checked before the key, so local development needs no Stripe key at all —
@@ -199,10 +196,9 @@ export const checkoutProcedures = {
       });
 
       if (!user?.email) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "User must have an email address to checkout.",
-        });
+        throw preconditionFailed(
+          "User must have an email address to checkout.",
+        );
       }
 
       // A member with a year still on it buys the bootcamp alone. Decided from
@@ -359,10 +355,9 @@ export const checkoutProcedures = {
       }
 
       if (pi.status !== "succeeded") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Payment not yet complete (status: ${pi.status}). Please wait and try again.`,
-        });
+        throw badRequest(
+          `Payment not yet complete (status: ${pi.status}). Please wait and try again.`,
+        );
       }
 
       // Only an intent this server minted for this caller, for a membership or
@@ -382,10 +377,7 @@ export const checkoutProcedures = {
           identifier: ctx.userId ?? "unknown",
           details: `PaymentIntent refused: userId=${pi.metadata?.userId ?? "none"} type=${paymentType ?? "none"} amount=${pi.amount}`,
         });
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Payment mismatch.",
-        });
+        throw forbidden("Payment mismatch.");
       }
 
       const user = await ctx.db!.query.users.findFirst({

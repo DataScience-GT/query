@@ -14,7 +14,7 @@ import { createOrUpdateMembership, splitName } from "@query/db/services/membersh
 import { entitlementForPayment } from "@query/db/services/pricing";
 import { membershipGrants } from "../../services/metrics";
 import { clearMembershipCaches } from "../../middleware/cache";
-import { notFound } from "../errors";
+import { badRequest, notFound } from "../errors";
 
 export const linkingProcedures = {
   // Auto-link a Stripe payment matching the user's email.
@@ -199,10 +199,9 @@ export const linkingProcedures = {
             identifier: ctx.userId ?? "unknown",
             details: `Attempted to link already linked payment ${payment.id}`,
           });
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "This payment has already been linked to an account.",
-          });
+          throw badRequest(
+            "This payment has already been linked to an account.",
+          );
         }
 
         const userExistingLink = await tx.query.userAccountLinks.findFirst({
@@ -210,10 +209,7 @@ export const linkingProcedures = {
         });
 
         if (userExistingLink) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Your account is already linked to a payment.",
-          });
+          throw badRequest("Your account is already linked to a payment.");
         }
 
         // Lock the payment and claim it only while still unlinked, so two
@@ -240,10 +236,9 @@ export const linkingProcedures = {
           .returning({ id: stripePayments.id });
 
         if (claimed.length === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "This payment has already been linked to an account.",
-          });
+          throw badRequest(
+            "This payment has already been linked to an account.",
+          );
         }
 
         await tx.insert(userAccountLinks).values({
@@ -370,36 +365,28 @@ export const linkingProcedures = {
           throw notFound("Payment not found.");
         }
         if (payment.paymentStatus !== "paid") {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "This payment was not paid, so it cannot grant a membership.",
-          });
+          throw badRequest(
+            "This payment was not paid, so it cannot grant a membership.",
+          );
         }
         if (payment.linkedUserId) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "This payment has already been linked to an account.",
-          });
+          throw badRequest(
+            "This payment has already been linked to an account.",
+          );
         }
 
         const entitlement = entitlementForPayment(payment);
         if (!entitlement) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "This payment amount does not match any membership, so it cannot be linked. Use Memberships to grant time by hand.",
-          });
+          throw badRequest(
+            "This payment amount does not match any membership, so it cannot be linked. Use Memberships to grant time by hand.",
+          );
         }
 
         const userExistingLink = await tx.query.userAccountLinks.findFirst({
           where: { userId: user.id },
         });
         if (userExistingLink) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "That account is already linked to a payment.",
-          });
+          throw badRequest("That account is already linked to a payment.");
         }
 
         const claimed = await tx
@@ -417,10 +404,9 @@ export const linkingProcedures = {
           )
           .returning({ id: stripePayments.id });
         if (claimed.length === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "This payment has already been linked to an account.",
-          });
+          throw badRequest(
+            "This payment has already been linked to an account.",
+          );
         }
 
         const payer = splitName(payment.customerName);

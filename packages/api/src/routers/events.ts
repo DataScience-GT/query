@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { DAY } from "@query/core";
-import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { events, eventCheckIns, members, users } from "@query/db";
 import {
@@ -21,7 +20,7 @@ import { isUniqueViolation } from "../middleware/db-errors";
 import { isBugTesterRole } from "../types/portal-context";
 import { checkInCounts, withCheckInCounts } from "../services/derived-counts";
 import type { DrizzleDB } from "@query/db";
-import { notFound } from "./errors";
+import { badRequest, conflict, forbidden, notFound } from "./errors";
 
 // The first instant of the term currentTerm() names, in Atlanta: spring opens
 // Jan 1 and fall Jun 1, since summer sells fall. Jan 1 is always standard time
@@ -62,7 +61,7 @@ async function admit(
       .for("update");
 
     if ((await countCheckIns(tx, event.id)) >= event.maxCheckIns) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: "Event is full" });
+      throw badRequest("Event is full");
     }
   }
 
@@ -70,7 +69,7 @@ async function admit(
     await tx.insert(eventCheckIns).values(checkIn);
   } catch (error: unknown) {
     if (isUniqueViolation(error)) {
-      throw new TRPCError({ code: "CONFLICT", message: alreadyIn });
+      throw conflict(alreadyIn);
     }
     throw error;
   }
@@ -110,10 +109,9 @@ export const eventRouter = createTRPCRouter({
           // Guarded on the week: the QR code is unique too, and "Week undefined already
           // exists" would be a baffling thing to read.
           if (input.bootcampWeek && isUniqueViolation(error)) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: `Week ${input.bootcampWeek} of this bootcamp already has a session. Edit that one instead.`,
-            });
+            throw conflict(
+              `Week ${input.bootcampWeek} of this bootcamp already has a session. Edit that one instead.`,
+            );
           }
           throw error;
         });
@@ -164,10 +162,9 @@ export const eventRouter = createTRPCRouter({
           eventId,
         );
         if (fields.maxCheckIns < checkedIn) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `${checkedIn} people have already checked in, so the cap cannot be lower than that.`,
-          });
+          throw conflict(
+            `${checkedIn} people have already checked in, so the cap cannot be lower than that.`,
+          );
         }
       }
 
@@ -191,10 +188,9 @@ export const eventRouter = createTRPCRouter({
         .returning()
         .catch((error: unknown) => {
           if (fields.bootcampWeek && isUniqueViolation(error)) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: `Week ${fields.bootcampWeek} of this bootcamp already has a session.`,
-            });
+            throw conflict(
+              `Week ${fields.bootcampWeek} of this bootcamp already has a session.`,
+            );
           }
           throw error;
         });
@@ -434,19 +430,13 @@ export const eventRouter = createTRPCRouter({
           }
 
           if (!event.checkInEnabled) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Check-in not enabled for this event",
-            });
+            throw badRequest("Check-in not enabled for this event");
           }
 
           // The public listing stops advertising an event 24h after it starts; the door
           // has to agree, or a photographed QR keeps admitting people afterwards.
           if (event.eventDate < new Date(Date.now() - DAY)) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Check-in for this event has closed",
-            });
+            throw badRequest("Check-in for this event has closed");
           }
 
           const [member, existingCheckIn] = await Promise.all([
@@ -472,17 +462,13 @@ export const eventRouter = createTRPCRouter({
           // cannot change with the day a session happens to fall on.
           const sessionTerm = event.bootcampTerm ?? currentTerm();
           if (event.bootcampOnly && member?.bootcampTerm !== sessionTerm) {
-            throw new TRPCError({
-              code: "FORBIDDEN",
-              message: "This session is for bootcamp members this semester",
-            });
+            throw forbidden(
+              "This session is for bootcamp members this semester",
+            );
           }
 
           if (existingCheckIn) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: "Already checked in",
-            });
+            throw conflict("Already checked in");
           }
 
           // Someone already inside is a duplicate, not an extra body, so the

@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, publicProcedure } from "../../trpc";
 import { hackathonEvents, hackathonEventAttendees } from "@query/db";
 import { eq, inArray, sql } from "drizzle-orm";
@@ -9,7 +8,7 @@ import { recordAdminAction } from "../../middleware/audit";
 import { assignCheckInCode } from "../../services/points";
 import { assertHackathonVisible } from "./visibility";
 import type { DrizzleDB } from "@query/db";
-import { notFound } from "../errors";
+import { badRequest, conflict, forbidden, notFound } from "../errors";
 
 // What attending is worth. Copied onto each check-in as it happens, so a
 // change here only affects check-ins from then on.
@@ -141,10 +140,7 @@ export const hackathonEventsRouter = createTRPCRouter({
       const resolvedEnd = updateData.endTime ?? existing.endTime;
 
       if (resolvedEnd <= resolvedStart) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "End time must be after start time",
-        });
+        throw badRequest("End time must be after start time");
       }
 
       const [updatedEvent] = await (ctx.db as DrizzleDB)
@@ -210,10 +206,9 @@ export const hackathonEventsRouter = createTRPCRouter({
       const checkIns = scans?.count ?? 0;
 
       if (checkIns > 0 && !input.force) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: `${checkIns} person(s) have already checked into "${existing.name}". Deleting the event erases those check-ins and the points they earned, permanently.`,
-        });
+        throw conflict(
+          `${checkIns} person(s) have already checked into "${existing.name}". Deleting the event erases those check-ins and the points they earned, permanently.`,
+        );
       }
 
       await db
@@ -348,10 +343,7 @@ export const hackathonEventsRouter = createTRPCRouter({
       // isScanner lets a bug tester through for reads; this is the one read
       // whose whole content is the secret.
       if (isBugTesterRole(ctx.admin.role)) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Event staff access required",
-        });
+        throw forbidden("Event staff access required");
       }
 
       const event = await findScopedEvent(ctx.db as DrizzleDB, input);

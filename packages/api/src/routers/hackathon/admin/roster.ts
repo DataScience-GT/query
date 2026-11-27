@@ -1,7 +1,6 @@
 // The attendee roster: paged list, matching ids and the CSV export.
 
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { isAdmin } from "../../../middleware/procedures";
 import { recordAdminAction } from "../../../middleware/audit";
 import { isBugTesterRole } from "../../../types/portal-context";
@@ -9,16 +8,14 @@ import { hackathonParticipants, memberResumes, users } from "@query/db";
 import { inArray, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { PARTICIPANT_STATUSES, buildAttendeeWhere } from "./attendee-where";
+import { forbidden } from "../../errors";
 
 // isAdmin lets a bug tester run every admin read. These two hand over
 // applicants' phones, emergency contacts, citizenship and essays, so bug
 // testers are turned away here rather than shown real people's data.
 export const refuseBugTester = (role: string | null | undefined) => {
   if (isBugTesterRole(role)) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Admin access required",
-    });
+    throw forbidden("Admin access required");
   }
 };
 

@@ -7,7 +7,7 @@ import { CacheKeys } from "../../middleware/cache";
 import { notHackathonBanned } from "../../middleware/procedures";
 import { resolveHackathonId } from "../../services/portal-context";
 import type { DrizzleDB } from "@query/db";
-import { notFound } from "../errors";
+import { badRequest, conflict, notFound } from "../errors";
 
 // The track a judge would like, as the edition spells it. Organisers read it
 // when seating judges, so a free-text value that matches none of the edition's
@@ -59,10 +59,9 @@ async function assertEditionNotOver(db: DrizzleDB, hackathonId: string) {
     !["announced", "open", "closed", "in_progress"].includes(hackathon.status) ||
     (hackathon.endDate && new Date() > new Date(hackathon.endDate))
   ) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "This hackathon is over, so applications can't be edited.",
-    });
+    throw badRequest(
+      "This hackathon is over, so applications can't be edited.",
+    );
   }
 }
 
@@ -220,11 +219,9 @@ export const judgePortalRouter = createTRPCRouter({
         });
 
         if (participant) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "You cannot apply to be a judge because you are registered as a participant for this hackathon.",
-          });
+          throw badRequest(
+            "You cannot apply to be a judge because you are registered as a participant for this hackathon.",
+          );
         }
 
         let judge = await tx.query.judges.findFirst({
@@ -288,10 +285,7 @@ export const judgePortalRouter = createTRPCRouter({
         });
 
         if (existingAssignment) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "You have already applied to judge this hackathon.",
-          });
+          throw conflict("You have already applied to judge this hackathon.");
         }
 
         const track = await assertTrackExists(

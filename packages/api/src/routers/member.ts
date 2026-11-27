@@ -16,7 +16,7 @@ import { isBugTesterRole } from "../types/portal-context";
 import { escapeLike } from "./judging/admin/shared";
 import { recordAdminAction } from "../middleware/audit";
 import { splitName } from "@query/db/services/membership";
-import { notFound } from "./errors";
+import { badRequest, forbidden, notFound } from "./errors";
 
 // Letters from every script, plus the combining marks, spaces, hyphens and
 // apostrophes (straight and typographic) that real names are written with.
@@ -95,10 +95,7 @@ export const memberRouter = createTRPCRouter({
       });
 
       if (existingMember) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "You already have a member profile",
-        });
+        throw badRequest("You already have a member profile");
       }
 
       // This writes a PROFILE, not a membership. It used to stamp
@@ -388,10 +385,7 @@ export const memberRouter = createTRPCRouter({
       // Same rule as admin.findUserByEmail: searching by address confirms that
       // an account exists, which a read-only QA account has no need to do.
       if (isBugTesterRole(ctx.admin.role)) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Admin access required",
-        });
+        throw forbidden("Admin access required");
       }
 
       // A literal search: a pasted % or _ must not turn into a wildcard.
@@ -526,10 +520,7 @@ export const memberRouter = createTRPCRouter({
         }
 
         if (input.months < 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "That person has no membership to shorten.",
-          });
+          throw badRequest("That person has no membership to shorten.");
         }
 
         const { firstName, lastName } = splitName(user.name);

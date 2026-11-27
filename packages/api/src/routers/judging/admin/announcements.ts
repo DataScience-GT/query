@@ -1,7 +1,6 @@
 // Announcements and re-opening submitted grades.
 
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import {
   and,
   asc,
@@ -28,9 +27,8 @@ import {
   uuid,
   hackathonInput,
   announcementText,
-  refuse,
 } from "./shared";
-import { notFound } from "../../errors";
+import { badRequest, notFound, preconditionFailed } from "../../errors";
 
 export const announcementProcedures = {
   /** The messages on judges' screens now: one for everyone, one per room. */
@@ -89,10 +87,9 @@ export const announcementProcedures = {
             )
             .limit(1);
           if (!room) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "That room is not an active room of this hackathon.",
-            });
+            throw badRequest(
+              "That room is not an active room of this hackathon.",
+            );
           }
         }
 
@@ -199,7 +196,7 @@ export const announcementProcedures = {
             ),
           );
         if ((published?.value ?? 0) > 0) {
-          throw refuse(
+          throw preconditionFailed(
             "Results are published. Unpublish them first, then reopen the grade and compute results again.",
           );
         }

@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { hackathonVolunteerApplications as applications } from "@query/db";
 import type { DrizzleDB } from "@query/db";
@@ -18,7 +17,7 @@ import {
 } from "../../services/volunteer";
 import { refuseBugTester } from "../hackathon/admin/roster";
 import { toSlug } from "../hackathon/crud";
-import { notFound } from "../errors";
+import { badRequest, conflict, notFound } from "../errors";
 
 // Every application for an edition, with the person. One read: an edition
 // has tens of volunteers, so filtering and counting happen on the rows
@@ -99,10 +98,9 @@ export const volunteerAdminRouter = createTRPCRouter({
         throw notFound("Application not found");
       }
       if (before.status === "withdrawn") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "The applicant withdrew, so there is nothing to decide.",
-        });
+        throw badRequest(
+          "The applicant withdrew, so there is nothing to decide.",
+        );
       }
       if (before.status === input.decision) {
         return { success: true, status: input.decision, changed: false };
@@ -137,10 +135,9 @@ export const volunteerAdminRouter = createTRPCRouter({
         return row;
       });
       if (!updated) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "This application changed while you were looking at it. Reload and try again.",
-        });
+        throw conflict(
+          "This application changed while you were looking at it. Reload and try again.",
+        );
       }
 
       await recordAdminAction(db, {

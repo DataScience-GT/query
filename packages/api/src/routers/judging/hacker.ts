@@ -60,7 +60,7 @@ import type {
 } from "../../services/judging/itinerary";
 import { holdsEveryRating } from "../../services/judging/scoring-sql";
 import { escapeLike } from "./admin/shared";
-import { notFound } from "../errors";
+import { badRequest, forbidden, notFound, preconditionFailed } from "../errors";
 
 const hackathonInput = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -237,11 +237,9 @@ export const judgingHackerRouter = createTRPCRouter({
           .limit(1);
         // A missing place falls through to claimPlace's "no longer in judging".
         if (listed && (!user || !sameEmail(listed.email, user.email))) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message:
-              "That place is listed under a different email. Open the claim link an organizer sent to that address instead.",
-          });
+          throw forbidden(
+            "That place is listed under a different email. Open the claim link an organizer sent to that address instead.",
+          );
         }
 
         return claimPlace(tx, {
@@ -296,7 +294,7 @@ export const judgingHackerRouter = createTRPCRouter({
         .limit(1);
 
       if (!link || !claimLinkUsable(link, hackathon.endDate, now)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: LINK_UNUSABLE });
+        throw badRequest(LINK_UNUSABLE);
       }
 
       const [roster, held] = await Promise.all([
@@ -352,7 +350,7 @@ export const judgingHackerRouter = createTRPCRouter({
           )
           .for("update");
         if (!link || !claimLinkUsable(link, hackathon.endDate, now)) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: LINK_UNUSABLE });
+          throw badRequest(LINK_UNUSABLE);
         }
 
         return claimPlace(tx, {
@@ -397,29 +395,23 @@ export const judgingHackerRouter = createTRPCRouter({
       const hackathon = await assertHackathonExists(db, input.hackathonId);
       const now = new Date();
       if (hackathon.endDate <= now) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "The event has ended, so teams can no longer change.",
-        });
+        throw preconditionFailed(
+          "The event has ended, so teams can no longer change.",
+        );
       }
 
       const reserved = await db.transaction(async (tx) => {
         const config = await lockJudgingConfig(tx, input.hackathonId);
         if (config.emergencyMode) {
-          throw new TRPCError({
-            code: "PRECONDITION_FAILED",
-            message:
-              "Team changes are paused while organizers run judging from the posted list. Ask at the help desk.",
-          });
+          throw preconditionFailed(
+            "Team changes are paused while organizers run judging from the posted list. Ask at the help desk.",
+          );
         }
         await requireCheckedIn(tx, input.hackathonId, userId);
 
         const held = await heldPlace(tx, input.hackathonId, userId);
         if (!held || held.deletedAt) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Claim your project before adding teammates.",
-          });
+          throw forbidden("Claim your project before adding teammates.");
         }
 
         const roster = await loadRoster(tx, held.entryId);
@@ -560,10 +552,9 @@ export const judgingHackerRouter = createTRPCRouter({
       const ownEntryId = held && !held.deletedAt ? held.entryId : null;
       const lookupOpen = config.emergencyMode && config.itineraryPublished;
       if (input.entryId && input.entryId !== ownEntryId && !lookupOpen) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You can only see your own project's judging schedule.",
-        });
+        throw forbidden(
+          "You can only see your own project's judging schedule.",
+        );
       }
 
       const state = {
@@ -740,11 +731,9 @@ export const judgingHackerRouter = createTRPCRouter({
 
       const config = await readJudgingConfig(db, input.hackathonId);
       if (!config.emergencyMode || !config.itineraryPublished) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message:
-            "Project search opens only if organizers switch judging to emergency mode.",
-        });
+        throw forbidden(
+          "Project search opens only if organizers switch judging to emergency mode.",
+        );
       }
 
       return db
@@ -912,10 +901,7 @@ export const judgingHackerRouter = createTRPCRouter({
       const db = ctx.db as DrizzleDB;
       const hackathon = await assertHackathonExists(db, input.hackathonId);
       if (hackathon.endDate <= new Date()) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: LINKS_CLOSED,
-        });
+        throw preconditionFailed(LINKS_CLOSED);
       }
 
       const { token, entryId } = await db.transaction(async (tx) => {
@@ -964,10 +950,7 @@ export const judgingHackerRouter = createTRPCRouter({
       const hackathon = await assertHackathonExists(db, input.hackathonId);
       const now = new Date();
       if (hackathon.endDate <= now) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: LINKS_CLOSED,
-        });
+        throw preconditionFailed(LINKS_CLOSED);
       }
 
       const candidates = input.memberId

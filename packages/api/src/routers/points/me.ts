@@ -18,7 +18,7 @@ import {
   recordEventAttendance,
   selfCheckInWindow,
 } from "../../services/points";
-import { notFound } from "../errors";
+import { badRequest, forbidden, notFound } from "../errors";
 
 const scope = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -50,10 +50,7 @@ function assertAccepted(participant: { registrationStatus: string }) {
     participant.registrationStatus !== "approved" &&
     participant.registrationStatus !== "checked_in"
   ) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Points open once your registration is accepted.",
-    });
+    throw forbidden("Points open once your registration is accepted.");
   }
 }
 
@@ -221,11 +218,9 @@ export const pointsMeRouter = createTRPCRouter({
 
       const code = normalizeCheckInCode(input.code);
       if (!code) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Event codes are 6 letters and numbers. Check the code on the screen and try again.",
-        });
+        throw badRequest(
+          "Event codes are 6 letters and numbers. Check the code on the screen and try again.",
+        );
       }
 
       const db = ctx.db as DrizzleDB;
@@ -267,24 +262,21 @@ export const pointsMeRouter = createTRPCRouter({
       }
 
       if (!event.selfCheckIn) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `${event.name} is not taking codes right now. Ask staff at the door to check you in.`,
-        });
+        throw forbidden(
+          `${event.name} is not taking codes right now. Ask staff at the door to check you in.`,
+        );
       }
 
       const window = selfCheckInWindow(event, new Date());
       if (window === "early") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `Check-in for ${event.name} opens 15 minutes before it starts.`,
-        });
+        throw forbidden(
+          `Check-in for ${event.name} opens 15 minutes before it starts.`,
+        );
       }
       if (window === "ended") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `${event.name} has ended, so its code no longer works.`,
-        });
+        throw forbidden(
+          `${event.name} has ended, so its code no longer works.`,
+        );
       }
 
       // A refusal for the check-in rules is recorded for organisers, on the

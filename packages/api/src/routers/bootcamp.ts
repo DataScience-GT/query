@@ -16,7 +16,7 @@ import { isAdmin } from "../middleware/procedures";
 import { isBugTesterRole } from "../types/portal-context";
 import { isUniqueViolation } from "../middleware/db-errors";
 import { withCheckInCounts } from "../services/derived-counts";
-import { notFound } from "./errors";
+import { badRequest, conflict, notFound } from "./errors";
 
 // Sessions remain events and attendance remains `event_check_in`. Workshop
 // rows hold only the material officers publish beside those sessions.
@@ -279,10 +279,7 @@ export const bootcampRouter = createTRPCRouter({
               .limit(1);
 
         if (!knownEvent) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `No bootcamp ran in ${workshopTerm}.`,
-          });
+          throw badRequest(`No bootcamp ran in ${workshopTerm}.`);
         }
       }
 
@@ -292,10 +289,9 @@ export const bootcampRouter = createTRPCRouter({
         .returning()
         .catch((error: unknown) => {
           if (isUniqueViolation(error)) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: `Week ${input.week} of this bootcamp already has workshop material. Edit that row instead.`,
-            });
+            throw conflict(
+              `Week ${input.week} of this bootcamp already has workshop material. Edit that row instead.`,
+            );
           }
           throw error;
         });
@@ -328,10 +324,7 @@ export const bootcampRouter = createTRPCRouter({
         .returning()
         .catch((error: unknown) => {
           if (isUniqueViolation(error)) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: "Another workshop row already uses that week.",
-            });
+            throw conflict("Another workshop row already uses that week.");
           }
           throw error;
         });

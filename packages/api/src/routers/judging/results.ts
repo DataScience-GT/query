@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import {
   and,
   asc,
@@ -56,7 +55,7 @@ import {
   computePlacements,
   formatScore,
 } from "../../services/judging/placements";
-import { notFound } from "../errors";
+import { notFound, preconditionFailed } from "../errors";
 
 const hackathonInput = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -299,11 +298,9 @@ export const judgingResultsRouter = createTRPCRouter({
           ),
         );
       if ((published?.n ?? 0) > 0) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message:
-            "Results are published. Unpublish them first, then compute again and republish.",
-        });
+        throw preconditionFailed(
+          "Results are published. Unpublish them first, then compute again and republish.",
+        );
       }
 
       // Judges still score a team an organiser pulled from prizes, so its
@@ -402,11 +399,9 @@ export const judgingResultsRouter = createTRPCRouter({
         .from(judgingPlacements)
         .where(eq(judgingPlacements.hackathonId, input.hackathonId));
       if ((existing?.n ?? 0) === 0) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message:
-            "There is nothing to publish yet. Compute results first, once judges have submitted. Reopening a grade clears the draft placings, so compute again after one.",
-        });
+        throw preconditionFailed(
+          "There is nothing to publish yet. Compute results first, once judges have submitted. Reopening a grade clears the draft placings, so compute again after one.",
+        );
       }
       const rows = await tx
         .update(judgingPlacements)

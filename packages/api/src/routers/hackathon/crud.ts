@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, publicProcedure } from "../../trpc";
 import { hackathons } from "@query/db";
 import { eq, and, desc, gte, notInArray } from "drizzle-orm";
@@ -22,7 +21,7 @@ import {
   markEditionRolesPending,
   syncDiscordRolesFor,
 } from "../../services/discord";
-import { notFound } from "../errors";
+import { badRequest, conflict, notFound } from "../errors";
 
 // Every hackathon read below returns currentParticipants counted from the
 // participant rows (one grouped query per call). The stored column is retired:
@@ -353,10 +352,9 @@ export const hackathonCrudRouter = createTRPCRouter({
         // makes one of the two unreachable — worth saying plainly rather than
         // surfacing a driver error.
         if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `A hackathon named "${input.name}" already exists. Names are used in admin links, so they have to be distinct.`,
-          });
+          throw conflict(
+            `A hackathon named "${input.name}" already exists. Names are used in admin links, so they have to be distinct.`,
+          );
         }
         throw error;
       }
@@ -438,10 +436,7 @@ export const hackathonCrudRouter = createTRPCRouter({
       const resolvedEnd = updateData.endDate ?? existing.endDate;
 
       if (resolvedEnd <= resolvedStart) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "End date must be after start date",
-        });
+        throw badRequest("End date must be after start date");
       }
 
       // hackingStartTime: null clears it; undefined leaves it unchanged
@@ -456,11 +451,9 @@ export const hackathonCrudRouter = createTRPCRouter({
         (resolvedHackingStart < resolvedStart ||
           resolvedHackingStart > resolvedEnd)
       ) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Hacking start time must be within the event window (between start date and end date)",
-        });
+        throw badRequest(
+          "Hacking start time must be within the event window (between start date and end date)",
+        );
       }
 
       // An edition that ends takes its Discord roles with it, and one that is
@@ -495,10 +488,9 @@ export const hackathonCrudRouter = createTRPCRouter({
         }
       } catch (error) {
         if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `Another hackathon is already named "${updateData.name}". Names are used in admin links, so they have to be distinct.`,
-          });
+          throw conflict(
+            `Another hackathon is already named "${updateData.name}". Names are used in admin links, so they have to be distinct.`,
+          );
         }
         throw error;
       }
@@ -541,10 +533,9 @@ export const hackathonCrudRouter = createTRPCRouter({
       }
 
       if (confirmName.trim() !== existing.name.trim()) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Type the hackathon's exact name to confirm. Expected "${existing.name}".`,
-        });
+        throw badRequest(
+          `Type the hackathon's exact name to confirm. Expected "${existing.name}".`,
+        );
       }
 
       // Every child table cascades off this row, so reporting success for an id
@@ -561,11 +552,9 @@ export const hackathonCrudRouter = createTRPCRouter({
         // memberships still hang off the edition. That is the guard working — those
         // rows are the only record of who paid and nothing re-creates them.
         if (isForeignKeyViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "This hackathon still has club memberships attached. Those are paid records and cannot be cascaded away — move or remove them deliberately first.",
-          });
+          throw conflict(
+            "This hackathon still has club memberships attached. Those are paid records and cannot be cascaded away — move or remove them deliberately first.",
+          );
         }
         throw error;
       }

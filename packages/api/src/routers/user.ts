@@ -7,7 +7,7 @@ import { CacheKeys } from "../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { fetchPortalContext } from "../services/portal-context";
 import { readImageDimensions } from "../services/image-dimensions";
-import { notFound } from "./errors";
+import { badRequest, conflict, notFound } from "./errors";
 
 // z.string().url() is backed by new URL(), which accepts any scheme, so a
 // stored data: or javascript: URI is handed straight to whoever renders it.
@@ -210,10 +210,9 @@ export const userRouter = createTRPCRouter({
         // typed it either owns it or is claiming it, and both need to know the save
         // did not happen.
         if (isDuplicateGtEmail(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "That Georgia Tech email is already on another account.",
-          });
+          throw conflict(
+            "That Georgia Tech email is already on another account.",
+          );
         }
         throw error;
       }
@@ -238,10 +237,7 @@ export const userRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const base64Data = input.base64Image.split(",")[1];
       if (!base64Data) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid base64 payload",
-        });
+        throw badRequest("Invalid base64 payload");
       }
 
       const buffer = Buffer.from(base64Data, "base64");
@@ -249,32 +245,24 @@ export const userRouter = createTRPCRouter({
       try {
         const dimensions = readImageDimensions(buffer);
         if (!dimensions?.width || !dimensions.height) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Invalid image dimensions. File may be corrupt.",
-          });
+          throw badRequest("Invalid image dimensions. File may be corrupt.");
         }
         if (dimensions.width > 2000 || dimensions.height > 2000) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "Image dimensions exceed the maximum allowed size of 2000x2000 pixels.",
-          });
+          throw badRequest(
+            "Image dimensions exceed the maximum allowed size of 2000x2000 pixels.",
+          );
         }
         const allowedTypes = ["jpeg", "png", "webp"];
         if (!allowedTypes.includes(dimensions.type)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "Malicious payload detected: File signature does not match expected image formats.",
-          });
+          throw badRequest(
+            "Malicious payload detected: File signature does not match expected image formats.",
+          );
         }
       } catch (err) {
         if (err instanceof TRPCError) throw err;
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Could not parse image. File may be corrupt or malicious.",
-        });
+        throw badRequest(
+          "Could not parse image. File may be corrupt or malicious.",
+        );
       }
 
       await (ctx.db as NonNullable<typeof ctx.db>)

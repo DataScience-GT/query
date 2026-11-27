@@ -11,7 +11,7 @@ import {
   judgingEntries,
   judgingRooms,
 } from "@query/db";
-import { notFound } from "../../errors";
+import { badRequest, notFound, preconditionFailed } from "../../errors";
 import type { JudgingDb } from "../../../services/judging/config";
 import {
   lockEdition,
@@ -66,9 +66,6 @@ export const SEATED_WINDOW_MS = 15 * 60 * 1000;
 
 /** `%` and `_` in a search box are text, not wildcards. */
 export const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
-
-export const refuse = (message: string) =>
-  new TRPCError({ code: "PRECONDITION_FAILED", message });
 
 /** Public results are cached; anything that changes what they show evicts them. */
 export const evictResults = (
@@ -133,7 +130,7 @@ export async function restoreLockedEntry(
       .where(eq(hackathonProjects.id, entry.sourceProjectId))
       .limit(1);
     if (project && (project.withdrawnByAdminAt || project.status === "draft")) {
-      throw refuse(
+      throw preconditionFailed(
         "This team's portal submission was withdrawn, so it cannot be judged. Ask the team to submit it again.",
       );
     }
@@ -188,7 +185,7 @@ export async function archiveLockedRoom(
 ) {
   const scheduled = await roomAppointmentCount(tx, room.id);
   if (scheduled > 0) {
-    throw refuse(
+    throw preconditionFailed(
       `${room.name} has ${scheduled} scheduled presentation${scheduled === 1 ? "" : "s"}. Move them or drop the schedule before archiving it.`,
     );
   }
@@ -235,17 +232,12 @@ export async function assertRoomChallenge(
     )
     .limit(1);
   if (!challenge) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "That challenge is not part of this hackathon.",
-    });
+    throw badRequest("That challenge is not part of this hackathon.");
   }
   if (challenge.parentId) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message:
-        "Rooms judge a top-level challenge or group. Pick the group this challenge sits in.",
-    });
+    throw badRequest(
+      "Rooms judge a top-level challenge or group. Pick the group this challenge sits in.",
+    );
   }
 }
 
@@ -265,10 +257,7 @@ export async function assertBuilding(
     )
     .limit(1);
   if (!building) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "That building is not part of this hackathon.",
-    });
+    throw badRequest("That building is not part of this hackathon.");
   }
 }
 

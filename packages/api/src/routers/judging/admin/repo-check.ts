@@ -26,11 +26,10 @@ import {
   evictResults,
   hackathonInput,
   lockEntry,
-  refuse,
   restoreLockedEntry,
   uuid,
 } from "./shared";
-import { notFound } from "../../errors";
+import { notFound, preconditionFailed } from "../../errors";
 
 const note = z.string().trim().max(500).optional();
 
@@ -226,12 +225,12 @@ export const repoCheckProcedures = {
           input.entryId,
         );
         if (check.decision === "disqualified") {
-          throw refuse(
+          throw preconditionFailed(
             `${entry.title} is already disqualified. Reinstate it to change that.`,
           );
         }
         if (input.decision === "cleared" && check.removedEntry) {
-          throw refuse(
+          throw preconditionFailed(
             `${entry.title} was taken out of judging by an earlier disqualification. Reinstate it instead.`,
           );
         }
@@ -288,7 +287,7 @@ export const repoCheckProcedures = {
           input.entryId,
         );
         if (check.decision !== "disqualified" && !check.removedEntry) {
-          throw refuse(`${entry.title} is not disqualified.`);
+          throw preconditionFailed(`${entry.title} is not disqualified.`);
         }
         // Only the removal the disqualification made: an organiser who
         // restored the project and removed it again for another reason has

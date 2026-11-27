@@ -1,7 +1,7 @@
 // Who may take part (admitted, checked in) and which project row a participant owns.
 
-import { TRPCError } from "@trpc/server";
 import type { Tx } from "./windows";
+import { conflict, forbidden } from "../errors";
 
 // The single project row a participant owns: their team's entry, or the solo
 // entry they filed. Shared by submitProject and mySubmission so the form is
@@ -32,17 +32,14 @@ export function checkAdmitted(registrationStatus: string) {
   if (ADMITTED_STATUSES.includes(registrationStatus)) return;
 
   if (registrationStatus === "pending") {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message:
-        "Your registration is still being reviewed. You can form a team once you have been accepted.",
-    });
+    throw forbidden(
+      "Your registration is still being reviewed. You can form a team once you have been accepted.",
+    );
   }
 
-  throw new TRPCError({
-    code: "FORBIDDEN",
-    message: `Your registration for this hackathon is ${registrationStatus}.`,
-  });
+  throw forbidden(
+    `Your registration for this hackathon is ${registrationStatus}.`,
+  );
 }
 
 // Submitting needs more than acceptance: the person has to be in the
@@ -54,11 +51,9 @@ export function checkCheckedIn(registrationStatus: string) {
 
   checkAdmitted(registrationStatus);
 
-  throw new TRPCError({
-    code: "FORBIDDEN",
-    message:
-      "You need to check in at the event before submitting. Find a volunteer and have your badge scanned.",
-  });
+  throw forbidden(
+    "You need to check in at the event before submitting. Find a volunteer and have your badge scanned.",
+  );
 }
 
 // Joining a team after submitting solo orphans the solo row: ownProjectWhere
@@ -76,10 +71,8 @@ export async function assertNoLiveSoloSubmission(
   });
 
   if (solo && solo.status !== "draft") {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message:
-        "You already have a solo project submitted. Withdraw it from Submit Project before joining a team.",
-    });
+    throw conflict(
+      "You already have a solo project submitted. Withdraw it from Submit Project before joining a team.",
+    );
   }
 }

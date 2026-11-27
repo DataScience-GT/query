@@ -18,6 +18,7 @@ import {
   takesNewApplications,
   volunteerAnswers,
 } from "../../services/volunteer";
+import { conflict } from "../errors";
 
 const hackathonInput = z.object({ hackathonId: z.string().uuid() });
 const submitInput = hackathonInput.extend({ answers: volunteerAnswers });
@@ -104,10 +105,9 @@ export const volunteerPortalRouter = createTRPCRouter({
           .returning({ id: applications.id });
         if (reopened) return { status: "pending" as const };
 
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "You have already applied to volunteer at this hackathon.",
-        });
+        throw conflict(
+          "You have already applied to volunteer at this hackathon.",
+        );
       });
     }),
 

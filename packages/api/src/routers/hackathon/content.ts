@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../../trpc";
 import { hackathonProjects, judgingEntries } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
@@ -7,7 +6,7 @@ import { callerIsAdmin, isAdmin } from "../../middleware/procedures";
 import { recordAdminAction } from "../../middleware/audit";
 import { assertHackathonVisible } from "./visibility";
 import type { DrizzleDB } from "@query/db";
-import { notFound } from "../errors";
+import { conflict, notFound } from "../errors";
 
 // Same visibility rule as getPublicProjects: a project becomes public once
 // its team has actually submitted it. Drafts stay hidden.
@@ -115,11 +114,9 @@ export const hackathonContentRouter = createTRPCRouter({
       const inJudging = existing.status === "judging" || !!liveEntry;
 
       if (inJudging && !input.force) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message:
-            "This project is in judging. Withdrawing it removes it from judging and the results — confirm to continue.",
-        });
+        throw conflict(
+          "This project is in judging. Withdrawing it removes it from judging and the results — confirm to continue.",
+        );
       }
 
       await db.transaction(async (tx) => {

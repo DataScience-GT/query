@@ -1,7 +1,6 @@
 // Who is at the desk, where they sit, and the messages they see.
 
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { and, asc, eq, isNull, or } from "drizzle-orm";
 import {
   hackathons,
@@ -37,7 +36,7 @@ import {
   openRoomId,
   preferredTrackOf,
 } from "./shared";
-import { notFound } from "../../errors";
+import { badRequest, forbidden, notFound } from "../../errors";
 
 export const seatingProcedures = {
   // Who is at the desk, which edition, which room, and where judging stands.
@@ -112,11 +111,9 @@ export const seatingProcedures = {
     )
     .mutation(async ({ ctx, input }) => {
       if (ctx.principal.kind !== "guest") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "You are signed in as a judge, so there is no guest name to set.",
-        });
+        throw badRequest(
+          "You are signed in as a judge, so there is no guest name to set.",
+        );
       }
       return nameGuest(
         ctx.db,
@@ -181,10 +178,9 @@ export const seatingProcedures = {
     .input(z.object({ roomId: uuid }))
     .mutation(async ({ ctx, input }) => {
       if (ctx.judge.kind !== "member") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Guest judges stay at the room or table their QR code opened.",
-        });
+        throw forbidden(
+          "Guest judges stay at the room or table their QR code opened.",
+        );
       }
       const [room] = await ctx.db
         .select({ id: judgingRooms.id })
@@ -215,10 +211,9 @@ export const seatingProcedures = {
 
   leaveRoom: judgeProcedure.mutation(async ({ ctx }) => {
     if (ctx.judge.kind !== "member") {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Guest judges stay at the room or table their QR code opened.",
-      });
+      throw forbidden(
+        "Guest judges stay at the room or table their QR code opened.",
+      );
     }
     const closed = await ctx.db
       .update(judgingPresence)

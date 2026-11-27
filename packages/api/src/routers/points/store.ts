@@ -22,7 +22,7 @@ import {
   readBalance,
   searchParticipants,
 } from "../../services/points";
-import { notFound } from "../errors";
+import { conflict, notFound, preconditionFailed } from "../errors";
 
 const hackathonScope = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -286,10 +286,9 @@ export const pointsStoreRouter = createTRPCRouter({
 
       const sold = sales?.count ?? 0;
       if (sold > 0) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: `${locked.name} is on ${sold} purchase${sold === 1 ? "" : "s"}. Archive it instead; that takes it out of the catalog and keeps its history.`,
-        });
+        throw conflict(
+          `${locked.name} is on ${sold} purchase${sold === 1 ? "" : "s"}. Archive it instead; that takes it out of the catalog and keeps its history.`,
+        );
       }
 
       await tx
@@ -435,11 +434,9 @@ export const pointsStoreRouter = createTRPCRouter({
               existing.quantity === input.quantity &&
               existing.unitPrice === input.unitPrice;
             if (!sameSale) {
-              throw new TRPCError({
-                code: "CONFLICT",
-                message:
-                  "This sale's id was already used for a different sale. Start the sale again.",
-              });
+              throw conflict(
+                "This sale's id was already used for a different sale. Start the sale again.",
+              );
             }
             return {
               purchase: existing,
@@ -451,10 +448,9 @@ export const pointsStoreRouter = createTRPCRouter({
           const name = fullName(personName(participant), participant.email);
 
           if (participant.registrationStatus !== "checked_in") {
-            throw new TRPCError({
-              code: "PRECONDITION_FAILED",
-              message: `${name} has not checked in at the registration desk, so they cannot spend points yet.`,
-            });
+            throw preconditionFailed(
+              `${name} has not checked in at the registration desk, so they cannot spend points yet.`,
+            );
           }
 
           const [item] = await tx
@@ -475,10 +471,9 @@ export const pointsStoreRouter = createTRPCRouter({
           }
 
           if (item.price !== input.unitPrice) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: `${item.name} now costs ${item.price} points. Check the new total with the buyer and try again.`,
-            });
+            throw conflict(
+              `${item.name} now costs ${item.price} points. Check the new total with the buyer and try again.`,
+            );
           }
 
           if (!canSupply(item, input.quantity)) {
@@ -495,10 +490,9 @@ export const pointsStoreRouter = createTRPCRouter({
           const balance = await readBalance(tx, participant.id);
 
           if (total > balance.available) {
-            throw new TRPCError({
-              code: "PRECONDITION_FAILED",
-              message: `${name} has ${balance.available} points to spend; this costs ${total}.`,
-            });
+            throw preconditionFailed(
+              `${name} has ${balance.available} points to spend; this costs ${total}.`,
+            );
           }
 
           const [purchase] = await tx
@@ -545,11 +539,9 @@ export const pointsStoreRouter = createTRPCRouter({
         // The same id sent for a different buyer: their locks do not collide,
         // so the primary key is what catches it.
         if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "This sale's id was already used for a different sale. Start the sale again.",
-          });
+          throw conflict(
+            "This sale's id was already used for a different sale. Start the sale again.",
+          );
         }
         throw error;
       }
@@ -602,11 +594,9 @@ export const pointsStoreRouter = createTRPCRouter({
             : [];
 
           if (!purchase.stockTracked || !item || item.stock === null) {
-            throw new TRPCError({
-              code: "PRECONDITION_FAILED",
-              message:
-                "This sale cannot go back on the shelf count: stock was not being counted when it was sold, or is not now. Void it without restocking.",
-            });
+            throw preconditionFailed(
+              "This sale cannot go back on the shelf count: stock was not being counted when it was sold, or is not now. Void it without restocking.",
+            );
           }
 
           await tx
