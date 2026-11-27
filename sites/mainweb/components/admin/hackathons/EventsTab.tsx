@@ -214,14 +214,12 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
         </button>
       </div>
 
-      {/* Create / Edit Form */}
       {(showCreate || editingId) && (
         <section className="border-y border-[var(--border-subtle)] py-6">
           <h3 className={`${itemTitle} mb-5`}>
             {editingId ? "Edit event" : "New event"}
           </h3>
           <form onSubmit={handleSubmit} className="max-w-3xl space-y-5">
-            {/* Name + Type Row */}
             <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
               <div>
                 <label htmlFor="event-name" className={fieldLabel}>
@@ -258,7 +256,6 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
               </div>
             </div>
 
-            {/* Description */}
             <FormTextarea
               label="Description (optional)"
               id="description"
@@ -270,7 +267,6 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
               rows={2}
             />
 
-            {/* Location */}
             <div>
               <label htmlFor="location" className={fieldLabel}>
                 Location
@@ -288,7 +284,6 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
               />
             </div>
 
-            {/* Start / End Times */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="start-time" className={fieldLabel}>
@@ -322,7 +317,6 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
               </div>
             </div>
 
-            {/* Points + self check-in */}
             <div className="grid grid-cols-1 md:grid-cols-[10rem_1fr] gap-4 md:items-start">
               <div>
                 <label htmlFor="event-points" className={fieldLabel}>
@@ -367,14 +361,12 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
               </div>
             </div>
 
-            {/* Error */}
             {error && (
               <Alert rule>
                 {trpcErrorMessage(error, "Could not save this event.")}
               </Alert>
             )}
 
-            {/* Buttons */}
             <div className="flex items-center gap-3 pt-1">
               <button
                 type="submit"
@@ -404,7 +396,6 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
         </section>
       )}
 
-      {/* Event List */}
       {isLoading ? (
         <p className={`py-12 ${body}`}>Loading events…</p>
       ) : !events || events.length === 0 ? (
@@ -430,7 +421,6 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                 }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  {/* Left: Info */}
                   <div className="flex-1 min-w-0">
                     <p className={label}>
                       {typeMeta.label}
@@ -477,7 +467,6 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
                     />
                   </div>
 
-                  {/* Right: Actions */}
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"

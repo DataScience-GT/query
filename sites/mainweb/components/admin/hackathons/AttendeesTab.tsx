@@ -629,7 +629,6 @@ export function AttendeesTab({
         onFilterChange={changeFilter}
       />
 
-      {/* Header + Actions */}
       <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 ${sectionRule}`}>
         <div>
           <h2 className={sectionTitle}>Applications</h2>
@@ -651,7 +650,6 @@ export function AttendeesTab({
         </button>
       </div>
 
-      {/* Bulk actions for the current selection. */}
       {selectedIds.size > 0 && (
         <div className="flex flex-wrap items-center gap-3 border-y border-[var(--border-subtle)] py-3">
           <span className="mr-1 text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">
@@ -750,7 +748,6 @@ export function AttendeesTab({
         </p>
       )}
 
-      {/* Search */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-[16rem] max-w-xl flex-1">
           <input
@@ -794,7 +791,6 @@ export function AttendeesTab({
         </div>
       )}
 
-      {/* Table */}
       <div className="overflow-x-auto border-t border-[var(--border-subtle)]">
         <table className="w-full text-left text-sm whitespace-nowrap min-w-[900px]">
           <thead>
@@ -1075,7 +1071,6 @@ export function AttendeesTab({
                       <td colSpan={8} className="p-0">
                         <div className="px-4 py-6 md:px-8 whitespace-normal">
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {/* Application Details */}
                             <div className="space-y-4">
                               <h4 className={detailGroup}>
                                 Application details
@@ -1105,7 +1100,6 @@ export function AttendeesTab({
                               </div>
                             </div>
 
-                            {/* Experience & Logistics */}
                             <div className="space-y-4">
                               <h4 className={detailGroup}>
                                 Logistics and links
@@ -1186,7 +1180,6 @@ export function AttendeesTab({
                               </div>
                             </div>
 
-                            {/* Questionnaire Response */}
                             <div className="space-y-4 lg:col-span-1 md:col-span-2">
                               <h4 className={detailGroup}>Questionnaire</h4>
                               <Detail label="Hackathons attended" className="text-sm tabular-nums text-[var(--text-primary)]">
@@ -1272,7 +1265,6 @@ export function AttendeesTab({
                               </Detail>
                               </div>
 
-                              {/* Quick action buttons in expanded view */}
                               <div className="pt-4 flex flex-wrap items-center gap-2 border-t border-[var(--border-subtle)]">
                                 <span className="mr-1 text-[13px] font-medium text-[var(--text-subtle)]">
                                   Decision

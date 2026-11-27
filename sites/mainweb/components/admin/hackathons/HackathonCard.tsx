@@ -81,7 +81,6 @@ export function HackathonCard({
   return (
     <article className={`${object} p-5 md:p-8`}>
       <div className="flex flex-col gap-8">
-        {/* Info Section */}
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Link
@@ -144,7 +143,6 @@ export function HackathonCard({
             </div>
           </dl>
 
-          {/* Registration Progress Bar */}
           {hackathon.status !== "announced" && hackathon.maxParticipants && (
             <div className="mt-5 h-1 w-full overflow-hidden rounded-full bg-[var(--bg-secondary)]">
               <div
@@ -156,7 +154,6 @@ export function HackathonCard({
             </div>
           )}
 
-          {/* Events Showcase Section */}
           <div className="mt-8 border-t border-[var(--border-subtle)] pt-6">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h4 className={itemTitle}>Schedule</h4>
@@ -218,7 +215,6 @@ export function HackathonCard({
           </div>
         </div>
 
-        {/* Actions Section — full width row */}
         <div className="flex flex-wrap items-center justify-between gap-6 border-t border-[var(--border-subtle)] pt-6">
           {/* Left group: Visibility, with Delete kept away from the primary action */}
           <div className="flex flex-wrap items-center gap-3">
@@ -278,7 +274,6 @@ export function HackathonCard({
             )}
           </div>
 
-          {/* Right group: Edit + Judging + Dashboard */}
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
