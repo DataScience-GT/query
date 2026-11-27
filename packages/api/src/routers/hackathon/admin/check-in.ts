@@ -16,6 +16,22 @@ import type { DrizzleDB } from "@query/db";
 import { checkInParticipant } from "./check-in-participant";
 import { forbidden, notFound } from "../../errors";
 
+// Scoped through the event's own hackathonId rather than the pair in the
+// input, so an eventId from another edition returns nothing.
+async function assertEventInHackathon(
+  db: DrizzleDB,
+  input: { hackathonId: string; eventId: string },
+) {
+  const event = await db.query.hackathonEvents.findFirst({
+    where: { id: input.eventId, hackathonId: input.hackathonId },
+    columns: { id: true },
+  });
+
+  if (!event) {
+    throw notFound("Event not found.");
+  }
+}
+
 export const checkInProcedures = {
   // Who scanned into one event. The scanner writes these rows and nothing ever
   // read them, so a station left on the wrong event produced dozens of check-ins
@@ -32,16 +48,7 @@ export const checkInProcedures = {
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
 
-      // Scoped through the event's own hackathonId rather than the pair in the
-      // input, so an eventId from another edition returns nothing.
-      const event = await db.query.hackathonEvents.findFirst({
-        where: { id: input.eventId, hackathonId: input.hackathonId },
-        columns: { id: true },
-      });
-
-      if (!event) {
-        throw notFound("Event not found.");
-      }
+      await assertEventInHackathon(db, input);
 
       const [rows, [totals]] = await Promise.all([
         db.query.hackathonEventAttendees.findMany({
@@ -79,14 +86,7 @@ export const checkInProcedures = {
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
 
-      const event = await db.query.hackathonEvents.findFirst({
-        where: { id: input.eventId, hackathonId: input.hackathonId },
-        columns: { id: true },
-      });
-
-      if (!event) {
-        throw notFound("Event not found.");
-      }
+      await assertEventInHackathon(db, input);
 
       // The participant row is locked first, the way recordEventAttendance and a
       // store purchase lock it. A sale sums this person's points under that lock;
@@ -204,14 +204,7 @@ export const checkInProcedures = {
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
 
-      const event = await db.query.hackathonEvents.findFirst({
-        where: { id: input.eventId, hackathonId: input.hackathonId },
-        columns: { id: true },
-      });
-
-      if (!event) {
-        throw notFound("Event not found.");
-      }
+      await assertEventInHackathon(db, input);
 
       const matches = await searchParticipants(db, {
         hackathonId: input.hackathonId,
