@@ -45,8 +45,14 @@ export type SyncResult =
  */
 export const SYNC_BATCH = 100;
 export const INLINE_BUDGET_MS = 15_000;
-/** What one run of the daily job takes. */
-export const SWEEP_BATCH = 25;
+/**
+ * What one run of the daily job takes: at most this many people, and no longer
+ * than the budget (the route it runs in has other work and a caller that gives
+ * up). What it does not reach is still pending, and the next day's run is first
+ * to it.
+ */
+export const SWEEP_BATCH = 15;
+export const SWEEP_BUDGET_MS = 20_000;
 
 /**
  * What `roles_sig` holds for a link whose tokens are missing or will not open
@@ -60,6 +66,8 @@ export const UNREACHABLE_SIG = "unreachable";
 export type SweepOptions = SyncOptions & {
   /** People per run. */
   limit?: number;
+  /** Wall-clock time per run. */
+  budgetMs?: number;
 };
 
 function depsFrom(options: SyncOptions): SyncDeps | null {
@@ -320,11 +328,15 @@ export async function syncExpiredDiscordRoles(
       )
       .orderBy(sql`${discordLinks.syncAttemptedAt} asc nulls first`)
       .limit(options.limit ?? SWEEP_BATCH);
+    const stopAt = Date.now() + (options.budgetMs ?? SWEEP_BUDGET_MS);
+    let checked = 0;
     let synced = 0;
     for (const { userId } of rows) {
+      if (Date.now() >= stopAt) break;
+      checked++;
       if ((await syncDiscordRoles(db, userId, options)) === "synced") synced++;
     }
-    return { checked: rows.length, synced };
+    return { checked, synced };
   } catch (error) {
     // oxlint-disable-next-line no-console
     console.error(`[Discord sync] sweep failed: ${safeMessage(error)}`);

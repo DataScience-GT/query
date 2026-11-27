@@ -75,8 +75,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Both jobs run whatever the other does. The sweep never throws and is
-  // capped, so one bad run of either cannot hold up the other.
+  // Both jobs run whatever the other does. The sweep never throws, takes at
+  // most 15 people and gives up after 20 seconds, so it cannot hold up the
+  // reminders or push a run past Scheduler's deadline; what it does not reach
+  // is picked up the next day.
+  //
+  // A Scheduler retry, or a run that overlaps the last, cannot mail a reminder
+  // twice: sendApplicationReminders stamps each draft as taken in one UPDATE
+  // before anything is sent (so a crash loses a reminder, never doubles one),
+  // and a draft already stamped is not claimed again. The sweep is safe to
+  // overlap too: each person's Discord work takes a per-person lock.
   let run;
   try {
     run = await sendApplicationReminders(db);

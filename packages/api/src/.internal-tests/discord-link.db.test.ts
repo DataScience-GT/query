@@ -1592,6 +1592,38 @@ describe.skipIf(!URL)("discord link against a real database", () => {
         expect(world.puts).toHaveLength(0);
       });
 
+      it("takes at most 15 a run by default, and stops when its time is up", async () => {
+        await clearLinks();
+        expect(svc.SWEEP_BATCH).toBe(15);
+        const pending: { userId: string; account: string }[] = [];
+        for (let i = 0; i < 20; i++) {
+          pending.push(await insertLink(`cap${i}`, { sig: null }));
+        }
+        expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({ checked: 15, synced: 15 });
+
+        // Five are left; Discord answers slowly, and the run has 150 ms.
+        world.beforePut = async () => {
+          await sleep(100);
+        };
+        const run = await svc.syncExpiredDiscordRoles(S.db as any, { budgetMs: 150 });
+        expect(run.checked).toBeGreaterThanOrEqual(1);
+        expect(run.checked).toBeLessThan(5);
+        const left = (
+          await S.db!
+            .select({ sig: S.discordLinks.rolesSig })
+            .from(S.discordLinks)
+            .where(ops.inArray(S.discordLinks.userId, pending.map((p) => p.userId)))
+        ).filter((r) => r.sig === null);
+        expect(left.length).toBe(5 - run.checked);
+
+        // What it did not reach is still owed, and the next run finishes it.
+        world.beforePut = undefined;
+        expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({
+          checked: left.length,
+          synced: left.length,
+        });
+      }, 30_000);
+
       it("30 links that keep failing do not keep a real expired volunteer waiting", async () => {
         await clearLinks();
         world.refreshFails = 500;
