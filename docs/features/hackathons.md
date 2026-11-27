@@ -60,7 +60,7 @@ It sends at most 200 a run, oldest first, with the Hacklytics look for editions 
 
 ### Reminder setup
 
-App Hosting has no scheduler, so a daily job posts to `POST /api/cron/application-reminders` with `Authorization: Bearer <CRON_SECRET>`. The job is Cloud Scheduler, set up separately; nothing in the repository triggers it yet. The route answers 404 when `CRON_SECRET` is unset (so it does nothing until then), 401 on a wrong token, 429 past 10 calls an hour from one address, and 200 with `{ claimed, sent, failed }`. The same secret has to be in App Hosting and in the scheduler job. Once:
+App Hosting has no scheduler, so a daily job posts to `POST /api/cron/application-reminders` with `Authorization: Bearer <CRON_SECRET>`. The job is Cloud Scheduler, set up separately; nothing in the repository triggers it yet. The route answers 404 when `CRON_SECRET` is unset (so it does nothing until then), 401 on a wrong token, 429 past 10 calls an hour from one address, and 200 with `{ claimed, sent, failed }`. The same secret has to be in App Hosting and in the scheduler job. Once: The same daily run also takes the Discord volunteer role back from volunteers whose term has ended (see [Discord](./discord.md#taking-roles-back)).
 
 1. Generate a value: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
 2. `firebase apphosting:secrets:set CRON_SECRET` and paste it, then `firebase apphosting:secrets:grantaccess CRON_SECRET --backend query`.

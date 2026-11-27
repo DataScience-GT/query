@@ -18,9 +18,34 @@ Judges and volunteers need no registration. The edition is the one in the link (
 
 Where the link is stored:
 
-- `discord_link` holds one row per user (id and username only, never the token). Every link writes it.
+- `discord_link` holds one row per user: the Discord id and username, and the person's OAuth tokens, encrypted (see [Taking roles back](#taking-roles-back)). Every link writes it.
 - A confirmed hacker's link is also copied onto their `hackathon_participant` row (`discord_*` columns), which carries the Ramadan choice and feeds the admin roster. Hackers who linked before judges and volunteers could keep that link as it is: the portal reads the participant row first, then `discord_link`.
-- Unlink clears both. It does not need the person to be eligible, so someone who un-confirms, or is removed as a judge, can still unlink. Their existing link and the roles already published stay until they update their roles or remove the connection in Discord. The site cannot revoke a role it has no token for.
+- Unlink clears the roles on Discord first, then clears both stores. It does not need the person to be eligible, so someone who un-confirms, or is removed as a judge, can still unlink.
+
+## Taking roles back
+
+Discord changes a person's Linked Roles metadata only with that person's own token, so a role is not revoked unless the site kept the token. It does: at link time the callback stores the access token, refresh token and expiry in `discord_link`, encrypted with AES-256-GCM. The key comes from `AUTH_SECRET` through HKDF under its own label (`query/discord/token/v1`), so no new variable is needed, and each value is bound to its person, so a copy on another row does not open. Tokens are never logged and no tRPC procedure returns them. If `AUTH_SECRET` is rotated the stored tokens stop opening, and those links become as unrevocable as the legacy ones below.
+
+`syncDiscordRoles(db, userId)` (`packages/api/src/services/discord/sync.ts`) re-derives the person's roles for the edition the link flow would pick, refreshes the access token when it is near its end (storing the rotated pair), and publishes the metadata. A person who holds no role gets all five fields at 0. Nothing is sent when the metadata would not change (`discord_link.roles_sig` holds what was last published). It never throws into the change that called it: it logs and the change stands, as `autoAssignFoodGroups` does. It runs after commit on:
+
+| Change | Where |
+| --- | --- |
+| A judge approved, switched off, added or removed | `judge.setActive`, `judge.create`, `judge.remove` |
+| A volunteer granted, switched off, renewed with a new end date, or removed | `admin.create`, `admin.update`, `admin.remove` |
+| A hacker moved out of `approved` or `checked_in`, banned, or withdrawn | `updateParticipantStatus`, `batchUpdateParticipantStatus`, `banFromHackathons`, `withdrawRegistration` |
+| Unlink | `unlinkDiscord`: the roles are zeroed with the stored token before the row is deleted. If Discord cannot be reached the unlink fails with an error and nothing is deleted. |
+| Linking a different Discord account | `completeLink` zeroes the old account first, with the old account's token, then stores the new link. If the old account cannot be reached the link does not move. Linking X, unlinking, then linking Y, or linking Y straight over X, leaves the roles only on Y. |
+
+A volunteer's term running out has no event, so the daily job `POST /api/cron/application-reminders` also runs `syncExpiredDiscordRoles`. It looks for volunteer links whose published `volunteer` is still 1 (`roles_sig` ends in `v1`) although the admin row has expired or been switched off, and syncs up to 25 of them. Once zeroed they drop out of the query.
+
+If Discord answers `invalid_grant` to a refresh, the person withdrew the connection (or the token was replaced and lost). The link is dropped: the `discord_link` row and the copy on a registration are deleted. A refresh that fails for any other reason (a Discord outage) leaves the link alone; the next change or the next day's job tries again.
+
+Not covered:
+
+- **Links made before tokens were stored** have no token, so their roles cannot be changed from here. Today that is hackers' `accepted`, flower and Ramadan values, since judges and volunteers could not link before. To revoke one by hand, ask the person to remove the Hacklytics connection under Discord Settings > Connections, or to press "Update my roles" in the portal (which stores a token, after which everything above applies). Taking the server role away by hand is not enough on its own: Linked Roles lets them claim it again while their metadata still qualifies.
+- **An edition ending** does not clear anything. A judge or volunteer role stays on until the person is removed, unlinks or their term expires. Hacker roles stay too.
+- There is no way to un-confirm "I'm coming" from the portal; an organizer changing the status is what takes a hacker's roles back.
+- A person whose roles apply in more than one live edition is synced for the newest, the same one a fresh link uses.
 
 ## What the hacker sees
 
@@ -74,7 +99,7 @@ Assignment is automatic and does not wait for the "I'm coming" answer. Whenever 
    - "Hacklytics 2027 Judge": `judge` equals true.
    - "Hacklytics 2027 Volunteer": `volunteer` equals true.
 
-   Each requirement is on its own role; give a role only the one requirement it needs. Judges and volunteers have no `food_group` or `ramadan` value, so no flower or Ramadan role can match them.
+   Each requirement is on its own role; give a role only the one requirement it needs. Judges and volunteers are sent `food_group` and `ramadan` as 0, which no flower or Ramadan role matches.
 6. Create the client secret in Secret Manager and let the App Hosting backend read it:
 
    ```
@@ -92,6 +117,7 @@ Assignment is automatic and does not wait for the "I'm coming" answer. Whenever 
 | `DISCORD_INVITE_URL` | `apphosting.yaml` value | A permanent `https://` invite to the DS@GT server. |
 | `DISCORD_CLIENT_SECRET` | secret `discord-client-secret` | Needs the `grantaccess` step above. |
 | `DISCORD_BOT_TOKEN` | setup script only | Never set on the app. |
+| `AUTH_SECRET` | existing | Also the source of the key that encrypts stored Discord tokens. No new variable. |
 
 Unless the three app variables are set the feature is hidden and `/api/discord/*` answers 404.
 
@@ -104,12 +130,12 @@ Unless the three app variables are set the feature is hidden and `/api/discord/*
 | Key | Value |
 | --- | --- |
 | `accepted` | 1 only for a confirmed hacker, else 0 |
-| `food_group` | The flower number, sent only to a confirmed hacker |
-| `ramadan` | 1 only when opted in and fasting is "Yes", sent only to a confirmed hacker |
+| `food_group` | The flower number for a confirmed hacker, else 0 |
+| `ramadan` | 1 only when opted in and fasting is "Yes", for a confirmed hacker, else 0 |
 | `judge` | 1 or 0 |
 | `volunteer` | 1 or 0 |
 
-If that `PUT` fails the stored link is rolled back to what it was before. The access token is never stored. Failures return to the page the person's card is on (the hackathon page, `/judge` or `/scan`) with `?discord=error&reason=` (`bad_code`, `rate_limited`, `discord_denied`, `discord_error`, `already_linked`, `not_accepted`, `bad_state`, `cancelled`); success returns `?discord=linked` or goes to the invite.
+All five are always sent, so a role that no longer applies is overwritten. If that `PUT` fails the stored link is rolled back to what it was before (or removed, when the previous account's roles were just cleared). The tokens are stored encrypted, as described under [Taking roles back](#taking-roles-back). Failures return to the page the person's card is on (the hackathon page, `/judge` or `/scan`) with `?discord=error&reason=` (`bad_code`, `rate_limited`, `discord_denied`, `discord_error`, `already_linked`, `not_accepted`, `bad_state`, `cancelled`); success returns `?discord=linked` or goes to the invite.
 
 ## Signing in with Discord
 
