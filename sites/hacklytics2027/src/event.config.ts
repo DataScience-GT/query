@@ -175,8 +175,8 @@ export default defineEvent({
 
     volunteers: {
       body: [
-        "Volunteers keep the weekend running: the check-in desk, badge scans at meals and workshops, and helping hackers find their way around Klaus.",
-        "Apply on the portal: you sign in, then answer three short steps about the times you can help and the roles you would like.",
+        "Volunteers keep the weekend running. Help in person at Klaus (the check-in desk, badge scans at meals and workshops, helping hackers find their way) or online as a mentor answering hackers' questions. You can do both.",
+        "Apply on the portal: you sign in, then answer a few short steps about how you want to help and the times you can.",
         "Organizers confirm volunteers before the event.",
         ["Questions? Email ", email, "."],
       ],
@@ -250,7 +250,7 @@ export default defineEvent({
         q: "How do I volunteer?",
         a: [
           { text: "Apply to volunteer", href: VOLUNTEER_URL },
-          ` on the ${ORG} portal. You sign in, answer three short steps about the times you can help, and an organizer confirms you before the event. Questions? Email `,
+          ` on the ${ORG} portal. You sign in and choose how you want to help: in person at Klaus, as an online mentor answering hackers' questions, or both. An organizer confirms you before the event. Questions? Email `,
           email,
           ".",
         ],

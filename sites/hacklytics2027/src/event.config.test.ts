@@ -31,6 +31,13 @@ describe("volunteers", () => {
     expect(link(event.volunteers?.body)).not.toContain("Volunteer” in the subject");
   });
 
+  it("says both ways of helping exist: in person at Klaus, and as an online mentor", () => {
+    const [lead] = event.volunteers?.body ?? [];
+    expect(lead).toContain("Help in person at Klaus");
+    expect(lead).toContain("online as a mentor answering hackers' questions");
+    expect(lead).toContain("You can do both.");
+  });
+
   it("has one button, \"Apply to volunteer\", that opens the application on the portal", () => {
     expect(event.volunteers?.cta).toEqual({
       label: "Apply to volunteer",
@@ -42,6 +49,10 @@ describe("volunteers", () => {
     const faq = event.faqs.find((f) => f.q === "How do I volunteer?");
     expect(link(faq?.a)).toContain(volunteerUrl);
     expect(link(faq?.a)).toContain(mailto);
+    // It names each way of helping, so nobody thinks it is only the venue.
+    expect(link(faq?.a)).toContain("in person at Klaus");
+    expect(link(faq?.a)).toContain("online mentor");
+    expect(link(faq?.a)).toContain("or both");
     expect(link(faq?.a)).not.toContain("in the subject");
   });
 });
