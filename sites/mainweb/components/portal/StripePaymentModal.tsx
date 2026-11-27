@@ -187,7 +187,6 @@ function CheckoutForm({
   );
 }
 
-// ── Modal shell ────────────────────────────────────────────────────────────
 interface StripePaymentModalProps {
   clientSecret: string;
   publishableKey: string;
@@ -409,7 +408,6 @@ export function StripePaymentModal({
   );
 }
 
-// ── Shared modal shell ─────────────────────────────────────────────────────
 function ModalShell({
   children,
   onClose,

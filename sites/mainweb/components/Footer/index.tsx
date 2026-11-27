@@ -1,4 +1,3 @@
-// components/Footer/Footer.tsx
 import Image from "next/image";
 import Link from "next/link";
 import logo from "@/assets/images/dsgt/apple-touch-icon.png";
