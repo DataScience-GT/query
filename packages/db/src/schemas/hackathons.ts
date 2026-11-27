@@ -424,6 +424,9 @@ export type HackathonApplicationDraft =
 // site cannot change what Discord holds. They are null for a link made before
 // they were stored, which cannot be revoked. `roles_sig` is the metadata last
 // published ("a1f4r0j0v1"), so a sync that would change nothing sends nothing.
+// Null means a sync is owed (a change that could revoke a role was made and
+// Discord has not been told yet), and the daily job picks those up, oldest
+// `sync_attempted_at` first.
 export const discordLinks = pgTable(
   "discord_link",
   {
@@ -438,6 +441,7 @@ export const discordLinks = pgTable(
     refreshTokenEnc: text("refresh_token_enc"),
     tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
     rolesSig: text("roles_sig"),
+    syncAttemptedAt: timestamp("sync_attempted_at", { withTimezone: true }),
   },
   (table) => [
     // One Discord account per person; the first also makes the link upsert safe.
