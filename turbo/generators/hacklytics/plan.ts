@@ -94,7 +94,7 @@ export function validateStart(value: string, year: string): true | string {
 }
 
 /** Lays the latest edition's clock times onto the dates, and checks they make a coherent weekend. */
-export function momentsFor(
+function momentsFor(
   pattern: SchedulePattern,
   start: string,
   end: string,
