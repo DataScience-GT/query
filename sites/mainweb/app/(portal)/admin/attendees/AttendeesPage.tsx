@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { loginHref } from "@/lib/safe-callback";
 import { trpc } from "@/lib/trpc";
 import { csvCell } from "@/lib/csv";
+import { downloadBlob } from "@/components/admin/download-blob";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { skipToken } from "@tanstack/react-query";
@@ -67,20 +68,12 @@ export default function AttendeesPage() {
       .map((r) => r.join(","))
       .join("\n");
 
-    const url = URL.createObjectURL(
+    downloadBlob(
       new Blob([csv], { type: "text/csv;charset=utf-8;" }),
+      `${(eventData?.title ?? "event")
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase()}_attendees.csv`,
     );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${(eventData?.title ?? "event")
-      .replace(/[^a-z0-9]/gi, "_")
-      .toLowerCase()}_attendees.csv`;
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    // Without this the blob is retained for the lifetime of the page.
-    URL.revokeObjectURL(url);
   };
 
   return (

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { csvCell } from "@/lib/csv";
+import { downloadBlob } from "@/components/admin/download-blob";
 import {
   adminPage,
   adminTitle,
@@ -51,17 +52,10 @@ export default function JudgeInterestPage() {
       ].map(csvCell),
     );
     const csv = [header.map(csvCell), ...lines].map((l) => l.join(",")).join("\n");
-    const url = URL.createObjectURL(
+    downloadBlob(
       new Blob([csv], { type: "text/csv;charset=utf-8;" }),
+      "judge_interest.csv",
     );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "judge_interest.csv";
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   return (
