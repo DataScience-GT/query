@@ -250,9 +250,11 @@ export interface EventContent {
   };
   /**
    * Who volunteers are and how to offer, in a section after the judges. The
-   * first paragraph leads. Without it the section is not drawn.
+   * first paragraph leads. Without it the section is not drawn. `cta` is the
+   * one button under the text, an absolute link to the application; without
+   * it the section has no button.
    */
-  volunteers?: { body: NonEmpty<Rich> };
+  volunteers?: { body: NonEmpty<Rich>; cta?: { label: string; href: string } };
   sponsors: {
     body: NonEmpty<Rich>;
     /** Logos by tier, shown under the text when there are any. */
@@ -426,6 +428,9 @@ export function defineEvent(input: EventInput): EventConfig {
         `schedule row "${row.when}" must start with one of ${[...dayKeys].join(", ")}, the days the event runs`,
       );
     }
+  }
+  if (copy.volunteers?.cta) {
+    requireAbsolute("volunteers.cta.href", copy.volunteers.cta.href);
   }
   requireUnique("track", copy.tracks.map((t) => t.title));
   requireUnique("prize", copy.prizes.items.map((p) => p.label));

@@ -124,7 +124,7 @@ Islands cannot import the config. `event.config.ts` carries the whole page's cop
 | `speakers` | `{ name, title?, company? }[]`: a Speakers block under the prizes when there are any |
 | `schedule` | `{ intro, board: { when, event, accent? }[] }`: `when` starts with a day's three-letter weekday |
 | `judges` | `{ body: Rich[], people: { name, title?, company? }[] }`: the apply button follows `body`, `people` follow the button |
-| `volunteers` | `{ body: Rich[] }`, optional: a Volunteers section after Judges (`#volunteers`, not in the nav), drawn only when set. The first paragraph leads |
+| `volunteers` | `{ body: Rich[], cta?: { label, href } }`, optional: a Volunteers section after Judges (`#volunteers`, not in the nav), drawn only when set. The first paragraph leads. `cta` is the one button under the text, an absolute link |
 | `sponsors` | `{ body: Rich[], tiers: { name, sponsors: { name, url?, logo? }[] }[] }`: logos sit on a `--logo-tile` tile in either theme |
 | `faqs` | `{ q, a: Rich }[]`, split in two columns at the halfway point |
 | `footer` | `{ headline, note?, closed?: { headline, note?, cta: { text, href, external? } } }`. `closed` is what the footer says once `registration.closes` has passed, in place of the headline, note and Apply button: the Apply link has gone stale, so `cta` points somewhere else (2027: the schedule). It is decided when the site is built and again when the page loads, with the same `deadlineStatus` as the hero. Needs `registration.closes` |

@@ -29,7 +29,7 @@ const STAFF_ONLY_STATUSES: (typeof hackathons.$inferSelect)["status"][] = [
 ];
 
 /** Must match `hackathonSlug` in sites/mainweb/lib/hackathon-slug.ts. */
-const toSlug = (value: string) =>
+export const toSlug = (value: string) =>
   value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")

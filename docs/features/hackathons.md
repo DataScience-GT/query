@@ -130,6 +130,22 @@ Audiences: `interested`, `registered`, `approved`, `checked_in`, `not_accepted`,
 
 `listBans`, `banFromHackathons`, `liftHackathonBan`. A ban is keyed by lowercase email in `hackathon_ban` and leaves club membership alone. Enforcement is the `notHackathonBanned` procedure, used by `register`, `registerInterest`, `updateMyRegistration`, `confirmAttendance`, `createTeam`, `joinTeam`, `submitProject`, the event-code `checkIn`, judge `register` and `judging.hacker.claimByEmail`, `claimByToken` and `invite`. Withdrawing is not blocked. Ban and unban write audit records and clear the ban cache.
 
+### Volunteers (`routers/volunteer/`)
+
+A volunteer runs the weekend (check-in, meals, rooms, help for hackers). It is its own application, separate from [judging](judge-portal.md): different questions, a different table, a page at `/hackathons/<slug>/volunteer` that says plainly volunteers do not judge and links to the judge application, and the judge register page links back.
+
+- **How they help.** The first question, required, is "How do you want to help?": **in person at Klaus**, **online mentor**, or **both**. The answer is the `mode` column (`in_person`, `online`, `both`, indexed with the edition) and is also inside `answers`, which is what picks the questions. Every application then asks what describes them (Georgia Tech student, student elsewhere, alum, industry) and for the acknowledgement that volunteers are confirmed by organizers and must join the Discord.
+- **In person and both** also ask: availability by time block (nine blocks: Friday afternoon setup, check-in and opening, overnight; Saturday morning, afternoon, evening, overnight; Sunday morning, closing and teardown; at least one), roles wanted (seven, optional), event experience (optional), shirt size, dietary restrictions (with an Other text, as the hacker form) and a phone for day-of contact (required).
+- **Online mentor and both** also ask: topics they can help with (Python, data analysis, machine learning, LLMs and AI apps, web and frontend, backend and APIs, databases and SQL, data visualization, cloud and deployment, pitching and presenting, other with a line of text; at least one), the hours they can be online in Eastern time (nine blocks, Friday evening to Sunday morning; at least one) and a short line on their mentoring or technical experience. An online-only mentor is asked for no shirt size, diet or phone; the phone is optional and, if given, must be one.
+- **Validation.** `volunteerAnswers` in `services/volunteer.ts` is a discriminated union on `mode`, so each way of helping is held to its own set and drops keys it does not ask (an online application that arrives with a shirt size is stored without it). The text behind "other" is kept only while "other" is picked (`storedAnswers`). The form (`VolunteerForm`) shows three steps for one way of helping and four for both.
+- **Status** (`hackathon_volunteer_application.status`): `pending`, `approved`, `declined`, `withdrawn`. One row per person per edition. The applicant can edit while `pending` (`volunteer.update`) and withdraw from `pending` or `approved` (`volunteer.withdraw`, not behind the ban check, so a way out stays open). A withdrawn application can be reopened with `volunteer.submit` while the edition takes applications. Declined is final for the applicant.
+- **Window.** `volunteer.submit` needs a public edition in status `announced` or `open` and the event not yet started: the deadline is `hackathon.start_date`. A `closed` edition refuses new applications as well. Corrections to a pending application are allowed until the edition ends. `volunteer.myApplication` returns the application with `accepting` and `canEdit`, which is what the page reads.
+- **Organizers** (Volunteers tab next to Judges in the hackathon admin): `volunteer.list` (filters: status, type, in-person role and time block, mentor topic and online hour; coverage counts per time block and role for the venue and per online hour and topic for mentoring, plus how many chose each type, all split approved and pending and taken over everyone so the counts do not move with the filters; someone who chose both counts in both halves), `volunteer.decide` (approve or decline; `isAdmin`, so bug testers and scanner volunteers are refused; audited as `volunteer.approve` and `volunteer.decline`; either can follow the other; a withdrawn application cannot be decided) and `volunteer.exportApplications` (the filtered rows, audited as `volunteer.export`). `list` and `exportApplications` also refuse bug testers: the answers hold phone numbers. The CSV is built in the browser by `lib/volunteer-csv.ts` and carries the type, and the mentor's topics, hours and experience beside the venue's answers.
+- **Emails** (`sendVolunteerApprovedEmail`, `sendVolunteerDeclinedEmail`, Hacklytics theme for a Hacklytics edition): sent once, on the transition into the status, and best-effort. Nothing is sent on submit. The approval says what their type means: shifts and venue details for in person, the Discord's mentor channels for online, both for both.
+- **Approving does not grant the `volunteer` staff tier.** That tier is check-in scanner access, and organizers still grant it deliberately on the Staff page. The Volunteers tab says so.
+- **Discord.** Eligibility for the volunteer Discord role should use `isApprovedVolunteer(db, userId, hackathonId)` from `@query/api/volunteer` (`packages/api/src/services/volunteer.ts`), not the staff tier and not the table directly. It is true only for an `approved` application at that edition, so a withdrawal or a decline takes it away.
+- **Phone.** It lives in `answers.phone` and is only used for contact during the event. Nothing deletes it afterwards yet.
+
 ### Content (`content.ts`)
 
 | Procedure | Purpose |
@@ -165,6 +181,7 @@ Schema: `packages/db/src/schemas/hackathons.ts`.
 | `hackathon_check_in_flag` | Refused check-ins, for prize review. |
 | `hackathon_announcement`, `hackathon_announcement_recipient` | Messages and their frozen audience. |
 | `hackathon_ban` | Banned emails. |
+| `hackathon_volunteer_application` | A volunteer application, one per user per edition: status, answers (`jsonb`), reviewer and review time. Schema: `packages/db/src/schemas/volunteer.ts`. |
 
 ## Limits and edge cases
 
@@ -177,6 +194,6 @@ Schema: `packages/db/src/schemas/hackathons.ts`.
 ## Code and tests
 
 - Routers: `packages/api/src/routers/hackathon/` (merged in `index.ts`) and `packages/api/src/routers/team.ts`.
-- Services: `packages/api/src/services/check-in-flags.ts`, `packages/api/src/services/fanout.ts`, `packages/api/src/services/application-drafts.ts`, `packages/api/src/services/application-reminders.ts`.
+- Services: `packages/api/src/services/check-in-flags.ts`, `packages/api/src/services/fanout.ts`, `packages/api/src/services/application-drafts.ts`, `packages/api/src/services/application-reminders.ts`, `packages/api/src/services/volunteer.ts`.
 - Portal pages under `sites/mainweb/app/(portal)/`: `hackathons`, `hacklytics`, `submit`, `checkin`, `scan`, `admin/hackathons`. Admin components are in `sites/mainweb/components/admin/hackathons/` (`AcceptanceWaves`, `AnnouncementsTab`, `ScannerTab`).
-- Tests in `packages/api/src/.internal-tests/`: `hackathon-flow`, `hackathon-admin-edge`, `hackathon-interest`, `participant-edge`, `qr-checkin`, `announcements`, `application-drafts.db` (needs `TEST_DATABASE_URL`).
+- Tests in `packages/api/src/.internal-tests/`: `hackathon-flow`, `hackathon-admin-edge`, `hackathon-interest`, `participant-edge`, `qr-checkin`, `announcements`, `application-drafts.db` and `volunteer.db` (both need `TEST_DATABASE_URL`).

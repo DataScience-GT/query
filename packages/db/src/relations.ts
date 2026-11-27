@@ -629,4 +629,16 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
   },
+  hackathonVolunteerApplications: {
+    user: r.one.users({
+      from: r.hackathonVolunteerApplications.userId,
+      to: r.users.id,
+      optional: false,
+    }),
+    hackathon: r.one.hackathons({
+      from: r.hackathonVolunteerApplications.hackathonId,
+      to: r.hackathons.id,
+      optional: false,
+    }),
+  },
 }));

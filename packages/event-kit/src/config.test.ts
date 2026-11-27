@@ -421,4 +421,13 @@ describe("defineEvent volunteers", () => {
     const volunteers = { body: ["Help out.", ["Email ", { text: "us", href: "mailto:a@b.c" }, "."]] } as const;
     expect(build({}, { volunteers }).volunteers).toEqual(volunteers);
   });
+
+  it("carries the one button through, and refuses one that is not an absolute link", () => {
+    const body = ["Help out."] as const;
+    const cta = { label: "Apply to volunteer", href: "https://datasciencegt.org/volunteer" };
+    expect(build({}, { volunteers: { body, cta } }).volunteers?.cta).toEqual(cta);
+    expect(() =>
+      build({}, { volunteers: { body, cta: { ...cta, href: "/volunteer" } } }),
+    ).toThrow(/volunteers.cta.href must be an absolute URL/);
+  });
 });
