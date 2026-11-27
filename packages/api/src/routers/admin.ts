@@ -420,7 +420,6 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
-      // Invalidate admin caches after creation
       ctx.cache.deletePattern(`${CacheKeys.admin(input.userId)}*`);
       ctx.cache.delete(`admins:list`);
       invalidatePortalContext(input.userId);

@@ -372,6 +372,4 @@ export const challengeProcedures = {
       });
       return { deleted: true };
     }),
-
-  // ---------------------------------------------------------------------,
 };

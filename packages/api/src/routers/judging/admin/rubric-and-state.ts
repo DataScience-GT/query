@@ -255,6 +255,4 @@ export const rubricAndStateProcedures = {
         emergencyMode: config!.emergencyMode,
       };
     }),
-
-  // ---------------------------------------------------------------------,
 };

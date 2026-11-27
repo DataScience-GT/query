@@ -214,7 +214,6 @@ export const judgePortalRouter = createTRPCRouter({
           });
         }
 
-        // Check if user is registered as a participant for this hackathon
         const participant = await tx.query.hackathonParticipants.findFirst({
           where: {
             hackathonId: input.hackathonId,
@@ -230,7 +229,6 @@ export const judgePortalRouter = createTRPCRouter({
           });
         }
 
-        // Find existing judge profile or create one for this hackathon
         let judge = await tx.query.judges.findFirst({
           where: { userId: ctx.userId, hackathonId: input.hackathonId },
         });

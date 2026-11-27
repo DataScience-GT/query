@@ -210,6 +210,4 @@ export const roomLinkProcedures = {
         guestsSignedOut: result.revoked.sessions,
       };
     }),
-
-  // ---------------------------------------------------------------------,
 };

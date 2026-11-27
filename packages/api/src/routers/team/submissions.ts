@@ -231,7 +231,6 @@ export const submissionProcedures = {
 
           let finalProject;
           if (existingProject) {
-            // Update existing
             const [updated] = await tx
               .update(hackathonProjects)
               .set({
@@ -251,7 +250,6 @@ export const submissionProcedures = {
               .returning();
             finalProject = updated;
           } else {
-            // Insert new
             const [inserted] = await tx
               .insert(hackathonProjects)
               .values({

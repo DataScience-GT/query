@@ -117,7 +117,6 @@ export const eventRouter = createTRPCRouter({
           throw error;
         });
 
-      // Invalidate all event-related cache entries after creation
       ctx.cache.deletePattern("event*");
 
       // A new event has nobody checked in, and the QR modal shows the count.
@@ -226,7 +225,6 @@ export const eventRouter = createTRPCRouter({
         });
       }
 
-      // Invalidate event and related caches after QR regeneration
       ctx.cache.deletePattern(`event:${input.eventId}`);
       ctx.cache.deletePattern("event*");
 
@@ -406,7 +404,6 @@ export const eventRouter = createTRPCRouter({
         });
       }
 
-      // Invalidate event and check-in related caches
       ctx.cache.deletePattern(`event:${input.eventId}`);
       ctx.cache.deletePattern("event*");
 
@@ -425,7 +422,6 @@ export const eventRouter = createTRPCRouter({
         .delete(events)
         .where(eq(events.id, input.eventId));
 
-      // Invalidate all event-related cache entries after deletion
       ctx.cache.deletePattern(`event:${input.eventId}`);
       ctx.cache.deletePattern("event*");
 
@@ -517,7 +513,6 @@ export const eventRouter = createTRPCRouter({
             "Already checked in",
           );
 
-          // Invalidate event and related caches after successful check-in
           ctx.cache.deletePattern(`event:${event.id}`);
           ctx.cache.deletePattern("event*");
 

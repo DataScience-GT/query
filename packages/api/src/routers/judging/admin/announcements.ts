@@ -289,6 +289,4 @@ export const announcementProcedures = {
         placings: reopened.placings,
       };
     }),
-
-  // ---------------------------------------------------------------------,
 };

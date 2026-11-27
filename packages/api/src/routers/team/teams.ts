@@ -307,7 +307,6 @@ export const teamProcedures = {
                 await tx
                   .delete(hackathonProjects)
                   .where(eq(hackathonProjects.teamId, team.id));
-                // Delete team
                 await tx
                   .delete(hackathonTeams)
                   .where(eq(hackathonTeams.id, team.id));
