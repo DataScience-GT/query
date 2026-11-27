@@ -8,6 +8,13 @@ import { describe, expect, it } from "vitest";
 const ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 const HACKER_FACING = [
   "sites/mainweb/components/hackathon",
+  "sites/mainweb/components/volunteer",
+  "sites/mainweb/components/admin/hackathons/VolunteersTab.tsx",
+  "sites/mainweb/lib/volunteer-blocks.ts",
+  "sites/mainweb/lib/volunteer-csv.ts",
+  "packages/api/src/services/volunteer.ts",
+  "packages/api/src/routers/volunteer",
+  "packages/event-kit/src/components/VolunteersSection.tsx",
   "sites/mainweb/app/(portal)/hackathons",
   "sites/mainweb/app/(portal)/hacklytics",
   "sites/mainweb/app/(portal)/dashboard",

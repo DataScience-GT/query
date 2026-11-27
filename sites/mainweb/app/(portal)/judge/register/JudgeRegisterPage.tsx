@@ -16,6 +16,7 @@ import {
 } from "@/components/hackathon/FormComponents";
 import { DIETARY_OPTIONS } from "@/components/hackathon/constants";
 import Link from "next/link";
+import { hackathonPathSegment } from "@/lib/hackathon-slug";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
   body,
@@ -26,6 +27,7 @@ import {
   page,
   pageDek,
   pageTitle,
+  textLink,
 } from "@query/ui/classes";
 
 const JUDGE_REGISTRATION_STEPS = [
@@ -167,6 +169,11 @@ export default function JudgeRegisterPage() {
     ) || [];
 
   const selectedHackathon = activeHackathons.find((h) => h.id === hackathonId);
+  // Volunteering is its own application, per edition. Offered once the
+  // edition is known: the one picked, or the only one there is.
+  const volunteerEdition =
+    selectedHackathon ??
+    (activeHackathons.length === 1 ? activeHackathons[0] : undefined);
   const trackOptions = [
     ...(selectedHackathon?.tracks ?? []),
     ...(selectedHackathon?.challenges ?? []),
@@ -332,6 +339,18 @@ export default function JudgeRegisterPage() {
             ? "Update your answers. Your approval status does not change."
             : "Pick an event, tell us about yourself, and choose a track. Takes about five minutes."}
         </p>
+        {volunteerEdition && !editing && (
+          <p className={`mt-2 ${body}`}>
+            Want to run the weekend instead of judging?{" "}
+            <Link
+              href={`/hackathons/${hackathonPathSegment(volunteerEdition.name, volunteerEdition.id)}/volunteer`}
+              className={textLink}
+            >
+              Apply to volunteer
+            </Link>
+            .
+          </p>
+        )}
       </header>
 
       <div className="mt-10 max-w-3xl border-t border-[var(--border-subtle)] pt-6">

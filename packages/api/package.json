@@ -18,7 +18,8 @@
     "./resume-list": "./src/services/resume-list.ts",
     "./judging-access": "./src/services/judging/principal.ts",
     "./discord": "./src/services/discord/index.ts",
-    "./discord-config": "./src/services/discord/config.ts"
+    "./discord-config": "./src/services/discord/config.ts",
+    "./volunteer": "./src/services/volunteer.ts"
   },
   "scripts": {
     "lint": "oxlint .",

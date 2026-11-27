@@ -18,6 +18,7 @@ export default function VolunteersSection({
   Plot?: ComponentType;
 }) {
   if (!event.volunteers) return null;
+  const { cta } = event.volunteers;
   const [lead, ...rest] = event.volunteers.body;
 
   return (
@@ -50,6 +51,11 @@ export default function VolunteersSection({
                 <Rich value={paragraph} />
               </p>
             ))}
+            {cta && (
+              <a href={cta.href} className="btn btn-bloom mt-8 inline-flex">
+                {cta.label}
+              </a>
+            )}
           </div>
         </div>
       </div>
