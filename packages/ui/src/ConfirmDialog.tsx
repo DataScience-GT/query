@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "./Modal";
 import { body, btnDanger, btnPrimary, btnSecondary, itemTitle } from "./classes";
 
-export interface ConfirmOptions {
+interface ConfirmOptions {
   title?: string;
   body: string;
   confirmLabel?: string;
