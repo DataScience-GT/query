@@ -115,7 +115,7 @@ export async function flaggingRuleBreaks<T>(
 // Reading flags against judging entries
 
 /** What finding a flag's entries needs from the flag and its participant. */
-export type FlagTarget = {
+type FlagTarget = {
   id: string;
   participantId: string;
   teamId: string | null;
@@ -123,14 +123,14 @@ export type FlagTarget = {
 };
 
 /** A portal entry and the project it was promoted from. */
-export type PortalEntryLink = {
+type PortalEntryLink = {
   entryId: string;
   teamId: string | null;
   submittedById: string | null;
 };
 
 /** A person on an entry, claimed or not. */
-export type MemberEntryLink = { entryId: string; userId: string | null };
+type MemberEntryLink = { entryId: string; userId: string | null };
 
 const pushTo = (map: Map<string, string[]>, key: string, value: string) => {
   const list = map.get(key);

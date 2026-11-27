@@ -224,7 +224,7 @@ export function evaluatedChallenge(
   return root;
 }
 
-export type JudgingSwitches = {
+type JudgingSwitches = {
   state: "draft" | "open" | "closed";
   showAllScores: boolean;
   closedAt: Date | null;

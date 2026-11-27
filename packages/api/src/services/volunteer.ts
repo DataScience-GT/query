@@ -291,7 +291,7 @@ export const volunteerFilter = z.object({
   /** An online hour block, Eastern time. */
   onlineBlock: z.enum(onlineBlockIds).optional(),
 });
-export type VolunteerFilter = z.infer<typeof volunteerFilter>;
+type VolunteerFilter = z.infer<typeof volunteerFilter>;
 
 type RosterRow = {
   status: VolunteerStatus;

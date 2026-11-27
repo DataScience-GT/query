@@ -27,7 +27,7 @@ import type { RoleMetadata } from "./roles";
 import { accessTokenFor } from "./tokens";
 import type { LinkRow, SyncDeps } from "./tokens";
 
-export type SyncOptions = {
+type SyncOptions = {
   /** Defaults to the app's Discord settings; null means the feature is off. */
   config?: SyncDeps["config"] | null;
   /** Defaults to AUTH_SECRET. */
@@ -35,7 +35,7 @@ export type SyncOptions = {
   fetchImpl?: typeof fetch;
 };
 
-export type SyncResult =
+type SyncResult =
   | "synced"
   | "unchanged"
   | "off"
@@ -49,8 +49,8 @@ export type SyncResult =
  * and no longer than the budget. Whoever is left is already marked pending, and
  * the daily job picks them up.
  */
-export const SYNC_BATCH = 100;
-export const INLINE_BUDGET_MS = 15_000;
+const SYNC_BATCH = 100;
+const INLINE_BUDGET_MS = 15_000;
 /**
  * What one run of the daily job takes: at most this many people, and no longer
  * than the budget (the route it runs in has other work and a caller that gives
@@ -58,7 +58,7 @@ export const INLINE_BUDGET_MS = 15_000;
  * to it.
  */
 export const SWEEP_BATCH = 15;
-export const SWEEP_BUDGET_MS = 20_000;
+const SWEEP_BUDGET_MS = 20_000;
 
 /**
  * What `roles_sig` holds for a link whose tokens are missing or will not open
@@ -67,9 +67,9 @@ export const SWEEP_BUDGET_MS = 20_000;
  * rather than being tried, and taking a slot, every day. Linking again repairs
  * it.
  */
-export const UNREACHABLE_SIG = "unreachable";
+const UNREACHABLE_SIG = "unreachable";
 
-export type SweepOptions = SyncOptions & {
+type SweepOptions = SyncOptions & {
   /** People per run. */
   limit?: number;
   /** Wall-clock time per run. */

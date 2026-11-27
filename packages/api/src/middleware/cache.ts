@@ -242,10 +242,6 @@ export class CacheService {
     this.cache.clear();
     this.stats = { hits: 0, misses: 0, size: 0 };
   }
-
-  exportStats(): CacheStats {
-    return { ...this.stats };
-  }
 }
 
 // One cache per Node process. In a production build, server-rendered pages and
