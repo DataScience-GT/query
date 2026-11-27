@@ -1,5 +1,6 @@
 import { applicationAnswers } from "./_application-answers";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type * as DiscordSync from "../services/discord/sync";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
 import {
@@ -21,6 +22,16 @@ const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
 const mockSelect = vi.fn((..._args: any[]) => [{ count: 0 }] as unknown[]);
+
+// These cases are about the admin flow, not Discord. The link bookkeeping the
+// flow now does (marking links pending, syncing roles) is covered against a real
+// database in discord-link.db.test.ts, so here it does nothing.
+vi.mock("../services/discord/sync", async (importOriginal) => ({
+  ...(await importOriginal<typeof DiscordSync>()),
+  markDiscordRolesPending: vi.fn(async () => {}),
+  syncDiscordRoles: vi.fn(async () => "off" as const),
+  syncDiscordRolesFor: vi.fn(async () => {}),
+}));
 
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");

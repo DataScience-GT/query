@@ -118,11 +118,12 @@ export const statusProcedures = {
       // lock itself, and assertSeats above already holds it in this transaction.
       if (input.status === "approved" || input.status === "checked_in") {
         await autoAssignFoodGroups(ctx.db as DrizzleDB, input.hackathonId);
-      } else {
-        // Moved out of the accepted statuses: a Discord link takes its hacker
-        // roles back.
-        await syncDiscordRoles(ctx.db as DrizzleDB, participant.userId);
       }
+      // Whichever way it moved, a linked Discord account follows: out of the
+      // accepted statuses it loses its hacker roles, and into them (with the
+      // flower just assigned) it may gain them. Nothing is sent when nothing
+      // changed.
+      await syncDiscordRoles(ctx.db as DrizzleDB, participant.userId);
 
       evictParticipantCaches(ctx.cache, input.hackathonId, [
         participant.userId,
@@ -569,12 +570,13 @@ export const statusProcedures = {
         (status === "approved" || status === "checked_in")
       ) {
         await autoAssignFoodGroups(ctx.db as DrizzleDB, hackathonId);
-      } else if (rows.length > 0) {
-        await syncDiscordRolesFor(
-          ctx.db as DrizzleDB,
-          rows.map((row) => row.userId),
-        );
       }
+      // Any direction, as for one person above. Everyone linked among them is
+      // already marked pending; this reaches as many as the request has time for.
+      await syncDiscordRolesFor(
+        ctx.db as DrizzleDB,
+        rows.map((row) => row.userId),
+      );
 
       evictParticipantCaches(
         ctx.cache,

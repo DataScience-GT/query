@@ -185,6 +185,20 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     });
   }, 120_000);
 
+  // Other files share this database and list every open edition, so the ones
+  // made here go as soon as each case is done, not at the end of the file.
+  let hackathonsBefore = 0;
+  beforeEach(() => {
+    hackathonsBefore = hackathonIds.length;
+  });
+  afterEach(async () => {
+    const made = hackathonIds.splice(hackathonsBefore);
+    const db = S?.db;
+    if (made.length && db) {
+      await db.delete(S.hackathons).where(ops.inArray(S.hackathons.id, made));
+    }
+  });
+
   afterAll(async () => {
     const db = S?.db;
     if (!db) return;
@@ -1730,6 +1744,36 @@ describe.skipIf(!URL)("discord link against a real database", () => {
         expect(lastFor(acct("race-ry"))).toEqual({ ...ZEROS, judge: 1 });
         expect(await linkOf(u)).toMatchObject({ discordUserId: acct("race-ry") });
       });
+    });
+
+    it("a status change that gives a role is synced too, single or in a batch", async () => {
+      await clearLinks();
+      const h = await makeHackathon("status-up");
+      const admin = await staff("status-up-admin");
+      const make = async (tag: string) => {
+        const { u } = await newJudge(tag, h.id);
+        // Waitlisted, but already said they are coming.
+        const p = await makeParticipant(h.id, u, { registrationStatus: "waitlisted" });
+        await linkAs(u, h.id, acct(tag));
+        expect(lastFor(acct(tag))).toEqual({ ...ZEROS, judge: 1 });
+        return p.id;
+      };
+
+      await admin.hackathon.updateParticipantStatus({
+        hackathonId: h.id,
+        participantId: await make("up-single"),
+        status: "approved",
+      });
+      expect(lastFor(acct("up-single"))).toMatchObject({ accepted: 1, judge: 1 });
+      expect(lastFor(acct("up-single"))!.food_group).toBeGreaterThan(0);
+
+      await admin.hackathon.batchUpdateParticipantStatus({
+        hackathonId: h.id,
+        participantIds: [await make("up-batch")],
+        status: "approved",
+      });
+      expect(lastFor(acct("up-batch"))).toMatchObject({ accepted: 1, judge: 1 });
+      expect(lastFor(acct("up-batch"))!.food_group).toBeGreaterThan(0);
     });
 
     it("never throws into the change that triggered it", async () => {
