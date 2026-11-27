@@ -1084,12 +1084,12 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     });
     afterEach(() => vi.unstubAllGlobals());
 
-    const linkAs = (userId: string, hackathonId: string, account: string, r: 0 | 1 | null = null) =>
+    const linkAs = (userId: string, hackathonId: string, account: string) =>
       svc.completeLink({
         db: S.db as any,
         config: CONFIG,
         secret: SECRET,
-        state: state(userId, hackathonId, r),
+        state: state(userId, hackathonId),
         code: `code-${account}`,
         redirectUri: "https://datasciencegt.org/api/discord/callback",
         fetchImpl: world.fn,
@@ -1527,9 +1527,9 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     it("a hacker moved out of the accepted statuses, banned, or who withdraws loses the hacker roles", async () => {
       const h = await makeHackathon("hacker-out");
       const admin = await staff("hacker-out-admin");
-      const linked = async (tag: string, extra: Record<string, unknown> = {}) => {
+      const linked = async (tag: string) => {
         const u = await makeUser(tag);
-        const p = await makeParticipant(h.id, u, extra);
+        const p = await makeParticipant(h.id, u);
         await linkAs(u, h.id, acct(tag));
         expect(lastFor(acct(tag))).toMatchObject({ accepted: 1 });
         return { u, p };

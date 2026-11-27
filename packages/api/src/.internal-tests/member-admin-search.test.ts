@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { appRouter } from "../root";
-import { cache } from "../middleware/cache";
+import { testCaller } from "./_caller";
 
 /** member.adminSearch matches what staff typed literally, not as a LIKE pattern. */
 
@@ -57,16 +56,7 @@ beforeEach(() => {
 });
 
 const search = (query: string, userId = "search_user") =>
-  appRouter
-    .createCaller({
-      db,
-      session: { user: { id: userId } },
-      userId,
-      cache,
-      clientIp: "127.0.0.1",
-      req: { headers: { get: () => null } },
-    } as never)
-    .member.adminSearch({ query });
+  testCaller(db, userId).member.adminSearch({ query });
 
 /** Every string the where clause carries, however it is nested. */
 const stringsIn = (clause: unknown) => {

@@ -8,14 +8,14 @@ import type { PlanScore } from "./rules";
 // the day a short walk beats no slot at all, but each choice says how many
 // breaks it shortens and the ones that shorten none come first.
 
-export type MoveRoom = {
+type MoveRoom = {
   id: string;
   challengeId: string;
   /** Null once a room loses its building; it then counts as its own. */
   buildingId: string | null;
 };
 
-export type MoveChoice = {
+type MoveChoice = {
   roomId: string;
   slot: number;
   /** Breaks next to this presentation that fall short of the walk between buildings. */

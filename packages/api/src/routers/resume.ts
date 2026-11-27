@@ -26,7 +26,7 @@ export const resumeRouter = createTRPCRouter({
             uploadedAt: memberResumes.uploadedAt,
           })
           .from(memberResumes)
-          .where(eq(memberResumes.userId, ctx.userId as string))
+          .where(eq(memberResumes.userId, ctx.userId))
           .limit(1);
 
         return row[0] ?? null;

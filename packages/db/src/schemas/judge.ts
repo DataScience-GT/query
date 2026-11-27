@@ -257,6 +257,3 @@ export const judgeInterest = pgTable(
     ),
   ],
 );
-
-export type JudgeInterest = typeof judgeInterest.$inferSelect;
-export type NewJudgeInterest = typeof judgeInterest.$inferInsert;

@@ -12,6 +12,7 @@ import type { BootcampMaterialRow } from "@/components/portal/BootcampMaterialsT
 import type { BootcampWorkshopFormData } from "@/components/portal/BootcampWorkshopModal";
 import { useEventQR } from "@/components/portal/EventQR";
 import { trpc } from "@/lib/trpc";
+import { termLabel } from "@/lib/public-events";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { Alert } from "@query/ui/Alert";
 import { StatTile } from "@query/ui/StatTile";
@@ -36,13 +37,6 @@ import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 /** Admin pages carry a smaller headline than member pages. */
 const th = "px-3 py-2.5 text-[13px] font-medium text-[var(--text-subtle)]";
-
-/** `2026-fall` is how it is stored; nobody should have to read it that way. */
-function termLabel(term: string) {
-  const [year, season] = term.split("-");
-  if (!year || !season) return term;
-  return `${season.charAt(0).toUpperCase()}${season.slice(1)} ${year}`;
-}
 
 /** `datetime-local` carries local wall-clock time rather than a UTC ISO value. */
 function toLocalInput(date: Date) {

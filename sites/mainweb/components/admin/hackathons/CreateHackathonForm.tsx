@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { Alert } from "@query/ui/Alert";
@@ -15,22 +15,10 @@ import {
 } from "@query/ui/classes";
 import { FormInput } from "@query/ui/FormInput";
 import { FormTextarea } from "@query/ui/FormTextarea";
-import { localTimeZone } from "@/components/admin/hackathons/constants";
-
-/**
- * Comma-separated text to the array the API stores, or null when empty.
- *
- * Judge assignment matches these strings exactly, so entries are trimmed and
- * blanks dropped — a stray ", " would otherwise become a track no project can
- * ever be matched against.
- */
-const splitList = (value: string): string[] | null => {
-  const items = value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-  return items.length > 0 ? items : null;
-};
+import {
+  localTimeZone,
+  splitList,
+} from "@/components/admin/hackathons/constants";
 
 export function CreateHackathonForm({
   onClose,

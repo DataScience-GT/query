@@ -18,7 +18,7 @@ function maskEmail(email: string) {
   return `${local.slice(0, 1)}***@${domain}`;
 }
 
-export type MemberAddress = {
+type MemberAddress = {
   /** The address Devpost listed, or the one the portal member signed up with. */
   listedEmail: string;
   /** The portal account's own address once the member is linked to one. */

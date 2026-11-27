@@ -6,8 +6,7 @@
  * tints (tints.ts). "." is transparent.
  *
  *   p/P  petal dark / light      c  petal core      Y  bloom center
- *   W    highlight               g  stem            G  leaf
- *   d    soil                    r  rock
+ *   g    stem                    G  leaf
  */
 
 export type SpriteMap = string[];
@@ -116,49 +115,14 @@ export const SPROUT: SpriteMap = [
   "..ggg..",
 ];
 
-/** Vertically tileable vine segment. */
-export const VINE: SpriteMap = [
-  "...g...",
-  "..Gg...",
-  ".G.g...",
-  "...gG..",
-  "...g.G.",
-  "...g...",
-  "..Gg...",
-  "...g...",
-];
-
-/** Horizontally tileable grass + soil strip. */
-export const GROUND: SpriteMap = [
-  "G.G..G.G..G.G..G",
-  "GGGGGGGGGGGGGGGG",
-  "GGGGGGGGGGGGGGGG",
-  "dGddGdddGddGdddG",
-  "dddddrddddddrddd",
-  "ddrddddddrdddddd",
-  "dddddddrdddddddd",
-  "drdddddddddrdddd",
-  "ddddrdddddddddrd",
-  "dddddddddrdddddd",
-];
-
-/** Four-pixel sparkle used for drifting spores. */
-export const SPORE: SpriteMap = [
-  ".W.",
-  "WYW",
-  ".W.",
-];
-
 /* ─── Palettes ───────────────────────────────────────────────────────────
-   Stems, leaves and soil only. A flower's petals and heads are never grey:
+   Stems and leaves only. A flower's petals and heads are never grey:
    they take one of the portal's flower tints (tints.ts). Stems and leaves are
    the sage of the globe art's land and they never change. */
 
 const night: Palette = {
   g: "#5f8f67",
   G: "#96bf98",
-  d: "#1a1c23",
-  r: "#262731",
 };
 
 /* Day: the night pastels wash out on the pale ground (#f1f4f6), so the light
@@ -169,8 +133,6 @@ const night: Palette = {
 const day: Palette = {
   g: "#3b7440",
   G: "#4a8750",
-  d: "#d5dbe1",
-  r: "#c3cad2",
 };
 
 export const STEM_COLORS = { dark: night, light: day } as const;

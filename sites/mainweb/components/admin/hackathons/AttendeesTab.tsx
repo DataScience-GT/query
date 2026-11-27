@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { trpc } from "@/lib/trpc";
 import { csvCell } from "@/lib/csv";
+import { downloadBlob } from "@/components/admin/download-blob";
 import { foodGroupByKey } from "@query/api/discord-config";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import {
@@ -36,28 +37,44 @@ import { MASS_EMAIL_BATCH } from "@query/api/email-limits";
  *  (see adminGetAttendees), so the roster is also kept small by row count. */
 const PAGE_SIZE = 50;
 
-/** Delays a fast-changing value so it can drive a query without firing one per
- *  keystroke. */
-function useDebounced<T>(value: T, ms: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(timer);
-  }, [value, ms]);
-  return debounced;
-}
 import { RegistrationControls } from "./RegistrationControls";
 import { AcceptanceWaves } from "./AcceptanceWaves";
 import { AttendeeStats } from "./AttendeeStats";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
-import type { RegistrationStatus } from "./attendee-status";
-import type { HackathonStatus } from "./constants";
+import { useDebounced } from "./points/use-debounced";
+import type { HackathonStatus, ParticipantStatus } from "@query/db/constants";
 import { venueFormat } from "@/lib/venue-time";
 import { useIsClient } from "@/lib/use-is-client";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 // What toLocaleString() prints in en-US, on the venue's clock.
 const DATE_TIME = { year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" } as const;
+
+const yesNoCell = (v: boolean | null) =>
+  v == null ? "Not asked" : v ? "Yes" : "No";
+
+const detailLabel = "text-[13px] font-medium text-[var(--text-subtle)] mb-1";
+const detailValue = "text-sm text-[var(--text-primary)]";
+const detailQuote =
+  "border-l-2 border-[var(--border-medium)] pl-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed";
+
+/** A label over a value in the expanded row. */
+function Detail({
+  label,
+  className = detailValue,
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <p className={detailLabel}>{label}</p>
+      <p className={className}>{children}</p>
+    </div>
+  );
+}
 
 export function AttendeesTab({
   hackathonId,
@@ -74,7 +91,7 @@ export function AttendeesTab({
 
   const [page, setPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | RegistrationStatus>(
+  const [statusFilter, setStatusFilter] = useState<"all" | ParticipantStatus>(
     "all",
   );
   // Accepted and silent: the seats worth chasing before the event.
@@ -168,6 +185,8 @@ export function AttendeesTab({
     });
 
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const toggleExpanded = (id: string) =>
+    setExpandedRow(expandedRow === id ? null : id);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [emailProgress, setEmailProgress] = useState<string | null>(null);
@@ -217,9 +236,6 @@ export function AttendeesTab({
    * screen. Fetched on demand through its own endpoint so the bulk-PII read
    * happens exactly when an organiser asks for it.
    */
-  const yesNoCell = (v: boolean | null) =>
-    v == null ? "Not asked" : v ? "Yes" : "No";
-
   const exportToCSV = async () => {
     setExporting(true);
     let all: Awaited<
@@ -278,10 +294,9 @@ export function AttendeesTab({
       "Ramadan Role",
       "Registered At",
     ];
-    type Attendee = (typeof all)[number];
     // Every cell goes through csvCell: names, schools and answers are typed
     // by applicants, and a leading = + - @ would run as a formula in Excel.
-    const rows = all.map((a: Attendee) => [
+    const rows = all.map((a) => [
       `${a.firstName || ""} ${a.lastName || ""}`,
       a.user?.email || "Unknown",
       a.registrationStatus,
@@ -323,26 +338,15 @@ export function AttendeesTab({
       headers.map(csvCell).join(","),
       ...rows.map((r) => r.map(csvCell).join(",")),
     ].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
+    downloadBlob(
+      new Blob([csvContent], { type: "text/csv;charset=utf-8;" }),
       `${hackathonName.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_attendees.csv`,
     );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    // The blob is retained until its URL is revoked; without this every export
-    // leaks the full attendee CSV for the lifetime of the page.
-    URL.revokeObjectURL(url);
   };
 
   const handleStatusUpdate = (
     participantId: string,
-    newStatus: RegistrationStatus,
+    newStatus: ParticipantStatus,
   ) => {
     // Clear the last failure so a stale "seats left" message does not sit
     // above a row that has since gone through.
@@ -350,7 +354,7 @@ export function AttendeesTab({
     updateStatus.mutate({ hackathonId, participantId, status: newStatus });
   };
 
-  const handleBulkAction = (newStatus: RegistrationStatus) => {
+  const handleBulkAction = (newStatus: ParticipantStatus) => {
     setBulkError(null);
     batchUpdateStatus.mutate({
       hackathonId,
@@ -502,7 +506,7 @@ export function AttendeesTab({
 
   // Both of these change which rows match, so the current page number stops
   // meaning anything — landing on page 8 of a 2-page result shows nothing.
-  const changeFilter = (next: "all" | RegistrationStatus) => {
+  const changeFilter = (next: "all" | ParticipantStatus) => {
     setStatusFilter(next);
     setUnconfirmedOnly(false);
     setPage(0);
@@ -552,7 +556,6 @@ export function AttendeesTab({
     "rounded-[var(--radius-sm)] bg-accent px-2.5 py-1 text-[13px] font-semibold text-[var(--text-on-accent)] hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
   const rowActionDanger =
     "rounded-[var(--radius-sm)] border border-[var(--danger)]/40 px-2.5 py-1 text-[13px] font-semibold text-[var(--danger)] hover:bg-[var(--danger-glow)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
-  const detailLabel = "text-[13px] font-medium text-[var(--text-subtle)] mb-1";
   const detailGroup =
     "border-t border-[var(--border-subtle)] pt-3 text-[13px] font-semibold text-[var(--text-primary)]";
 
@@ -625,7 +628,6 @@ export function AttendeesTab({
         onFilterChange={changeFilter}
       />
 
-      {/* Header + Actions */}
       <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 ${sectionRule}`}>
         <div>
           <h2 className={sectionTitle}>Applications</h2>
@@ -647,7 +649,6 @@ export function AttendeesTab({
         </button>
       </div>
 
-      {/* Bulk actions for the current selection. */}
       {selectedIds.size > 0 && (
         <div className="flex flex-wrap items-center gap-3 border-y border-[var(--border-subtle)] py-3">
           <span className="mr-1 text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">
@@ -746,7 +747,6 @@ export function AttendeesTab({
         </p>
       )}
 
-      {/* Search */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-[16rem] max-w-xl flex-1">
           <input
@@ -790,7 +790,6 @@ export function AttendeesTab({
         </div>
       )}
 
-      {/* Table */}
       <div className="overflow-x-auto border-t border-[var(--border-subtle)]">
         <table className="w-full text-left text-sm whitespace-nowrap min-w-[900px]">
           <thead>
@@ -851,11 +850,7 @@ export function AttendeesTab({
                     </td>
                     <td
                       className="px-3 py-3"
-                      onClick={() =>
-                        setExpandedRow(
-                          expandedRow === attendee.id ? null : attendee.id,
-                        )
-                      }
+                      onClick={() => toggleExpanded(attendee.id)}
                     >
                       {/* The click lands on the cell's handler above; the button is
                           what a keyboard or screen reader can reach. */}
@@ -882,11 +877,7 @@ export function AttendeesTab({
                     </td>
                     <td
                       className="px-3 py-3"
-                      onClick={() =>
-                        setExpandedRow(
-                          expandedRow === attendee.id ? null : attendee.id,
-                        )
-                      }
+                      onClick={() => toggleExpanded(attendee.id)}
                     >
                       <div className="flex items-center gap-3">
                         <Image
@@ -912,11 +903,7 @@ export function AttendeesTab({
                     </td>
                     <td
                       className="px-3 py-3"
-                      onClick={() =>
-                        setExpandedRow(
-                          expandedRow === attendee.id ? null : attendee.id,
-                        )
-                      }
+                      onClick={() => toggleExpanded(attendee.id)}
                     >
                       <StatusBadge status={attendee.registrationStatus} />
                       {/* Only an accepted hacker has anything to confirm. */}
@@ -937,11 +924,7 @@ export function AttendeesTab({
                     </td>
                     <td
                       className="px-3 py-3"
-                      onClick={() =>
-                        setExpandedRow(
-                          expandedRow === attendee.id ? null : attendee.id,
-                        )
-                      }
+                      onClick={() => toggleExpanded(attendee.id)}
                     >
                       {/* Approved with no mail is the state worth seeing:
                           silent approvals, waves and walk-ins all land here. */}
@@ -962,11 +945,7 @@ export function AttendeesTab({
                     </td>
                     <td
                       className="px-3 py-3"
-                      onClick={() =>
-                        setExpandedRow(
-                          expandedRow === attendee.id ? null : attendee.id,
-                        )
-                      }
+                      onClick={() => toggleExpanded(attendee.id)}
                     >
                       <p className="text-[var(--text-primary)] max-w-[200px] truncate">
                         {attendee.school || "N/A"}
@@ -977,11 +956,7 @@ export function AttendeesTab({
                     </td>
                     <td
                       className="px-3 py-3 text-right tabular-nums text-[var(--text-muted)]"
-                      onClick={() =>
-                        setExpandedRow(
-                          expandedRow === attendee.id ? null : attendee.id,
-                        )
-                      }
+                      onClick={() => toggleExpanded(attendee.id)}
                     >
                       {venueFormat(attendee.registeredAt)}
                     </td>
@@ -1095,7 +1070,6 @@ export function AttendeesTab({
                       <td colSpan={8} className="p-0">
                         <div className="px-4 py-6 md:px-8 whitespace-normal">
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {/* Application Details */}
                             <div className="space-y-4">
                               <h4 className={detailGroup}>
                                 Application details
@@ -1125,7 +1099,6 @@ export function AttendeesTab({
                               </div>
                             </div>
 
-                            {/* Experience & Logistics */}
                             <div className="space-y-4">
                               <h4 className={detailGroup}>
                                 Logistics and links
@@ -1186,20 +1159,14 @@ export function AttendeesTab({
                                 )}
                               </div>
                               <div className="grid grid-cols-2 gap-4 pt-2">
-                                <div>
-                                  <p className={detailLabel}>Shirt size</p>
-                                  <p className="text-sm text-[var(--text-primary)]">
-                                    {attendee.shirtSize || "N/A"}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className={detailLabel}>Dietary</p>
-                                  <p className="text-sm text-[var(--text-primary)]">
-                                    {(attendee.dietaryRestrictions || []).join(
-                                      ", ",
-                                    ) || "None"}
-                                  </p>
-                                </div>
+                                <Detail label="Shirt size">
+                                  {attendee.shirtSize || "N/A"}
+                                </Detail>
+                                <Detail label="Dietary">
+                                  {(attendee.dietaryRestrictions || []).join(
+                                    ", ",
+                                  ) || "None"}
+                                </Detail>
                               </div>
                               <div>
                                 <p className={detailLabel}>Emergency contact</p>
@@ -1212,166 +1179,91 @@ export function AttendeesTab({
                               </div>
                             </div>
 
-                            {/* Questionnaire Response */}
                             <div className="space-y-4 lg:col-span-1 md:col-span-2">
                               <h4 className={detailGroup}>Questionnaire</h4>
-                              <div>
-                                <p className={detailLabel}>
-                                  Hackathons attended
-                                </p>
-                                <p className="text-sm tabular-nums text-[var(--text-primary)]">
-                                  {attendee.hackathonsAttended ?? 0}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>
-                                  What do they hope to learn or gain?
-                                </p>
-                                <p className="border-l-2 border-[var(--border-medium)] pl-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed">
-                                  {attendee.whyAttend
-                                    ? `"${attendee.whyAttend}"`
-                                    : "No answer provided."}
-                                </p>
-                              </div>
+                              <Detail label="Hackathons attended" className="text-sm tabular-nums text-[var(--text-primary)]">
+                                {attendee.hackathonsAttended ?? 0}
+                              </Detail>
+                              <Detail label="What do they hope to learn or gain?" className={detailQuote}>
+                                {attendee.whyAttend
+                                  ? `"${attendee.whyAttend}"`
+                                  : "No answer provided."}
+                              </Detail>
                               <div className="grid grid-cols-1 gap-4">
-                              <div>
-                                <p className={detailLabel}>Georgia Tech student</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.isGtStudent == null ? "Not asked" : attendee.isGtStudent ? "Yes" : "No"}
-                                </p>
+                              <Detail label="Georgia Tech student">
+                                {yesNoCell(attendee.isGtStudent)}
+                              </Detail>
+                              <Detail label="DS@GT member">
+                                {yesNoCell(attendee.isDsgtMember)}
+                              </Detail>
+                              <Detail label="Been to Hacklytics before">
+                                {yesNoCell(attendee.attendedHacklyticsBefore)}
+                              </Detail>
+                              <Detail label="U.S. citizen">
+                                {attendee.usCitizen || "Not asked"}
+                              </Detail>
+                              <Detail label="Track interest">
+                                {attendee.trackInterest || "Not asked"}
+                              </Detail>
+                              <Detail label="Heard about us">
+                                {attendee.referralSource || "Not asked"}
+                              </Detail>
                               </div>
-                              <div>
-                                <p className={detailLabel}>DS@GT member</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.isDsgtMember == null ? "Not asked" : attendee.isDsgtMember ? "Yes" : "No"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Been to Hacklytics before</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.attendedHacklyticsBefore == null ? "Not asked" : attendee.attendedHacklyticsBefore ? "Yes" : "No"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>U.S. citizen</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.usCitizen || "Not asked"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Track interest</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.trackInterest || "Not asked"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Heard about us</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.referralSource || "Not asked"}
-                                </p>
-                              </div>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Journey in tech</p>
-                                <p className="border-l-2 border-[var(--border-medium)] pl-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed">
-                                  {attendee.techJourney || "Not asked"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Most helpful feedback</p>
-                                <p className="border-l-2 border-[var(--border-medium)] pl-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed">
-                                  {attendee.helpfulFeedback || "Not asked"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>What they would build</p>
-                                <p className="border-l-2 border-[var(--border-medium)] pl-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed">
-                                  {attendee.dreamBuild || "Not asked"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Anything else</p>
-                                <p className="border-l-2 border-[var(--border-medium)] pl-3 text-sm text-[var(--text-muted)] whitespace-pre-wrap leading-relaxed">
-                                  {attendee.anythingElse || "Not asked"}
-                                </p>
-                              </div>
+                              <Detail label="Journey in tech" className={detailQuote}>
+                                {attendee.techJourney || "Not asked"}
+                              </Detail>
+                              <Detail label="Most helpful feedback" className={detailQuote}>
+                                {attendee.helpfulFeedback || "Not asked"}
+                              </Detail>
+                              <Detail label="What they would build" className={detailQuote}>
+                                {attendee.dreamBuild || "Not asked"}
+                              </Detail>
+                              <Detail label="Anything else" className={detailQuote}>
+                                {attendee.anythingElse || "Not asked"}
+                              </Detail>
                               <h4 className={detailGroup}>Travel</h4>
                               <div className="grid grid-cols-1 gap-4">
-                              <div>
-                                <p className={detailLabel}>Travel reimbursement</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.travelReimbursement == null ? "Not asked" : attendee.travelReimbursement ? "Yes" : "No"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Coming from</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {[attendee.travelFromCity, attendee.travelFromState, attendee.travelFromCountry].filter(Boolean).join(", ") || "Not asked"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Distance</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.travelDistance || "Not asked"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Method</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.travelMethod || "Not asked"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Fasting for Ramadan</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.ramadanFasting || "Not asked"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Discord</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.discordUsername
-                                    ? `@${attendee.discordUsername}`
-                                    : "Not linked"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Food group</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {foodGroupByKey(attendee.foodGroup)?.name ??
-                                    "Not assigned"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Ramadan role</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.ramadanRoleOptIn ? "Opted in" : "No"}
-                                </p>
-                              </div>
+                              <Detail label="Travel reimbursement">
+                                {yesNoCell(attendee.travelReimbursement)}
+                              </Detail>
+                              <Detail label="Coming from">
+                                {[attendee.travelFromCity, attendee.travelFromState, attendee.travelFromCountry].filter(Boolean).join(", ") || "Not asked"}
+                              </Detail>
+                              <Detail label="Distance">
+                                {attendee.travelDistance || "Not asked"}
+                              </Detail>
+                              <Detail label="Method">
+                                {attendee.travelMethod || "Not asked"}
+                              </Detail>
+                              <Detail label="Fasting for Ramadan">
+                                {attendee.ramadanFasting || "Not asked"}
+                              </Detail>
+                              <Detail label="Discord">
+                                {attendee.discordUsername
+                                  ? `@${attendee.discordUsername}`
+                                  : "Not linked"}
+                              </Detail>
+                              <Detail label="Food group">
+                                {foodGroupByKey(attendee.foodGroup)?.name ??
+                                  "Not assigned"}
+                              </Detail>
+                              <Detail label="Ramadan role">
+                                {attendee.ramadanRoleOptIn ? "Opted in" : "No"}
+                              </Detail>
                               </div>
                               <h4 className={detailGroup}>Just for fun</h4>
                               <div className="grid grid-cols-1 gap-4">
-                              <div>
-                                <p className={detailLabel}>Favorite flower</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.favoriteFlower || "Not asked"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Favorite snack</p>
-                                <p className="text-sm text-[var(--text-primary)]">
-                                  {attendee.favoriteSnack || "Not asked"}
-                                </p>
-                              </div>
-                              <div>
-                                <p className={detailLabel}>Excitement (1-10)</p>
-                                <p className="text-sm tabular-nums text-[var(--text-primary)]">
-                                  {attendee.excitement ?? "Not asked"}
-                                </p>
-                              </div>
+                              <Detail label="Favorite flower">
+                                {attendee.favoriteFlower || "Not asked"}
+                              </Detail>
+                              <Detail label="Favorite snack">
+                                {attendee.favoriteSnack || "Not asked"}
+                              </Detail>
+                              <Detail label="Excitement (1-10)" className="text-sm tabular-nums text-[var(--text-primary)]">
+                                {attendee.excitement ?? "Not asked"}
+                              </Detail>
                               </div>
 
-                              {/* Quick action buttons in expanded view */}
                               <div className="pt-4 flex flex-wrap items-center gap-2 border-t border-[var(--border-subtle)]">
                                 <span className="mr-1 text-[13px] font-medium text-[var(--text-subtle)]">
                                   Decision

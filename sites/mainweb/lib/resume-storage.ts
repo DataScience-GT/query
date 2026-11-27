@@ -1,6 +1,5 @@
 import { Storage } from "@google-cloud/storage";
 import { setMaxListeners } from "node:events";
-import type { Readable } from "node:stream";
 
 // teeny-request pipelines its response into a PassThrough already carrying ten
 // listeners, so every read warned. Fixed-size chain, not a leak.
@@ -29,10 +28,6 @@ export async function putResume(key: string, bytes: Uint8Array) {
     contentType: "application/pdf",
     resumable: false,
   });
-}
-
-export function resumeReadStream(key: string): Readable {
-  return bucket().file(key).createReadStream();
 }
 
 /** One resume in memory, capped at 2MB by the upload route. The ZIP builder holds a few of these at a time, never thousands. */

@@ -40,10 +40,10 @@ const CODE_EXT = [
   ".astro",
 ];
 
-export type ImportKind =
+type ImportKind =
   "import" | "type" | "reexport" | "dynamic" | "require" | "side-effect";
 
-export interface ImportRec {
+interface ImportRec {
   spec: string;
   kind: ImportKind;
   line: number;
@@ -51,7 +51,7 @@ export interface ImportRec {
   names: string[];
 }
 
-export type DeclKind =
+type DeclKind =
   | "function"
   | "component"
   | "class"
@@ -63,7 +63,7 @@ export type DeclKind =
   | "procedure"
   | "table";
 
-export interface Decl {
+interface Decl {
   name: string;
   kind: DeclKind;
   exported: boolean;
@@ -583,7 +583,7 @@ export const fillPattern = (target: string, value: string) =>
 
 const EXTERNAL_PREFIX = /^(node:|astro:|virtual:|https?:|data:)/;
 
-export function externalName(spec: string): string {
+function externalName(spec: string): string {
   if (EXTERNAL_PREFIX.test(spec)) return spec;
   const parts = spec.split("/");
   return spec.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
@@ -840,10 +840,4 @@ export function getGraph(): Graph {
   };
   cached = { graph, signature };
   return graph;
-}
-
-/** Test hook: forget everything, for a cold build. */
-export function resetGraph() {
-  infos.clear();
-  cached = null;
 }

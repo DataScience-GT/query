@@ -8,7 +8,7 @@ import type { PlanResult } from "./solve";
 // this only counts. At most MAX_ADVICE items, most useful first.
 
 /** Something one button can do for the organiser. */
-export type AdviceAction =
+type AdviceAction =
   | { type: "archiveTables"; roomIds: string[] }
   | { type: "addTables"; challengeId: string; buildingId: string; count: number }
   | {
@@ -16,7 +16,7 @@ export type AdviceAction =
       rooms: { challengeId: string; buildingId: string; name: string }[];
     };
 
-export type Advice = {
+type Advice = {
   kind: "judges" | "sponsorRoom" | "unusedTables" | "moreTables" | "window";
   message: string;
   action?: AdviceAction;
@@ -25,7 +25,7 @@ export type Advice = {
 /** A room the edition could schedule in, named, with whether it is a table. */
 export type AdviceRoom = PlanRoom & { name: string; table: boolean };
 
-export const MAX_ADVICE = 4;
+const MAX_ADVICE = 4;
 
 /** Past this share of the window, the last presentations leave no slack. */
 const TIGHT = 0.8;
@@ -175,14 +175,12 @@ export function adviceFor(source: {
           !memberJudges.some((j) => j.challengeIds.includes(t.challengeId)),
       );
       const busiest = Math.max(
-        ...[
-          ...count(
-            result.placements
-              .filter((p) => !guestRooms.has(p.roomId))
-              .map((p) => p.slot),
-          ).values(),
-          0,
-        ],
+        ...count(
+          result.placements
+            .filter((p) => !guestRooms.has(p.roomId))
+            .map((p) => p.slot),
+        ).values(),
+        0,
       );
       const more = Math.max(
         1,

@@ -66,7 +66,7 @@ type FinishedBucket = Omit<StatusRow, "dbOk" | "dbMs"> & {
   ping?: { ok: boolean; ms: number };
 };
 
-export type StatusRecorderDeps = {
+type StatusRecorderDeps = {
   now: () => number;
   instanceId: string;
   /** `select 1`, timed. Must resolve, reporting a failure as ok: false. */

@@ -55,5 +55,3 @@ export const bootcampWorkshops = pgTable(
     ),
   ],
 );
-
-export type BootcampWorkshop = typeof bootcampWorkshops.$inferSelect;

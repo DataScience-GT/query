@@ -38,7 +38,7 @@ Config: `packages/api/vitest.config.ts`. Includes `src/**/*.test.ts` and `src/.i
 | Portal context | `services/portal-context.test.ts`, `routers/user/portal-context.test.ts` |
 | Judging scoring, scope, room links | `services/judging/*.test.ts` |
 
-Tests use `src/test/create-mock-context.ts` and `.internal-tests/_db-tx-mock.ts` rather than a live database. CI still starts the compose database with `pnpm local:up` and stops it with `pnpm local:down`, so the schema and seed run on the same Postgres version as Neon on every PR.
+Tests use the shared fakes in `.internal-tests/` (`_caller.ts`, `_fake-db.ts`, `_db-tx-mock.ts`) rather than a live database. CI still starts the compose database with `pnpm local:up` and stops it with `pnpm local:down`, so the schema and seed run on the same Postgres version as Neon on every PR.
 
 `scrubMarkup` is exported specifically so tests hit the sanitizer the request path runs (a previous unused stripper made the suite lie).
 

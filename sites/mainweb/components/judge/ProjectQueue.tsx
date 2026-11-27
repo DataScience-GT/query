@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { keepPreviousData } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
+import { useDebounced } from "@/components/admin/hackathons/points/use-debounced";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import {
@@ -54,15 +55,6 @@ export const DEFAULT_FILTERS: QueueFilters = {
 export type SkipState = { skipped: string[]; offered: string | null };
 
 export const NO_SKIPS: SkipState = { skipped: [], offered: null };
-
-function useDebounced<T>(value: T, ms: number) {
-  const [settled, setSettled] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setSettled(value), ms);
-    return () => clearTimeout(timer);
-  }, [value, ms]);
-  return settled;
-}
 
 function progress(
   project: ListedProject,

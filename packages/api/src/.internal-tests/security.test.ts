@@ -215,23 +215,18 @@ describe("Security and Protection Verification Suite", () => {
       // Exhaust first
       rateLimit(user, 1, 0, 1);
 
-      // 1st violation
       const v1 = rateLimit(user, 1, 0, 1);
       expect(v1.allowed).toBe(false);
       expect(v1.retryAfter).toBe(1); // 2^0 = 1s
 
-      // Wait 1.1 seconds for block to clear
       vi.advanceTimersByTime(1100);
 
-      // 2nd violation
       const v2 = rateLimit(user, 1, 0, 1);
       expect(v2.allowed).toBe(false);
       expect(v2.retryAfter).toBe(2); // 2^1 = 2s
 
-      // Wait 2.1 seconds for block to clear
       vi.advanceTimersByTime(2100);
 
-      // 3rd violation
       const v3 = rateLimit(user, 1, 0, 1);
       expect(v3.allowed).toBe(false);
       expect(v3.retryAfter).toBe(4); // 2^2 = 4s
@@ -313,13 +308,10 @@ describe("Security and Protection Verification Suite", () => {
         ddosProtection(ip);
       }
 
-      // Verify blocked
       expect(ddosProtection(ip).allowed).toBe(false);
 
-      // Advance by 5 minutes + 1 second
       vi.advanceTimersByTime(5 * 60 * 1000 + 1000);
 
-      // Verify unblocked
       expect(ddosProtection(ip).allowed).toBe(true);
       vi.useRealTimers();
     });

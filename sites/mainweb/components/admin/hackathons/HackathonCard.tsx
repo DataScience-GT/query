@@ -1,7 +1,6 @@
 "use client";
 
 import { venueFormat } from "@/lib/venue-time";
-import React from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import {
@@ -24,11 +23,8 @@ import {
   textLink,
 } from "@query/ui/classes";
 import { adminHackathonPath } from "@/lib/hackathon-slug";
-import {
-  STATUS_TONE,
-  getStatusMeta,
-} from "@/components/admin/hackathons/constants";
-import type { HackathonStatus } from "@/components/admin/hackathons/constants";
+import { STATUS_PILL } from "@/components/admin/hackathons/constants";
+import type { HackathonStatus } from "@query/db/constants";
 
 export function HackathonCard({
   hackathon,
@@ -56,6 +52,7 @@ export function HackathonCard({
   // hackathon.delete is super-admin only; other staff would only meet the refusal.
   const canDelete = portalContext?.role === "super_admin";
   const dashboardPath = adminHackathonPath(hackathon.name, hackathon.id);
+  const pill = STATUS_PILL[hackathon.status] ?? STATUS_PILL.draft;
 
   const { data: events, isLoading: eventsLoading } =
     trpc.hackathon.getEvents.useQuery({ hackathonId: hackathon.id });
@@ -83,7 +80,6 @@ export function HackathonCard({
   return (
     <article className={`${object} p-5 md:p-8`}>
       <div className="flex flex-col gap-8">
-        {/* Info Section */}
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Link
@@ -92,8 +88,8 @@ export function HackathonCard({
             >
               <h3 className={sectionTitle}>{hackathon.name}</h3>
             </Link>
-            <span className={statusPill(STATUS_TONE[hackathon.status])}>
-              {getStatusMeta(hackathon.status)?.label}
+            <span className={statusPill(pill.tone)}>
+              {pill.label}
             </span>
           </div>
           {hackathon.description && (
@@ -146,7 +142,6 @@ export function HackathonCard({
             </div>
           </dl>
 
-          {/* Registration Progress Bar */}
           {hackathon.status !== "announced" && hackathon.maxParticipants && (
             <div className="mt-5 h-1 w-full overflow-hidden rounded-full bg-[var(--bg-secondary)]">
               <div
@@ -158,7 +153,6 @@ export function HackathonCard({
             </div>
           )}
 
-          {/* Events Showcase Section */}
           <div className="mt-8 border-t border-[var(--border-subtle)] pt-6">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h4 className={itemTitle}>Schedule</h4>
@@ -220,7 +214,6 @@ export function HackathonCard({
           </div>
         </div>
 
-        {/* Actions Section — full width row */}
         <div className="flex flex-wrap items-center justify-between gap-6 border-t border-[var(--border-subtle)] pt-6">
           {/* Left group: Visibility, with Delete kept away from the primary action */}
           <div className="flex flex-wrap items-center gap-3">
@@ -280,7 +273,6 @@ export function HackathonCard({
             )}
           </div>
 
-          {/* Right group: Edit + Judging + Dashboard */}
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"

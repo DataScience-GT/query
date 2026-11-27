@@ -111,8 +111,7 @@
 }
 
 /* ===== FLAT DEV CONTAINERS ===== */
-.liquid-glass,
-.liquid-glass-lg {
+.liquid-glass {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
@@ -121,20 +120,8 @@
   transition: all var(--duration-normal) var(--ease-out);
 }
 
-.liquid-glass-lg {
-  border-radius: var(--radius-lg);
-}
-
-.liquid-glass::before,
-.liquid-glass-lg::before {
+.liquid-glass::before {
   display: none;
-}
-
-/* Only things you can press react to the pointer. */
-a.liquid-glass:hover,
-a.liquid-glass-lg:hover,
-button.liquid-glass:hover {
-  border-color: var(--border-hover);
 }
 
 .liquid-glass:focus-visible {
@@ -161,8 +148,3 @@ button.liquid-glass:hover {
 .shadow-md { box-shadow: var(--shadow-md) !important; }
 .shadow-lg { box-shadow: var(--shadow-lg) !important; }
 .shadow-xl { box-shadow: var(--shadow-xl) !important; }
-
-/* Kept because LiquidGlass still accepts the prop across admin. */
-.card-printed {
-  position: relative;
-}

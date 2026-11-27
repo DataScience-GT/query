@@ -8,6 +8,7 @@ import type { DrizzleDB } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
 import { siteOrigin } from "@query/core/server";
 import { logSecurityEvent } from "../../middleware/security";
+import { clearMembershipCaches } from "../../middleware/cache";
 import {
   createOrUpdateMembership,
   readPlan,
@@ -32,8 +33,29 @@ import {
   assertKeyModesMatch,
   describeKeyProblem,
   getStripe,
-  clearMembershipCaches,
 } from "./client";
+import { badRequest, forbidden, preconditionFailed } from "../errors";
+
+// The Stripe client for taking a new payment. Members see a generic outage;
+// the cause goes to the log, like describeKeyProblem.
+async function requireStripe(userId: string | undefined) {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (stripeKey) assertKeyModesMatch(stripeKey);
+  const stripe = stripeKey ? await getStripe() : null;
+  if (!stripe) {
+    logSecurityEvent({
+      type: "validation_error",
+      identifier: userId ?? "unknown",
+      details: `Stripe unavailable: ${describeKeyProblem(stripeKey) ?? "unknown cause"}`,
+    });
+    throw new TRPCError({
+      code: "SERVICE_UNAVAILABLE",
+      message:
+        "Payment service is currently unavailable. Please try again later.",
+    });
+  }
+  return stripe;
+}
 
 export const checkoutProcedures = {
   // Create a new Stripe Checkout Session for membership.
@@ -49,21 +71,17 @@ export const checkoutProcedures = {
       // Stripe sends the buyer back to this URL, and the mock flow redirects
       // there directly: anything but our own origin is an open redirect.
       if (new URL(input.returnUrl).origin !== siteOrigin()) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "That return address is not allowed.",
-        });
+        throw badRequest("That return address is not allowed.");
       }
 
       const user = await ctx.db!.query.users.findFirst({
-        where: { id: ctx.userId! },
+        where: { id: ctx.userId },
       });
 
       if (!user?.email) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "User must have an email address to checkout.",
-        });
+        throw preconditionFailed(
+          "User must have an email address to checkout.",
+        );
       }
 
       // Checked before the key, so local development needs no Stripe key at all —
@@ -85,17 +103,17 @@ export const checkoutProcedures = {
             amountTotal: priceForCents(input.bootcamp, input.plan),
             currency: "usd",
             paymentStatus: "paid",
-            linkedUserId: ctx.userId!,
+            linkedUserId: ctx.userId,
             linkedAt: new Date(),
             metadata: JSON.stringify({
-              userId: ctx.userId!,
+              userId: ctx.userId,
               bootcamp: input.bootcamp ? "true" : "false",
               plan: input.plan,
             }),
           });
 
           await createOrUpdateMembership(tx as unknown as DrizzleDB, {
-            userId: ctx.userId!,
+            userId: ctx.userId,
             firstName,
             lastName,
             bootcampMember,
@@ -103,42 +121,13 @@ export const checkoutProcedures = {
           });
         });
 
-        // Invalidate cache
-        clearMembershipCaches(ctx.cache, ctx.userId!);
+        clearMembershipCaches(ctx.userId);
 
         const mockUrl = `${input.returnUrl}${input.returnUrl.includes("?") ? "&" : "?"}payment=success&session_id=${sessionId}`;
         return { url: mockUrl };
       }
 
-      const stripeKey = process.env.STRIPE_SECRET_KEY;
-      if (!stripeKey) {
-        logSecurityEvent({
-          type: "validation_error",
-          identifier: ctx.userId ?? "unknown",
-          details: `Stripe unavailable: ${describeKeyProblem(stripeKey) ?? "unknown cause"}`,
-        });
-        throw new TRPCError({
-          code: "SERVICE_UNAVAILABLE",
-          message:
-            "Payment service is currently unavailable. Please try again later.",
-        });
-      }
-
-      assertKeyModesMatch(stripeKey);
-
-      const stripe = await getStripe();
-      if (!stripe) {
-        logSecurityEvent({
-          type: "validation_error",
-          identifier: ctx.userId ?? "unknown",
-          details: `Stripe unavailable: ${describeKeyProblem(process.env.STRIPE_SECRET_KEY) ?? "unknown cause"}`,
-        });
-        throw new TRPCError({
-          code: "SERVICE_UNAVAILABLE",
-          message:
-            "Payment service is currently unavailable. Please try again later.",
-        });
-      }
+      const stripe = await requireStripe(ctx.userId);
 
       try {
         const session = await stripe.checkout.sessions.create({
@@ -168,7 +157,7 @@ export const checkoutProcedures = {
           cancel_url: `${input.returnUrl}?payment=cancelled`,
           customer_email: user.email,
           metadata: {
-            userId: ctx.userId!,
+            userId: ctx.userId,
             bootcamp: input.bootcamp ? "true" : "false",
             // Read back by the webhook: what expiry was paid for is decided here, never
             // by whatever the browser claims later.
@@ -203,21 +192,20 @@ export const checkoutProcedures = {
     )
     .mutation(async ({ ctx, input }) => {
       const user = await ctx.db!.query.users.findFirst({
-        where: { id: ctx.userId! },
+        where: { id: ctx.userId },
       });
 
       if (!user?.email) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "User must have an email address to checkout.",
-        });
+        throw preconditionFailed(
+          "User must have an email address to checkout.",
+        );
       }
 
       // A member with a year still on it buys the bootcamp alone. Decided from
       // their own row, never an input flag — otherwise a non-member could ask for
       // add-on pricing and get bootcamp access for $10.
       const member = await ctx.db!.query.members.findFirst({
-        where: { userId: ctx.userId! },
+        where: { userId: ctx.userId },
         columns: { isActive: true, membershipEndDate: true },
       });
       const membershipActive = !!(
@@ -259,35 +247,7 @@ export const checkoutProcedures = {
         };
       }
 
-      const stripeKey = process.env.STRIPE_SECRET_KEY;
-      if (!stripeKey) {
-        logSecurityEvent({
-          type: "validation_error",
-          identifier: ctx.userId ?? "unknown",
-          details: `Stripe unavailable: ${describeKeyProblem(stripeKey) ?? "unknown cause"}`,
-        });
-        throw new TRPCError({
-          code: "SERVICE_UNAVAILABLE",
-          message:
-            "Payment service is currently unavailable. Please try again later.",
-        });
-      }
-
-      assertKeyModesMatch(stripeKey);
-
-      const stripe = await getStripe();
-      if (!stripe) {
-        logSecurityEvent({
-          type: "validation_error",
-          identifier: ctx.userId ?? "unknown",
-          details: `Stripe unavailable: ${describeKeyProblem(process.env.STRIPE_SECRET_KEY) ?? "unknown cause"}`,
-        });
-        throw new TRPCError({
-          code: "SERVICE_UNAVAILABLE",
-          message:
-            "Payment service is currently unavailable. Please try again later.",
-        });
-      }
+      const stripe = await requireStripe(ctx.userId);
 
       try {
         const paymentIntent = await stripe.paymentIntents.create({
@@ -300,7 +260,7 @@ export const checkoutProcedures = {
               ? `DS@GT Membership (${planLabel(input.plan)}) + Bootcamp (${formatCents(amount)})`
               : `DS@GT Membership — ${planLabel(input.plan)} (${formatCents(amount)})`,
           metadata: {
-            userId: ctx.userId!,
+            userId: ctx.userId,
             userEmail: user.email,
             // Every grant path reads this to tell a $10 add-on from a year.
             type: addOnOnly ? BOOTCAMP_ADDON_PAYMENT_TYPE : "membership",
@@ -373,7 +333,7 @@ export const checkoutProcedures = {
             : priceForCents(false, mockPlan),
           currency: "usd",
           metadata: {
-            userId: ctx.userId!,
+            userId: ctx.userId,
             bootcamp: mockAddOn ? "true" : "false",
             plan: mockPlan,
             type: mockAddOn ? BOOTCAMP_ADDON_PAYMENT_TYPE : "membership",
@@ -395,10 +355,9 @@ export const checkoutProcedures = {
       }
 
       if (pi.status !== "succeeded") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Payment not yet complete (status: ${pi.status}). Please wait and try again.`,
-        });
+        throw badRequest(
+          `Payment not yet complete (status: ${pi.status}). Please wait and try again.`,
+        );
       }
 
       // Only an intent this server minted for this caller, for a membership or
@@ -418,14 +377,11 @@ export const checkoutProcedures = {
           identifier: ctx.userId ?? "unknown",
           details: `PaymentIntent refused: userId=${pi.metadata?.userId ?? "none"} type=${paymentType ?? "none"} amount=${pi.amount}`,
         });
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Payment mismatch.",
-        });
+        throw forbidden("Payment mismatch.");
       }
 
       const user = await ctx.db!.query.users.findFirst({
-        where: { id: ctx.userId! },
+        where: { id: ctx.userId },
       });
 
       const nameParts = (user?.name || "Member").split(" ");
@@ -469,7 +425,7 @@ export const checkoutProcedures = {
                 amountTotal: pi.amount,
                 currency: pi.currency,
                 paymentStatus: "paid",
-                linkedUserId: ctx.userId!,
+                linkedUserId: ctx.userId,
                 linkedAt: new Date(),
                 metadata: JSON.stringify(pi.metadata ?? {}),
               })
@@ -478,7 +434,7 @@ export const checkoutProcedures = {
             if (!inserted) return false;
 
             await createOrUpdateMembership(tx as unknown as DrizzleDB, {
-              userId: ctx.userId!,
+              userId: ctx.userId,
               firstName,
               lastName,
               bootcampMember,
@@ -497,7 +453,7 @@ export const checkoutProcedures = {
             const claimed = await tx
               .update(stripePayments)
               .set({
-                linkedUserId: ctx.userId!,
+                linkedUserId: ctx.userId,
                 linkedAt: new Date(),
                 updatedAt: new Date(),
               })
@@ -510,7 +466,7 @@ export const checkoutProcedures = {
             if (claimed.rowCount === 0) return false;
 
             await createOrUpdateMembership(tx as unknown as DrizzleDB, {
-              userId: ctx.userId!,
+              userId: ctx.userId,
               firstName,
               lastName,
               bootcampMember,
@@ -527,7 +483,7 @@ export const checkoutProcedures = {
         throw error;
       }
 
-      clearMembershipCaches(ctx.cache, ctx.userId!);
+      clearMembershipCaches(ctx.userId);
 
       return { success: true };
     }),

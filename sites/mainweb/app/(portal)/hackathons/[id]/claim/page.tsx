@@ -1,12 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
-import { loginHref } from "@/lib/safe-callback";
+import { useLoginRedirect } from "@/lib/use-login-redirect";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { Alert } from "@query/ui/Alert";
 import {
@@ -43,9 +43,7 @@ function ClaimContent() {
 
   // The link usually arrives on a phone that is not signed in yet; come
   // straight back here, token and all, afterwards.
-  useEffect(() => {
-    if (authStatus === "unauthenticated") router.push(loginHref());
-  }, [authStatus, router]);
+  useLoginRedirect(authStatus);
 
   const preview = trpc.judging.hacker.previewClaim.useQuery(
     { hackathonId, token },

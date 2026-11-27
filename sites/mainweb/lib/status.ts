@@ -13,11 +13,11 @@ import {
   STATUS_BUCKET_MS,
 } from "@query/core";
 
-export const BUCKET_MIN = STATUS_BUCKET_MINUTES;
+const BUCKET_MIN = STATUS_BUCKET_MINUTES;
 export const BUCKET_MS = STATUS_BUCKET_MS;
 export const ERROR_RATE_LIMIT = 0.05;
 /** A live ping slower than this is Degraded, not Operational. */
-export const SLOW_PING_MS = 1000;
+const SLOW_PING_MS = 1000;
 
 export type Bucket = {
   /** Bucket start, epoch ms. */
@@ -70,11 +70,11 @@ export function uptimePercent(
  * Every day of the window, oldest first, with an empty entry for a day that
  * has no rows, so the strip always has one bar per day.
  */
-export function fillDays(rows: Day[], now: number, count = 90): Day[] {
+export function fillDays(rows: Day[], now: number): Day[] {
   const byDay = new Map(rows.map((row) => [row.day, row]));
   const today = now - (now % DAY);
-  return Array.from({ length: count }, (_, i) => {
-    const day = new Date(today - (count - 1 - i) * DAY)
+  return Array.from({ length: 90 }, (_, i) => {
+    const day = new Date(today - (89 - i) * DAY)
       .toISOString()
       .slice(0, 10);
     return (
@@ -121,16 +121,12 @@ export function dayFromBuckets(buckets: Bucket[], day: string): Day | null {
 }
 
 /** The last 24 hours as 288 slots, oldest first; null where nothing was sampled. */
-export function fillBuckets(
-  rows: Bucket[],
-  now: number,
-  count = 288,
-): (Bucket | null)[] {
+export function fillBuckets(rows: Bucket[], now: number): (Bucket | null)[] {
   const byTime = new Map(rows.map((row) => [row.t, row]));
   const last = now - (now % BUCKET_MS);
   return Array.from(
-    { length: count },
-    (_, i) => byTime.get(last - (count - 1 - i) * BUCKET_MS) ?? null,
+    { length: 288 },
+    (_, i) => byTime.get(last - (287 - i) * BUCKET_MS) ?? null,
   );
 }
 

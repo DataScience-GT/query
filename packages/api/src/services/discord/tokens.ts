@@ -40,7 +40,7 @@ export function sealTokens(
  * Discord says the person withdrew the connection, so there is nothing left to
  * keep up to date.
  */
-export async function dropLink(db: DrizzleDB, row: LinkRow): Promise<void> {
+async function dropLink(db: DrizzleDB, row: LinkRow): Promise<void> {
   await db.transaction(async (tx) => {
     await tx
       .update(hackathonParticipants)
@@ -68,7 +68,7 @@ export async function dropLink(db: DrizzleDB, row: LinkRow): Promise<void> {
   });
 }
 
-export type AccessToken =
+type AccessToken =
   | { ok: true; accessToken: string; row: LinkRow }
   | { ok: false; reason: "no_token" | "revoked" | "failed" };
 

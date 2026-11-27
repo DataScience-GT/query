@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 
 /**
@@ -83,14 +83,9 @@ const callerAs = (role: string) => {
           ? clubEvent
           : undefined,
   );
-  return appRouter.createCaller({
-    db,
-    session: { user: { id: userId } },
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
+  return testCaller(db, userId, {
     req: { url: "https://query.example/x", headers: { get: () => null } },
-  } as never);
+  });
 };
 
 const hackathonEvent = {

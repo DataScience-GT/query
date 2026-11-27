@@ -6,11 +6,11 @@ import type { UptimeData } from "@/lib/uptime";
  * browser, so the page costs one cached fetch per five minutes however many
  * people open it.
  */
-export const UPTIME_URL =
+const UPTIME_URL =
   "https://raw.githubusercontent.com/DataScience-GT/query/status-data/uptime.json";
 
 /** Same deadline as the database reads: a slow host must not stall the page. */
-export const UPTIME_TIMEOUT_MS = 3000;
+const UPTIME_TIMEOUT_MS = 3000;
 
 /** Null on any failure, so the page falls back to the database numbers alone. */
 export async function loadUptime(): Promise<UptimeData | null> {

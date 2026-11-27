@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useIsAdmin, useReadOnly } from "@/lib/use-portal-context";
@@ -38,7 +38,7 @@ const STRIP_MS = 2500;
 const REPEAT_MS = 3000;
 
 export function ScannerTab({ hackathonId }: { hackathonId: string }) {
-  const [selectedEventId, setSelectedEventId] = useState<string>("");
+  const [selectedEventId, setSelectedEventId] = useState("");
   // Whether the event the desk opens on has been chosen yet.
   const [eventPreselected, setEventPreselected] = useState(false);
   // The clock for "has this event ended", so a desk left open all day follows it.

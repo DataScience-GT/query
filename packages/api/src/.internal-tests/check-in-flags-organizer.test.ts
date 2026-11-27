@@ -13,7 +13,6 @@
  * see exactly what the router asks it for.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PgDialect } from "drizzle-orm/pg-core";
 import {
   auditLogs,
   hackathonCheckInFlags,
@@ -21,7 +20,8 @@ import {
   judgingConfigs,
   judgingEntries,
 } from "@query/db";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
+import { matcher, render } from "./_fake-db";
 import { cache } from "../middleware/cache";
 import type * as CheckInFlags from "../services/check-in-flags";
 import type * as RepoCheck from "../services/judging/repo-check";
@@ -53,36 +53,12 @@ const FLAG_1 = "cccccccc-cccc-4ccc-8ccc-ccccccccccc1";
 const FLAG_OTHER = "dddddddd-dddd-4ddd-8ddd-ddddddddddd1";
 const NO_SUCH = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
 
-const dialect = new PgDialect();
-const render = (condition: unknown) => dialect.sqlToQuery(condition as never);
-
 type Row = Record<string, any>;
 type SelectCall = {
   fields: Record<string, unknown> | undefined;
   table: unknown;
   where: unknown;
 };
-
-const camel = (name: string) =>
-  name.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
-
-const TERM = /"[a-z_]+"\."([a-z_]+)" = \$(\d+)/g;
-
-/**
- * A row filter from a where made only of `column = value` terms joined by
- * `and`. Anything else throws, so the fake never quietly ignores a condition
- * it does not understand.
- */
-function matcher(where: unknown) {
-  const { sql: text, params } = render(where);
-  const terms = [...text.matchAll(TERM)].map(
-    (match) => [camel(match[1]!), params[Number(match[2]) - 1]] as const,
-  );
-  if (text.replace(TERM, "").replace(/[()\s]|and/g, "")) {
-    throw new Error(`The fake database cannot evaluate: ${text}`);
-  }
-  return (row: Row) => terms.every(([key, value]) => row[key] === value);
-}
 
 // ---------------------------------------------------------------------------
 // The stand-in database
@@ -160,36 +136,12 @@ const fakeDb: any = {
   transaction: async (callback: (tx: unknown) => unknown) => callback(fakeDb),
 };
 
-const callerAs = (userId: string | undefined) =>
-  appRouter.createCaller({
-    db: fakeDb,
-    session: userId ? { user: { id: userId } } : null,
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as any);
+const callerAs = (userId: string | undefined) => testCaller(fakeDb, userId);
 
 const admin = () => callerAs("admin_user");
 
 const audits = () =>
   inserts.filter((write) => write.table === auditLogs).map((w) => w.values);
-
-const flagView = (
-  over: Partial<CheckInFlags.CheckInFlagView> = {},
-): CheckInFlags.CheckInFlagView => ({
-  id: FLAG_1,
-  participantName: "Ada Lovelace",
-  rule: "overlap",
-  eventName: "BNY Workshop",
-  conflictEventName: "Full Sail Fireside",
-  method: "code",
-  attempts: 3,
-  createdAt: new Date("2027-02-06T18:00:00Z"),
-  lastAttemptAt: new Date("2027-02-06T19:41:00Z"),
-  dismissed: false,
-  ...over,
-});
 
 const entryRow = (id: string, over: Row = {}) => ({
   id,
@@ -304,7 +256,18 @@ describe("judging.admin.listEntries", () => {
 
   it("puts each project's flags and its prize status on the project", async () => {
     wirePage([entryRow(ENTRY_1, { prizeIneligible: true }), entryRow(ENTRY_2)]);
-    const flag = flagView();
+    const flag: CheckInFlags.CheckInFlagView = {
+      id: FLAG_1,
+      participantName: "Ada Lovelace",
+      rule: "overlap",
+      eventName: "BNY Workshop",
+      conflictEventName: "Full Sail Fireside",
+      method: "code",
+      attempts: 3,
+      createdAt: new Date("2027-02-06T18:00:00Z"),
+      lastAttemptAt: new Date("2027-02-06T19:41:00Z"),
+      dismissed: false,
+    };
     mockFlagsForEntries.mockResolvedValue(new Map([[ENTRY_1, [flag]]]));
 
     const result = await admin().judging.admin.listEntries({

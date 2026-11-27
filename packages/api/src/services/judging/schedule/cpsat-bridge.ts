@@ -19,8 +19,8 @@ import type { PlanScore, ReducedBreak } from "./rules";
 // the server builds. A server with Python and OR-Tools can run the script
 // itself (cpsat-runner.ts); what it prints is read here the same way.
 
-export const CPSAT_PROBLEM_FORMAT = "query-judging-schedule-problem";
-export const CPSAT_SOLUTION_FORMAT = "query-judging-schedule-solution";
+const CPSAT_PROBLEM_FORMAT = "query-judging-schedule-problem";
+const CPSAT_SOLUTION_FORMAT = "query-judging-schedule-solution";
 
 /** The command shown next to the download. */
 export const CPSAT_COMMAND =
@@ -160,14 +160,14 @@ const solutionSchema = z.object({
 });
 
 /** Who grades what for a schedule, and who worked it out. */
-export type JudgeOutcome = {
+type JudgeOutcome = {
   assignments: JudgeAssignment[];
   metrics: JudgeMetrics;
   /** "cp-sat" when the file's own assignments passed the checks. */
   source: "cp-sat" | "in-app";
 };
 
-export type CpsatImport =
+type CpsatImport =
   | {
       ok: true;
       /** "optimal" when CP-SAT proved no schedule beats this one. */
@@ -277,7 +277,7 @@ export function readCpsatSolution(
   };
 }
 
-export type CpsatAssignmentImport =
+type CpsatAssignmentImport =
   | {
       ok: true;
       status: "optimal" | "feasible";

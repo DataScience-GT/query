@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, publicProcedure } from "../../trpc";
 import { hackathons } from "@query/db";
 import { eq, and, desc, gte, notInArray } from "drizzle-orm";
@@ -14,6 +13,7 @@ import {
 } from "../../middleware/db-errors";
 import { recordAdminAction } from "../../middleware/audit";
 import { CacheKeys, VOLATILE_TTL } from "../../middleware/cache";
+import { STAFF_ONLY_STATUSES } from "./visibility";
 import type { DrizzleDB } from "@query/db";
 import { seatedCounts, withSeatedCounts } from "../../services/derived-counts";
 import {
@@ -21,17 +21,11 @@ import {
   markEditionRolesPending,
   syncDiscordRolesFor,
 } from "../../services/discord";
+import { badRequest, conflict, notFound } from "../errors";
 
 // Every hackathon read below returns currentParticipants counted from the
 // participant rows (one grouped query per call). The stored column is retired:
 // it drifted whenever a deleted user cascaded their registration away.
-
-// A draft has not been announced, so it does not belong in a participant's
-// browse list. "cancelled" is deliberately NOT hidden: both detail pages ship
-// a Cancelled badge, and people who already registered need to see it is off.
-const STAFF_ONLY_STATUSES: (typeof hackathons.$inferSelect)["status"][] = [
-  "draft",
-];
 
 /** Must match `hackathonSlug` in sites/mainweb/lib/hackathon-slug.ts. */
 export const toSlug = (value: string) =>
@@ -244,10 +238,7 @@ export const hackathonCrudRouter = createTRPCRouter({
       const assertVisible = async (row: NonNullable<HackathonItem>) => {
         if (!STAFF_ONLY_STATUSES.includes(row.status)) return;
         if (await callerIsAdmin(ctx)) return;
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       };
 
       const isUuid =
@@ -277,18 +268,12 @@ export const hackathonCrudRouter = createTRPCRouter({
         : await findByNameOrSlug(ctx.db as DrizzleDB, input.id);
 
       if (!found) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       const [hackathon] = await withSeatedCounts(ctx.db as DrizzleDB, [found]);
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       ctx.cache.set(CacheKeys.hackathon(hackathon.id), hackathon, VOLATILE_TTL);
@@ -367,10 +352,9 @@ export const hackathonCrudRouter = createTRPCRouter({
         // makes one of the two unreachable — worth saying plainly rather than
         // surfacing a driver error.
         if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `A hackathon named "${input.name}" already exists. Names are used in admin links, so they have to be distinct.`,
-          });
+          throw conflict(
+            `A hackathon named "${input.name}" already exists. Names are used in admin links, so they have to be distinct.`,
+          );
         }
         throw error;
       }
@@ -444,10 +428,7 @@ export const hackathonCrudRouter = createTRPCRouter({
       });
 
       if (!existing) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       // Merge with existing dates for partial-update validation
@@ -455,10 +436,7 @@ export const hackathonCrudRouter = createTRPCRouter({
       const resolvedEnd = updateData.endDate ?? existing.endDate;
 
       if (resolvedEnd <= resolvedStart) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "End date must be after start date",
-        });
+        throw badRequest("End date must be after start date");
       }
 
       // hackingStartTime: null clears it; undefined leaves it unchanged
@@ -473,11 +451,9 @@ export const hackathonCrudRouter = createTRPCRouter({
         (resolvedHackingStart < resolvedStart ||
           resolvedHackingStart > resolvedEnd)
       ) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Hacking start time must be within the event window (between start date and end date)",
-        });
+        throw badRequest(
+          "Hacking start time must be within the event window (between start date and end date)",
+        );
       }
 
       // An edition that ends takes its Discord roles with it, and one that is
@@ -512,10 +488,9 @@ export const hackathonCrudRouter = createTRPCRouter({
         }
       } catch (error) {
         if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `Another hackathon is already named "${updateData.name}". Names are used in admin links, so they have to be distinct.`,
-          });
+          throw conflict(
+            `Another hackathon is already named "${updateData.name}". Names are used in admin links, so they have to be distinct.`,
+          );
         }
         throw error;
       }
@@ -554,17 +529,13 @@ export const hackathonCrudRouter = createTRPCRouter({
       });
 
       if (!existing) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       if (confirmName.trim() !== existing.name.trim()) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Type the hackathon's exact name to confirm. Expected "${existing.name}".`,
-        });
+        throw badRequest(
+          `Type the hackathon's exact name to confirm. Expected "${existing.name}".`,
+        );
       }
 
       // Every child table cascades off this row, so reporting success for an id
@@ -581,20 +552,15 @@ export const hackathonCrudRouter = createTRPCRouter({
         // memberships still hang off the edition. That is the guard working — those
         // rows are the only record of who paid and nothing re-creates them.
         if (isForeignKeyViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "This hackathon still has club memberships attached. Those are paid records and cannot be cascaded away — move or remove them deliberately first.",
-          });
+          throw conflict(
+            "This hackathon still has club memberships attached. Those are paid records and cannot be cascaded away — move or remove them deliberately first.",
+          );
         }
         throw error;
       }
 
       if (deleted?.length === 0) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       await recordAdminAction(ctx.db as DrizzleDB, {

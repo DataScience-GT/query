@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { bootcampWorkshops, db } from "@query/db";
-import type { DrizzleDB } from "@query/db";
 import { eq } from "drizzle-orm";
 import { BURST_LIMITS, rateLimitShared } from "@query/api";
 import { bootcampCaller } from "@/lib/bootcamp-access";
+import { isUuid } from "@/lib/is-uuid";
 import {
   bootcampBucketName,
   bootcampStorageKey,
@@ -14,9 +14,6 @@ import {
 /** Workshop deletion owns both its database row and deterministic objects. */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const isUuid = (value: string) =>
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
 export async function DELETE(
   _request: NextRequest,
@@ -51,7 +48,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Too many deletes." }, { status: 429 });
   }
 
-  const [removed] = await (db as DrizzleDB)
+  const [removed] = await db
     .delete(bootcampWorkshops)
     .where(eq(bootcampWorkshops.id, workshopId))
     .returning({ id: bootcampWorkshops.id });

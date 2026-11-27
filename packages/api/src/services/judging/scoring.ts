@@ -26,7 +26,7 @@ export type ScoredEvaluation = {
   adjustedScore?: number;
 };
 
-export type ScoreSummary = {
+type ScoreSummary = {
   /** Null when no counted evaluation has a rating. */
   score: number | null;
   /** How many evaluations the score is the mean of. */

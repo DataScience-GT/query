@@ -4,9 +4,9 @@
 // parser understands only PNG, JPEG and WebP — the same types the data-URI
 // regex admits. Anything else is corrupt, not "try the next format".
 
-export type ImageKind = "png" | "jpeg" | "webp";
+type ImageKind = "png" | "jpeg" | "webp";
 
-export type ImageDimensions = {
+type ImageDimensions = {
   width: number;
   height: number;
   type: ImageKind;

@@ -44,15 +44,13 @@ export const projectLeaders = pgTable(
   ],
 );
 
-export type ProjectLeader = typeof projectLeaders.$inferSelect;
-
 // The whole lifecycle, including the one a member starts. A member with no
 // leader role proposes; it sits at `proposed` until an admin reviews.
 // Approving moves it to `draft` and grants the leader role, so approval never
 // publishes a half-written page. Declining parks it at `declined` with a
 // note. Only `open` is visible to members; an existing leader creates
 // straight into `draft`.
-export const initiativeStatuses = [
+const initiativeStatuses = [
   "proposed",
   "declined",
   "draft",
@@ -60,9 +58,6 @@ export const initiativeStatuses = [
   "closed",
 ] as const;
 export type InitiativeStatus = (typeof initiativeStatuses)[number];
-
-/** What a leader may set directly — the review states are not theirs to pick. */
-export const leaderSettableStatuses = ["draft", "open", "closed"] as const;
 
 // No accepted-seat counter on purpose: every writer takes a row lock on the
 // initiative first, so accepted rows are counted directly and no second
@@ -106,7 +101,7 @@ export const initiatives = pgTable(
 
 export type Initiative = typeof initiatives.$inferSelect;
 
-export const applicationStatuses = [
+const applicationStatuses = [
   "pending",
   "accepted",
   "rejected",
@@ -155,5 +150,3 @@ export const initiativeApplications = pgTable(
     ),
   ],
 );
-
-export type InitiativeApplication = typeof initiativeApplications.$inferSelect;

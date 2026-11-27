@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 import { currentTerm } from "@query/db/services/membership";
 
@@ -36,6 +36,7 @@ type MutationCall = {
 let mutationCalls: MutationCall[] = [];
 
 vi.mock("@query/db", async () => {
+  const { bootcampWorkshopColumns } = await import("./_fake-db");
   const { createTransactionMock } = await import("./_db-tx-mock");
 
   const table = (name: string) => ({
@@ -127,22 +128,7 @@ vi.mock("@query/db", async () => {
       bootcampTerm: "bootcamp_term",
     },
     eventCheckIns: { eventId: "event_id", userId: "user_id" },
-    bootcampWorkshops: {
-      id: "id",
-      term: "term",
-      week: "week",
-      title: "title",
-      materialsKey: "materials_key",
-      materialsFileName: "materials_file_name",
-      materialsSizeBytes: "materials_size_bytes",
-      solutionKey: "solution_key",
-      solutionFileName: "solution_file_name",
-      solutionSizeBytes: "solution_size_bytes",
-      recordingUrl: "recording_url",
-      isPublished: "is_published",
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-    },
+    bootcampWorkshops: bootcampWorkshopColumns,
   };
 });
 
@@ -188,14 +174,7 @@ const WEEK_3 = "33333333-3333-4333-8333-333333333333";
 const DAY = 24 * 60 * 60 * 1000;
 
 const callerFor = (userId: string) =>
-  appRouter.createCaller({
-    db,
-    session: { user: { id: userId } },
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: undefined,
-  } as never);
+  testCaller(db, userId, { req: undefined });
 
 /** Two sessions already taught, one still to come. */
 const SESSIONS = [

@@ -1,7 +1,6 @@
 // Project (entry) list and the per-project admin actions.
 
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import {
   and,
   asc,
@@ -40,13 +39,12 @@ import {
   uuid,
   hackathonInput,
   escapeLike,
-  notFound,
-  refuse,
   evictResults,
   entriesWithOpenFlags,
   lockEntry,
   restoreLockedEntry,
 } from "./shared";
+import { badRequest, conflict, notFound, preconditionFailed } from "../../errors";
 
 export const entryProcedures = {
   listEntries: isAdmin
@@ -248,10 +246,9 @@ export const entryProcedures = {
       const result = await db.transaction(async (tx) => {
         const entry = await lockEntry(tx, input.entryId);
         if (entry.deletedAt) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Restore the project before changing its challenges.",
-          });
+          throw badRequest(
+            "Restore the project before changing its challenges.",
+          );
         }
 
         const challenges = await readChallenges(tx, entry.hackathonId);
@@ -259,16 +256,14 @@ export const entryProcedures = {
         for (const id of chosen) {
           const challenge = challenges.find((c) => c.id === id);
           if (!challenge) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "One of those challenges is not part of this hackathon.",
-            });
+            throw badRequest(
+              "One of those challenges is not part of this hackathon.",
+            );
           }
           if (challenge.isGroup) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `${challenge.label} is a group. Pick challenges; group membership follows from them.`,
-            });
+            throw badRequest(
+              `${challenge.label} is a group. Pick challenges; group membership follows from them.`,
+            );
           }
         }
 
@@ -328,10 +323,9 @@ export const entryProcedures = {
             const name =
               challenges.find((c) => c.id === used.challengeId)?.label ??
               "One of those challenges";
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: `${name} already has a presentation or a judge's scores for this project, so it stays.`,
-            });
+            throw conflict(
+              `${name} already has a presentation or a judge's scores for this project, so it stays.`,
+            );
           }
         }
 
@@ -398,7 +392,7 @@ export const entryProcedures = {
           .from(judgingAppointments)
           .where(eq(judgingAppointments.entryId, entry.id));
         if ((appointments?.value ?? 0) > 0) {
-          throw refuse(
+          throw preconditionFailed(
             `${entry.title} is on the saved schedule (${appointments!.value} presentation${appointments!.value === 1 ? "" : "s"}). Drop the schedule on the Schedule tab before removing it.`,
           );
         }
@@ -537,6 +531,4 @@ export const entryProcedures = {
       });
       return { changed: true };
     }),
-
-  // ---------------------------------------------------------------------,
 };

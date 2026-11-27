@@ -13,13 +13,9 @@ import {
 // anything if the transporter outlives the message — built per call, every
 // recipient paid a fresh TCP + TLS + AUTH handshake, which is the difference
 // between a mass send finishing and timing out. Built on first send, so
-// importing never requires SMTP config; a transport can be injected for tests.
+// importing never requires SMTP config.
 export class Mailer {
-  private transporter: Transporter | null;
-
-  constructor(transport?: Transporter) {
-    this.transporter = transport ?? null;
-  }
+  private transporter: Transporter | null = null;
 
   private connection(): Transporter {
     if (!this.transporter) {
@@ -284,12 +280,10 @@ export async function sendRegistrationOpenEmail({
   email,
   hackathonName,
   registerUrl,
-  host = DEFAULT_HOST,
 }: {
   email: string;
   hackathonName: string;
   registerUrl?: string;
-  host?: string;
 }) {
   await sendTransactionalEmail({
     email,
@@ -300,7 +294,7 @@ export async function sendRegistrationOpenEmail({
       "Spots are limited and applications are reviewed as they arrive, so it is worth registering early.",
     ],
     ctaLabel: "Register now",
-    ctaUrl: registerUrl ?? `${host}/hacklytics`,
+    ctaUrl: registerUrl ?? `${DEFAULT_HOST}/hacklytics`,
   });
 }
 
@@ -393,7 +387,6 @@ export async function sendInitiativeDecisionEmail({
   accepted,
   kind,
   note,
-  host = DEFAULT_HOST,
 }: {
   email: string;
   initiativeTitle: string;
@@ -401,7 +394,6 @@ export async function sendInitiativeDecisionEmail({
   /** "application" — joining one; "proposal" — asking to run one. */
   kind: "application" | "proposal";
   note?: string | null;
-  host?: string;
 }) {
   const subject = accepted
     ? `You're in: ${initiativeTitle}`
@@ -429,7 +421,9 @@ export async function sendInitiativeDecisionEmail({
     paragraphs,
     ctaLabel: accepted && kind === "proposal" ? "Open your project" : "See projects",
     ctaUrl:
-      accepted && kind === "proposal" ? `${host}/lead` : `${host}/initiatives`,
+      accepted && kind === "proposal"
+        ? `${DEFAULT_HOST}/lead`
+        : `${DEFAULT_HOST}/initiatives`,
   });
 }
 
@@ -440,13 +434,11 @@ export async function sendSubteamApplicationEmail({
   subteamName,
   outcome,
   note,
-  host = DEFAULT_HOST,
 }: {
   email: string;
   subteamName: string;
   outcome: "received" | "accepted" | "rejected";
   note?: string | null;
-  host?: string;
 }) {
   const subject =
     outcome === "received"
@@ -483,7 +475,7 @@ export async function sendSubteamApplicationEmail({
           : "An update",
     paragraphs,
     ctaLabel: "See subteams",
-    ctaUrl: `${host}/subteams`,
+    ctaUrl: `${DEFAULT_HOST}/subteams`,
   });
 }
 

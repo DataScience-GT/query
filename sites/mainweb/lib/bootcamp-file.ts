@@ -1,3 +1,5 @@
+import { decodeStoredFileName } from "./resume-file";
+
 /**
  * A 20MB policy cap leaves headroom below Cloud Run's 32MiB HTTP/1 request
  * ceiling and bounds per-request memory and storage use under high concurrency.
@@ -87,15 +89,6 @@ export async function streamBootcampZip(
   }
 }
 
-/** Decode a URI-encoded header without throwing on a truncated `%xx`. */
-function decodeHeader(value: string) {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
-
 /**
  * The browser sends the original label in a header. CR/LF is stripped before
  * storage so attacker-controlled text can never become a response header.
@@ -106,7 +99,7 @@ export function uploadedBootcampFileName(
   const raw = (header ?? "workshop.zip").split(/[\r\n]/)[0] ?? "workshop.zip";
   // Split again after decoding because `%0d%0a` is just as dangerous as a
   // literal newline once it becomes stored text.
-  const decoded = decodeHeader(raw).split(/[\r\n]/)[0] ?? "workshop.zip";
+  const decoded = decodeStoredFileName(raw).split(/[\r\n]/)[0] ?? "workshop.zip";
   const cleaned = decoded.trim().slice(0, 255);
   return cleaned || "workshop.zip";
 }

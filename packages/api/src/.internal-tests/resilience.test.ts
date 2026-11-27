@@ -18,10 +18,10 @@ vi.mock("@query/db", () => ({
  * of several runs so a GC pause or a busy CI box cannot fail the suite, and
  * keep the budget loose enough that only genuine blow-up trips it.
  */
-function fastestRun(fn: () => unknown, runs = 5): number {
+function fastestRun(fn: () => unknown): number {
   fn(); // warm-up: discard first-call compile cost
   let best = Infinity;
-  for (let i = 0; i < runs; i++) {
+  for (let i = 0; i < 5; i++) {
     const start = performance.now();
     fn();
     best = Math.min(best, performance.now() - start);
@@ -204,35 +204,9 @@ describe("Resilience and Domain Edge Cases Verification Suite", () => {
       };
 
       expect(validateSkew(serverTime)).toBe(true);
-      expect(validateSkew(serverTime - 10000)).toBe(true); // 10s skew is fine
-      expect(validateSkew(serverTime - 20000)).toBe(false); // 20s skew is blocked
-      expect(validateSkew(serverTime + 20000)).toBe(false); // future skew blocked
+      expect(validateSkew(serverTime - 10000)).toBe(true);
+      expect(validateSkew(serverTime - 20000)).toBe(false);
+      expect(validateSkew(serverTime + 20000)).toBe(false);
     });
   });
-});
-
-// Helper for range checks
-declare global {
-  namespace vi {
-    interface Assertion {
-      toBeBetween(low: number, high: number): void;
-    }
-  }
-}
-expect.extend({
-  toBeBetween(received: number, low: number, high: number) {
-    const pass = received >= low && received <= high;
-    if (pass) {
-      return {
-        message: () =>
-          `expected ${received} not to be between ${low} and ${high}`,
-        pass: true,
-      };
-    } else {
-      return {
-        message: () => `expected ${received} to be between ${low} and ${high}`,
-        pass: false,
-      };
-    }
-  },
 });

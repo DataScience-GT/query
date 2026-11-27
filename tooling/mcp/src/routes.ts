@@ -10,7 +10,7 @@ const SPECIAL =
   /^(page|layout|route|loading|error|global-error|not-found|template|default)\.(tsx?|jsx?|mdx)$/;
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
 
-export interface RouteFile {
+interface RouteFile {
   kind: string;
   file: string;
   client: boolean;
@@ -18,7 +18,7 @@ export interface RouteFile {
   methods: string[];
 }
 
-export interface Route {
+interface Route {
   url: string;
   group: string;
   files: RouteFile[];

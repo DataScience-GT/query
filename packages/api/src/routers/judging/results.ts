@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import {
   and,
   asc,
@@ -56,6 +55,7 @@ import {
   computePlacements,
   formatScore,
 } from "../../services/judging/placements";
+import { notFound, preconditionFailed } from "../errors";
 
 const hackathonInput = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -298,11 +298,9 @@ export const judgingResultsRouter = createTRPCRouter({
           ),
         );
       if ((published?.n ?? 0) > 0) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message:
-            "Results are published. Unpublish them first, then compute again and republish.",
-        });
+        throw preconditionFailed(
+          "Results are published. Unpublish them first, then compute again and republish.",
+        );
       }
 
       // Judges still score a team an organiser pulled from prizes, so its
@@ -401,11 +399,9 @@ export const judgingResultsRouter = createTRPCRouter({
         .from(judgingPlacements)
         .where(eq(judgingPlacements.hackathonId, input.hackathonId));
       if ((existing?.n ?? 0) === 0) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message:
-            "There is nothing to publish yet. Compute results first, once judges have submitted. Reopening a grade clears the draft placings, so compute again after one.",
-        });
+        throw preconditionFailed(
+          "There is nothing to publish yet. Compute results first, once judges have submitted. Reopening a grade clears the draft placings, so compute again after one.",
+        );
       }
       const rows = await tx
         .update(judgingPlacements)
@@ -638,10 +634,9 @@ export const judgingResultsRouter = createTRPCRouter({
         )
         .limit(1);
       if (!appointment) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That appointment is not in the saved schedule any more.",
-        });
+        throw notFound(
+          "That appointment is not in the saved schedule any more.",
+        );
       }
 
       const [evaluations, drafts, elsewhere] = await Promise.all([
@@ -932,10 +927,7 @@ export const judgingResultsRouter = createTRPCRouter({
         )
         .limit(1);
       if (!evaluation) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That evaluation no longer exists.",
-        });
+        throw notFound("That evaluation no longer exists.");
       }
 
       const [revisions, rubric] = await Promise.all([

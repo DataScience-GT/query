@@ -25,9 +25,9 @@ import {
 } from "../../routers/team/windows";
 import { lockEdition } from "./challenges";
 
-export type RepoRef = { owner: string; repo: string };
-export type RepoOutcome = "ok" | "late" | "no_repo" | "unreadable" | "error";
-export type RepoEvidence = NonNullable<
+type RepoRef = { owner: string; repo: string };
+type RepoOutcome = "ok" | "late" | "no_repo" | "unreadable" | "error";
+type RepoEvidence = NonNullable<
   typeof judgingRepoChecks.$inferSelect.evidence
 >;
 export type RepoCheckRow = typeof judgingRepoChecks.$inferSelect;
@@ -35,7 +35,7 @@ export type RepoCheckRow = typeof judgingRepoChecks.$inferSelect;
 export type RepoPart = NonNullable<RepoCheckRow["repos"]>[number];
 
 /** One repo against the deadline. */
-export type RepoOne = {
+type RepoOne = {
   outcome: RepoOutcome;
   ref: RepoRef | null;
   pushedAt: Date | null;
@@ -45,7 +45,7 @@ export type RepoOne = {
 };
 
 /** What the repos of an entry looked like, before deciding late or not. */
-export type RepoFound = {
+type RepoFound = {
   refs: readonly RepoRef[];
   done: RepoOne[];
   limited: boolean;
@@ -154,7 +154,7 @@ const obj = (value: unknown): Record<string, unknown> =>
 const text = (value: unknown) => (typeof value === "string" ? value : null);
 
 /** GitHub said to slow down, or the budget for this run is spent. */
-export class RateLimited extends Error {}
+class RateLimited extends Error {}
 
 type GithubReply = { status: number; body: unknown };
 
@@ -476,7 +476,7 @@ async function mapLimit<T>(
   );
 }
 
-type RunDeps = { fetchFn?: typeof fetch; token?: string; now?: Date };
+type RunDeps = { fetchFn?: typeof fetch; now?: Date };
 
 /**
  * Editions with a run going in this process, so two never overlap. A run older
@@ -548,7 +548,7 @@ export async function runRepoCheck(
 
     const client = new GithubClient(
       deps.fetchFn ?? fetch,
-      deps.token ?? (process.env.GITHUB_TOKEN || undefined),
+      process.env.GITHUB_TOKEN || undefined,
     );
     await mapLimit(todo, MAX_IN_FLIGHT, async (entry) => {
       const found = await checkEntry(

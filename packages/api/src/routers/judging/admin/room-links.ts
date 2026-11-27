@@ -1,7 +1,6 @@
 // QR links that let guests into a room.
 
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { and, eq, gt, inArray, isNull, notExists, sql } from "drizzle-orm";
 import {
   judgingGuestSessions,
@@ -20,6 +19,7 @@ import {
   roomLinkUrl,
 } from "../../../services/judging/rooms";
 import { uuid, hackathonInput, lockRoom } from "./shared";
+import { badRequest, notFound } from "../../errors";
 
 export const roomLinkProcedures = {
   /**
@@ -33,10 +33,7 @@ export const roomLinkProcedures = {
       const result = await db.transaction(async (tx) => {
         const room = await lockRoom(tx, input.roomId);
         if (room.archivedAt) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Unarchive the room before giving it a QR link.",
-          });
+          throw badRequest("Unarchive the room before giving it a QR link.");
         }
         const issued = await issueRoomLink(tx, room, ctx.userId);
         return { room, ...issued };
@@ -157,11 +154,9 @@ export const roomLinkProcedures = {
         return admitted;
       });
       if (!session) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message:
-            "That guest's session has ended. Ask them to scan the room's code again.",
-        });
+        throw notFound(
+          "That guest's session has ended. Ask them to scan the room's code again.",
+        );
       }
 
       await recordAdminAction(db, {
@@ -210,6 +205,4 @@ export const roomLinkProcedures = {
         guestsSignedOut: result.revoked.sessions,
       };
     }),
-
-  // ---------------------------------------------------------------------,
 };

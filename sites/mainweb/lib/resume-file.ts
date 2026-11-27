@@ -30,40 +30,33 @@ export function resumeFileName(name: string | null | undefined) {
   return `${safe || "resume"}.pdf`;
 }
 
-/** Decode a URI-encoded header without throwing on a truncated `%xx`. */
-function decodeHeader(value: string) {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
-
 /**
  * The original filename from `x-resume-filename`. Stored decoded so the
  * settings page can render it; a sliced `%xx` must not crash `decodeURIComponent`.
  */
 export function uploadedResumeFileName(header: string | null | undefined) {
   const raw = (header ?? "resume.pdf").split(/[\r\n]/)[0] ?? "resume.pdf";
-  const cleaned = decodeHeader(raw).trim().slice(0, 255);
+  const cleaned = decodeStoredFileName(raw).trim().slice(0, 255);
   return cleaned || "resume.pdf";
 }
 
-/** Labels already on file, including ones stored URI-encoded before this fix. */
+/**
+ * Decode a URI-encoded name without throwing on a truncated `%xx`. Also reads
+ * labels already on file, including ones stored URI-encoded before this fix.
+ */
 export function decodeStoredFileName(name: string) {
-  return decodeHeader(name);
+  try {
+    return decodeURIComponent(name);
+  } catch {
+    return name;
+  }
 }
 
-export const displayResumeFileName = decodeStoredFileName;
-
 /** RFC 5987 so a Unicode display name survives Content-Disposition. */
-export function resumeContentDisposition(
-  displayName: string,
-  kind: "inline" | "attachment" = "inline",
-) {
+export function resumeContentDisposition(displayName: string) {
   const fileName = resumeFileName(displayName);
   const ascii = fileName.replace(/[^\x20-\x7E]/g, "_");
-  return `${kind}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+  return `inline; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 }
 
 /**

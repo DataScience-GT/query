@@ -1,7 +1,7 @@
 "use client";
 
 import { venueFormat } from "@/lib/venue-time";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { trpc } from "@/lib/trpc";
@@ -26,11 +26,6 @@ import {
 import { FormInput } from "@query/ui/FormInput";
 import { FormTextarea } from "@query/ui/FormTextarea";
 import { EmptyState } from "@query/ui/EmptyState";
-
-type TeamMember = {
-  userId: string;
-  user: { name?: string | null; image?: string | null };
-};
 
 // First and last initial: a lone letter reads as a word once the avatars overlap.
 const initials = (name?: string | null) => {
@@ -189,7 +184,7 @@ export function TeamsTab({
     if (!needle) return true;
     return (
       t.name.toLowerCase().includes(needle) ||
-      (t.participants || []).some((p: TeamMember) =>
+      t.participants.some((p) =>
         (p.user.name ?? "").toLowerCase().includes(needle),
       )
     );
@@ -253,35 +248,30 @@ export function TeamsTab({
           )}
 
           <ul className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {(myTeam.participants || []).map(
-              (p: {
-                userId: string;
-                user: { name?: string | null; image?: string | null };
-              }) => (
-                <li key={p.userId} className="flex items-center gap-2.5">
-                  {p.user.image ? (
-                    <Image
-                      unoptimized
-                      src={p.user.image}
-                      alt=""
-                      width={28}
-                      height={28}
-                      className="rounded-full"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-[var(--border-subtle)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-secondary)]">
-                      {initials(p.user.name)}
-                    </div>
-                  )}
-                  <span className="text-[15px] text-[var(--text-primary)]">
-                    {p.user.name ?? "Unknown"}
-                  </span>
-                  {p.userId === myTeam.captainId && (
-                    <span className={meta}>Captain</span>
-                  )}
-                </li>
-              ),
-            )}
+            {myTeam.participants.map((p) => (
+              <li key={p.userId} className="flex items-center gap-2.5">
+                {p.user.image ? (
+                  <Image
+                    unoptimized
+                    src={p.user.image}
+                    alt=""
+                    width={28}
+                    height={28}
+                    className="rounded-full"
+                  />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-[var(--border-subtle)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-secondary)]">
+                    {initials(p.user.name)}
+                  </div>
+                )}
+                <span className="text-[15px] text-[var(--text-primary)]">
+                  {p.user.name ?? "Unknown"}
+                </span>
+                {p.userId === myTeam.captainId && (
+                  <span className={meta}>Captain</span>
+                )}
+              </li>
+            ))}
           </ul>
 
           <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-3">
@@ -585,8 +575,8 @@ export function TeamsTab({
               team.isOpen &&
               !isFull &&
               windowAllowsJoin;
-            const memberNames = (team.participants || [])
-              .map((p: TeamMember) => p.user.name ?? "Unknown")
+            const memberNames = team.participants
+              .map((p) => p.user.name ?? "Unknown")
               .join(", ");
 
             return (
@@ -622,32 +612,25 @@ export function TeamsTab({
                 <div className="mt-auto flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="flex -space-x-1">
-                      {(team.participants || []).slice(0, 5).map(
-                        (p: {
-                          userId: string;
-                          user: {
-                            name?: string | null;
-                            image?: string | null;
-                          };
-                        }) =>
-                          p.user.image ? (
-                            <Image
-                              key={p.userId}
-                              unoptimized
-                              src={p.user.image}
-                              alt=""
-                              width={28}
-                              height={28}
-                              className="rounded-full border-2 border-[var(--bg-card)] relative z-10"
-                            />
-                          ) : (
-                            <div
-                              key={p.userId}
-                              className="w-7 h-7 rounded-full bg-[var(--border-subtle)] border-2 border-[var(--bg-card)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-secondary)] relative z-10"
-                            >
-                              {initials(p.user.name)}
-                            </div>
-                          ),
+                      {team.participants.slice(0, 5).map((p) =>
+                        p.user.image ? (
+                          <Image
+                            key={p.userId}
+                            unoptimized
+                            src={p.user.image}
+                            alt=""
+                            width={28}
+                            height={28}
+                            className="rounded-full border-2 border-[var(--bg-card)] relative z-10"
+                          />
+                        ) : (
+                          <div
+                            key={p.userId}
+                            className="w-7 h-7 rounded-full bg-[var(--border-subtle)] border-2 border-[var(--bg-card)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-secondary)] relative z-10"
+                          >
+                            {initials(p.user.name)}
+                          </div>
+                        ),
                       )}
                       {team.currentMembers > 5 && (
                         <div className="w-7 h-7 rounded-full bg-[var(--border-subtle)] border-2 border-[var(--bg-card)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-secondary)] relative z-10">

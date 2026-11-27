@@ -2,9 +2,9 @@ import { memberResumes, members, users } from "@query/db";
 import { and, asc, count, eq, gt, ilike, inArray, isNotNull, or, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 
-export type ResumeScope = "members" | "all";
+type ResumeScope = "members" | "all";
 
-export type ResumeFilters = {
+type ResumeFilters = {
   scope: ResumeScope;
   search?: string;
   gradYear?: number;

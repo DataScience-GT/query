@@ -4,7 +4,6 @@ import {
   BOOTCAMP_MEETING_TIME,
   BOOTCAMP_ROOM,
   BOOTCAMP_WORKSPACE_URL,
-  weekEntry,
 } from "./bootcamp-schedule";
 
 // A hand-edited constant published on a public page, so the guards are here to
@@ -13,7 +12,6 @@ import {
 describe("BOOTCAMP_CURRICULUM", () => {
   it("numbers each week once", () => {
     const weeks = BOOTCAMP_CURRICULUM.map((entry) => entry.week);
-    // A duplicate wins the `find` in weekEntry and drops the other week.
     expect(new Set(weeks).size).toBe(weeks.length);
   });
 
@@ -60,21 +58,5 @@ describe("the unset values", () => {
   it("points the workspace button at https once it is set", () => {
     if (BOOTCAMP_WORKSPACE_URL === null) return;
     expect(BOOTCAMP_WORKSPACE_URL).toMatch(/^https:\/\//);
-  });
-});
-
-describe("weekEntry", () => {
-  it("finds nothing for an event with no week on it", () => {
-    expect(weekEntry(null)).toBeUndefined();
-  });
-
-  it("finds nothing for a week the syllabus does not describe", () => {
-    expect(weekEntry(999)).toBeUndefined();
-  });
-
-  it("finds each week it does describe", () => {
-    for (const entry of BOOTCAMP_CURRICULUM) {
-      expect(weekEntry(entry.week)).toBe(entry);
-    }
   });
 });

@@ -31,7 +31,7 @@ export function roomLinkUrl(linkId: string, origin: string): string {
   return new URL(roomLinkPath(linkId), origin).toString();
 }
 
-export type RevokedAccess = {
+type RevokedAccess = {
   links: number;
   sessions: number;
   presence: number;

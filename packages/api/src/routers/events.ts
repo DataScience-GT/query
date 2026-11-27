@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { DAY } from "@query/core";
-import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { events, eventCheckIns, members, users } from "@query/db";
 import {
@@ -17,22 +16,11 @@ import {
 import { randomUUID } from "crypto";
 import { currentTerm } from "@query/db/services/membership";
 import { isAdmin, isScanner } from "../middleware/procedures";
+import { isUniqueViolation } from "../middleware/db-errors";
 import { isBugTesterRole } from "../types/portal-context";
 import { checkInCounts, withCheckInCounts } from "../services/derived-counts";
 import type { DrizzleDB } from "@query/db";
-
-// Postgres unique_violation. Drizzle wraps every driver error in a
-// DrizzleQueryError, which carries no `code` — the pg error holding the
-// SQLSTATE sits on `.cause` — so the chain has to be walked. Checking the
-// top-level object alone silently never matches in production.
-const isUniqueViolation = (error: unknown) => {
-  for (let cursor = error, depth = 0; cursor && depth < 5; depth++) {
-    if (typeof cursor !== "object") break;
-    if ((cursor as { code?: string }).code === "23505") return true;
-    cursor = (cursor as { cause?: unknown }).cause;
-  }
-  return false;
-};
+import { badRequest, conflict, forbidden, notFound } from "./errors";
 
 // The first instant of the term currentTerm() names, in Atlanta: spring opens
 // Jan 1 and fall Jun 1, since summer sells fall. Jan 1 is always standard time
@@ -54,6 +42,38 @@ const countCheckIns = async (tx: Pick<DrizzleDB, "select">, eventId: string) => 
     .where(eq(eventCheckIns.eventId, eventId));
   return row?.n ?? 0;
 };
+
+// The door's last two steps, shared by all three ways in. Only a capped event
+// has a count worth locking: the row lock serialises the capacity check, and
+// unique(event_id, user_id) settles a double tap on its own, so the insert's
+// loser has to read as the same conflict a sequential rescan gets.
+async function admit(
+  tx: Pick<DrizzleDB, "select" | "insert">,
+  event: { id: string; maxCheckIns: number | null },
+  checkIn: typeof eventCheckIns.$inferInsert,
+  alreadyIn: string,
+) {
+  if (event.maxCheckIns) {
+    await tx
+      .select({ id: events.id })
+      .from(events)
+      .where(eq(events.id, event.id))
+      .for("update");
+
+    if ((await countCheckIns(tx, event.id)) >= event.maxCheckIns) {
+      throw badRequest("Event is full");
+    }
+  }
+
+  try {
+    await tx.insert(eventCheckIns).values(checkIn);
+  } catch (error: unknown) {
+    if (isUniqueViolation(error)) {
+      throw conflict(alreadyIn);
+    }
+    throw error;
+  }
+}
 
 const ATTENDANCE_RANGES = ["term", "90d", "all"] as const;
 
@@ -82,22 +102,20 @@ export const eventRouter = createTRPCRouter({
           ...input,
           bootcampTerm: input.bootcampWeek ? currentTerm() : null,
           qrCode,
-          createdById: ctx.userId as string,
+          createdById: ctx.userId,
         })
         .returning()
         .catch((error: unknown) => {
           // Guarded on the week: the QR code is unique too, and "Week undefined already
           // exists" would be a baffling thing to read.
           if (input.bootcampWeek && isUniqueViolation(error)) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: `Week ${input.bootcampWeek} of this bootcamp already has a session. Edit that one instead.`,
-            });
+            throw conflict(
+              `Week ${input.bootcampWeek} of this bootcamp already has a session. Edit that one instead.`,
+            );
           }
           throw error;
         });
 
-      // Invalidate all event-related cache entries after creation
       ctx.cache.deletePattern("event*");
 
       // A new event has nobody checked in, and the QR modal shows the count.
@@ -133,7 +151,7 @@ export const eventRouter = createTRPCRouter({
       });
 
       if (!existing) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+        throw notFound("Event not found");
       }
 
       // A cap below the number already scanned would read over-full forever and
@@ -144,10 +162,9 @@ export const eventRouter = createTRPCRouter({
           eventId,
         );
         if (fields.maxCheckIns < checkedIn) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `${checkedIn} people have already checked in, so the cap cannot be lower than that.`,
-          });
+          throw conflict(
+            `${checkedIn} people have already checked in, so the cap cannot be lower than that.`,
+          );
         }
       }
 
@@ -171,15 +188,13 @@ export const eventRouter = createTRPCRouter({
         .returning()
         .catch((error: unknown) => {
           if (fields.bootcampWeek && isUniqueViolation(error)) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: `Week ${fields.bootcampWeek} of this bootcamp already has a session.`,
-            });
+            throw conflict(
+              `Week ${fields.bootcampWeek} of this bootcamp already has a session.`,
+            );
           }
           throw error;
         });
 
-      ctx.cache.deletePattern(`event:${eventId}`);
       ctx.cache.deletePattern("event*");
 
       return updated;
@@ -200,14 +215,9 @@ export const eventRouter = createTRPCRouter({
         .returning();
 
       if (!updatedEvent) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Event not found",
-        });
+        throw notFound("Event not found");
       }
 
-      // Invalidate event and related caches after QR regeneration
-      ctx.cache.deletePattern(`event:${input.eventId}`);
       ctx.cache.deletePattern("event*");
 
       // The modal replaces its event with this result, so it carries the
@@ -347,10 +357,7 @@ export const eventRouter = createTRPCRouter({
       });
 
       if (!event) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Event not found",
-        });
+        throw notFound("Event not found");
       }
 
       // Every check-in row is loaded above, so that is the count.
@@ -380,14 +387,9 @@ export const eventRouter = createTRPCRouter({
         .returning();
 
       if (!updatedEvent) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Event not found",
-        });
+        throw notFound("Event not found");
       }
 
-      // Invalidate event and check-in related caches
-      ctx.cache.deletePattern(`event:${input.eventId}`);
       ctx.cache.deletePattern("event*");
 
       return updatedEvent;
@@ -405,8 +407,6 @@ export const eventRouter = createTRPCRouter({
         .delete(events)
         .where(eq(events.id, input.eventId));
 
-      // Invalidate all event-related cache entries after deletion
-      ctx.cache.deletePattern(`event:${input.eventId}`);
       ctx.cache.deletePattern("event*");
 
       return { success: true };
@@ -422,26 +422,17 @@ export const eventRouter = createTRPCRouter({
           });
 
           if (!event) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Invalid QR code",
-            });
+            throw notFound("Invalid QR code");
           }
 
           if (!event.checkInEnabled) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Check-in not enabled for this event",
-            });
+            throw badRequest("Check-in not enabled for this event");
           }
 
           // The public listing stops advertising an event 24h after it starts; the door
           // has to agree, or a photographed QR keeps admitting people afterwards.
           if (event.eventDate < new Date(Date.now() - DAY)) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Check-in for this event has closed",
-            });
+            throw badRequest("Check-in for this event has closed");
           }
 
           const [member, existingCheckIn] = await Promise.all([
@@ -449,10 +440,10 @@ export const eventRouter = createTRPCRouter({
             // skip this lookup when none resolved and then refuse everyone at the door
             // with "Must be a member" — at an event with nothing to do with a hackathon.
             tx.query.members.findFirst({
-              where: { userId: ctx.userId as string },
+              where: { userId: ctx.userId },
             }),
             tx.query.eventCheckIns.findFirst({
-              where: { eventId: event.id, userId: ctx.userId as string },
+              where: { eventId: event.id, userId: ctx.userId },
             }),
           ]);
 
@@ -467,62 +458,32 @@ export const eventRouter = createTRPCRouter({
           // cannot change with the day a session happens to fall on.
           const sessionTerm = event.bootcampTerm ?? currentTerm();
           if (event.bootcampOnly && member?.bootcampTerm !== sessionTerm) {
-            throw new TRPCError({
-              code: "FORBIDDEN",
-              message: "This session is for bootcamp members this semester",
-            });
+            throw forbidden(
+              "This session is for bootcamp members this semester",
+            );
           }
 
           if (existingCheckIn) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: "Already checked in",
-            });
+            throw conflict("Already checked in");
           }
 
-          // Someone already inside is a duplicate, not an extra body, so the capacity
-          // gate only applies once that is ruled out.
-          //
-          // Locked here, not at the top, and only when there is a cap to defend.
-          // Held from the top it covered the two lookups above, serialising the
-          // whole queue; a double tap is settled by unique(event_id, user_id).
-          if (event.maxCheckIns) {
-            await tx
-              .select({ id: events.id })
-              .from(events)
-              .where(eq(events.id, event.id))
-              .for("update");
-
-            if ((await countCheckIns(tx, event.id)) >= event.maxCheckIns) {
-              throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: "Event is full",
-              });
-            }
-          }
-
-          // unique(event_id, user_id) is what settles a double tap: the read above only
-          // rules out badges committed before this transaction began, and the loser has
-          // to read as the same conflict a sequential rescan gets.
-          try {
-            await tx.insert(eventCheckIns).values({
+          // Someone already inside is a duplicate, not an extra body, so the
+          // capacity gate only applies once that is ruled out. The lock is taken
+          // here, not at the top: held from the top it covered the two lookups
+          // above and serialised the whole queue. The read above only rules out
+          // badges committed before this transaction began.
+          await admit(
+            tx,
+            event,
+            {
               eventId: event.id,
-              userId: ctx.userId as string,
+              userId: ctx.userId,
               memberId: member?.id ?? null,
               checkInMethod: "qr_code",
-            });
-          } catch (error: unknown) {
-            if (isUniqueViolation(error)) {
-              throw new TRPCError({
-                code: "CONFLICT",
-                message: "Already checked in",
-              });
-            }
-            throw error;
-          }
+            },
+            "Already checked in",
+          );
 
-          // Invalidate event and related caches after successful check-in
-          ctx.cache.deletePattern(`event:${event.id}`);
           ctx.cache.deletePattern("event*");
 
           return {
@@ -552,10 +513,7 @@ export const eventRouter = createTRPCRouter({
           });
 
           if (!event) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Event not found",
-            });
+            throw notFound("Event not found");
           }
 
           // lower() on both sides: some older rows kept the casing they were
@@ -569,11 +527,9 @@ export const eventRouter = createTRPCRouter({
           });
 
           if (!user) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message:
-                "Nobody has signed in with that email yet. They need an account first.",
-            });
+            throw notFound(
+              "Nobody has signed in with that email yet. They need an account first.",
+            );
           }
 
           // Read before the row lock, not after. The FOR UPDATE below
@@ -585,41 +541,18 @@ export const eventRouter = createTRPCRouter({
             columns: { id: true },
           });
 
-          // only a capped event has a count worth locking; unique(event_id, user_id)
-          // carries the rest.
-          if (event.maxCheckIns) {
-            await tx
-              .select({ id: events.id })
-              .from(events)
-              .where(eq(events.id, event.id))
-              .for("update");
-
-            if ((await countCheckIns(tx, event.id)) >= event.maxCheckIns) {
-              throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: "Event is full",
-              });
-            }
-          }
-
-          try {
-            await tx.insert(eventCheckIns).values({
+          await admit(
+            tx,
+            event,
+            {
               eventId: event.id,
               userId: user.id,
               memberId: member?.id ?? null,
               checkInMethod: "manual",
-            });
-          } catch (error: unknown) {
-            if (isUniqueViolation(error)) {
-              throw new TRPCError({
-                code: "CONFLICT",
-                message: `${user.name ?? user.email} is already checked in.`,
-              });
-            }
-            throw error;
-          }
+            },
+            `${user.name ?? user.email} is already checked in.`,
+          );
 
-          ctx.cache.deletePattern(`event:${event.id}`);
           ctx.cache.deletePattern("event*");
 
           return {
@@ -650,10 +583,7 @@ export const eventRouter = createTRPCRouter({
           });
 
           if (!event) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Event not found",
-            });
+            throw notFound("Event not found");
           }
 
           const member = await tx.query.members.findFirst({
@@ -669,48 +599,24 @@ export const eventRouter = createTRPCRouter({
           });
 
           if (!member) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Unrecognised pass. It may have been rotated.",
-            });
-          }
-
-          // Same rule as the other two doors, and this one is the burst path.
-          if (event.maxCheckIns) {
-            await tx
-              .select({ id: events.id })
-              .from(events)
-              .where(eq(events.id, event.id))
-              .for("update");
-
-            if ((await countCheckIns(tx, event.id)) >= event.maxCheckIns) {
-              throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: "Event is full",
-              });
-            }
+            throw notFound("Unrecognised pass. It may have been rotated.");
           }
 
           const name = `${member.firstName} ${member.lastName}`.trim();
 
-          try {
-            await tx.insert(eventCheckIns).values({
+          // Same rule as the other two doors, and this one is the burst path.
+          await admit(
+            tx,
+            event,
+            {
               eventId: event.id,
               userId: member.userId,
               memberId: member.id,
               checkInMethod: "qr_code",
-            });
-          } catch (error: unknown) {
-            if (isUniqueViolation(error)) {
-              throw new TRPCError({
-                code: "CONFLICT",
-                message: `${name} is already checked in.`,
-              });
-            }
-            throw error;
-          }
+            },
+            `${name} is already checked in.`,
+          );
 
-          ctx.cache.deletePattern(`event:${event.id}`);
           ctx.cache.deletePattern("event*");
 
           return {
@@ -777,13 +683,9 @@ export const eventRouter = createTRPCRouter({
             .returning({ id: eventCheckIns.id });
 
           if (removed.length === 0) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "That person is not checked in to this event.",
-            });
+            throw notFound("That person is not checked in to this event.");
           }
 
-          ctx.cache.deletePattern(`event:${input.eventId}`);
           ctx.cache.deletePattern("event*");
 
           return { success: true };
@@ -897,7 +799,7 @@ export const eventRouter = createTRPCRouter({
   myEvents: protectedProcedure.query(async ({ ctx }) => {
     const fetchCheckIns = () =>
       (ctx.db as NonNullable<typeof ctx.db>).query.eventCheckIns.findMany({
-        where: { userId: ctx.userId as string },
+        where: { userId: ctx.userId },
         with: {
           event: {
             columns: {
@@ -932,7 +834,7 @@ export const eventRouter = createTRPCRouter({
     const result = await (ctx.db as NonNullable<typeof ctx.db>)
       .select({ totalEvents: sql<number>`count(*)::int` })
       .from(eventCheckIns)
-      .where(eq(eventCheckIns.userId, ctx.userId as string));
+      .where(eq(eventCheckIns.userId, ctx.userId));
 
     const stats = { totalEvents: result[0]?.totalEvents ?? 0 };
     ctx.cache.set(cacheKey, stats, 60);

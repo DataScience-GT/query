@@ -2,21 +2,15 @@
 
 import { venueDayNumber, venueFormat } from "@/lib/venue-time";
 import { useSession, signOut } from "next-auth/react";
-import { loginHref } from "@/lib/safe-callback";
+import { useLoginRedirect } from "@/lib/use-login-redirect";
 import { trpc } from "@/lib/trpc";
 import {
   useInvalidatePortalContext,
   usePortalContext,
 } from "@/lib/use-portal-context";
 import { hackathonSlug } from "@/lib/hackathon-slug";
-import {
-  discordStep,
-  hackathonNextStep,
-  isAdmitted,
-  isWithinEditionDates,
-  nextStepQueries,
-  projectSubmitted,
-} from "@/lib/hackathon-next-step";
+import { isWithinEditionDates } from "@/lib/hackathon-next-step";
+import { useNextStep } from "@/lib/use-next-step";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -116,60 +110,14 @@ export default function Dashboard() {
     ) ?? [];
 
   // The event they are at, else the latest registration still on the
-  // calendar. Its next step reads up to five more queries, each held back
-  // until the step can use it, so a guest, or a hacker whose event has not
-  // begun, pays for none of them.
+  // calendar.
   const latestReg = eventReg ?? activeRegs[0];
-  const stepHackathonId = latestReg?.hackathonId ?? "";
-  const stepOn = view === "hackathon" && !!latestReg;
-  const needs = latestReg
-    ? nextStepQueries({
-        now,
-        hackathon: latestReg.hackathon,
-        registrationStatus: latestReg.registrationStatus,
-      })
-    : { submission: false, judging: false, results: false };
-  const discord = trpc.hackathon.myDiscord.useQuery(
-    { hackathonId: stepHackathonId },
-    { enabled: stepOn && isAdmitted(latestReg?.registrationStatus) },
-  );
-  const submissionWindow = trpc.team.submissionWindow.useQuery(
-    { hackathonId: stepHackathonId },
-    { enabled: stepOn && needs.submission },
-  );
-  const mySubmission = trpc.team.mySubmission.useQuery(
-    { hackathonId: stepHackathonId },
-    { enabled: stepOn && needs.submission },
-  );
-  const itinerary = trpc.judging.hacker.itinerary.useQuery(
-    { hackathonId: stepHackathonId },
-    { enabled: stepOn && needs.judging },
-  );
-  const results = trpc.hackathon.getResults.useQuery(
-    { hackathonId: stepHackathonId },
-    { enabled: stepOn && needs.results },
-  );
-  // Held back until they answer, so the strip never shows a step it is about
-  // to take back ("Submit" to somebody who already has).
-  const stepLoading =
-    submissionWindow.isLoading ||
-    mySubmission.isLoading ||
-    itinerary.isLoading ||
-    results.isLoading ||
-    discord.isLoading;
-  const nextStep = latestReg
-    ? hackathonNextStep({
-        now,
-        hackathon: latestReg.hackathon,
-        registrationStatus: latestReg.registrationStatus,
-        hasTeam: !!latestReg.teamId,
-        submissionWindow: submissionWindow.data,
-        submitted: projectSubmitted(mySubmission.data),
-        itinerary: itinerary.data,
-        resultsPublished: (results.data?.length ?? 0) > 0,
-        discord: discordStep(discord.data),
-      })
-    : null;
+  const { step: nextStep, loading: stepLoading } = useNextStep({
+    now,
+    hackathon: latestReg?.hackathon,
+    registration: latestReg,
+    enabled: view === "hackathon",
+  });
 
   // A link made here changes membership, so the page has to re-read it — or it
   // keeps showing the pay button to somebody who has already paid.
@@ -190,9 +138,7 @@ export default function Dashboard() {
     autoLinkFired.current = true;
     attemptAutoLink();
   }, [status, attemptAutoLink]);
-  useEffect(() => {
-    if (status === "unauthenticated") router.push(loginHref());
-  }, [status, router]);
+  useLoginRedirect(status);
   useEffect(() => {
     if (isAdmin) router.replace("/admin");
   }, [isAdmin, router]);

@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { Readable } from "node:stream";
 import { bootcampWorkshops, db } from "@query/db";
-import type { DrizzleDB } from "@query/db";
 import { eq } from "drizzle-orm";
 import { rateLimitShared } from "@query/api";
 import { bootcampCaller } from "@/lib/bootcamp-access";
+import { isUuid } from "@/lib/is-uuid";
 import { isSameOriginRequest } from "@/lib/same-origin";
 import { canDownloadBootcampFile } from "@/lib/bootcamp-route-rules";
 import {
@@ -41,11 +41,6 @@ const storageUnavailable = (isStaff: boolean) =>
     },
     { status: 503 },
   );
-
-// The id goes into a uuid column; anything else makes Postgres throw, and an
-// unknown workshop is a 404, not a 500.
-const isUuid = (value: string) =>
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
 const notFound = () =>
   NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -103,7 +98,7 @@ export async function POST(
     return NextResponse.json({ error: "No file received." }, { status: 400 });
   }
 
-  const workshop = await (db as DrizzleDB).query.bootcampWorkshops.findFirst({
+  const workshop = await db.query.bootcampWorkshops.findFirst({
     where: { id: workshopId },
     columns: { id: true },
   });
@@ -143,7 +138,7 @@ export async function POST(
           solutionSizeBytes: sizeBytes,
         };
 
-  const [updated] = await (db as DrizzleDB)
+  const [updated] = await db
     .update(bootcampWorkshops)
     .set({ ...metadata, updatedAt: new Date() })
     .where(eq(bootcampWorkshops.id, workshopId))
@@ -176,7 +171,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Too many file requests." }, { status: 429 });
   }
 
-  const [updated] = await (db as DrizzleDB)
+  const [updated] = await db
     .update(bootcampWorkshops)
     .set(
       kind === "materials"
@@ -229,7 +224,7 @@ export async function GET(
     return NextResponse.json({ error: "Too many file requests." }, { status: 429 });
   }
 
-  const workshop = await (db as DrizzleDB).query.bootcampWorkshops.findFirst({
+  const workshop = await db.query.bootcampWorkshops.findFirst({
     where: { id: workshopId },
   });
   if (!workshop) return notFound();

@@ -9,7 +9,7 @@ import type { Palette, SpriteMap } from "./sprites";
  * No flower on the site is grey or black. Every colour a sprite can be drawn
  * with is checked here, in the night and the day theme: the heads in each
  * tint, and every pixel of every sprite as BloomSprite would draw it. Stems,
- * leaves and soil (STEM_KEYS) are left out: they are green and the ground.
+ * leaves (STEM_KEYS) are left out: they are green.
  */
 
 const GREY_BELOW = 0.15; // HSL saturation
@@ -70,7 +70,7 @@ describe("the heads", () => {
 });
 
 describe("the stems", () => {
-  it.each(themes)("are green, and the palette holds nothing but stems and soil: %s", (theme) => {
+  it.each(themes)("are green, and the palette holds nothing but stems and leaves: %s", (theme) => {
     const palette = STEM_COLORS[theme];
     expect(Object.keys(palette).every((key) => STEM_KEYS.has(key))).toBe(true);
     expect(isDrab(palette.g)).toBe(false);

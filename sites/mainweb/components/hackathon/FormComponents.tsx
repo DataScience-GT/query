@@ -5,8 +5,6 @@ import { AlertCircle } from "lucide-react";
 import { Alert } from "@query/ui/Alert";
 import { btnPrimary, btnSecondary, itemTitle } from "@query/ui/classes";
 
-// ── Step Container ── //
-
 export function StepContainer({
   title,
   children,
@@ -22,8 +20,6 @@ export function StepContainer({
   );
 }
 
-// ── Form Error Alert ── //
-
 export function FormErrorAlert({ message }: { message: string }) {
   if (!message) return null;
   return (
@@ -38,8 +34,6 @@ export function FormErrorAlert({ message }: { message: string }) {
     </Alert>
   );
 }
-
-// ── Navigation Buttons ── //
 
 interface FormNavigationProps {
   step: number;

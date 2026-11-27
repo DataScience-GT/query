@@ -1,22 +1,22 @@
 // Hackathon clock: when teams may form and projects may be submitted.
 
-import { TRPCError } from "@trpc/server";
 import type { DrizzleDB } from "@query/db";
 import { HOUR } from "@query/core";
+import { forbidden, notFound } from "../errors";
 
 export type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
 
 /** All hackathon milestones, as hour offsets from the hacking start time. */
-export const SUBMISSION_OPEN_HOURS = 12;
-export const TEAM_WINDOW_CLOSE_HOURS = 34;
-export const SUBMISSION_HARD_DEADLINE_HOURS = 36;
+const SUBMISSION_OPEN_HOURS = 12;
+const TEAM_WINDOW_CLOSE_HOURS = 34;
+const SUBMISSION_HARD_DEADLINE_HOURS = 36;
 /** Rosters freeze 12h before the hard submission deadline, i.e. at +24h. */
-export const LEAVE_LOCK_HOURS = SUBMISSION_HARD_DEADLINE_HOURS - 12;
+const LEAVE_LOCK_HOURS = SUBMISSION_HARD_DEADLINE_HOURS - 12;
 
 // Teams form any time before +34h, so accepted people can find teammates
 // before kickoff. Who may form one is checkAdmitted's job, not the clock's:
 // this window used to open only at +12h, a third of the way into the event.
-export function computeTeamWindow(baseTime: Date, now: Date) {
+function computeTeamWindow(baseTime: Date, now: Date) {
   const at = (hours: number) => new Date(baseTime.getTime() + hours * HOUR);
 
   const closesAt = at(TEAM_WINDOW_CLOSE_HOURS);
@@ -64,7 +64,7 @@ export async function loadHackathonBaseTime(db: DrizzleDB, hackathonId: string) 
     where: { id: hackathonId },
   });
   if (!hackathon) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found." });
+    throw notFound("Hackathon not found.");
   }
   return hackathon.hackingStartTime ?? hackathon.startDate;
 }
@@ -83,19 +83,15 @@ export async function checkWithdrawWindow(db: DrizzleDB, hackathonId: string) {
   const window = computeSubmissionWindow(baseTime, now);
 
   if (window.notYetOpen) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message:
-        "Project submission is not open yet. It starts 12 hours after the hacking begins.",
-    });
+    throw forbidden(
+      "Project submission is not open yet. It starts 12 hours after the hacking begins.",
+    );
   }
 
   if (now > window.closesAt) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message:
-        "The submission window has closed. Ask an organizer if a project needs to be pulled.",
-    });
+    throw forbidden(
+      "The submission window has closed. Ask an organizer if a project needs to be pulled.",
+    );
   }
 
   return window;
@@ -106,11 +102,9 @@ export async function checkTeamEditWindow(db: DrizzleDB, hackathonId: string) {
   const now = new Date();
 
   if (now > window.closesAt) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message:
-        "Team creation and editing is closed. It ends 34 hours after the hacking begins.",
-    });
+    throw forbidden(
+      "Team creation and editing is closed. It ends 34 hours after the hacking begins.",
+    );
   }
   return window;
 }

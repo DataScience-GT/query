@@ -66,7 +66,6 @@ export function InfoTab({
     status: string;
     maxParticipants?: number | null;
     currentParticipants: number;
-    theme?: string | null;
     tracks?: string[] | null;
   };
   isRegistered: boolean;
@@ -320,31 +319,24 @@ export function InfoTab({
             <section className="border-t border-[var(--border-subtle)] pt-6 first:border-t-0 first:pt-0">
               <h3 className={itemTitle}>Prizes</h3>
               <dl className="mt-3 max-w-2xl">
-                {hackathon.prizes.map(
-                  (
-                    p: { place: string; amount: number; description?: string },
-                    i: number,
-                  ) => (
-                    <div
-                      key={i}
-                      className="flex items-baseline justify-between gap-6 border-b border-[var(--border-subtle)] py-3"
-                    >
-                      <dt className="min-w-0">
-                        <span className="text-[15px] font-semibold text-[var(--text-primary)]">
-                          {p.place}
-                        </span>
-                        {p.description && (
-                          <span className={`block ${meta}`}>
-                            {p.description}
-                          </span>
-                        )}
-                      </dt>
-                      <dd className="shrink-0 font-[family-name:var(--font-display)] text-[22px] font-semibold text-[var(--text-primary)] tabular-nums">
-                        ${p.amount.toLocaleString()}
-                      </dd>
-                    </div>
-                  ),
-                )}
+                {hackathon.prizes.map((p, i) => (
+                  <div
+                    key={i}
+                    className="flex items-baseline justify-between gap-6 border-b border-[var(--border-subtle)] py-3"
+                  >
+                    <dt className="min-w-0">
+                      <span className="text-[15px] font-semibold text-[var(--text-primary)]">
+                        {p.place}
+                      </span>
+                      {p.description && (
+                        <span className={`block ${meta}`}>{p.description}</span>
+                      )}
+                    </dt>
+                    <dd className="shrink-0 font-[family-name:var(--font-display)] text-[22px] font-semibold text-[var(--text-primary)] tabular-nums">
+                      ${p.amount.toLocaleString()}
+                    </dd>
+                  </div>
+                ))}
               </dl>
             </section>
           )}

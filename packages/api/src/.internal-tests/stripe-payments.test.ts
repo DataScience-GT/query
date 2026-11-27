@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 import { db } from "@query/db";
 import {
@@ -70,7 +70,8 @@ vi.mock("stripe", () => ({
   },
 }));
 
-vi.mock("@query/db", () => {
+vi.mock("@query/db", async () => {
+  const { bootcampWorkshopColumns, eventColumns } = await import("./_fake-db");
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
     findMany: (...args: any[]) => mockFindMany(name, ...args),
@@ -125,30 +126,8 @@ vi.mock("@query/db", () => {
     members: { id: "id", userId: "user_id", hackathonId: "hackathon_id" },
     membershipHistory: { id: "id", memberId: "member_id" },
     hackathons: { id: "id", status: "status" },
-    bootcampWorkshops: {
-      id: "id",
-      term: "term",
-      week: "week",
-      title: "title",
-      materialsKey: "materials_key",
-      materialsFileName: "materials_file_name",
-      materialsSizeBytes: "materials_size_bytes",
-      solutionKey: "solution_key",
-      solutionFileName: "solution_file_name",
-      solutionSizeBytes: "solution_size_bytes",
-      recordingUrl: "recording_url",
-      isPublished: "is_published",
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-    },
-    events: {
-      id: "id",
-      title: "title",
-      qrCode: "qr_code",
-      checkInEnabled: "check_in_enabled",
-      eventDate: "event_date",
-      currentCheckIns: "current_check_ins",
-    },
+    bootcampWorkshops: bootcampWorkshopColumns,
+    events: eventColumns,
     stripePayments: {
       id: "id",
       customerEmail: "customer_email",
@@ -195,15 +174,14 @@ describe("Membership payments", () => {
     delete process.env.STRIPE_MOCK_MODE;
   });
 
-  const caller = () =>
-    appRouter.createCaller({
-      db,
-      session: { user: { id: USER } },
-      userId: USER,
-      cache,
-      clientIp: "127.0.0.1",
-      req: { headers: { get: () => null } },
-    } as any);
+  const caller = () => testCaller(db, USER);
+
+  const insertedAmount = () =>
+    (
+      mockInsert.mock.calls.flat(2).find(
+        (arg: any) => arg && typeof arg === "object" && "amountTotal" in arg,
+      ) as { amountTotal?: number } | undefined
+    )?.amountTotal;
 
   describe("payment service availability", () => {
     it("reports unavailable when no secret key is configured", async () => {
@@ -504,17 +482,8 @@ describe("Membership payments", () => {
 
     it("requires a signed-in user", async () => {
       process.env.STRIPE_MOCK_MODE = "true";
-      const anonymous = appRouter.createCaller({
-        db,
-        session: null,
-        userId: undefined,
-        cache,
-        clientIp: "127.0.0.1",
-        req: { headers: { get: () => null } },
-      } as any);
-
       await expect(
-        anonymous.stripe.createCheckoutSession({ returnUrl: RETURN_URL }),
+        testCaller(db).stripe.createCheckoutSession({ returnUrl: RETURN_URL }),
       ).rejects.toThrow();
     });
   });
@@ -585,13 +554,6 @@ describe("Membership payments", () => {
   });
 
   describe("membership price", () => {
-    const insertedAmount = () =>
-      (
-        mockInsert.mock.calls.flat(2).find(
-          (arg: any) => arg && typeof arg === "object" && "amountTotal" in arg,
-        ) as { amountTotal?: number } | undefined
-      )?.amountTotal;
-
     it("records the membership price for a mock payment", async () => {
       process.env.STRIPE_MOCK_MODE = "true";
 
@@ -670,13 +632,6 @@ describe("Membership payments", () => {
   // Add-on or bundle is decided from the caller's own membership row, never
   // an input — otherwise a non-member buys bootcamp access for $10.
   describe("bootcamp add-on for an existing member", () => {
-    const recordedAmount = () =>
-      (
-        mockInsert.mock.calls.flat(2).find(
-          (arg: any) => arg && typeof arg === "object" && "amountTotal" in arg,
-        ) as { amountTotal?: number } | undefined
-      )?.amountTotal;
-
     const withMembership = (membershipEndDate: Date | null) => {
       mockFindFirst.mockImplementation((table: string) => {
         if (table === "users")
@@ -758,7 +713,7 @@ describe("Membership payments", () => {
       expect(stamped?.renewalCount).toBeUndefined();
 
       // And the $10 is what got recorded, not $35.
-      expect(recordedAmount()).toBe(BOOTCAMP_ADDON_CENTS);
+      expect(insertedAmount()).toBe(BOOTCAMP_ADDON_CENTS);
     });
   });
 

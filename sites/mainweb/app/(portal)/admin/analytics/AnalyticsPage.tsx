@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { trpc } from "@/lib/trpc";
+import { termLabel } from "@/lib/public-events";
 import { useRouter } from "next/navigation";
 import { StatTile, StatTileSkeleton } from "@query/ui/StatTile";
 import {
@@ -74,13 +75,6 @@ function phaseLabel(phase: string) {
   if (phase === "closed") return "Registration closed";
   if (phase === "in_progress") return "In progress";
   return phase;
-}
-
-/** `2026-fall` is how it is stored; nobody should have to read it that way. */
-function termLabel(term: string) {
-  const [year, season] = term.split("-");
-  if (!year || !season) return term;
-  return `${season.charAt(0).toUpperCase()}${season.slice(1)} ${year}`;
 }
 
 /** `2026-01` becomes `Jan 26`. Twelve of these have to fit one axis. */

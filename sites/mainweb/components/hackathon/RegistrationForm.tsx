@@ -5,6 +5,8 @@ import type { ServerDraft } from "@/components/hackathon/registration-draft";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DIETARY_OPTIONS,
+  DIETARY_OTHER,
+  DIETARY_OTHER_PREFIX,
   GENDERS,
   LEVELS_OF_STUDY,
   MAJORS,
@@ -13,6 +15,7 @@ import {
   SHIRT_SIZES,
   TRAVEL_DISTANCES,
   TRAVEL_METHODS,
+  splitDietary,
 } from "@/components/hackathon/constants";
 import {
   FormErrorAlert,
@@ -85,22 +88,6 @@ const DRAFT_STATUS_TEXT = {
   saved: "Draft saved",
   failed: "Couldn't save your draft online. It is kept on this device.",
 } as const;
-
-// "Other" is stored in the same list as the chips, as "Other: <what they typed>",
-// so it needs no column of its own and shows up wherever the list is shown.
-const DIETARY_OTHER = "Other";
-const DIETARY_OTHER_PREFIX = "Other: ";
-
-/** A saved dietary list as the chips to select and the text behind "Other". */
-const splitDietary = (saved: string[]) => ({
-  chips: saved.map((d) =>
-    d.startsWith(DIETARY_OTHER_PREFIX) ? DIETARY_OTHER : d,
-  ),
-  other:
-    saved
-      .find((d) => d.startsWith(DIETARY_OTHER_PREFIX))
-      ?.slice(DIETARY_OTHER_PREFIX.length) ?? "",
-});
 
 /** A saved yes/no answer as the chip that shows it. */
 const yesNo = (value: boolean | null | undefined) =>

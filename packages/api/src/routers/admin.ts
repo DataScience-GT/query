@@ -25,6 +25,7 @@ import type { DrizzleDB } from "@query/db";
 import { startOfEasternDay } from "../services/eastern-time";
 import { readLiveHackathons } from "../services/metrics";
 import { syncDiscordRoles } from "../services/discord";
+import { badRequest, forbidden, notFound } from "./errors";
 
 // Roles are a super admin's to give, with one exception: anyone on the admin
 // team may staff the check-in desk by granting and revoking the volunteer tier,
@@ -41,19 +42,13 @@ const assertMayManage = (
   ) {
     return;
   }
-  throw new TRPCError({
-    code: "FORBIDDEN",
-    message: "Super admin access required",
-  });
+  throw forbidden("Super admin access required");
 };
 
 export const adminRouter = createTRPCRouter({
   isAdmin: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.userId) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Cannot create an admin",
-      });
+      throw badRequest("Cannot create an admin");
     }
     const cacheKey = CacheKeys.admin(ctx.userId);
     const cached = ctx.cache.get<{
@@ -64,13 +59,10 @@ export const adminRouter = createTRPCRouter({
     if (cached) return cached;
 
     if (!ctx.db) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Cannot cache the admin",
-      });
+      throw notFound("Cannot cache the admin");
     }
     const admin = await (ctx.db as DrizzleDB).query.admins.findFirst({
-      where: { userId: ctx.userId as string, isActive: true },
+      where: { userId: ctx.userId, isActive: true },
     });
 
     const expired = isExpiredAdmin(admin);
@@ -333,10 +325,7 @@ export const adminRouter = createTRPCRouter({
       // isAdmin lets a bug tester through for reads; this one confirms that an
       // address has an account, which they have no business doing.
       if (isBugTesterRole(ctx.admin.role)) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Admin access required",
-        });
+        throw forbidden("Admin access required");
       }
 
       const user = await (ctx.db as DrizzleDB).query.users.findFirst({
@@ -393,13 +382,10 @@ export const adminRouter = createTRPCRouter({
       ]);
 
       if (!user) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        throw notFound("User not found");
       }
       if (existingAdmin) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "User is already an admin",
-        });
+        throw badRequest("User is already an admin");
       }
 
       const result = await (ctx.db as DrizzleDB)
@@ -420,7 +406,6 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
-      // Invalidate admin caches after creation
       ctx.cache.deletePattern(`${CacheKeys.admin(input.userId)}*`);
       ctx.cache.delete(`admins:list`);
       invalidatePortalContext(input.userId);
@@ -469,28 +454,23 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!targetAdmin) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Admin not found" });
+        throw notFound("Admin not found");
       }
       // Both ends of the change count: the role being set above, and the role
       // being held here. Without this a plain admin could "grant volunteer" to
       // a super admin and demote them.
       assertMayManage(ctx.admin, { roles: [targetAdmin.role] });
       if (targetAdmin.userId === ctx.userId && input.isActive === false) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot deactivate your own admin account",
-        });
+        throw badRequest("Cannot deactivate your own admin account");
       }
       if (
         targetAdmin.userId === ctx.userId &&
         input.role !== undefined &&
         input.role !== targetAdmin.role
       ) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Cannot change your own role. Ask another super admin to do it.",
-        });
+        throw badRequest(
+          "Cannot change your own role. Ask another super admin to do it.",
+        );
       }
 
       // Only a super admin can hand the role back out, so losing the last one
@@ -513,10 +493,7 @@ export const adminRouter = createTRPCRouter({
           (other) => other.id !== targetAdmin.id && !isExpiredAdmin(other),
         );
         if (remaining.length === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Cannot remove the last super admin",
-          });
+          throw badRequest("Cannot remove the last super admin");
         }
       }
 
@@ -575,14 +552,11 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!targetAdmin) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Admin not found" });
+        throw notFound("Admin not found");
       }
       assertMayManage(ctx.admin, { roles: [targetAdmin.role] });
       if (targetAdmin.userId === ctx.userId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot remove your own admin account",
-        });
+        throw badRequest("Cannot remove your own admin account");
       }
 
       await (ctx.db as DrizzleDB)

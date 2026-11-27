@@ -1,31 +1,11 @@
-import type { ElementType, ReactNode } from "react";
-
-interface LiquidGlassProps {
-  children: ReactNode;
-  className?: string;
-  variant?: "medium" | "large";
-  as?: ElementType;
-  holographic?: boolean;
-  printed?: boolean;
-}
+import type { ReactNode } from "react";
 
 export function LiquidGlass({
   children,
   className = "",
-  variant = "medium",
-  as: Component = "div",
-  holographic = false,
-  printed = false,
-}: LiquidGlassProps) {
-  const baseClass = variant === "large" ? "liquid-glass-lg" : "liquid-glass";
-  const holoClass = holographic ? "card-holographic" : "";
-  const printedClass = printed ? "card-printed" : "";
-
-  return (
-    <Component
-      className={`${baseClass} ${holoClass} ${printedClass} ${className}`}
-    >
-      {children}
-    </Component>
-  );
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <div className={`liquid-glass ${className}`}>{children}</div>;
 }

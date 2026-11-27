@@ -30,6 +30,7 @@ import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { isAdmin } from "../../middleware/procedures";
 import { rateLimitShared } from "../../middleware/security";
+import { badRequest, notFound } from "../errors";
 
 // Mass announcements: "registration is open", "results are up". Separate from
 // sendMassAcceptanceEmails because an acceptance also changes a participant's
@@ -94,10 +95,7 @@ const messageInput = z.object({
 // label renders nothing — both only visible once it is in someone's inbox.
 const assertCompleteCta = (input: { ctaLabel?: string; ctaUrl?: string }) => {
   if (!!input.ctaLabel !== !!input.ctaUrl) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "A button needs both a label and a link, or neither.",
-    });
+    throw badRequest("A button needs both a label and a link, or neither.");
   }
 };
 
@@ -250,10 +248,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
       });
 
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       assertCompleteCta(input);
@@ -270,10 +265,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
       });
 
       if (recipients.length === 0) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "That audience has nobody in it.",
-        });
+        throw badRequest("That audience has nobody in it.");
       }
 
       const [announcement] = await db
@@ -286,7 +278,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
           body: input.body,
           ctaLabel: input.ctaLabel ?? null,
           ctaUrl: input.ctaUrl ?? null,
-          createdById: ctx.userId as string,
+          createdById: ctx.userId,
         })
         .returning({ id: hackathonAnnouncements.id });
 
@@ -344,15 +336,12 @@ export const hackathonAnnounceRouter = createTRPCRouter({
     }
 
     const me = await db.query.users.findFirst({
-      where: { id: ctx.userId as string },
+      where: { id: ctx.userId },
       columns: { email: true },
     });
 
     if (!me?.email) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Your account has no email address to send a test to.",
-      });
+      throw badRequest("Your account has no email address to send a test to.");
     }
 
     const { sendAnnouncementEmail } = await import("@query/auth/email");
@@ -450,10 +439,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
       });
 
       if (!announcement) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Announcement not found",
-        });
+        throw notFound("Announcement not found");
       }
 
       // Claim the batch before sending a single message. Selecting `sent_at IS

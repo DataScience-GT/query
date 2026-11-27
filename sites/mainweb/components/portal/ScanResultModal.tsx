@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { Check, X } from "lucide-react";
 import { Modal } from "@query/ui/Modal";
 import { btnPrimary, btnSecondary, itemTitle, label } from "@query/ui/classes";

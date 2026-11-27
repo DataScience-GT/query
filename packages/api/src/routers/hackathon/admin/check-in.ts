@@ -1,7 +1,6 @@
 // Event check-in at the door: scans, manual admits and attendance fixes.
 
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { isScanner } from "../../../middleware/procedures";
 import { recordAdminAction } from "../../../middleware/audit";
 import {
@@ -15,6 +14,23 @@ import { hackathonEventAttendees, hackathonParticipants } from "@query/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { checkInParticipant } from "./check-in-participant";
+import { forbidden, notFound } from "../../errors";
+
+// Scoped through the event's own hackathonId rather than the pair in the
+// input, so an eventId from another edition returns nothing.
+async function assertEventInHackathon(
+  db: DrizzleDB,
+  input: { hackathonId: string; eventId: string },
+) {
+  const event = await db.query.hackathonEvents.findFirst({
+    where: { id: input.eventId, hackathonId: input.hackathonId },
+    columns: { id: true },
+  });
+
+  if (!event) {
+    throw notFound("Event not found.");
+  }
+}
 
 export const checkInProcedures = {
   // Who scanned into one event. The scanner writes these rows and nothing ever
@@ -32,16 +48,7 @@ export const checkInProcedures = {
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
 
-      // Scoped through the event's own hackathonId rather than the pair in the
-      // input, so an eventId from another edition returns nothing.
-      const event = await db.query.hackathonEvents.findFirst({
-        where: { id: input.eventId, hackathonId: input.hackathonId },
-        columns: { id: true },
-      });
-
-      if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
-      }
+      await assertEventInHackathon(db, input);
 
       const [rows, [totals]] = await Promise.all([
         db.query.hackathonEventAttendees.findMany({
@@ -79,14 +86,7 @@ export const checkInProcedures = {
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
 
-      const event = await db.query.hackathonEvents.findFirst({
-        where: { id: input.eventId, hackathonId: input.hackathonId },
-        columns: { id: true },
-      });
-
-      if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
-      }
+      await assertEventInHackathon(db, input);
 
       // The participant row is locked first, the way recordEventAttendance and a
       // store purchase lock it. A sale sums this person's points under that lock;
@@ -116,10 +116,7 @@ export const checkInProcedures = {
       });
 
       if (deleted.length === 0) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That participant is not checked into this event.",
-        });
+        throw notFound("That participant is not checked into this event.");
       }
 
       // Volunteers reach this, so it is the widest-held destructive action in the
@@ -207,14 +204,7 @@ export const checkInProcedures = {
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
 
-      const event = await db.query.hackathonEvents.findFirst({
-        where: { id: input.eventId, hackathonId: input.hackathonId },
-        columns: { id: true },
-      });
-
-      if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
-      }
+      await assertEventInHackathon(db, input);
 
       const matches = await searchParticipants(db, {
         hackathonId: input.hackathonId,
@@ -284,14 +274,11 @@ export const checkInProcedures = {
       ]);
 
       if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That person is not registered for this hackathon.",
-        });
+        throw notFound("That person is not registered for this hackathon.");
       }
 
       if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
+        throw notFound("Event not found.");
       }
 
       const name = fullName(
@@ -300,19 +287,17 @@ export const checkInProcedures = {
       );
 
       if (participant.registrationStatus !== "checked_in") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `${name} has not checked in at the registration desk yet. Send them there first.`,
-        });
+        throw forbidden(
+          `${name} has not checked in at the registration desk yet. Send them there first.`,
+        );
       }
 
       // Same bound as the pass scan, for the same reason: a station left on
       // a finished event keeps handing out its points.
       if (event.endTime < new Date()) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `${event.name} has already ended. Credit somebody who was there with a points adjustment.`,
-        });
+        throw forbidden(
+          `${event.name} has already ended. Credit somebody who was there with a points adjustment.`,
+        );
       }
 
       const { pointsAwarded } = await flaggingRuleBreaks(

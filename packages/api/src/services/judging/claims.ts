@@ -51,7 +51,7 @@ export function portalOrigin(): string {
   return siteOrigin().replace(/\/+$/, "");
 }
 
-export type ClaimLinkState = {
+type ClaimLinkState = {
   token: string | null;
   consumedAt: Date | null;
   expiresAt: Date;
@@ -78,7 +78,7 @@ type Refusal = {
   message: string;
 };
 
-export type ClaimDecision = { ok: true; alreadyYours: boolean } | Refusal;
+type ClaimDecision = { ok: true; alreadyYours: boolean } | Refusal;
 
 /**
  * Whether `callerId` may take a place on a team. `target` is null when the
@@ -135,7 +135,7 @@ export function decideClaim(
 const INVITE_UNAVAILABLE =
   "That email cannot be added. Use the address your teammate signs in to the portal with, and check they have been checked in at the event.";
 
-export type InviteDecision =
+type InviteDecision =
   | { action: "add" }
   /** Already on the team list and not yet claimed: send them the link again. */
   | { action: "resend" }

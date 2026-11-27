@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { loginHref } from "@/lib/safe-callback";
+import { useLoginRedirect } from "@/lib/use-login-redirect";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { hackathonSlug } from "@/lib/hackathon-slug";
-import { useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
@@ -47,7 +46,6 @@ function formatDateRange(start: Date | string, end: Date | string) {
 
 export default function HackathonsPage() {
   const { data: session, status: authStatus } = useSession();
-  const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<Tab>("browse");
   const [statusFilter, setStatusFilter] = useState<
@@ -77,9 +75,7 @@ export default function HackathonsPage() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  useEffect(() => {
-    if (authStatus === "unauthenticated") router.push(loginHref());
-  }, [authStatus, router]);
+  useLoginRedirect(authStatus);
 
   if (authStatus === "loading" || isLoading)
     return <LoadingScreen message="Loading hackathons…" />;

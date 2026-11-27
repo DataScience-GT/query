@@ -46,7 +46,6 @@ import { holdsEveryRating } from "../../../services/judging/scoring-sql";
 import {
   judgeProcedure,
   uuid,
-  escapeLike,
   NOT_OPEN_YET,
   CLOSED,
   taskOf,
@@ -55,6 +54,7 @@ import {
   tagsOf,
   roomSummary,
 } from "./shared";
+import { escapeLike } from "../admin/shared";
 
 export const projectProcedures = {
   // The projects to judge for one challenge. By default: in presentation
@@ -312,8 +312,6 @@ export const projectProcedures = {
           : state === "in_progress" || state === "reserved"
             ? 1
             : 0;
-      const byTitle = (a: { title: string }, b: { title: string }) =>
-        a.title.localeCompare(b.title);
       // Nothing is timed here, so open projects follow the judge's own queue,
       // the order Grade next project walks: the natural pick is the fair one.
       const queued =
@@ -345,7 +343,7 @@ export const projectProcedures = {
           const bt = b.presentation?.startsAt.getTime() ?? Infinity;
           if (at !== bt) return at - bt;
         }
-        return byTitle(a, b);
+        return a.title.localeCompare(b.title);
       });
 
       return { ...base, judgedCount, projects };

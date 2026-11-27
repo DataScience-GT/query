@@ -11,6 +11,7 @@ import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { evictParticipantCaches } from "./seats";
 import { autoAssignFoodGroups } from "../../../services/discord";
+import { forbidden, notFound } from "../../errors";
 
 /**
  * Checks one accepted participant into one event and, on their first arrival,
@@ -34,10 +35,9 @@ export async function checkInParticipant(
   });
 
   if (!participant) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Participant not found or not registered for this hackathon.",
-    });
+    throw notFound(
+      "Participant not found or not registered for this hackathon.",
+    );
   }
 
   // 1b. Only accepted participants may check in. Pending and waitlisted are not
@@ -46,10 +46,9 @@ export async function checkInParticipant(
     participant.registrationStatus !== "approved" &&
     participant.registrationStatus !== "checked_in"
   ) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: `${participant.user.name || participant.user.email} is not accepted for this hackathon (status: ${participant.registrationStatus}).`,
-    });
+    throw forbidden(
+      `${participant.user.name || participant.user.email} is not accepted for this hackathon (status: ${participant.registrationStatus}).`,
+    );
   }
 
   // 1c. Banned people are refused at the door too. Banning rejects their
@@ -59,10 +58,9 @@ export async function checkInParticipant(
     columns: { id: true },
   });
   if (ban) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: `${participant.user.name || participant.user.email} is banned from hackathons and can't be checked in.`,
-    });
+    throw forbidden(
+      `${participant.user.name || participant.user.email} is banned from hackathons and can't be checked in.`,
+    );
   }
 
   // 2. Verify event exists and belongs to this hackathon
@@ -71,17 +69,14 @@ export async function checkInParticipant(
   });
 
   if (!event) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
+    throw notFound("Event not found.");
   }
 
   // 2b. A pass is only good for the window the event runs in. Nothing else
   // bounds a scan, so a scanner left on the wrong event would keep admitting
   // people to a meal that finished hours ago.
   if (event.endTime < new Date()) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: `${event.name} has already ended.`,
-    });
+    throw forbidden(`${event.name} has already ended.`);
   }
 
   // 3. Check for existing check-in to prevent duplicates

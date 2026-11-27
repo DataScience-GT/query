@@ -124,7 +124,7 @@ const REQUIRED = [
 const LONG_UNIVERSITIES_PREFIX = "list all of the universities";
 
 /** Devpost allows teams of four: the submitter and three more. */
-export const MAX_ADDITIONAL_MEMBERS = 3;
+const MAX_ADDITIONAL_MEMBERS = 3;
 
 const MAX_TITLE = 255;
 const MAX_DESCRIPTION = 50_000;
@@ -132,7 +132,7 @@ const MAX_NAME = 255;
 const MAX_EMAIL = 320;
 const MAX_LABEL = 255;
 
-export type DevpostMember = { name: string; email: string; order: number };
+type DevpostMember = { name: string; email: string; order: number };
 
 export type DevpostProject = {
   submissionUrl: string;
@@ -151,7 +151,7 @@ export type DevpostProject = {
   submittedAt: Date | null;
 };
 
-export type DevpostRejection = { project: string; reason: string };
+type DevpostRejection = { project: string; reason: string };
 
 export type DevpostImport = {
   projects: DevpostProject[];

@@ -1,38 +1,6 @@
-import { auth } from "@query/auth";
 import { db, memberResumes, members, users } from "@query/db";
-import type { admins } from "@query/db";
 import { eq } from "drizzle-orm";
-import { isStaffRole, isExpiredAdmin } from "@query/api/portal-context";
-import { cache } from "@query/api";
 import type { DrizzleDB } from "@query/db";
-
-// Pure file rules live next door so tests need no auth or database.
-export { MAX_RESUME_BYTES, looksLikePdf, resumeFileName } from "./resume-file";
-
-/** Same answer the isAdmin middleware gives, for route handlers it cannot reach. */
-export async function resumeCaller() {
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
-  if (!userId || !db) return { userId: null, isStaff: false };
-
-  // Same key and TTL as the isAdmin middleware, so a role change evicts both.
-  const cacheKey = `admin:${userId}:role`;
-  let admin = cache.get<typeof admins.$inferSelect>(cacheKey);
-
-  if (!admin) {
-    admin =
-      (await (db as DrizzleDB).query.admins.findFirst({
-        where: { userId, isActive: true },
-      })) ?? null;
-
-    if (admin) cache.set(cacheKey, admin, 60);
-  }
-
-  return {
-    userId,
-    isStaff: !!admin && isStaffRole(admin.role) && !isExpiredAdmin(admin),
-  };
-}
 
 /** Metadata for one person's resume, with the name to file it under. */
 export async function loadResume(userId: string) {

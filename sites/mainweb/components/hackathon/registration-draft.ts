@@ -5,7 +5,7 @@
  */
 
 /** The answers as the form holds them, with when this browser last wrote them. */
-export type LocalDraft = {
+type LocalDraft = {
   answers: Record<string, unknown>;
   savedAt: number;
 };

@@ -49,6 +49,7 @@ import {
   modeOf,
   memberSeat,
 } from "./shared";
+import { badRequest, conflict, preconditionFailed } from "../../errors";
 
 export const gradingProcedures = {
   // The next project for this judge to grade, in the challenge they pick or
@@ -209,10 +210,7 @@ export const gradingProcedures = {
             graceMs: DEADLINE_GRACE_MS,
           });
           if (!timing.canEdit) {
-            throw new TRPCError({
-              code: "PRECONDITION_FAILED",
-              message: timing.reason,
-            });
+            throw preconditionFailed(timing.reason);
           }
 
           // As saveDraft stamps a draft that is not an edit of an evaluation.
@@ -246,11 +244,9 @@ export const gradingProcedures = {
         });
       } catch (error) {
         if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "This project was just opened from another window. Reload to pick up the latest.",
-          });
+          throw conflict(
+            "This project was just opened from another window. Reload to pick up the latest.",
+          );
         }
         throw error;
       }
@@ -349,7 +345,7 @@ export const gradingProcedures = {
       const rubric = await loadRubric(db, input.hackathonId);
       const check = checkAnswers(rubric, input, judge.kind, "strict");
       if (!check.ok) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: check.message });
+        throw badRequest(check.message);
       }
 
       try {
@@ -433,10 +429,7 @@ export const gradingProcedures = {
             graceMs: DEADLINE_GRACE_MS,
           });
           if (!timing.canEdit) {
-            throw new TRPCError({
-              code: "PRECONDITION_FAILED",
-              message: timing.reason,
-            });
+            throw preconditionFailed(timing.reason);
           }
 
           const now = new Date();
@@ -474,11 +467,9 @@ export const gradingProcedures = {
         });
       } catch (error) {
         if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "Your answers were saved from another window at the same moment. Reload to pick up the latest.",
-          });
+          throw conflict(
+            "Your answers were saved from another window at the same moment. Reload to pick up the latest.",
+          );
         }
         throw error;
       }
@@ -513,13 +504,12 @@ export const gradingProcedures = {
       const rubric = await loadRubric(db, input.hackathonId);
       const check = checkAnswers(rubric, input, judge.kind, "strict");
       if (!check.ok) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: check.message });
+        throw badRequest(check.message);
       }
       if (!check.answers.isComplete) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Answer everything before you submit. Still to do: ${check.answers.missing.join(", ")}.`,
-        });
+        throw badRequest(
+          `Answer everything before you submit. Still to do: ${check.answers.missing.join(", ")}.`,
+        );
       }
 
       try {
@@ -606,10 +596,7 @@ export const gradingProcedures = {
             graceMs: DEADLINE_GRACE_MS,
           });
           if (!timing.canEdit) {
-            throw new TRPCError({
-              code: "PRECONDITION_FAILED",
-              message: timing.reason,
-            });
+            throw preconditionFailed(timing.reason);
           }
 
           const written = await writeEvaluation(tx, {
@@ -644,11 +631,9 @@ export const gradingProcedures = {
         });
       } catch (error) {
         if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "This evaluation was just submitted from another window. Reload to see it.",
-          });
+          throw conflict(
+            "This evaluation was just submitted from another window. Reload to see it.",
+          );
         }
         throw error;
       }

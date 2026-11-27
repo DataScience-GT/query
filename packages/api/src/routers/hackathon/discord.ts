@@ -30,7 +30,7 @@ export const hackathonDiscordRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid().optional() }))
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
       const context = await discordContext(
         db,
         userId,
@@ -85,7 +85,7 @@ export const hackathonDiscordRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const result = await unlinkDiscord(
         ctx.db as DrizzleDB,
-        ctx.userId as string,
+        ctx.userId,
         input.hackathonId,
       );
       if (result === "failed") {

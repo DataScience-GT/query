@@ -20,7 +20,7 @@ import { evaluationTiming } from "./timing";
 // desk's next-project pick and the check on a judge's first claim of a project
 // both go through loadQueue, so they never disagree about what is on offer.
 
-export type Queue = {
+type Queue = {
   /** A scheduled challenge under a saved schedule: the schedule decides who sees what. */
   timed: boolean;
   /** Timed, and the judge is not seated in a room that serves the challenge. */

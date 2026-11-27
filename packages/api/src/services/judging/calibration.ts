@@ -77,7 +77,7 @@ export type CalibrationEvaluation = {
   ratings: readonly number[];
 };
 
-export type JudgeCalibration = {
+type JudgeCalibration = {
   judgeId: string;
   challengeId: string;
   /** Counted, scored evaluations the judge has in this challenge. */

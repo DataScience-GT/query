@@ -35,7 +35,6 @@ describe("headPalette", () => {
       for (const tint of TINTS) {
         expect(Object.keys(HEADS[theme][tint]).sort(), `${theme} ${tint}`).toEqual([
           "P",
-          "W",
           "Y",
           "c",
           "p",

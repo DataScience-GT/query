@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { Modal } from "@query/ui/Modal";
 import {

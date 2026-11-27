@@ -5,9 +5,8 @@ import { ZipArchive } from "archiver";
 import { db } from "@query/db";
 import { BURST_LIMITS, rateLimitShared } from "@query/api";
 import { listResumes, parseResumeBookIds } from "@query/api/resume-list";
-import type { DrizzleDB } from "@query/db";
 import { csvCell } from "@/lib/csv";
-import { resumeCaller } from "@/lib/resume-access";
+import { staffCaller } from "@/lib/staff-caller";
 import { uniqueZipName } from "@/lib/resume-file";
 import { readResume, resumeBucketName } from "@/lib/resume-storage";
 
@@ -58,7 +57,7 @@ export async function GET(request: NextRequest) {
   if (fetchSite && fetchSite !== "same-origin" && fetchSite !== "none") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  const caller = await resumeCaller();
+  const caller = await staffCaller();
   if (!caller.userId || !db) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
@@ -91,7 +90,7 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const gradYear = Number(params.get("gradYear"));
 
-  const rows = await listResumes(db as DrizzleDB, {
+  const rows = await listResumes(db, {
     scope: params.get("scope") === "all" ? "all" : "members",
     search: params.get("search")?.slice(0, 200) || undefined,
     gradYear: Number.isFinite(gradYear) && gradYear > 0 ? gradYear : undefined,

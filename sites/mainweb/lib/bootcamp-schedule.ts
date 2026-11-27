@@ -4,7 +4,7 @@
  * a signed-in member.
  */
 
-export type BootcampWeek = {
+type BootcampWeek = {
   week: number;
   title: string;
   /** Optional: a week may be published as a title alone. */
@@ -39,9 +39,3 @@ export const BOOTCAMP_CURRICULUM: BootcampWeek[] = [
   { week: 8, title: "Creative projects" },
   { week: 9, title: "Creative projects" },
 ];
-
-/** The curriculum entry a session's week number refers to, if there is one. */
-export const weekEntry = (week: number | null) =>
-  week === null
-    ? undefined
-    : BOOTCAMP_CURRICULUM.find((entry) => entry.week === week);

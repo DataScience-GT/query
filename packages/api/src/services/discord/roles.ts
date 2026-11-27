@@ -51,7 +51,7 @@ export const isConfirmedHacker = (p: {
  * any edition that is open or live: registration has opened and the event is
  * not over. Not a draft, an announcement, a finished or a cancelled edition.
  */
-export const VOLUNTEER_EDITION_STATUSES = [
+const VOLUNTEER_EDITION_STATUSES = [
   "open",
   "closed",
   "in_progress",

@@ -21,6 +21,22 @@ export const DIETARY_OPTIONS = [
   "None",
 ] as const;
 
+// "Other" is stored in the same list as the chips, as "Other: <what they typed>",
+// so it needs no column of its own and shows up wherever the list is shown.
+export const DIETARY_OTHER = "Other";
+export const DIETARY_OTHER_PREFIX = "Other: ";
+
+/** A saved dietary list as the chips to select and the text behind "Other". */
+export const splitDietary = (saved: readonly string[]) => ({
+  chips: saved.map((d) =>
+    d.startsWith(DIETARY_OTHER_PREFIX) ? DIETARY_OTHER : d,
+  ),
+  other:
+    saved
+      .find((d) => d.startsWith(DIETARY_OTHER_PREFIX))
+      ?.slice(DIETARY_OTHER_PREFIX.length) ?? "",
+});
+
 export const GENDERS = [
   "Male",
   "Female",

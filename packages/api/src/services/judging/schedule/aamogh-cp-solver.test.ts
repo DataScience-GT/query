@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { aamoghCPSolver } from "./aamogh-cp-solver";
 import { compareScores, scoreSchedule, validateSchedule } from "./rules";
 import type { PlanScore } from "./rules";
-import { solvePlan } from "./solve";
 import type { Placement, PlanInputs, PlanRoom, PlanTask } from "./inputs";
 
 const task = (entryId: string, challengeId: string): PlanTask => ({
@@ -234,15 +233,6 @@ describe("aamoghCPSolver", () => {
   it("gives the same schedule for the same inputs", () => {
     const inputs = largeEvent();
     expect(solved(inputs).placements).toEqual(solved(inputs).placements);
-  });
-
-  it("only improves on a schedule it is given", () => {
-    const inputs = largeEvent();
-    const greedy = solvePlan(inputs);
-    if (!greedy.ok) throw new Error("greedy found no schedule");
-    const result = aamoghCPSolver(inputs, { start: greedy.placements });
-    if (!result.ok) throw new Error("no schedule from a valid start");
-    expect(compareScores(result.score, greedy.score)).toBeLessThanOrEqual(0);
   });
 
   it("schedules 300 projects in 12 rooms validly and quickly", () => {

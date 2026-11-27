@@ -9,7 +9,6 @@
  * tests see the grading lock being taken before a write.
  */
 import { describe, it, expect } from "vitest";
-import { getTableName } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import {
@@ -39,14 +38,32 @@ import {
 import { judgingDeskRouter } from "../routers/judging/desk";
 import { GRADING_HOLD_MS } from "../services/judging/grading-hold";
 import { QUEUE_WINDOW, queueOrder } from "../services/judging/queue";
+import {
+  HACK,
+  GENERAL,
+  SPONSOR,
+  ME,
+  OTHER,
+  ROOM,
+  RATING,
+  challenge,
+  general,
+  sponsor,
+  entry,
+  rating,
+  name,
+  via,
+  byCall,
+  fakeDb,
+  memberCtx,
+  guestCtx,
+  minutesAgo,
+  minutesAhead,
+  wrote,
+  beingGraded,
+} from "./_judging-desk";
+import type { Answers, Event } from "./_judging-desk";
 
-const HACK = "6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b";
-const GENERAL = "0c4a8e10-2b3d-4c5e-9f60-7a8b9c0d1e2f";
-const SPONSOR = "0c4a8e11-2b3d-4c5e-9f60-7a8b9c0d1e2f";
-const ME = "1d5b9f21-3c4e-4d6f-8a70-8b9c0d1e2f3a";
-const OTHER = "1d5b9f22-3c4e-4d6f-8a70-8b9c0d1e2f3a";
-const ROOM = "2e6ca032-4d5f-4e70-9b81-9c0d1e2f3a4b";
-const RATING = "3f7db143-5e60-4f81-8c92-0d1e2f3a4b5c";
 const SECTION = "5a9fd365-7082-41a3-8eb4-2f3a4b5c6d01";
 
 const E_OPEN = "40e8c254-6f71-4092-9da3-1e2f3a4b5c01";
@@ -54,139 +71,6 @@ const E_MINE = "40e8c254-6f71-4092-9da3-1e2f3a4b5c02";
 const E_GRADED = "40e8c254-6f71-4092-9da3-1e2f3a4b5c03";
 const E_HELD = "40e8c254-6f71-4092-9da3-1e2f3a4b5c04";
 const E_STALE = "40e8c254-6f71-4092-9da3-1e2f3a4b5c05";
-
-const challenge = (
-  id: string,
-  label: string,
-  mode: "scheduled" | "unscheduled" | "remote",
-) => ({
-  id,
-  parentId: null,
-  mode,
-  label,
-  isGeneral: id === GENERAL,
-  isGroup: false,
-});
-const general = challenge(GENERAL, "General", "unscheduled");
-const sponsor = challenge(SPONSOR, "Best Use of AI", "scheduled");
-
-const entry = (id: string, title: string) => ({
-  id,
-  title,
-  description: "",
-  submissionUrl: null,
-  demoLinks: [],
-  videoUrl: null,
-  technologies: [],
-  participantCount: 2,
-});
-
-const name = (table: unknown) => getTableName(table as never);
-const via = (...tables: unknown[]) => tables.map(name).join(">");
-
-type Rows =
-  | unknown[]
-  | ((call: number, fields?: Record<string, unknown>) => unknown[]);
-type Answers = Record<string, Rows>;
-type Event = {
-  kind: "select" | "execute" | "insert" | "update" | "delete";
-  table?: string;
-  where?: SQL;
-  values?: Record<string, unknown>;
-  /** What a select asked for. */
-  fields?: Record<string, unknown>;
-};
-
-/** The nth read of a table gets the nth list. */
-const byCall =
-  (...lists: unknown[][]) =>
-  (call: number) =>
-    lists[call] ?? [];
-
-function fakeDb(answers: Answers) {
-  const events: Event[] = [];
-  const reads = new Map<string, number>();
-  const rowsFor = (key: string, fields?: Record<string, unknown>) => {
-    const call = reads.get(key) ?? 0;
-    reads.set(key, call + 1);
-    const answer = answers[key] ?? [];
-    return typeof answer === "function" ? answer(call, fields) : answer;
-  };
-
-  const select = (fields?: Record<string, unknown>) => {
-    const joined: unknown[] = [];
-    let from: unknown;
-    let where: SQL | undefined;
-    const chain: Record<string, unknown> = {
-      from: (table: unknown) => {
-        from = table;
-        return chain;
-      },
-      where: (clause: SQL) => {
-        where = clause;
-        return chain;
-      },
-      then: (
-        ok: (rows: unknown[]) => unknown,
-        fail: (error: unknown) => unknown,
-      ) => {
-        const key = via(from, ...joined);
-        events.push({ kind: "select", table: key, where, fields });
-        return Promise.resolve(rowsFor(key, fields)).then(ok, fail);
-      },
-    };
-    for (const join of ["innerJoin", "leftJoin"]) {
-      chain[join] = (table: unknown) => {
-        joined.push(table);
-        return chain;
-      };
-    }
-    for (const method of ["orderBy", "limit", "for"]) {
-      chain[method] = () => chain;
-    }
-    return chain;
-  };
-
-  const db: Record<string, unknown> = {
-    select,
-    execute: () => {
-      events.push({ kind: "execute" });
-      return Promise.resolve();
-    },
-    insert: (table: unknown) => ({
-      values: (values: Record<string, unknown>) => {
-        events.push({ kind: "insert", table: via(table), values });
-        const done = Promise.resolve([{ id: "new" }]);
-        return Object.assign(done, { returning: () => done });
-      },
-    }),
-    update: (table: unknown) => ({
-      set: (values: Record<string, unknown>) => ({
-        where: (where: SQL) => {
-          events.push({ kind: "update", table: via(table), where, values });
-          return Promise.resolve();
-        },
-      }),
-    }),
-    delete: (table: unknown) => ({
-      where: (where: SQL) => {
-        events.push({ kind: "delete", table: via(table), where });
-        return Promise.resolve();
-      },
-    }),
-    transaction: (run: (tx: unknown) => Promise<unknown>) => run(db),
-  };
-  return { db, events };
-}
-
-const rating = {
-  id: RATING,
-  kind: "rating",
-  label: "Impact",
-  description: "",
-  required: true,
-  guestVisibility: null,
-};
 
 /** What the desk reads for a member judge at an edition with one challenge. */
 const memberWorld = (over: Answers = {}): Answers => ({
@@ -228,53 +112,15 @@ const guestWorld = (over: Answers = {}): Answers => ({
   ...over,
 });
 
-// A new user for each context: the desk's flood guard counts calls per user,
-// and this file makes more than one user's worth.
-let callers = 0;
-const memberCtx = (db: unknown) => {
-  const userId = `judge-user-${(callers += 1)}`;
-  return {
-    db,
-    session: { user: { id: userId, name: "Grace Hopper" } },
-    userId,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as never;
-};
-
-const guestCtx = (db: unknown) =>
-  ({
-    db,
-    session: null,
-    userId: undefined,
-    clientIp: "127.0.0.2",
-    req: {
-      headers: {
-        get: (header: string) =>
-          header.toLowerCase() === "cookie"
-            ? "query_judging_guest=guest-token"
-            : null,
-      },
-    },
-  }) as never;
-
-const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000);
-const minutesAhead = (minutes: number) =>
-  new Date(Date.now() + minutes * 60_000);
-
 const evaluations = name(judgingEvaluations);
 const drafts = name(judgingEvaluationDrafts);
 
 const kinds = (events: Event[]) => events.map((e) => e.kind);
-const wrote = (events: Event[], table: unknown) =>
-  events.some((e) => e.kind === "insert" && e.table === name(table));
 const firstRead = (events: Event[], table: string) =>
   events.findIndex((e) => e.kind === "select" && e.table === table);
 
 const gradedElsewhere =
   "Another judge has already graded this project for General. Each project is graded once.";
-const beingGraded =
-  "Another judge is grading this project right now. Pick another one.";
 
 const sponsorRefusal =
   "Sponsor judges grade Best Use of AI. Sit in its room to grade it.";

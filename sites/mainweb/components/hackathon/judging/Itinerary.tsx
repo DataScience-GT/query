@@ -7,7 +7,7 @@ import type { Tone } from "@query/ui/classes";
 import { useServerNow } from "@/components/judge/use-server-now";
 import { eventClock, eventDay } from "./event-time";
 
-export type ItineraryData = RouterOutputs["judging"]["hacker"]["itinerary"];
+type ItineraryData = RouterOutputs["judging"]["hacker"]["itinerary"];
 type Appointment = ItineraryData["appointments"][number];
 
 /** "Klaus · 1116", or whichever half is known. */

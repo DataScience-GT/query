@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import dynamic from "next/dynamic";
 import { Modal } from "@query/ui/Modal";
 import { Spinner } from "@query/ui/Spinner";

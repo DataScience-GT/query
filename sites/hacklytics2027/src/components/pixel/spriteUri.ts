@@ -1,8 +1,8 @@
 import type { Palette, SpriteMap } from "./sprites";
 
 /**
- * Serialize a pixel map to an inline SVG data URI so it can be tiled with
- * `background-repeat`, and to back the <img> sprites in PixelSprite.
+ * Serialize a pixel map to an inline SVG data URI, to back the <img> sprites in
+ * PixelSprite.
  */
 export function spriteToDataUri(map: SpriteMap, colors: Palette) {
   const w = Math.max(...map.map((r) => r.length));
@@ -25,5 +25,5 @@ export function spriteToDataUri(map: SpriteMap, colors: Palette) {
   });
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges">${body}</svg>`;
-  return { uri: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`, w, h };
+  return { src: `data:image/svg+xml,${encodeURIComponent(svg)}`, w, h };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Elements,
@@ -11,7 +11,6 @@ import {
 import { loadStripe } from "@stripe/stripe-js";
 import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { X, Shield, Lock } from "lucide-react";
-import { useState } from "react";
 import { useTheme } from "next-themes";
 import { formatCents } from "@query/api/pricing";
 import { useIsClient } from "@/lib/use-is-client";
@@ -188,7 +187,6 @@ function CheckoutForm({
   );
 }
 
-// ── Modal shell ────────────────────────────────────────────────────────────
 interface StripePaymentModalProps {
   clientSecret: string;
   publishableKey: string;
@@ -410,7 +408,6 @@ export function StripePaymentModal({
   );
 }
 
-// ── Shared modal shell ─────────────────────────────────────────────────────
 function ModalShell({
   children,
   onClose,

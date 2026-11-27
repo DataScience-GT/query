@@ -6,7 +6,6 @@ import {
   decodeStoredFileName,
   MAX_RESUME_BYTES,
   uploadedResumeFileName,
-  displayResumeFileName,
   resumeContentDisposition,
 } from "./resume-file";
 
@@ -81,16 +80,6 @@ describe("uploadedResumeFileName", () => {
 
   it("strips CR/LF from the header", () => {
     expect(uploadedResumeFileName("ok.pdf\r\nX-Evil: 1")).toBe("ok.pdf");
-  });
-});
-
-describe("displayResumeFileName", () => {
-  it("renders a previously stored encoded name", () => {
-    expect(displayResumeFileName("Wei%20Chen.pdf")).toBe("Wei Chen.pdf");
-  });
-
-  it("leaves a truncated escape in place instead of crashing the page", () => {
-    expect(displayResumeFileName("file%2")).toBe("file%2");
   });
 });
 

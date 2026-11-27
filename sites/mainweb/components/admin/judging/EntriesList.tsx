@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { keepPreviousData } from "@tanstack/react-query";
 import { ExternalLink, Search } from "lucide-react";
 import type { RouterOutputs } from "@query/api";
@@ -28,6 +28,7 @@ import {
 } from "@/components/admin/judging/shared";
 import type { Challenge } from "@/components/admin/judging/shared";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
+import { useDebounced } from "@/components/admin/hackathons/points/use-debounced";
 
 type Entry =
   RouterOutputs["judging"]["admin"]["listEntries"]["entries"][number];
@@ -74,17 +75,12 @@ function flagLine(flag: CheckInFlag) {
 /** The projects in judging, with their challenges and remove/restore. */
 export function EntriesList({ hackathonId }: { hackathonId: string }) {
   const [search, setSearch] = useState("");
-  const [query, setQuery] = useState("");
+  const query = useDebounced(search, 250).trim();
   const [source, setSource] = useState<(typeof SOURCES)[number]["id"]>("all");
   const [state, setState] = useState<(typeof STATUSES)[number]["id"]>("live");
   const [challengeId, setChallengeId] = useState("");
   const [flagged, setFlagged] = useState(false);
   const [page, setPage] = useState(1);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setQuery(search.trim()), 250);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   const entries = trpc.judging.admin.listEntries.useQuery(
     {

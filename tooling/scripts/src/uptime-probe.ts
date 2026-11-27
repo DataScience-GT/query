@@ -20,9 +20,9 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
-export const DEFAULT_URL = "https://datasciencegt.org/api/ping";
-export const ATTEMPTS = 3;
-export const TIMEOUT_MS = 10_000;
+const DEFAULT_URL = "https://datasciencegt.org/api/ping";
+const ATTEMPTS = 3;
+const TIMEOUT_MS = 10_000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const KEEP_DAYS = 90;
 /** One probe every 5 minutes is 288; the cap only guards against a burst. */
@@ -33,14 +33,14 @@ const MAX_RECENT = 400;
  * types for the read side; the probe must not import from the web app, so the
  * two are kept in sync by hand.
  */
-export type Probe = { t: number; ok: boolean; ms: number; code: number };
-export type ProbeDay = {
+type Probe = { t: number; ok: boolean; ms: number; code: number };
+type ProbeDay = {
   day: string;
   probes: number;
   up: number;
   worstMs: number;
 };
-export type Deploy = {
+type Deploy = {
   sha: string;
   committedAt: string | null;
   rollout: string;
@@ -54,13 +54,7 @@ export type UptimeData = {
 };
 
 /** The outcome of one probe, before it is stamped with a time. */
-export type ProbeResult = Omit<Probe, "t">;
-
-export type ProbeOptions = {
-  attempts?: number;
-  timeoutMs?: number;
-  retryDelayMs?: number;
-};
+type ProbeResult = Omit<Probe, "t">;
 
 const dayOf = (t: number) => new Date(t).toISOString().slice(0, 10);
 
@@ -72,23 +66,16 @@ export function emptyData(): UptimeData {
  * One probe: up to ATTEMPTS tries, a non-2xx or a timeout is down. Records the
  * first success, else the last failure. `code` is 0 when no response arrived.
  */
-export async function probe(
-  url: string,
-  {
-    attempts = ATTEMPTS,
-    timeoutMs = TIMEOUT_MS,
-    retryDelayMs = 2000,
-  }: ProbeOptions = {},
-): Promise<ProbeResult> {
+async function probe(url: string, retryDelayMs: number): Promise<ProbeResult> {
   let last: ProbeResult = { ok: false, ms: 0, code: 0 };
-  for (let i = 0; i < attempts; i++) {
+  for (let i = 0; i < ATTEMPTS; i++) {
     if (i > 0) {
       await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
     }
     const started = performance.now();
     try {
       const res = await fetch(url, {
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
         headers: { "user-agent": "dsgt-uptime-probe" },
         cache: "no-store",
       });
@@ -161,9 +148,10 @@ async function readData(file: string): Promise<UptimeData | null> {
 async function main() {
   const url = process.env.UPTIME_URL || DEFAULT_URL;
   const file = process.env.UPTIME_FILE || "uptime.json";
-  const result = await probe(url, {
-    retryDelayMs: Number(process.env.UPTIME_RETRY_DELAY_MS ?? 2000),
-  });
+  const result = await probe(
+    url,
+    Number(process.env.UPTIME_RETRY_DELAY_MS ?? 2000),
+  );
   const { DEPLOY_SHA, DEPLOY_COMMITTED_AT, DEPLOY_ROLLOUT } = process.env;
   const deploy: Deploy | null = DEPLOY_SHA
     ? {

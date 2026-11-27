@@ -13,13 +13,14 @@ import { logSecurityEvent } from "../../middleware/security";
 import { createOrUpdateMembership, splitName } from "@query/db/services/membership";
 import { entitlementForPayment } from "@query/db/services/pricing";
 import { membershipGrants } from "../../services/metrics";
-import { clearMembershipCaches } from "./client";
+import { clearMembershipCaches } from "../../middleware/cache";
+import { badRequest, notFound } from "../errors";
 
 export const linkingProcedures = {
   // Auto-link a Stripe payment matching the user's email.
   attemptAutoLink: protectedProcedure.mutation(async ({ ctx }) => {
     // Basic rate limit to prevent loop hammering (max 1 request per 10 seconds per user)
-    const rateLimitKey = `rl:autolink:${ctx.userId!}`;
+    const rateLimitKey = `rl:autolink:${ctx.userId}`;
     if (ctx.cache.get(rateLimitKey)) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
@@ -30,7 +31,7 @@ export const linkingProcedures = {
 
     return await ctx.db!.transaction(async (tx) => {
       const user = await tx.query.users.findFirst({
-        where: { id: ctx.userId! },
+        where: { id: ctx.userId },
       });
 
       if (!user?.email) return { success: false };
@@ -51,7 +52,7 @@ export const linkingProcedures = {
 
       // Verify not already linked (double check)
       const existingLink = await tx.query.userAccountLinks.findFirst({
-        where: { userId: ctx.userId! },
+        where: { userId: ctx.userId },
       });
       if (existingLink) return { success: true };
 
@@ -65,7 +66,7 @@ export const linkingProcedures = {
       const claimed = await tx
         .update(stripePayments)
         .set({
-          linkedUserId: ctx.userId!,
+          linkedUserId: ctx.userId,
           linkedAt: new Date(),
           updatedAt: new Date(),
         })
@@ -79,7 +80,7 @@ export const linkingProcedures = {
       if (claimed.length === 0) return { success: false };
 
       await tx.insert(userAccountLinks).values({
-        userId: ctx.userId!,
+        userId: ctx.userId,
         stripePaymentId: payment.id,
         providedFirstName: firstName,
         providedLastName: lastName,
@@ -87,7 +88,7 @@ export const linkingProcedures = {
       });
 
       await createOrUpdateMembership(tx as unknown as DrizzleDB, {
-        userId: ctx.userId!,
+        userId: ctx.userId,
         firstName,
         lastName,
         bootcampMember,
@@ -96,7 +97,7 @@ export const linkingProcedures = {
       });
 
       membershipGrants.inc({ source: "autolink", plan });
-      clearMembershipCaches(ctx.cache, ctx.userId!);
+      clearMembershipCaches(ctx.userId);
 
       return { success: true };
     });
@@ -106,7 +107,7 @@ export const linkingProcedures = {
   // email (the auto-link case).
   checkPendingPayment: protectedProcedure.query(async ({ ctx }) => {
     const user = await ctx.db!.query.users.findFirst({
-      where: { id: ctx.userId! },
+      where: { id: ctx.userId },
     });
 
     if (!user?.email) {
@@ -153,11 +154,9 @@ export const linkingProcedures = {
         const entitlement = payment && entitlementForPayment(payment);
 
         if (!payment || !entitlement) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message:
-              "No payment found with that email. Please check the email you used during checkout.",
-          });
+          throw notFound(
+            "No payment found with that email. Please check the email you used during checkout.",
+          );
         }
 
         // Prove the caller is the payer: the signed-in account's email must be the
@@ -166,7 +165,7 @@ export const linkingProcedures = {
         // as a substitute. A payment made under a different address is linked
         // by an officer from the admin side.
         const account = await tx.query.users.findFirst({
-          where: { id: ctx.userId! },
+          where: { id: ctx.userId },
           columns: { email: true },
         });
 
@@ -185,11 +184,9 @@ export const linkingProcedures = {
           });
           // Same message as "no payment", so this cannot be used to discover which
           // addresses have an unclaimed payment against them.
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message:
-              "No payment found with that email. Please check the email you used during checkout.",
-          });
+          throw notFound(
+            "No payment found with that email. Please check the email you used during checkout.",
+          );
         }
 
         const existingLink = await tx.query.userAccountLinks.findFirst({
@@ -202,21 +199,17 @@ export const linkingProcedures = {
             identifier: ctx.userId ?? "unknown",
             details: `Attempted to link already linked payment ${payment.id}`,
           });
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "This payment has already been linked to an account.",
-          });
+          throw badRequest(
+            "This payment has already been linked to an account.",
+          );
         }
 
         const userExistingLink = await tx.query.userAccountLinks.findFirst({
-          where: { userId: ctx.userId! },
+          where: { userId: ctx.userId },
         });
 
         if (userExistingLink) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Your account is already linked to a payment.",
-          });
+          throw badRequest("Your account is already linked to a payment.");
         }
 
         // Lock the payment and claim it only while still unlinked, so two
@@ -230,7 +223,7 @@ export const linkingProcedures = {
         const claimed = await tx
           .update(stripePayments)
           .set({
-            linkedUserId: ctx.userId!,
+            linkedUserId: ctx.userId,
             linkedAt: new Date(),
             updatedAt: new Date(),
           })
@@ -243,14 +236,13 @@ export const linkingProcedures = {
           .returning({ id: stripePayments.id });
 
         if (claimed.length === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "This payment has already been linked to an account.",
-          });
+          throw badRequest(
+            "This payment has already been linked to an account.",
+          );
         }
 
         await tx.insert(userAccountLinks).values({
-          userId: ctx.userId!,
+          userId: ctx.userId,
           stripePaymentId: payment.id,
           providedFirstName: input.firstName,
           providedLastName: input.lastName,
@@ -258,7 +250,7 @@ export const linkingProcedures = {
         });
 
         await createOrUpdateMembership(tx as unknown as DrizzleDB, {
-          userId: ctx.userId!,
+          userId: ctx.userId,
           firstName: input.firstName,
           lastName: input.lastName,
           bootcampMember: entitlement.bootcamp,
@@ -267,7 +259,7 @@ export const linkingProcedures = {
         });
 
         membershipGrants.inc({ source: "link", plan: entitlement.plan });
-        clearMembershipCaches(ctx.cache, ctx.userId!);
+        clearMembershipCaches(ctx.userId);
 
         return {
           success: true,
@@ -359,11 +351,9 @@ export const linkingProcedures = {
           )
           .limit(1);
         if (!user) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message:
-              "No account has that email. They need to sign in to the portal once first.",
-          });
+          throw notFound(
+            "No account has that email. They need to sign in to the portal once first.",
+          );
         }
 
         const [payment] = await tx
@@ -372,42 +362,31 @@ export const linkingProcedures = {
           .where(eq(stripePayments.id, input.paymentId))
           .for("update");
         if (!payment) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Payment not found.",
-          });
+          throw notFound("Payment not found.");
         }
         if (payment.paymentStatus !== "paid") {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "This payment was not paid, so it cannot grant a membership.",
-          });
+          throw badRequest(
+            "This payment was not paid, so it cannot grant a membership.",
+          );
         }
         if (payment.linkedUserId) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "This payment has already been linked to an account.",
-          });
+          throw badRequest(
+            "This payment has already been linked to an account.",
+          );
         }
 
         const entitlement = entitlementForPayment(payment);
         if (!entitlement) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "This payment amount does not match any membership, so it cannot be linked. Use Memberships to grant time by hand.",
-          });
+          throw badRequest(
+            "This payment amount does not match any membership, so it cannot be linked. Use Memberships to grant time by hand.",
+          );
         }
 
         const userExistingLink = await tx.query.userAccountLinks.findFirst({
           where: { userId: user.id },
         });
         if (userExistingLink) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "That account is already linked to a payment.",
-          });
+          throw badRequest("That account is already linked to a payment.");
         }
 
         const claimed = await tx
@@ -425,10 +404,9 @@ export const linkingProcedures = {
           )
           .returning({ id: stripePayments.id });
         if (claimed.length === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "This payment has already been linked to an account.",
-          });
+          throw badRequest(
+            "This payment has already been linked to an account.",
+          );
         }
 
         const payer = splitName(payment.customerName);
@@ -457,7 +435,7 @@ export const linkingProcedures = {
         source: "admin_link",
         plan: outcome.entitlement.plan,
       });
-      clearMembershipCaches(ctx.cache, outcome.user.id);
+      clearMembershipCaches(outcome.user.id);
 
       // After the transaction, as in member.adminGrant.
       await recordAdminAction(db, {
@@ -485,7 +463,7 @@ export const linkingProcedures = {
   // The current user's linked payment status.
   getLinkedPayment: protectedProcedure.query(async ({ ctx }) => {
     const link = await ctx.db!.query.userAccountLinks.findFirst({
-      where: { userId: ctx.userId! },
+      where: { userId: ctx.userId },
       with: {
         stripePayment: true,
       },

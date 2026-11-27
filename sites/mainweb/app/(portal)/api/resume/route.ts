@@ -4,14 +4,13 @@ import { db, memberResumes } from "@query/db";
 import { eq } from "drizzle-orm";
 import { cache, rateLimitShared } from "@query/api";
 import { PDFDocument } from "pdf-lib";
-import type { DrizzleDB } from "@query/db";
+import { staffCaller } from "@/lib/staff-caller";
+import { isSameOriginRequest } from "@/lib/same-origin";
 import {
   MAX_RESUME_BYTES,
   looksLikePdf,
-  resumeCaller,
-} from "@/lib/resume-access";
-import { isSameOriginRequest } from "@/lib/same-origin";
-import { uploadedResumeFileName } from "@/lib/resume-file";
+  uploadedResumeFileName,
+} from "@/lib/resume-file";
 import {
   deleteResume,
   putResume,
@@ -38,7 +37,7 @@ export async function POST(request: NextRequest) {
   if (!isSameOriginRequest(request.headers)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  const { userId } = await resumeCaller();
+  const { userId } = await staffCaller();
   if (!userId || !db) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
@@ -124,7 +123,7 @@ export async function POST(request: NextRequest) {
 
   const record = { storageKey, fileName, sizeBytes: stored.length };
 
-  await (db as DrizzleDB)
+  await db
     .insert(memberResumes)
     .values({ userId, ...record })
     .onConflictDoUpdate({
@@ -142,12 +141,12 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE() {
-  const { userId } = await resumeCaller();
+  const { userId } = await staffCaller();
   if (!userId || !db) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
-  const [removed] = await (db as DrizzleDB)
+  const [removed] = await db
     .delete(memberResumes)
     .where(eq(memberResumes.userId, userId))
     .returning({ storageKey: memberResumes.storageKey });
