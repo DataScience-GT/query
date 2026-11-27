@@ -11,6 +11,7 @@ import {
   judgingEntries,
   judgingRooms,
 } from "@query/db";
+import { notFound } from "../../errors";
 import type { JudgingDb } from "../../../services/judging/config";
 import {
   lockEdition,
@@ -65,9 +66,6 @@ export const SEATED_WINDOW_MS = 15 * 60 * 1000;
 
 /** `%` and `_` in a search box are text, not wildcards. */
 export const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
-
-export const notFound = (message: string) =>
-  new TRPCError({ code: "NOT_FOUND", message });
 
 export const refuse = (message: string) =>
   new TRPCError({ code: "PRECONDITION_FAILED", message });

@@ -20,6 +20,7 @@ import {
   roomLinkUrl,
 } from "../../../services/judging/rooms";
 import { uuid, hackathonInput, lockRoom } from "./shared";
+import { notFound } from "../../errors";
 
 export const roomLinkProcedures = {
   /**
@@ -157,11 +158,9 @@ export const roomLinkProcedures = {
         return admitted;
       });
       if (!session) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message:
-            "That guest's session has ended. Ask them to scan the room's code again.",
-        });
+        throw notFound(
+          "That guest's session has ended. Ask them to scan the room's code again.",
+        );
       }
 
       await recordAdminAction(db, {

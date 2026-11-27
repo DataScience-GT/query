@@ -26,11 +26,11 @@ import {
   evictResults,
   hackathonInput,
   lockEntry,
-  notFound,
   refuse,
   restoreLockedEntry,
   uuid,
 } from "./shared";
+import { notFound } from "../../errors";
 
 const note = z.string().trim().max(500).optional();
 

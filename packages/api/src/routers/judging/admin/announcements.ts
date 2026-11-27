@@ -28,9 +28,9 @@ import {
   uuid,
   hackathonInput,
   announcementText,
-  notFound,
   refuse,
 } from "./shared";
+import { notFound } from "../../errors";
 
 export const announcementProcedures = {
   /** The messages on judges' screens now: one for everyone, one per room. */

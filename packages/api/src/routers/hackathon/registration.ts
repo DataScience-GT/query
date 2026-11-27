@@ -26,6 +26,7 @@ import {
   syncDiscordRoles,
 } from "../../services/discord";
 import { rateLimitShared } from "../../middleware/security";
+import { notFound } from "../errors";
 
 // Postgres unique_violation on hackathon_participant_hackathon_user_idx — a second
 // submission of the same form. Drizzle wraps every driver error in a
@@ -179,10 +180,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
           });
 
           if (!hackathon) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Hackathon not found",
-            });
+            throw notFound("Hackathon not found");
           }
 
           if (hackathon.status !== "open") {
@@ -401,10 +399,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         columns: { status: true, registrationDeadline: true },
       });
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
       if (
         hackathon.status !== "open" ||
@@ -466,10 +461,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       });
 
       if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You are not registered for this hackathon.",
-        });
+        throw notFound("You are not registered for this hackathon.");
       }
 
       // A finished event's registrations are its record of who took part.
@@ -592,10 +584,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         columns: { status: true, registrationDeadline: true },
       });
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
       if (
         hackathon.status !== "open" ||
@@ -613,10 +602,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         columns: { id: true, registrationStatus: true },
       });
       if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You are not registered for this hackathon.",
-        });
+        throw notFound("You are not registered for this hackathon.");
       }
       if (participant.registrationStatus !== "pending") {
         throw new TRPCError({
@@ -720,10 +706,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         },
       });
       if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You are not registered for this hackathon.",
-        });
+        throw notFound("You are not registered for this hackathon.");
       }
 
       // checked_in is accepted too: a door scan landing before a stale tab's

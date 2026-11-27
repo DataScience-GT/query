@@ -21,6 +21,7 @@ import { isUniqueViolation } from "../middleware/db-errors";
 import { isBugTesterRole } from "../types/portal-context";
 import { checkInCounts, withCheckInCounts } from "../services/derived-counts";
 import type { DrizzleDB } from "@query/db";
+import { notFound } from "./errors";
 
 // The first instant of the term currentTerm() names, in Atlanta: spring opens
 // Jan 1 and fall Jun 1, since summer sells fall. Jan 1 is always standard time
@@ -152,7 +153,7 @@ export const eventRouter = createTRPCRouter({
       });
 
       if (!existing) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+        throw notFound("Event not found");
       }
 
       // A cap below the number already scanned would read over-full forever and
@@ -219,10 +220,7 @@ export const eventRouter = createTRPCRouter({
         .returning();
 
       if (!updatedEvent) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Event not found",
-        });
+        throw notFound("Event not found");
       }
 
       ctx.cache.deletePattern(`event:${input.eventId}`);
@@ -365,10 +363,7 @@ export const eventRouter = createTRPCRouter({
       });
 
       if (!event) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Event not found",
-        });
+        throw notFound("Event not found");
       }
 
       // Every check-in row is loaded above, so that is the count.
@@ -398,10 +393,7 @@ export const eventRouter = createTRPCRouter({
         .returning();
 
       if (!updatedEvent) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Event not found",
-        });
+        throw notFound("Event not found");
       }
 
       ctx.cache.deletePattern(`event:${input.eventId}`);
@@ -438,10 +430,7 @@ export const eventRouter = createTRPCRouter({
           });
 
           if (!event) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Invalid QR code",
-            });
+            throw notFound("Invalid QR code");
           }
 
           if (!event.checkInEnabled) {
@@ -543,10 +532,7 @@ export const eventRouter = createTRPCRouter({
           });
 
           if (!event) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Event not found",
-            });
+            throw notFound("Event not found");
           }
 
           // lower() on both sides: some older rows kept the casing they were
@@ -560,11 +546,9 @@ export const eventRouter = createTRPCRouter({
           });
 
           if (!user) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message:
-                "Nobody has signed in with that email yet. They need an account first.",
-            });
+            throw notFound(
+              "Nobody has signed in with that email yet. They need an account first.",
+            );
           }
 
           // Read before the row lock, not after. The FOR UPDATE below
@@ -619,10 +603,7 @@ export const eventRouter = createTRPCRouter({
           });
 
           if (!event) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Event not found",
-            });
+            throw notFound("Event not found");
           }
 
           const member = await tx.query.members.findFirst({
@@ -638,10 +619,7 @@ export const eventRouter = createTRPCRouter({
           });
 
           if (!member) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Unrecognised pass. It may have been rotated.",
-            });
+            throw notFound("Unrecognised pass. It may have been rotated.");
           }
 
           const name = `${member.firstName} ${member.lastName}`.trim();
@@ -726,10 +704,7 @@ export const eventRouter = createTRPCRouter({
             .returning({ id: eventCheckIns.id });
 
           if (removed.length === 0) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "That person is not checked in to this event.",
-            });
+            throw notFound("That person is not checked in to this event.");
           }
 
           ctx.cache.deletePattern(`event:${input.eventId}`);

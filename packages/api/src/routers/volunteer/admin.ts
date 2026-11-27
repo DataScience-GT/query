@@ -18,6 +18,7 @@ import {
 } from "../../services/volunteer";
 import { refuseBugTester } from "../hackathon/admin/roster";
 import { toSlug } from "../hackathon/crud";
+import { notFound } from "../errors";
 
 // Every application for an edition, with the person. One read: an edition
 // has tens of volunteers, so filtering and counting happen on the rows
@@ -95,10 +96,7 @@ export const volunteerAdminRouter = createTRPCRouter({
         with: { user: { columns: { email: true } } },
       });
       if (!before) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Application not found",
-        });
+        throw notFound("Application not found");
       }
       if (before.status === "withdrawn") {
         throw new TRPCError({

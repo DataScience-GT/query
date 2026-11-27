@@ -15,6 +15,7 @@ import { hackathonEventAttendees, hackathonParticipants } from "@query/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { checkInParticipant } from "./check-in-participant";
+import { notFound } from "../../errors";
 
 export const checkInProcedures = {
   // Who scanned into one event. The scanner writes these rows and nothing ever
@@ -40,7 +41,7 @@ export const checkInProcedures = {
       });
 
       if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
+        throw notFound("Event not found.");
       }
 
       const [rows, [totals]] = await Promise.all([
@@ -85,7 +86,7 @@ export const checkInProcedures = {
       });
 
       if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
+        throw notFound("Event not found.");
       }
 
       // The participant row is locked first, the way recordEventAttendance and a
@@ -116,10 +117,7 @@ export const checkInProcedures = {
       });
 
       if (deleted.length === 0) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That participant is not checked into this event.",
-        });
+        throw notFound("That participant is not checked into this event.");
       }
 
       // Volunteers reach this, so it is the widest-held destructive action in the
@@ -213,7 +211,7 @@ export const checkInProcedures = {
       });
 
       if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
+        throw notFound("Event not found.");
       }
 
       const matches = await searchParticipants(db, {
@@ -284,14 +282,11 @@ export const checkInProcedures = {
       ]);
 
       if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That person is not registered for this hackathon.",
-        });
+        throw notFound("That person is not registered for this hackathon.");
       }
 
       if (!event) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
+        throw notFound("Event not found.");
       }
 
       const name = fullName(

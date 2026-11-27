@@ -7,6 +7,7 @@ import { callerIsAdmin, isAdmin } from "../../middleware/procedures";
 import { recordAdminAction } from "../../middleware/audit";
 import { assertHackathonVisible } from "./visibility";
 import type { DrizzleDB } from "@query/db";
+import { notFound } from "../errors";
 
 // Same visibility rule as getPublicProjects: a project becomes public once
 // its team has actually submitted it. Drafts stay hidden.
@@ -61,10 +62,7 @@ export const hackathonContentRouter = createTRPCRouter({
       });
 
       if (!existing) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Project not found",
-        });
+        throw notFound("Project not found");
       }
 
       const [updated] = await db
@@ -102,10 +100,7 @@ export const hackathonContentRouter = createTRPCRouter({
       });
 
       if (!existing) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Project not found",
-        });
+        throw notFound("Project not found");
       }
 
       // In judging either by status or because it was promoted into a judging

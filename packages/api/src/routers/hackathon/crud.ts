@@ -22,6 +22,7 @@ import {
   markEditionRolesPending,
   syncDiscordRolesFor,
 } from "../../services/discord";
+import { notFound } from "../errors";
 
 // Every hackathon read below returns currentParticipants counted from the
 // participant rows (one grouped query per call). The stored column is retired:
@@ -238,10 +239,7 @@ export const hackathonCrudRouter = createTRPCRouter({
       const assertVisible = async (row: NonNullable<HackathonItem>) => {
         if (!STAFF_ONLY_STATUSES.includes(row.status)) return;
         if (await callerIsAdmin(ctx)) return;
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       };
 
       const isUuid =
@@ -271,18 +269,12 @@ export const hackathonCrudRouter = createTRPCRouter({
         : await findByNameOrSlug(ctx.db as DrizzleDB, input.id);
 
       if (!found) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       const [hackathon] = await withSeatedCounts(ctx.db as DrizzleDB, [found]);
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       ctx.cache.set(CacheKeys.hackathon(hackathon.id), hackathon, VOLATILE_TTL);
@@ -438,10 +430,7 @@ export const hackathonCrudRouter = createTRPCRouter({
       });
 
       if (!existing) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       // Merge with existing dates for partial-update validation
@@ -548,10 +537,7 @@ export const hackathonCrudRouter = createTRPCRouter({
       });
 
       if (!existing) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       if (confirmName.trim() !== existing.name.trim()) {
@@ -585,10 +571,7 @@ export const hackathonCrudRouter = createTRPCRouter({
       }
 
       if (deleted?.length === 0) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       await recordAdminAction(ctx.db as DrizzleDB, {

@@ -60,6 +60,7 @@ import type {
 } from "../../services/judging/itinerary";
 import { holdsEveryRating } from "../../services/judging/scoring-sql";
 import { escapeLike } from "./admin/shared";
+import { notFound } from "../errors";
 
 const hackathonInput = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -103,10 +104,7 @@ async function liveEntry(db: JudgingDb, hackathonId: string, entryId: string) {
     )
     .limit(1);
   if (!entry) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "That project is no longer in judging.",
-    });
+    throw notFound("That project is no longer in judging.");
   }
   return entry;
 }

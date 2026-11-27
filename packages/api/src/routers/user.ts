@@ -7,6 +7,7 @@ import { CacheKeys } from "../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { fetchPortalContext } from "../services/portal-context";
 import { readImageDimensions } from "../services/image-dimensions";
+import { notFound } from "./errors";
 
 // z.string().url() is backed by new URL(), which accepts any scheme, so a
 // stored data: or javascript: URI is handed straight to whoever renders it.
@@ -75,7 +76,7 @@ export const userRouter = createTRPCRouter({
         });
 
         if (!user) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+          throw notFound("User not found");
         }
 
         return {
@@ -97,10 +98,7 @@ export const userRouter = createTRPCRouter({
     const userId = ctx.userId;
 
     if (!ctx.db) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Service unavailable. Try again later.",
-      });
+      throw notFound("Service unavailable. Try again later.");
     }
     const db = ctx.db as DrizzleDB;
 

@@ -9,6 +9,7 @@ import { recordAdminAction } from "../../middleware/audit";
 import { assignCheckInCode } from "../../services/points";
 import { assertHackathonVisible } from "./visibility";
 import type { DrizzleDB } from "@query/db";
+import { notFound } from "../errors";
 
 // What attending is worth. Copied onto each check-in as it happens, so a
 // change here only affects check-ins from then on.
@@ -34,7 +35,7 @@ const findScopedEvent = async (
   });
 
   if (!event) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
+    throw notFound("Event not found.");
   }
 
   return event;
@@ -71,10 +72,7 @@ export const hackathonEventsRouter = createTRPCRouter({
       });
 
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       const [newEvent] = await (ctx.db as DrizzleDB)
@@ -135,7 +133,7 @@ export const hackathonEventsRouter = createTRPCRouter({
       });
 
       if (!existing) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+        throw notFound("Event not found");
       }
 
       // Merge with existing times for partial-update validation
@@ -199,7 +197,7 @@ export const hackathonEventsRouter = createTRPCRouter({
       });
 
       if (!existing) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+        throw notFound("Event not found");
       }
 
       // hackathon_event_attendee cascades off this row. At a keynote that is every

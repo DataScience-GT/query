@@ -25,6 +25,7 @@ import type { DrizzleDB } from "@query/db";
 import { startOfEasternDay } from "../services/eastern-time";
 import { readLiveHackathons } from "../services/metrics";
 import { syncDiscordRoles } from "../services/discord";
+import { notFound } from "./errors";
 
 // Roles are a super admin's to give, with one exception: anyone on the admin
 // team may staff the check-in desk by granting and revoking the volunteer tier,
@@ -64,10 +65,7 @@ export const adminRouter = createTRPCRouter({
     if (cached) return cached;
 
     if (!ctx.db) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Cannot cache the admin",
-      });
+      throw notFound("Cannot cache the admin");
     }
     const admin = await (ctx.db as DrizzleDB).query.admins.findFirst({
       where: { userId: ctx.userId, isActive: true },
@@ -393,7 +391,7 @@ export const adminRouter = createTRPCRouter({
       ]);
 
       if (!user) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        throw notFound("User not found");
       }
       if (existingAdmin) {
         throw new TRPCError({
@@ -468,7 +466,7 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!targetAdmin) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Admin not found" });
+        throw notFound("Admin not found");
       }
       // Both ends of the change count: the role being set above, and the role
       // being held here. Without this a plain admin could "grant volunteer" to
@@ -574,7 +572,7 @@ export const adminRouter = createTRPCRouter({
       });
 
       if (!targetAdmin) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Admin not found" });
+        throw notFound("Admin not found");
       }
       assertMayManage(ctx.admin, { roles: [targetAdmin.role] });
       if (targetAdmin.userId === ctx.userId) {

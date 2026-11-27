@@ -30,6 +30,7 @@ import {
   assertSeats,
   evictParticipantCaches,
 } from "./seats";
+import { notFound } from "../../errors";
 
 export const statusProcedures = {
   updateParticipantStatus: isAdmin
@@ -48,10 +49,7 @@ export const statusProcedures = {
       });
 
       if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Participant not found",
-        });
+        throw notFound("Participant not found");
       }
 
       // `checked_in` is reachable from `approved` and nowhere else. Submitting a
@@ -196,10 +194,7 @@ export const statusProcedures = {
       });
 
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       const { wave, picked, full } = await db.transaction(async (tx) => {
@@ -344,10 +339,7 @@ export const statusProcedures = {
       });
 
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       // Recipients are scoped to this hackathon, like the UPDATE below: a stale id

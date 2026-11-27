@@ -3,6 +3,7 @@
 import { TRPCError } from "@trpc/server";
 import type { DrizzleDB } from "@query/db";
 import { HOUR } from "@query/core";
+import { notFound } from "../errors";
 
 export type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
 
@@ -64,7 +65,7 @@ export async function loadHackathonBaseTime(db: DrizzleDB, hackathonId: string) 
     where: { id: hackathonId },
   });
   if (!hackathon) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Hackathon not found." });
+    throw notFound("Hackathon not found.");
   }
   return hackathon.hackingStartTime ?? hackathon.startDate;
 }

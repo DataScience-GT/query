@@ -24,6 +24,7 @@ import {
   nextOrder,
 } from "../../../services/judging/deliberation";
 import { judgeProcedure, uuid, sectionTitle } from "./shared";
+import { notFound } from "../../errors";
 
 /** Runs a deliberation write: judging open, the judge still seated. */
 function deliberationWrite<T>(
@@ -52,10 +53,7 @@ async function ownedSection(tx: Tx, judgeId: string, sectionId: string) {
     .for("update")
     .limit(1);
   if (!section) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "That section is gone. Reload your shortlist.",
-    });
+    throw notFound("That section is gone. Reload your shortlist.");
   }
   return section;
 }
@@ -81,10 +79,7 @@ async function ownedRow(tx: Tx, judgeId: string, rowId: string) {
     .for("update", { of: judgingDeliberationEntries })
     .limit(1);
   if (!row) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "That project is no longer on your shortlist. Reload it.",
-    });
+    throw notFound("That project is no longer on your shortlist. Reload it.");
   }
   return row;
 }

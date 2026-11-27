@@ -22,6 +22,7 @@ import {
   readBalance,
   searchParticipants,
 } from "../../services/points";
+import { notFound } from "../errors";
 
 const hackathonScope = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -75,10 +76,7 @@ export const pointsStoreRouter = createTRPCRouter({
     });
 
     if (!hackathon) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Hackathon not found",
-      });
+      throw notFound("Hackathon not found");
     }
 
     return {
@@ -118,10 +116,7 @@ export const pointsStoreRouter = createTRPCRouter({
         });
 
       if (!updated) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       // getById serves the hackathon row from cache, store columns included.
@@ -183,10 +178,7 @@ export const pointsStoreRouter = createTRPCRouter({
       });
 
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       const [item] = await db
@@ -230,10 +222,7 @@ export const pointsStoreRouter = createTRPCRouter({
       });
 
       if (!current) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That item is no longer in the store.",
-        });
+        throw notFound("That item is no longer in the store.");
       }
 
       if (current.revision !== input.revision) throw staleItem(current.name);
@@ -287,10 +276,7 @@ export const pointsStoreRouter = createTRPCRouter({
         .for("update");
 
       if (!locked) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That item is no longer in the store.",
-        });
+        throw notFound("That item is no longer in the store.");
       }
 
       const [sales] = await tx
@@ -369,11 +355,9 @@ export const pointsStoreRouter = createTRPCRouter({
       });
 
       if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message:
-            "That pass is not for this hackathon. Search for the person by name instead.",
-        });
+        throw notFound(
+          "That pass is not for this hackathon. Search for the person by name instead.",
+        );
       }
 
       return {
@@ -435,10 +419,7 @@ export const pointsStoreRouter = createTRPCRouter({
             .for("update", { of: hackathonParticipants });
 
           if (!participant) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "That person is not registered for this hackathon.",
-            });
+            throw notFound("That person is not registered for this hackathon.");
           }
 
           const [existing] = await tx
@@ -488,11 +469,9 @@ export const pointsStoreRouter = createTRPCRouter({
             .for("update");
 
           if (!item || item.archived) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message:
-                "That item is no longer in the store. Reload the catalog.",
-            });
+            throw notFound(
+              "That item is no longer in the store. Reload the catalog.",
+            );
           }
 
           if (item.price !== input.unitPrice) {
@@ -608,10 +587,7 @@ export const pointsStoreRouter = createTRPCRouter({
           .for("update");
 
         if (!purchase) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "That sale does not exist.",
-          });
+          throw notFound("That sale does not exist.");
         }
 
         if (purchase.voidedAt) return { purchase, changed: false };

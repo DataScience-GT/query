@@ -7,6 +7,7 @@ import { CacheKeys } from "../../middleware/cache";
 import { notHackathonBanned } from "../../middleware/procedures";
 import { resolveHackathonId } from "../../services/portal-context";
 import type { DrizzleDB } from "@query/db";
+import { notFound } from "../errors";
 
 // The track a judge would like, as the edition spells it. Organisers read it
 // when seating judges, so a free-text value that matches none of the edition's
@@ -208,10 +209,7 @@ export const judgePortalRouter = createTRPCRouter({
             hackathon.status,
           )
         ) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "That hackathon is not taking judge applications.",
-          });
+          throw notFound("That hackathon is not taking judge applications.");
         }
 
         const participant = await tx.query.hackathonParticipants.findFirst({
@@ -356,10 +354,7 @@ export const judgePortalRouter = createTRPCRouter({
           columns: { id: true },
         });
         if (!judge) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "You have not applied to judge this hackathon.",
-          });
+          throw notFound("You have not applied to judge this hackathon.");
         }
 
         const track = await assertTrackExists(
@@ -424,10 +419,7 @@ export const judgePortalRouter = createTRPCRouter({
         )
         .returning({ id: judges.id });
       if (updated.length === 0) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You have not applied to judge this hackathon.",
-        });
+        throw notFound("You have not applied to judge this hackathon.");
       }
       return { success: true };
     }),

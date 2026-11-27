@@ -37,6 +37,7 @@ import {
   openRoomId,
   preferredTrackOf,
 } from "./shared";
+import { notFound } from "../../errors";
 
 export const seatingProcedures = {
   // Who is at the desk, which edition, which room, and where judging stands.
@@ -54,11 +55,9 @@ export const seatingProcedures = {
       .where(eq(hackathons.id, input.hackathonId))
       .limit(1);
     if (!hackathon) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "That hackathon does not exist. Open the desk from the judging page.",
-      });
+      throw notFound(
+        "That hackathon does not exist. Open the desk from the judging page.",
+      );
     }
 
     const challenges = await loadChallenges(db, input.hackathonId);
@@ -199,11 +198,9 @@ export const seatingProcedures = {
         )
         .limit(1);
       if (!room) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message:
-            "That room or table is not open for judging. Pick another from the list.",
-        });
+        throw notFound(
+          "That room or table is not open for judging. Pick another from the list.",
+        );
       }
       const judgeId = ctx.judge.judgeId;
       await ctx.db.transaction((tx) =>

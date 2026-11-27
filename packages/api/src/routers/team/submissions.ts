@@ -11,6 +11,7 @@ import type { DrizzleDB, hackathons } from "@query/db";
 import { computeSubmissionWindow, checkWithdrawWindow } from "./windows";
 import type { Tx } from "./windows";
 import { ownProjectWhere, checkCheckedIn } from "./guards";
+import { notFound } from "../errors";
 
 type Hackathon = typeof hackathons.$inferSelect;
 type Project = typeof hackathonProjects.$inferSelect;
@@ -115,10 +116,7 @@ async function assertTeamCaptain(
   });
 
   if (!team) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Team not found for this hackathon.",
-    });
+    throw notFound("Team not found for this hackathon.");
   }
 
   // Verify captain ownership using teamId comparison (not nested object)
@@ -146,10 +144,7 @@ export const submissionProcedures = {
       });
 
       if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You are not registered for this hackathon.",
-        });
+        throw notFound("You are not registered for this hackathon.");
       }
 
       checkCheckedIn(participant.registrationStatus);
@@ -160,10 +155,7 @@ export const submissionProcedures = {
       });
 
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found.",
-        });
+        throw notFound("Hackathon not found.");
       }
 
       if (hackathon.status === "cancelled") {
@@ -310,10 +302,7 @@ export const submissionProcedures = {
           });
 
           if (!participant) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "You are not registered for this hackathon.",
-            });
+            throw notFound("You are not registered for this hackathon.");
           }
 
           const project = await tx.query.hackathonProjects.findFirst({
@@ -325,10 +314,7 @@ export const submissionProcedures = {
           });
 
           if (!project) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "You do not have a submitted project.",
-            });
+            throw notFound("You do not have a submitted project.");
           }
 
           // Only the captain files or withdraws on a team's behalf, matching the rule

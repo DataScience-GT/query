@@ -18,6 +18,7 @@ import {
   recordEventAttendance,
   selfCheckInWindow,
 } from "../../services/points";
+import { notFound } from "../errors";
 
 const scope = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -37,10 +38,7 @@ async function myParticipant(
   });
 
   if (!participant) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "You are not registered for this hackathon.",
-    });
+    throw notFound("You are not registered for this hackathon.");
   }
 
   return participant;
@@ -147,10 +145,7 @@ export const pointsMeRouter = createTRPCRouter({
     });
 
     if (!hackathon) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Hackathon not found",
-      });
+      throw notFound("Hackathon not found");
     }
 
     const checkedIn = participant.registrationStatus === "checked_in";
@@ -266,11 +261,9 @@ export const pointsMeRouter = createTRPCRouter({
       });
 
       if (!event) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message:
-            "No event here uses that code. Check the code on the screen and try again.",
-        });
+        throw notFound(
+          "No event here uses that code. Check the code on the screen and try again.",
+        );
       }
 
       if (!event.selfCheckIn) {

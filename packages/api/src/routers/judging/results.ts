@@ -56,6 +56,7 @@ import {
   computePlacements,
   formatScore,
 } from "../../services/judging/placements";
+import { notFound } from "../errors";
 
 const hackathonInput = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -638,10 +639,9 @@ export const judgingResultsRouter = createTRPCRouter({
         )
         .limit(1);
       if (!appointment) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That appointment is not in the saved schedule any more.",
-        });
+        throw notFound(
+          "That appointment is not in the saved schedule any more.",
+        );
       }
 
       const [evaluations, drafts, elsewhere] = await Promise.all([
@@ -932,10 +932,7 @@ export const judgingResultsRouter = createTRPCRouter({
         )
         .limit(1);
       if (!evaluation) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That evaluation no longer exists.",
-        });
+        throw notFound("That evaluation no longer exists.");
       }
 
       const [revisions, rubric] = await Promise.all([

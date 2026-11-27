@@ -40,13 +40,13 @@ import {
   uuid,
   hackathonInput,
   escapeLike,
-  notFound,
   refuse,
   evictResults,
   entriesWithOpenFlags,
   lockEntry,
   restoreLockedEntry,
 } from "./shared";
+import { notFound } from "../../errors";
 
 export const entryProcedures = {
   listEntries: isAdmin

@@ -1112,7 +1112,7 @@ export const initiativeRouter = createTRPCRouter({
         columns: { id: true },
       });
       if (!target) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        throw notFound("User not found");
       }
 
       const existing = await db.query.projectLeaders.findFirst({

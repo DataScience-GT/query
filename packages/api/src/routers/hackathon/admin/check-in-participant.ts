@@ -11,6 +11,7 @@ import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { evictParticipantCaches } from "./seats";
 import { autoAssignFoodGroups } from "../../../services/discord";
+import { notFound } from "../../errors";
 
 /**
  * Checks one accepted participant into one event and, on their first arrival,
@@ -34,10 +35,9 @@ export async function checkInParticipant(
   });
 
   if (!participant) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Participant not found or not registered for this hackathon.",
-    });
+    throw notFound(
+      "Participant not found or not registered for this hackathon.",
+    );
   }
 
   // 1b. Only accepted participants may check in. Pending and waitlisted are not
@@ -71,7 +71,7 @@ export async function checkInParticipant(
   });
 
   if (!event) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Event not found." });
+    throw notFound("Event not found.");
   }
 
   // 2b. A pass is only good for the window the event runs in. Nothing else

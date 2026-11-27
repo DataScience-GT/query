@@ -101,6 +101,7 @@ import {
 } from "../../services/judging/schedule/slots";
 import type { ScheduleTiming } from "../../services/judging/schedule/slots";
 import type { Placement, PlanInputs } from "../../services/judging/schedule/inputs";
+import { notFound } from "../errors";
 
 // Building, saving and adjusting the presentation schedule. The solver and
 // its rules live in services/judging/schedule as pure code; this file reads
@@ -1760,10 +1761,7 @@ export const judgingScheduleRouter = createTRPCRouter({
         (a) => a.id === input.appointmentId,
       );
       if (!board.schedule || !appointment) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That appointment no longer exists. Reload the board.",
-        });
+        throw notFound("That appointment no longer exists. Reload the board.");
       }
       assertMovable(appointment.status);
 
@@ -1826,10 +1824,9 @@ export const judgingScheduleRouter = createTRPCRouter({
           (a) => a.id === input.appointmentId,
         );
         if (!board.schedule || !appointment) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "That appointment no longer exists. Reload the board.",
-          });
+          throw notFound(
+            "That appointment no longer exists. Reload the board.",
+          );
         }
         if (appointment.revision !== input.revision) throw stale();
         assertMovable(appointment.status);
@@ -1920,10 +1917,7 @@ export const judgingScheduleRouter = createTRPCRouter({
         (a) => a.id === input.appointmentId,
       );
       if (!board.schedule || !appointment) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That appointment no longer exists. Reload the board.",
-        });
+        throw notFound("That appointment no longer exists. Reload the board.");
       }
       const judging = await loadJudging(db, board, board.schedule, now);
       const saved = judging.saved.find((s) => s.id === appointment.id);
@@ -1988,10 +1982,9 @@ export const judgingScheduleRouter = createTRPCRouter({
           (a) => a.id === input.appointmentId,
         );
         if (!board.schedule || !appointment) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "That appointment no longer exists. Reload the board.",
-          });
+          throw notFound(
+            "That appointment no longer exists. Reload the board.",
+          );
         }
         const judging = await loadJudging(tx, board, board.schedule, now);
         const saved = judging.saved.find((s) => s.id === appointment.id);
@@ -2007,11 +2000,9 @@ export const judgingScheduleRouter = createTRPCRouter({
         if (input.judgeId) {
           const judge = judging.roster.judges.find((j) => j.id === input.judgeId);
           if (!judge) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message:
-                "That judge cannot be assigned. A guest judge needs a room or table of their own.",
-            });
+            throw notFound(
+              "That judge cannot be assigned. A guest judge needs a room or table of their own.",
+            );
           }
           const name = judging.roster.names.get(judge.id) ?? "That judge";
           if (!mayGrade(judge, saved)) {
@@ -2267,11 +2258,9 @@ function assertAssignable(
   if (!board.schedule) throw noSchedule();
   const key = taskKey(task.entryId, task.challengeId);
   if (!board.plan.tasks.some((t) => taskKey(t.entryId, t.challengeId) === key)) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message:
-        "That project is not entered in a scheduled challenge, so it has nothing to book.",
-    });
+    throw notFound(
+      "That project is not entered in a scheduled challenge, so it has nothing to book.",
+    );
   }
   if (board.appointments.some((a) => taskKey(a.entryId, a.challengeId) === key)) {
     throw new TRPCError({

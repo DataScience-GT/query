@@ -16,6 +16,7 @@ import { isBugTesterRole } from "../types/portal-context";
 import { escapeLike } from "./judging/admin/shared";
 import { recordAdminAction } from "../middleware/audit";
 import { splitName } from "@query/db/services/membership";
+import { notFound } from "./errors";
 
 // Letters from every script, plus the combining marks, spaces, hyphens and
 // apostrophes (straight and typographic) that real names are written with.
@@ -183,10 +184,7 @@ export const memberRouter = createTRPCRouter({
       });
 
       if (!member) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Member not found",
-        });
+        throw notFound("Member not found");
       }
 
       const result = await (ctx.db as DrizzleDB)
@@ -255,10 +253,7 @@ export const memberRouter = createTRPCRouter({
       });
 
       if (!member) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Member not found",
-        });
+        throw notFound("Member not found");
       }
 
       return member;
@@ -287,7 +282,7 @@ export const memberRouter = createTRPCRouter({
     );
 
     if (!history) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+      throw notFound("Member not found");
     }
 
     return history;
@@ -312,10 +307,7 @@ export const memberRouter = createTRPCRouter({
       .returning({ passCode: members.passCode });
 
     if (!updated) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "You do not have a member profile yet.",
-      });
+      throw notFound("You do not have a member profile yet.");
     }
 
     return updated;
@@ -480,7 +472,7 @@ export const memberRouter = createTRPCRouter({
       });
 
       if (!user) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        throw notFound("User not found");
       }
 
       // One transaction, behind a lock on the member row. The update and its
@@ -615,10 +607,7 @@ export const memberRouter = createTRPCRouter({
           .for("update");
 
         if (!locked) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "That person has no membership.",
-          });
+          throw notFound("That person has no membership.");
         }
 
         const now = new Date();

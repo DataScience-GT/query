@@ -14,6 +14,7 @@ import { createOrUpdateMembership, splitName } from "@query/db/services/membersh
 import { entitlementForPayment } from "@query/db/services/pricing";
 import { membershipGrants } from "../../services/metrics";
 import { clearMembershipCaches } from "../../middleware/cache";
+import { notFound } from "../errors";
 
 export const linkingProcedures = {
   // Auto-link a Stripe payment matching the user's email.
@@ -153,11 +154,9 @@ export const linkingProcedures = {
         const entitlement = payment && entitlementForPayment(payment);
 
         if (!payment || !entitlement) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message:
-              "No payment found with that email. Please check the email you used during checkout.",
-          });
+          throw notFound(
+            "No payment found with that email. Please check the email you used during checkout.",
+          );
         }
 
         // Prove the caller is the payer: the signed-in account's email must be the
@@ -185,11 +184,9 @@ export const linkingProcedures = {
           });
           // Same message as "no payment", so this cannot be used to discover which
           // addresses have an unclaimed payment against them.
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message:
-              "No payment found with that email. Please check the email you used during checkout.",
-          });
+          throw notFound(
+            "No payment found with that email. Please check the email you used during checkout.",
+          );
         }
 
         const existingLink = await tx.query.userAccountLinks.findFirst({
@@ -359,11 +356,9 @@ export const linkingProcedures = {
           )
           .limit(1);
         if (!user) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message:
-              "No account has that email. They need to sign in to the portal once first.",
-          });
+          throw notFound(
+            "No account has that email. They need to sign in to the portal once first.",
+          );
         }
 
         const [payment] = await tx
@@ -372,10 +367,7 @@ export const linkingProcedures = {
           .where(eq(stripePayments.id, input.paymentId))
           .for("update");
         if (!payment) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Payment not found.",
-          });
+          throw notFound("Payment not found.");
         }
         if (payment.paymentStatus !== "paid") {
           throw new TRPCError({

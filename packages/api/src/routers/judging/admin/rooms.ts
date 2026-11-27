@@ -52,7 +52,6 @@ import {
   roomName,
   roomKind,
   SEATED_WINDOW_MS,
-  notFound,
   refuse,
   lockRoom,
   archiveLockedRoom,
@@ -60,6 +59,7 @@ import {
   assertBuilding,
   roomNameTaken,
 } from "./shared";
+import { notFound } from "../../errors";
 
 export const roomProcedures = {
   /** Buildings and every room, archived ones included, with live state. */

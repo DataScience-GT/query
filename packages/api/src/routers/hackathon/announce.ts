@@ -30,6 +30,7 @@ import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { isAdmin } from "../../middleware/procedures";
 import { rateLimitShared } from "../../middleware/security";
+import { notFound } from "../errors";
 
 // Mass announcements: "registration is open", "results are up". Separate from
 // sendMassAcceptanceEmails because an acceptance also changes a participant's
@@ -250,10 +251,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
       });
 
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       assertCompleteCta(input);
@@ -450,10 +448,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
       });
 
       if (!announcement) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Announcement not found",
-        });
+        throw notFound("Announcement not found");
       }
 
       // Claim the batch before sending a single message. Selecting `sent_at IS

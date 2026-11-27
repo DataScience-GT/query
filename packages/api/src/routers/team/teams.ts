@@ -13,6 +13,7 @@ import { eq, and, isNull, count } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { checkTeamEditWindow } from "./windows";
 import { checkAdmitted, assertNoLiveSoloSubmission } from "./guards";
+import { notFound } from "../errors";
 
 // Roster size is the participant rows pointing at the team. hackathonTeams.currentMembers
 // is a retired counter that drifted when a user or team deletion nulled or cascaded
@@ -54,10 +55,7 @@ export const teamProcedures = {
             });
 
             if (!participant) {
-              throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "You are not registered for this hackathon.",
-              });
+              throw notFound("You are not registered for this hackathon.");
             }
 
             checkAdmitted(participant.registrationStatus);
@@ -145,10 +143,7 @@ export const teamProcedures = {
             });
 
             if (!participant) {
-              throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "You are not registered for this hackathon.",
-              });
+              throw notFound("You are not registered for this hackathon.");
             }
 
             checkAdmitted(participant.registrationStatus);
@@ -173,10 +168,7 @@ export const teamProcedures = {
             });
 
             if (!team) {
-              throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "Team not found.",
-              });
+              throw notFound("Team not found.");
             }
 
             if (!team.isOpen) {
@@ -262,10 +254,7 @@ export const teamProcedures = {
       });
 
       if (!participant || !participant.teamId) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You are not in a team.",
-        });
+        throw notFound("You are not in a team.");
       }
 
       try {
@@ -281,10 +270,7 @@ export const teamProcedures = {
               .for("update");
 
             if (!team)
-              throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "Team not found.",
-              });
+              throw notFound("Team not found.");
 
             // If captain is the only one left, they can "leave" which deletes the team
             if (team.captainId === (ctx.userId)) {
@@ -381,7 +367,7 @@ export const teamProcedures = {
       });
 
       if (!team)
-        throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
+        throw notFound("Team not found.");
       if (team.captainId !== (ctx.userId)) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -462,7 +448,7 @@ export const teamProcedures = {
       });
 
       if (!team)
-        throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
+        throw notFound("Team not found.");
       if (team.captainId !== (ctx.userId)) {
         throw new TRPCError({
           code: "FORBIDDEN",

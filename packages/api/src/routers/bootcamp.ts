@@ -16,6 +16,7 @@ import { isAdmin } from "../middleware/procedures";
 import { isBugTesterRole } from "../types/portal-context";
 import { isUniqueViolation } from "../middleware/db-errors";
 import { withCheckInCounts } from "../services/derived-counts";
+import { notFound } from "./errors";
 
 // Sessions remain events and attendance remains `event_check_in`. Workshop
 // rows hold only the material officers publish beside those sessions.
@@ -336,10 +337,7 @@ export const bootcampRouter = createTRPCRouter({
         });
 
       if (!updated) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Workshop not found",
-        });
+        throw notFound("Workshop not found");
       }
       return updated;
     }),
@@ -362,7 +360,7 @@ export const bootcampRouter = createTRPCRouter({
         columns: { term: true, week: true, title: true },
       });
       if (!workshop) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Workshop not found" });
+        throw notFound("Workshop not found");
       }
       const { term, week } = workshop;
       // Omitted means untouched: a title or room set on the events screen
@@ -438,10 +436,7 @@ export const bootcampRouter = createTRPCRouter({
         .returning();
 
       if (!updated) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Workshop not found",
-        });
+        throw notFound("Workshop not found");
       }
       return updated;
     }),
