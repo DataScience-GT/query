@@ -279,7 +279,7 @@ export default function HackathonDetailPage() {
   // wrapper only re-points the colour and font tokens, so every other
   // hackathon is untouched.
   const bloom = isHacklyticsName(hackathon.name);
-  const foodGroup = discord.data?.eligible ? discord.data.foodGroup : null;
+  const foodGroup = discord.data?.foodGroup ?? null;
 
   const content = (
     <main className={page}>

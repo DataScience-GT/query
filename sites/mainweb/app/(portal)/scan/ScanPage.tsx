@@ -14,6 +14,7 @@ import {
   pageTitle,
 } from "@query/ui/classes";
 import { ScanAccess } from "@/components/portal/ScanAccess";
+import { DiscordCard } from "@/components/hackathon/DiscordCard";
 
 // Only scanners use the desk, so the page ships without it. It starts loading
 // as soon as the role is known, alongside the hackathon list it waits on.
@@ -61,6 +62,11 @@ export default function ScanPage() {
           <p className={kicker}>{edition?.name ?? "Hackathon staff"}</p>
           <h1 className={`mt-1 ${pageTitle}`}>Check-in desk</h1>
         </header>
+
+        {/* The card shows itself only to volunteers; empty, the wrapper hides. */}
+        <div className="mt-6 empty:hidden">
+          <DiscordCard />
+        </div>
 
         {showPicker && (
           <div className="mt-6 max-w-md">
