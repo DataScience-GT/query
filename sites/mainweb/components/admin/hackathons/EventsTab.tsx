@@ -158,30 +158,20 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    const fields = {
+      name: form.name,
+      description: form.description || undefined,
+      type: form.type,
+      location: form.location,
+      startTime: new Date(form.startTime),
+      endTime: new Date(form.endTime),
+      points: Number(form.points) || 0,
+      selfCheckIn: form.selfCheckIn,
+    };
     if (editingId) {
-      updateMutation.mutate({
-        eventId: editingId,
-        name: form.name,
-        description: form.description || undefined,
-        type: form.type,
-        location: form.location,
-        startTime: new Date(form.startTime),
-        endTime: new Date(form.endTime),
-        points: Number(form.points) || 0,
-        selfCheckIn: form.selfCheckIn,
-      });
+      updateMutation.mutate({ eventId: editingId, ...fields });
     } else {
-      createMutation.mutate({
-        hackathonId,
-        name: form.name,
-        description: form.description || undefined,
-        type: form.type,
-        location: form.location,
-        startTime: new Date(form.startTime),
-        endTime: new Date(form.endTime),
-        points: Number(form.points) || 0,
-        selfCheckIn: form.selfCheckIn,
-      });
+      createMutation.mutate({ hackathonId, ...fields });
     }
   }
 
