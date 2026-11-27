@@ -1440,6 +1440,88 @@ describe.skipIf(!URL)("discord link against a real database", () => {
         expect(await statusAt(h.id)).toBe("declined");
         expect(await statusAt(done.id)).toBe("approved");
       });
+
+      describe("an edition ending", () => {
+        /** A hacker, a judge and an approved volunteer of one edition, each linked. */
+        const linkedPeople = async (hackathonId: string, tag: string) => {
+          const hacker = await makeUser(`${tag}-h`);
+          await makeParticipant(hackathonId, hacker);
+          const { u: judge } = await newJudge(`${tag}-j`, hackathonId);
+          const { u: volunteer } = await apply(`${tag}-v`, hackathonId, "approved");
+          const people = [
+            { u: hacker, account: acct(`${tag}-h`) },
+            { u: judge, account: acct(`${tag}-j`) },
+            { u: volunteer, account: acct(`${tag}-v`) },
+          ];
+          for (const person of people) await linkAs(person.u, hackathonId, person.account);
+          expect(lastFor(people[0]!.account)).toMatchObject({ accepted: 1 });
+          expect(lastFor(people[1]!.account)).toMatchObject({ judge: 1 });
+          expect(lastFor(people[2]!.account)).toMatchObject({ volunteer: 1 });
+          return people;
+        };
+
+        for (const status of ["completed", "cancelled"] as const) {
+          it(`${status} takes every role for it back at once`, async () => {
+            const h = await makeHackathon(`va-end-${status}`);
+            const people = await linkedPeople(h.id, `va-end-${status}`);
+
+            await organizer.hackathon.update({ id: h.id, status });
+            for (const { account } of people) expect(lastFor(account)).toEqual(ZEROS);
+          });
+        }
+
+        it("reopening an edition that was ended by mistake gives the roles back", async () => {
+          const h = await makeHackathon("va-end-undo");
+          const people = await linkedPeople(h.id, "va-end-undo");
+          await organizer.hackathon.update({ id: h.id, status: "completed" });
+          for (const { account } of people) expect(lastFor(account)).toEqual(ZEROS);
+
+          await organizer.hackathon.update({ id: h.id, status: "open" });
+          expect(lastFor(people[0]!.account)).toMatchObject({ accepted: 1 });
+          expect(lastFor(people[1]!.account)).toMatchObject({ judge: 1 });
+          expect(lastFor(people[2]!.account)).toMatchObject({ volunteer: 1 });
+        });
+
+        it("marks everyone linked to the edition pending in the same change, and two sweeps zero them", async () => {
+          await clearLinks();
+          const h = await makeHackathon("va-end-sweep");
+          const people = await linkedPeople(h.id, "va-end-sweep");
+          // A judge of another edition is not part of it.
+          const other = await makeHackathon("va-end-other");
+          const { u: bystander } = await newJudge("va-end-by", other.id);
+          await linkAs(bystander, other.id, acct("va-end-by"));
+          const sigsOf = async (ids: string[]) =>
+            new Map(
+              (
+                await S.db!
+                  .select({ u: S.discordLinks.userId, sig: S.discordLinks.rolesSig })
+                  .from(S.discordLinks)
+                  .where(ops.inArray(S.discordLinks.userId, ids))
+              ).map((r) => [r.u, r.sig]),
+            );
+
+          // With no token secret nothing can be published inline, so what the
+          // change itself marked is all that shows.
+          vi.stubEnv("AUTH_SECRET", "");
+          await organizer.hackathon.update({ id: h.id, status: "completed" });
+          vi.stubEnv("AUTH_SECRET", SECRET);
+          const sigs = await sigsOf([...people.map((p) => p.u), bystander]);
+          for (const { u } of people) expect(sigs.get(u)).toBeNull();
+          expect(sigs.get(bystander)).not.toBeNull();
+
+          expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 2 })).toEqual({
+            checked: 2,
+            synced: 2,
+          });
+          expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 2 })).toEqual({
+            checked: 1,
+            synced: 1,
+          });
+          for (const { account } of people) expect(lastFor(account)).toEqual(ZEROS);
+          expect(lastFor(acct("va-end-by"))).toEqual({ ...ZEROS, judge: 1 });
+          expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({ checked: 0, synced: 0 });
+        });
+      });
     });
 
     it("a hacker moved out of the accepted statuses, banned, or who withdraws loses the hacker roles", async () => {

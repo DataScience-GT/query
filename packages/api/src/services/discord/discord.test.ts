@@ -184,6 +184,20 @@ describe("discord roles", () => {
     }
   });
 
+  it("holds no role at all in an edition that is over", () => {
+    for (const hackathonStatus of ["completed", "cancelled"]) {
+      expect(
+        rolesFor({
+          participant: hacker("approved", at),
+          judge: true,
+          staff: true,
+          approvedVolunteer: true,
+          hackathonStatus,
+        }),
+      ).toEqual(NO_ROLES);
+    }
+  });
+
   it("reports whether anyone holds a role", () => {
     expect(hasDiscordRole(NO_ROLES)).toBe(false);
     expect(hasDiscordRole({ ...NO_ROLES, volunteer: true })).toBe(true);

@@ -60,6 +60,9 @@ export const VOLUNTEER_EDITION_STATUSES = [
 const isVolunteerEdition = (status: string) =>
   (VOLUNTEER_EDITION_STATUSES as readonly string[]).includes(status);
 
+export const isOverEdition = (status: string) =>
+  status === "completed" || status === "cancelled";
+
 /**
  * An approved volunteer application is for one edition and is taken from the
  * announcement on, since that is when applications open. Not a draft, a
@@ -85,6 +88,9 @@ export function rolesFor(input: {
   approvedVolunteer: boolean;
   hackathonStatus: string;
 }): DiscordRoles {
+  // An edition that is over holds nobody to a role: its hackers, judges and
+  // volunteers lose them at the next sync.
+  if (isOverEdition(input.hackathonStatus)) return { ...NO_ROLES };
   return {
     hacker: !!input.participant && isConfirmedHacker(input.participant),
     judge: input.judge,
