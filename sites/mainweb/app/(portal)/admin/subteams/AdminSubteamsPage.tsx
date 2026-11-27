@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import {
@@ -9,6 +9,7 @@ import {
   shortDate,
 } from "@/components/portal/subteams/chips";
 import { trpc } from "@/lib/trpc";
+import { useDebounced } from "@/components/admin/hackathons/points/use-debounced";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import type { RouterOutputs } from "@query/api";
 import type { SubteamApplicationStatus } from "@query/db";
@@ -45,17 +46,6 @@ const quote = `${body} whitespace-pre-line border-l-2 border-[var(--border-mediu
 
 // The router's limit, repeated so the add button can stop at it.
 const MAX_QUESTIONS = 10;
-
-/** Delays a fast-changing value so it can drive a query without firing one per
- *  keystroke. */
-function useDebounced<T>(value: T, ms: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(timer);
-  }, [value, ms]);
-  return debounced;
-}
 
 type QuestionDraft = { id: string; prompt: string; required: boolean };
 
