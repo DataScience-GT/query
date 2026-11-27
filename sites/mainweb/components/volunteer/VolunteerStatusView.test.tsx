@@ -10,6 +10,7 @@ import { VolunteerStatusView } from "./VolunteerStatusView";
 Object.assign(globalThis, { React, IS_REACT_ACT_ENVIRONMENT: true });
 
 const answers: VolunteerAnswers = {
+  mode: "in_person",
   affiliation: "gt_student",
   availability: ["fri_setup", "sat_morning"],
   roles: ["check_in"],
@@ -19,11 +20,33 @@ const answers: VolunteerAnswers = {
   acknowledged: true,
 };
 
+const mentorAnswers: VolunteerAnswers = {
+  mode: "online",
+  affiliation: "industry",
+  topics: ["python", "other"],
+  topicOther: "Rust",
+  onlineAvailability: ["o_fri_evening", "o_sat_late"],
+  mentorExperience: "Four years on ML services.",
+  acknowledged: true,
+};
+
+const bothAnswers: VolunteerAnswers = {
+  ...answers,
+  ...mentorAnswers,
+  mode: "both",
+  phone: "(404) 555-0142",
+} as VolunteerAnswers;
+
 let mounted: { root: ReturnType<typeof createRoot>; el: HTMLElement }[] = [];
 
 function render(
   status: VolunteerStatus,
-  over: { accepting?: boolean; canEdit?: boolean; name?: string } = {},
+  over: {
+    accepting?: boolean;
+    canEdit?: boolean;
+    name?: string;
+    answers?: VolunteerAnswers;
+  } = {},
 ) {
   const calls = { edit: vi.fn(), withdraw: vi.fn(), again: vi.fn() };
   const el = document.createElement("div");
@@ -37,7 +60,7 @@ function render(
           name: over.name ?? "Hacklytics: Digital Bloom",
           startDate: "2027-02-26T22:00:00Z",
         }}
-        application={{ status, answers }}
+        application={{ status, answers: over.answers ?? answers }}
         accepting={over.accepting ?? true}
         canEdit={over.canEdit ?? true}
         eventHref="/hackathons/hacklytics-digital-bloom"
@@ -131,5 +154,35 @@ describe("VolunteerStatusView", () => {
   it("names the event Discord for a hackathon that is not Hacklytics", () => {
     const view = render("approved", { name: "Spring Build Jam" });
     expect(view.el.textContent).toContain("Join the event Discord.");
+  });
+
+  it("tells an online mentor the Discord is where hackers' questions come in, and shows only their half", () => {
+    const view = render("approved", { answers: mentorAnswers });
+    expect(view.el.textContent).toContain(
+      "hackers' questions come in through its mentor channels",
+    );
+    expect(view.el.textContent).toContain("Online mentor");
+    expect(view.el.textContent).toContain("Python");
+    expect(view.el.textContent).toContain("Other: Rust");
+    expect(view.el.textContent).toContain("Friday, Feb 26: 6 to 10 pm ET");
+    expect(view.el.textContent).toContain("Four years on ML services.");
+    // Nothing about the venue, and no phone they never gave.
+    expect(view.el.textContent).not.toContain("Shirt size");
+    expect(view.el.textContent).not.toContain("Dietary restrictions");
+    expect(view.el.textContent).toContain("Not given");
+  });
+
+  it("names shifts, changes and questions for someone who chose both, and shows both halves", () => {
+    const view = render("pending", { answers: bothAnswers });
+    expect(view.el.textContent).toContain("In person and online mentor");
+    expect(view.el.textContent).toContain("Friday, Feb 26: Afternoon setup");
+    expect(view.el.textContent).toContain("Friday, Feb 26: 6 to 10 pm ET");
+    expect(view.el.textContent).toContain("Shirt size");
+    expect(view.el.textContent).toContain("Mentoring experience");
+
+    const approved = render("approved", { answers: bothAnswers });
+    expect(approved.el.textContent).toContain(
+      "shifts, changes and hackers' questions are all there",
+    );
   });
 });

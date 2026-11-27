@@ -54,6 +54,12 @@ export function VolunteerStatusView({
   const discord = isHacklyticsName(hackathon.name)
     ? "the Hacklytics Discord"
     : "the event Discord";
+  // What the Discord is for, which depends on how they offered to help.
+  const discordFor = {
+    in_person: "shifts and changes are shared there",
+    online: "hackers' questions come in through its mentor channels",
+    both: "shifts, changes and hackers' questions are all there",
+  }[answers.mode];
   const contact = (
     <a href={`mailto:${contactEmail}`} className={textLink}>
       {contactEmail}
@@ -87,12 +93,12 @@ export function VolunteerStatusView({
           </p>
           <ol className={`mt-4 max-w-xl list-decimal space-y-2 pl-5 ${body}`}>
             <li>
-              Join {discord}. It&apos;s required for volunteers, and shifts and
-              changes are shared there. The link is on the event page.
+              Join {discord}. It&apos;s required for volunteers, and{" "}
+              {discordFor}. The link is on the event page.
             </li>
             <li>
               Check the times below. If your plans change, withdraw so
-              organizers can cover your shifts.
+              organizers can plan around you.
             </li>
           </ol>
           <Link href={eventHref} className={`mt-6 ${btnPrimary}`}>

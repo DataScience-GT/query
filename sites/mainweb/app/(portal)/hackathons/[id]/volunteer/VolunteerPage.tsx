@@ -24,6 +24,7 @@ import {
   itemTitle,
 } from "@query/ui/classes";
 import { decodeHackathonParam, isHacklyticsName } from "@/lib/hackathon-slug";
+import { volunteerVenue } from "@/lib/volunteer-venue";
 
 const HACKLYTICS_CONTACT = "hello@hacklytics.io";
 
@@ -83,6 +84,7 @@ export default function VolunteerPage() {
   const { application, accepting, canEdit } = mine.data;
   const bloom = isHacklyticsName(hackathon.name);
   const brand = bloom ? "Hacklytics" : hackathon.name;
+  const venue = volunteerVenue(hackathon);
   const eventHref = `/hackathons/${param}`;
   const contactEmail = bloom ? HACKLYTICS_CONTACT : CONTACT_EMAIL;
   const judgeHref = `/judge/register?hackathonId=${hackathon.id}`;
@@ -102,8 +104,9 @@ export default function VolunteerPage() {
         <p className={kicker}>Volunteers</p>
         <h1 className={`mt-1 ${pageTitle}`}>Volunteer at {brand}</h1>
         <p className={pageDek}>
-          Volunteers run the weekend: check-in, meals, rooms and help for
-          hackers. You don&apos;t judge projects.
+          Help in person at {venue} (check-in, meals, rooms, help for hackers)
+          or as an online mentor answering hackers&apos; questions. You
+          don&apos;t judge projects.
         </p>
         <p className={`mt-2 ${body}`}>
           Looking to judge instead?{" "}

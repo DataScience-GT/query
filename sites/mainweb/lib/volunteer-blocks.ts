@@ -1,4 +1,4 @@
-import { VOLUNTEER_BLOCKS } from "@query/db/constants";
+import { VOLUNTEER_BLOCKS, VOLUNTEER_ONLINE_BLOCKS } from "@query/db/constants";
 import type { VolunteerBlock } from "@query/db/constants";
 import { venueParts } from "@/lib/venue-time";
 
@@ -38,6 +38,26 @@ export function volunteerBlockLabel(
   const block = VOLUNTEER_BLOCKS.find((b) => b.id === id);
   if (!block) return id;
   return `${volunteerDays(startDate)[block.day]}: ${block.part}`;
+}
+
+/** The online mentoring hours grouped under their day. Eastern time. */
+export function volunteerOnlineBlockGroups(startDate: Date | string) {
+  const days = volunteerDays(startDate);
+  return days.map((heading, day) => ({
+    day,
+    heading,
+    blocks: VOLUNTEER_ONLINE_BLOCKS.filter((b) => b.day === day),
+  }));
+}
+
+/** An online block as a line a person or a spreadsheet reads: "Friday, Feb 26: 6 to 10 pm ET". */
+export function volunteerOnlineBlockLabel(
+  id: string,
+  startDate: Date | string,
+): string {
+  const block = VOLUNTEER_ONLINE_BLOCKS.find((b) => b.id === id);
+  if (!block) return id;
+  return `${volunteerDays(startDate)[block.day]}: ${block.part} ET`;
 }
 
 export type { VolunteerBlock };

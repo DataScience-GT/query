@@ -8,18 +8,30 @@ import { ChevronDown, Download } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { useReadOnly } from "@/lib/use-portal-context";
-import { volunteerBlockLabel } from "@/lib/volunteer-blocks";
+import {
+  volunteerBlockLabel,
+  volunteerOnlineBlockLabel,
+} from "@/lib/volunteer-blocks";
 import { volunteerCsv } from "@/lib/volunteer-csv";
 import { VolunteerSummary } from "@/components/volunteer/VolunteerSummary";
 import {
   VOLUNTEER_BLOCKS,
+  VOLUNTEER_MODES,
+  VOLUNTEER_ONLINE_BLOCKS,
   VOLUNTEER_ROLES,
   VOLUNTEER_STATUSES,
+  VOLUNTEER_TOPICS,
+  isInPerson,
+  isOnline,
+  volunteerModeLabel,
 } from "@query/db/constants";
 import type {
   VolunteerBlock,
+  VolunteerMode,
+  VolunteerOnlineBlock,
   VolunteerRole,
   VolunteerStatus,
+  VolunteerTopic,
 } from "@query/db/constants";
 import { Alert } from "@query/ui/Alert";
 import { EmptyState } from "@query/ui/EmptyState";
@@ -49,8 +61,9 @@ const STATUS_TONE: Record<VolunteerStatus, Tone> = {
   withdrawn: "neutral",
 };
 
+type Count = { approved: number; pending: number };
 
-/** One coverage row: a block or a role, with who could cover it. Pressing it filters the list. */
+/** One coverage row: a block, role or topic, with who could cover it. Pressing it filters the list. */
 function CoverageRow({
   label,
   count,
@@ -58,7 +71,7 @@ function CoverageRow({
   onPress,
 }: {
   label: string;
-  count: { approved: number; pending: number } | undefined;
+  count: Count | undefined;
   pressed: boolean;
   onPress: () => void;
 }) {
@@ -88,11 +101,31 @@ function CoverageRow({
   );
 }
 
+/** A titled list of coverage rows. */
+function CoverageList({
+  title,
+  note,
+  children,
+}: {
+  title: string;
+  note: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <h4 className={itemTitle}>{title}</h4>
+      <p className={`mt-1 ${meta}`}>{note}</p>
+      <ul className="mt-3 border-t border-[var(--border-subtle)]">{children}</ul>
+    </div>
+  );
+}
+
 /**
- * The volunteer roster for one edition: who offered, what they can cover, and
- * the decision. Coverage counts everyone who could still come, so organizers
- * see which blocks and roles are thin. Approving does not grant the
- * check-in scanner tier; that is the Staff page.
+ * The volunteer roster for one edition: who offered, whether in person, as an
+ * online mentor or both, what they can cover, and the decision. Coverage
+ * counts everyone who could still come, in person and online apart, so
+ * organizers see which blocks, roles, hours and topics are thin. Approving
+ * does not grant the check-in scanner tier; that is the Staff page.
  */
 export function VolunteersTab({
   hackathonId,
@@ -107,8 +140,13 @@ export function VolunteersTab({
   const readOnly = useReadOnly();
 
   const [statusFilter, setStatusFilter] = useState<VolunteerStatus | null>(null);
+  const [modeFilter, setModeFilter] = useState<VolunteerMode | null>(null);
   const [role, setRole] = useState<VolunteerRole | null>(null);
   const [block, setBlock] = useState<VolunteerBlock | null>(null);
+  const [topic, setTopic] = useState<VolunteerTopic | null>(null);
+  const [onlineBlock, setOnlineBlock] = useState<VolunteerOnlineBlock | null>(
+    null,
+  );
   const [openId, setOpenId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -116,8 +154,11 @@ export function VolunteersTab({
   const filter = {
     hackathonId,
     status: statusFilter ?? undefined,
+    mode: modeFilter ?? undefined,
     role: role ?? undefined,
     block: block ?? undefined,
+    topic: topic ?? undefined,
+    onlineBlock: onlineBlock ?? undefined,
   };
   const roster = trpc.volunteer.list.useQuery(filter, {
     // The phone numbers are why a bug tester is turned away; do not ask.
@@ -159,7 +200,21 @@ export function VolunteersTab({
   const counts = coverage.byStatus;
   const everyone =
     counts.pending + counts.approved + counts.declined + counts.withdrawn;
-  const filtered = !!(statusFilter || role || block);
+  const filtered = !!(
+    statusFilter ||
+    modeFilter ||
+    role ||
+    block ||
+    topic ||
+    onlineBlock
+  );
+  const showing = [
+    modeFilter && volunteerModeLabel(modeFilter),
+    role && VOLUNTEER_ROLES.find((r) => r.id === role)?.label,
+    block && volunteerBlockLabel(block, startDate),
+    topic && VOLUNTEER_TOPICS.find((t) => t.id === topic)?.label,
+    onlineBlock && volunteerOnlineBlockLabel(onlineBlock, startDate),
+  ].filter(Boolean);
 
   async function exportCsv() {
     setExporting(true);
@@ -232,41 +287,106 @@ export function VolunteersTab({
         </EmptyState>
       ) : (
         <>
-          <section className="grid gap-x-12 gap-y-8 md:grid-cols-2">
-            <div>
-              <h3 className={itemTitle}>Time blocks</h3>
-              <p className={`mt-1 ${meta}`}>
-                Who could cover each one. Press a row to filter the list.
-              </p>
-              <ul className="mt-3 border-t border-[var(--border-subtle)]">
-                {VOLUNTEER_BLOCKS.map((b) => (
-                  <CoverageRow
-                    key={b.id}
-                    label={volunteerBlockLabel(b.id, startDate)}
-                    count={coverage.blocks[b.id]}
-                    pressed={block === b.id}
-                    onPress={() => setBlock(block === b.id ? null : b.id)}
-                  />
-                ))}
-              </ul>
+          <section className="space-y-10">
+            <div
+              role="group"
+              aria-label="Filter volunteers by type"
+              className="flex flex-wrap items-center gap-2"
+            >
+              <span className={`mr-1 ${meta}`}>Type</span>
+              {([null, ...VOLUNTEER_MODES.map((m) => m.id)] as const).map((m) => {
+                const count = m ? coverage.byMode[m] : undefined;
+                return (
+                  <button
+                    key={m ?? "all"}
+                    type="button"
+                    aria-pressed={modeFilter === m}
+                    onClick={() => setModeFilter(m)}
+                    className={modeFilter === m ? btnInk : btnSecondary}
+                  >
+                    {m ? volunteerModeLabel(m) : "All types"}
+                    {count ? ` (${count.approved + count.pending})` : ""}
+                  </button>
+                );
+              })}
             </div>
+
             <div>
-              <h3 className={itemTitle}>Roles</h3>
+              <h3 className={sectionTitle}>In person</h3>
               <p className={`mt-1 ${meta}`}>
-                Volunteers who left roles blank are happy anywhere, and are not
-                counted here.
+                Volunteers who chose in person or both. Press a row to filter
+                the list.
               </p>
-              <ul className="mt-3 border-t border-[var(--border-subtle)]">
-                {VOLUNTEER_ROLES.map((r) => (
-                  <CoverageRow
-                    key={r.id}
-                    label={r.label}
-                    count={coverage.roles[r.id]}
-                    pressed={role === r.id}
-                    onPress={() => setRole(role === r.id ? null : r.id)}
-                  />
-                ))}
-              </ul>
+              <div className="mt-4 grid gap-x-12 gap-y-8 md:grid-cols-2">
+                <CoverageList
+                  title="Time blocks"
+                  note="Who could cover each one."
+                >
+                  {VOLUNTEER_BLOCKS.map((b) => (
+                    <CoverageRow
+                      key={b.id}
+                      label={volunteerBlockLabel(b.id, startDate)}
+                      count={coverage.blocks[b.id]}
+                      pressed={block === b.id}
+                      onPress={() => setBlock(block === b.id ? null : b.id)}
+                    />
+                  ))}
+                </CoverageList>
+                <CoverageList
+                  title="Roles"
+                  note="Volunteers who left roles blank are happy anywhere, and are not counted here."
+                >
+                  {VOLUNTEER_ROLES.map((r) => (
+                    <CoverageRow
+                      key={r.id}
+                      label={r.label}
+                      count={coverage.roles[r.id]}
+                      pressed={role === r.id}
+                      onPress={() => setRole(role === r.id ? null : r.id)}
+                    />
+                  ))}
+                </CoverageList>
+              </div>
+            </div>
+
+            <div>
+              <h3 className={sectionTitle}>Online mentors</h3>
+              <p className={`mt-1 ${meta}`}>
+                Volunteers who chose online mentor or both. Hours are Eastern
+                time.
+              </p>
+              <div className="mt-4 grid gap-x-12 gap-y-8 md:grid-cols-2">
+                <CoverageList
+                  title="Hours online"
+                  note="Who could be reachable in each window."
+                >
+                  {VOLUNTEER_ONLINE_BLOCKS.map((b) => (
+                    <CoverageRow
+                      key={b.id}
+                      label={volunteerOnlineBlockLabel(b.id, startDate)}
+                      count={coverage.onlineBlocks[b.id]}
+                      pressed={onlineBlock === b.id}
+                      onPress={() =>
+                        setOnlineBlock(onlineBlock === b.id ? null : b.id)
+                      }
+                    />
+                  ))}
+                </CoverageList>
+                <CoverageList
+                  title="Topics"
+                  note="What hackers could ask about, and who could answer."
+                >
+                  {VOLUNTEER_TOPICS.map((t) => (
+                    <CoverageRow
+                      key={t.id}
+                      label={t.label}
+                      count={coverage.topics[t.id]}
+                      pressed={topic === t.id}
+                      onPress={() => setTopic(topic === t.id ? null : t.id)}
+                    />
+                  ))}
+                </CoverageList>
+              </div>
             </div>
           </section>
 
@@ -292,8 +412,11 @@ export function VolunteersTab({
                   type="button"
                   onClick={() => {
                     setStatusFilter(null);
+                    setModeFilter(null);
                     setRole(null);
                     setBlock(null);
+                    setTopic(null);
+                    setOnlineBlock(null);
                   }}
                   className={textLink}
                 >
@@ -301,15 +424,8 @@ export function VolunteersTab({
                 </button>
               )}
             </div>
-            {(role || block) && (
-              <p className={`mb-4 ${meta}`}>
-                Showing
-                {role
-                  ? ` ${VOLUNTEER_ROLES.find((r) => r.id === role)?.label}`
-                  : ""}
-                {role && block ? " and" : ""}
-                {block ? ` ${volunteerBlockLabel(block, startDate)}` : ""}.
-              </p>
+            {showing.length > 0 && (
+              <p className={`mb-4 ${meta}`}>Showing {showing.join(", ")}.</p>
             )}
 
             {applications.length === 0 ? (
@@ -320,6 +436,21 @@ export function VolunteersTab({
                   const isOpen = openId === app.id;
                   const name =
                     app.user?.name || app.user?.email || "Unnamed volunteer";
+                  const answers = app.answers;
+                  const offered = [
+                    volunteerModeLabel(app.mode),
+                    isInPerson(answers)
+                      ? `${answers.availability.length} of ${VOLUNTEER_BLOCKS.length} blocks`
+                      : null,
+                    isOnline(answers)
+                      ? `${answers.topics.length} ${answers.topics.length === 1 ? "topic" : "topics"}`
+                      : null,
+                    isInPerson(answers)
+                      ? answers.roles.length
+                        ? `${answers.roles.length} ${answers.roles.length === 1 ? "role" : "roles"}`
+                        : "any role"
+                      : null,
+                  ];
                   return (
                     <li
                       key={app.id}
@@ -340,13 +471,7 @@ export function VolunteersTab({
                               {name}
                             </p>
                             <p className={`truncate ${meta}`}>
-                              {[
-                                app.user?.email,
-                                `${app.answers.availability.length} of 9 blocks`,
-                                app.answers.roles.length
-                                  ? `${app.answers.roles.length} ${app.answers.roles.length === 1 ? "role" : "roles"}`
-                                  : "any role",
-                              ]
+                              {[app.user?.email, ...offered]
                                 .filter(Boolean)
                                 .join(" · ")}
                             </p>

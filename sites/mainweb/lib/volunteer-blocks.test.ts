@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { VOLUNTEER_BLOCKS } from "@query/db/constants";
+import { VOLUNTEER_BLOCKS, VOLUNTEER_ONLINE_BLOCKS } from "@query/db/constants";
 import {
   volunteerBlockGroups,
   volunteerBlockLabel,
   volunteerDays,
+  volunteerOnlineBlockGroups,
+  volunteerOnlineBlockLabel,
 } from "./volunteer-blocks";
 
 // Hacklytics 2027 starts Friday, February 26 in Atlanta.
@@ -48,5 +50,24 @@ describe("volunteer time blocks", () => {
     );
     // An id the form no longer offers still reads as something.
     expect(volunteerBlockLabel("retired_block", start)).toBe("retired_block");
+  });
+
+  it("groups the nine online mentoring hours under the same three days", () => {
+    const groups = volunteerOnlineBlockGroups(start);
+    expect(groups.map((g) => g.heading)).toEqual(volunteerDays(start));
+    expect(groups.map((g) => g.blocks.length)).toEqual([2, 5, 2]);
+    expect(groups.flatMap((g) => g.blocks.map((b) => b.id))).toEqual(
+      VOLUNTEER_ONLINE_BLOCKS.map((b) => b.id),
+    );
+  });
+
+  it("labels an online block with its day and the zone it is in", () => {
+    expect(volunteerOnlineBlockLabel("o_fri_evening", start)).toBe(
+      "Friday, Feb 26: 6 to 10 pm ET",
+    );
+    expect(volunteerOnlineBlockLabel("o_sat_late", start)).toBe(
+      "Saturday, Feb 27: 10 pm to 2 am ET",
+    );
+    expect(volunteerOnlineBlockLabel("retired", start)).toBe("retired");
   });
 });

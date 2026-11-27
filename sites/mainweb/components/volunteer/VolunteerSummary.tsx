@@ -1,12 +1,23 @@
 import {
   VOLUNTEER_AFFILIATIONS,
   VOLUNTEER_ROLES,
+  isInPerson,
+  isOnline,
+  volunteerModeLabel,
+  volunteerTopicLabel,
 } from "@query/db/constants";
 import type { VolunteerAnswers } from "@query/db/constants";
 import { meta } from "@query/ui/classes";
-import { volunteerBlockLabel } from "@/lib/volunteer-blocks";
+import {
+  volunteerBlockLabel,
+  volunteerOnlineBlockLabel,
+} from "@/lib/volunteer-blocks";
 
-/** What the person offered, as they wrote it, for them and for organizers. */
+/**
+ * What the person offered, as they wrote it, for them and for organizers. A
+ * row appears only for the half of the application they were asked: an online
+ * mentor has no shirt size to show.
+ */
 export function VolunteerSummary({
   answers,
   startDate,
@@ -18,29 +29,59 @@ export function VolunteerSummary({
 }) {
   const rows: [string, string][] = [
     [
+      "How they help",
+      answers.mode === "both"
+        ? "In person and online mentor"
+        : volunteerModeLabel(answers.mode),
+    ],
+    [
       "What describes you",
       VOLUNTEER_AFFILIATIONS.find((a) => a.id === answers.affiliation)?.label ??
         answers.affiliation,
     ],
-    [
-      "Times you offered",
-      answers.availability
-        .map((id) => volunteerBlockLabel(id, startDate))
-        .join("\n"),
-    ],
-    [
-      "Roles you'd like",
-      answers.roles.length
-        ? answers.roles
-            .map((id) => VOLUNTEER_ROLES.find((r) => r.id === id)?.label ?? id)
-            .join("\n")
-        : "Wherever you're needed",
-    ],
-    ["Experience", answers.experience ?? "None given"],
-    ["Shirt size", answers.shirtSize],
-    ["Dietary restrictions", answers.dietary.join(", ") || "None"],
-    ...(showPhone ? [["Phone", answers.phone] as [string, string]] : []),
   ];
+
+  if (isInPerson(answers)) {
+    rows.push(
+      [
+        "Times you offered in person",
+        answers.availability
+          .map((id) => volunteerBlockLabel(id, startDate))
+          .join("\n"),
+      ],
+      [
+        "Roles you'd like",
+        answers.roles.length
+          ? answers.roles
+              .map((id) => VOLUNTEER_ROLES.find((r) => r.id === id)?.label ?? id)
+              .join("\n")
+          : "Wherever you're needed",
+      ],
+      ["Experience", answers.experience ?? "None given"],
+      ["Shirt size", answers.shirtSize],
+      ["Dietary restrictions", answers.dietary.join(", ") || "None"],
+    );
+  }
+
+  if (isOnline(answers)) {
+    rows.push(
+      [
+        "Topics you can help with",
+        answers.topics
+          .map((id) => volunteerTopicLabel(id, answers.topicOther))
+          .join("\n"),
+      ],
+      [
+        "Times you can be online (Eastern)",
+        answers.onlineAvailability
+          .map((id) => volunteerOnlineBlockLabel(id, startDate))
+          .join("\n"),
+      ],
+      ["Mentoring experience", answers.mentorExperience],
+    );
+  }
+
+  if (showPhone) rows.push(["Phone", answers.phone || "Not given"]);
 
   return (
     <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
