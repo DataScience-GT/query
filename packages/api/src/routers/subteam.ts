@@ -22,7 +22,8 @@ import type {
 } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { isAdmin } from "../middleware/procedures";
-import { isUniqueViolation, requireActiveMember } from "./initiative";
+import { isUniqueViolation } from "../middleware/db-errors";
+import { requireActiveMember } from "./initiative";
 import { escapeLike } from "./judging/admin/shared";
 
 const notFound = (message = "Subteam not found") =>

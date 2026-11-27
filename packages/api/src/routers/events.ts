@@ -17,22 +17,10 @@ import {
 import { randomUUID } from "crypto";
 import { currentTerm } from "@query/db/services/membership";
 import { isAdmin, isScanner } from "../middleware/procedures";
+import { isUniqueViolation } from "../middleware/db-errors";
 import { isBugTesterRole } from "../types/portal-context";
 import { checkInCounts, withCheckInCounts } from "../services/derived-counts";
 import type { DrizzleDB } from "@query/db";
-
-// Postgres unique_violation. Drizzle wraps every driver error in a
-// DrizzleQueryError, which carries no `code` — the pg error holding the
-// SQLSTATE sits on `.cause` — so the chain has to be walked. Checking the
-// top-level object alone silently never matches in production.
-const isUniqueViolation = (error: unknown) => {
-  for (let cursor = error, depth = 0; cursor && depth < 5; depth++) {
-    if (typeof cursor !== "object") break;
-    if ((cursor as { code?: string }).code === "23505") return true;
-    cursor = (cursor as { cause?: unknown }).cause;
-  }
-  return false;
-};
 
 // The first instant of the term currentTerm() names, in Atlanta: spring opens
 // Jan 1 and fall Jun 1, since summer sells fall. Jan 1 is always standard time
@@ -54,6 +42,38 @@ const countCheckIns = async (tx: Pick<DrizzleDB, "select">, eventId: string) => 
     .where(eq(eventCheckIns.eventId, eventId));
   return row?.n ?? 0;
 };
+
+// The door's last two steps, shared by all three ways in. Only a capped event
+// has a count worth locking: the row lock serialises the capacity check, and
+// unique(event_id, user_id) settles a double tap on its own, so the insert's
+// loser has to read as the same conflict a sequential rescan gets.
+async function admit(
+  tx: Pick<DrizzleDB, "select" | "insert">,
+  event: { id: string; maxCheckIns: number | null },
+  checkIn: typeof eventCheckIns.$inferInsert,
+  alreadyIn: string,
+) {
+  if (event.maxCheckIns) {
+    await tx
+      .select({ id: events.id })
+      .from(events)
+      .where(eq(events.id, event.id))
+      .for("update");
+
+    if ((await countCheckIns(tx, event.id)) >= event.maxCheckIns) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Event is full" });
+    }
+  }
+
+  try {
+    await tx.insert(eventCheckIns).values(checkIn);
+  } catch (error: unknown) {
+    if (isUniqueViolation(error)) {
+      throw new TRPCError({ code: "CONFLICT", message: alreadyIn });
+    }
+    throw error;
+  }
+}
 
 const ATTENDANCE_RANGES = ["term", "90d", "all"] as const;
 
@@ -480,46 +500,22 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          // Someone already inside is a duplicate, not an extra body, so the capacity
-          // gate only applies once that is ruled out.
-          //
-          // Locked here, not at the top, and only when there is a cap to defend.
-          // Held from the top it covered the two lookups above, serialising the
-          // whole queue; a double tap is settled by unique(event_id, user_id).
-          if (event.maxCheckIns) {
-            await tx
-              .select({ id: events.id })
-              .from(events)
-              .where(eq(events.id, event.id))
-              .for("update");
-
-            if ((await countCheckIns(tx, event.id)) >= event.maxCheckIns) {
-              throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: "Event is full",
-              });
-            }
-          }
-
-          // unique(event_id, user_id) is what settles a double tap: the read above only
-          // rules out badges committed before this transaction began, and the loser has
-          // to read as the same conflict a sequential rescan gets.
-          try {
-            await tx.insert(eventCheckIns).values({
+          // Someone already inside is a duplicate, not an extra body, so the
+          // capacity gate only applies once that is ruled out. The lock is taken
+          // here, not at the top: held from the top it covered the two lookups
+          // above and serialised the whole queue. The read above only rules out
+          // badges committed before this transaction began.
+          await admit(
+            tx,
+            event,
+            {
               eventId: event.id,
               userId: ctx.userId as string,
               memberId: member?.id ?? null,
               checkInMethod: "qr_code",
-            });
-          } catch (error: unknown) {
-            if (isUniqueViolation(error)) {
-              throw new TRPCError({
-                code: "CONFLICT",
-                message: "Already checked in",
-              });
-            }
-            throw error;
-          }
+            },
+            "Already checked in",
+          );
 
           // Invalidate event and related caches after successful check-in
           ctx.cache.deletePattern(`event:${event.id}`);
@@ -585,39 +581,17 @@ export const eventRouter = createTRPCRouter({
             columns: { id: true },
           });
 
-          // only a capped event has a count worth locking; unique(event_id, user_id)
-          // carries the rest.
-          if (event.maxCheckIns) {
-            await tx
-              .select({ id: events.id })
-              .from(events)
-              .where(eq(events.id, event.id))
-              .for("update");
-
-            if ((await countCheckIns(tx, event.id)) >= event.maxCheckIns) {
-              throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: "Event is full",
-              });
-            }
-          }
-
-          try {
-            await tx.insert(eventCheckIns).values({
+          await admit(
+            tx,
+            event,
+            {
               eventId: event.id,
               userId: user.id,
               memberId: member?.id ?? null,
               checkInMethod: "manual",
-            });
-          } catch (error: unknown) {
-            if (isUniqueViolation(error)) {
-              throw new TRPCError({
-                code: "CONFLICT",
-                message: `${user.name ?? user.email} is already checked in.`,
-              });
-            }
-            throw error;
-          }
+            },
+            `${user.name ?? user.email} is already checked in.`,
+          );
 
           ctx.cache.deletePattern(`event:${event.id}`);
           ctx.cache.deletePattern("event*");
@@ -675,40 +649,20 @@ export const eventRouter = createTRPCRouter({
             });
           }
 
-          // Same rule as the other two doors, and this one is the burst path.
-          if (event.maxCheckIns) {
-            await tx
-              .select({ id: events.id })
-              .from(events)
-              .where(eq(events.id, event.id))
-              .for("update");
-
-            if ((await countCheckIns(tx, event.id)) >= event.maxCheckIns) {
-              throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: "Event is full",
-              });
-            }
-          }
-
           const name = `${member.firstName} ${member.lastName}`.trim();
 
-          try {
-            await tx.insert(eventCheckIns).values({
+          // Same rule as the other two doors, and this one is the burst path.
+          await admit(
+            tx,
+            event,
+            {
               eventId: event.id,
               userId: member.userId,
               memberId: member.id,
               checkInMethod: "qr_code",
-            });
-          } catch (error: unknown) {
-            if (isUniqueViolation(error)) {
-              throw new TRPCError({
-                code: "CONFLICT",
-                message: `${name} is already checked in.`,
-              });
-            }
-            throw error;
-          }
+            },
+            `${name} is already checked in.`,
+          );
 
           ctx.cache.deletePattern(`event:${event.id}`);
           ctx.cache.deletePattern("event*");

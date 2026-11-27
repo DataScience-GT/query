@@ -15,19 +15,10 @@ import {
   isProjectLeader,
 } from "../middleware/procedures";
 import { clearProjectLeaderCaches } from "../middleware/cache";
+import { isUniqueViolation } from "../middleware/db-errors";
 
 const notFound = (message = "Project not found") =>
   new TRPCError({ code: "NOT_FOUND", message });
-
-/** Postgres unique_violation. Drizzle wraps driver errors, so walk `.cause`. */
-export function isUniqueViolation(error: unknown) {
-  for (let cursor: unknown = error, depth = 0; cursor && depth < 5; depth++) {
-    if (typeof cursor !== "object") break;
-    if ((cursor as { code?: string }).code === "23505") return true;
-    cursor = (cursor as { cause?: unknown }).cause;
-  }
-  return false;
-}
 
 /** What `db.transaction(async (tx) => …)` hands its callback. */
 type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
