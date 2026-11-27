@@ -17,13 +17,12 @@ export const SEMESTER_MEMBERSHIP_CENTS = 1500;
 // plan, since the bootcamp runs for a semester either way.
 export const BOOTCAMP_ADDON_CENTS = 1000;
 
-export const membershipCentsFor = (plan: MembershipPlan) =>
-  plan === "semester" ? SEMESTER_MEMBERSHIP_CENTS : MEMBERSHIP_CENTS;
-
 export const priceForCents = (
   withBootcamp: boolean,
   plan: MembershipPlan = "annual",
-) => membershipCentsFor(plan) + (withBootcamp ? BOOTCAMP_ADDON_CENTS : 0);
+) =>
+  (plan === "semester" ? SEMESTER_MEMBERSHIP_CENTS : MEMBERSHIP_CENTS) +
+  (withBootcamp ? BOOTCAMP_ADDON_CENTS : 0);
 
 /** "$25.00" — for UI copy and Stripe product descriptions. */
 export const formatCents = (cents: number) =>

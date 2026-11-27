@@ -15,30 +15,13 @@ import { entitlementForPayment } from "./pricing";
 // rather than imported: the cache lives in @query/api, which already depends
 // on @query/auth. Without it a membership granted at sign-in sat behind a
 // "not a member" entry for 5 minutes — pay, and still be told to pay.
-class MembershipChangeNotifier {
-  private handler: ((userId: string) => void) | undefined;
-
-  subscribe(handler: (userId: string) => void) {
-    this.handler = handler;
-  }
-
-  emit(userId: string) {
-    try {
-      this.handler?.(userId);
-    } catch {
-      // Cache eviction must never fail the write that succeeded.
-    }
-  }
-}
-
-const membershipChanges = new MembershipChangeNotifier();
+let onMembershipChanged: ((userId: string) => void) | undefined;
 
 export const setMembershipChangeHandler = (
   handler: (userId: string) => void,
-) => membershipChanges.subscribe(handler);
-
-const notifyMembershipChanged = (userId: string) =>
-  membershipChanges.emit(userId);
+) => {
+  onMembershipChanged = handler;
+};
 
 // The hackathon a membership belongs to when nobody names one: the edition
 // actually running, and only if nothing is running the newest by start date.
@@ -443,7 +426,11 @@ export async function linkPaidPaymentByVerifiedEmail(
     plan: entitlement.plan,
   });
 
-  notifyMembershipChanged(opts.userId);
+  try {
+    onMembershipChanged?.(opts.userId);
+  } catch {
+    // Cache eviction must never fail the write that succeeded.
+  }
 
   return { linked: true, paymentId: payment.id };
 }
