@@ -1,7 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
 
-export const PORTAL_CONTEXT_STALE_MS = 30 * 60 * 1000;
-
 export function createAppQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -17,7 +15,7 @@ export function createAppQueryClient() {
 }
 
 export const portalContextQueryOptions = {
-  staleTime: PORTAL_CONTEXT_STALE_MS,
+  staleTime: 30 * 60 * 1000,
   gcTime: 60 * 60 * 1000,
   refetchOnWindowFocus: false,
 } as const;

@@ -6,9 +6,6 @@ import { isStaffRole, isExpiredAdmin } from "@query/api/portal-context";
 import { cache } from "@query/api";
 import type { DrizzleDB } from "@query/db";
 
-// Pure file rules live next door so tests need no auth or database.
-export { MAX_RESUME_BYTES, looksLikePdf, resumeFileName } from "./resume-file";
-
 /** Same answer the isAdmin middleware gives, for route handlers it cannot reach. */
 export async function resumeCaller() {
   const session = await auth();

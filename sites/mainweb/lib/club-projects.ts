@@ -32,7 +32,7 @@ export const STATUS_CLASSES: Record<ClubProjectStatus, string> = {
   past: "bg-white/5 text-[#7a7a7a] border-white/10",
 };
 
-export const isCurrent = (project: { status: ClubProjectStatus }) =>
+const isCurrent = (project: { status: ClubProjectStatus }) =>
   project.status !== "past";
 
 export const byDisplayOrder = (a: ClubProjectCard, b: ClubProjectCard) =>

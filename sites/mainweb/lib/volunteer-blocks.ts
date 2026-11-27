@@ -1,5 +1,4 @@
 import { VOLUNTEER_BLOCKS, VOLUNTEER_ONLINE_BLOCKS } from "@query/db/constants";
-import type { VolunteerBlock } from "@query/db/constants";
 import { venueParts } from "@/lib/venue-time";
 
 /**
@@ -59,5 +58,3 @@ export function volunteerOnlineBlockLabel(
   if (!block) return id;
   return `${volunteerDays(startDate)[block.day]}: ${block.part} ET`;
 }
-
-export type { VolunteerBlock };

@@ -23,20 +23,20 @@ export type PortalNavIcon =
   | "Calendar"
   | "UsersRound";
 
-export type PortalNavItem = {
+type PortalNavItem = {
   name: string;
   href: string;
   icon: PortalNavIcon;
 };
 
-export type PortalNavSection = {
+type PortalNavSection = {
   id: "hackathon" | "portal";
   label: string;
   items: PortalNavItem[];
 };
 
 /** The edition a hacker is in the middle of, as the nav needs it. */
-export type NavHackathon = { id: string; name: string };
+type NavHackathon = { id: string; name: string };
 
 /** How many days before it starts an edition pulls focus in the nav. */
 const NAV_LEAD_DAYS = 2;
