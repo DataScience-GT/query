@@ -143,22 +143,6 @@ const admin = () => callerAs("admin_user");
 const audits = () =>
   inserts.filter((write) => write.table === auditLogs).map((w) => w.values);
 
-const flagView = (
-  over: Partial<CheckInFlags.CheckInFlagView> = {},
-): CheckInFlags.CheckInFlagView => ({
-  id: FLAG_1,
-  participantName: "Ada Lovelace",
-  rule: "overlap",
-  eventName: "BNY Workshop",
-  conflictEventName: "Full Sail Fireside",
-  method: "code",
-  attempts: 3,
-  createdAt: new Date("2027-02-06T18:00:00Z"),
-  lastAttemptAt: new Date("2027-02-06T19:41:00Z"),
-  dismissed: false,
-  ...over,
-});
-
 const entryRow = (id: string, over: Row = {}) => ({
   id,
   source: "portal",
@@ -272,7 +256,18 @@ describe("judging.admin.listEntries", () => {
 
   it("puts each project's flags and its prize status on the project", async () => {
     wirePage([entryRow(ENTRY_1, { prizeIneligible: true }), entryRow(ENTRY_2)]);
-    const flag = flagView();
+    const flag: CheckInFlags.CheckInFlagView = {
+      id: FLAG_1,
+      participantName: "Ada Lovelace",
+      rule: "overlap",
+      eventName: "BNY Workshop",
+      conflictEventName: "Full Sail Fireside",
+      method: "code",
+      attempts: 3,
+      createdAt: new Date("2027-02-06T18:00:00Z"),
+      lastAttemptAt: new Date("2027-02-06T19:41:00Z"),
+      dismissed: false,
+    };
     mockFlagsForEntries.mockResolvedValue(new Map([[ENTRY_1, [flag]]]));
 
     const result = await admin().judging.admin.listEntries({
