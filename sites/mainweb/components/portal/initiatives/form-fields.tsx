@@ -9,7 +9,7 @@ import { input } from "@query/ui/classes";
  * a field ends up collected in one and silently dropped in the other.
  */
 
-export type InitiativeDraft = {
+type InitiativeDraft = {
   title: string;
   summary: string;
   description: string;

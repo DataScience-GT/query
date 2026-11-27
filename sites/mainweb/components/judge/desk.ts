@@ -4,7 +4,7 @@ import type { Tone } from "@query/ui/classes";
 type Desk = RouterOutputs["judging"]["desk"];
 export type DeskContext = Desk["context"];
 export type StationKind = NonNullable<DeskContext["room"]>["kind"];
-export type ProjectList = Desk["projects"];
+type ProjectList = Desk["projects"];
 export type ListedProject = ProjectList["projects"][number];
 export type ProjectSheet = Desk["project"];
 export type Submission = Desk["myEvaluations"][number];

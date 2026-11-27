@@ -6,7 +6,7 @@ import { trpc } from "@/lib/trpc";
 /** How long the form is left alone before its draft is sent. */
 export const DRAFT_QUIET_MS = 1500;
 
-export type DraftSaveStatus = "idle" | "saving" | "saved" | "failed";
+type DraftSaveStatus = "idle" | "saving" | "saved" | "failed";
 
 /**
  * Keeps the application draft on the server. `answersKey` is the draft as JSON;
