@@ -24,6 +24,7 @@ export const PARTICIPANT_STATUSES = [
   "waitlisted",
   "checked_in",
 ] as const;
+export type ParticipantStatus = (typeof PARTICIPANT_STATUSES)[number];
 
 export const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
 export type ShirtSize = (typeof SHIRT_SIZES)[number];

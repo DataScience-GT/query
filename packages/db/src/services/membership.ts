@@ -342,7 +342,7 @@ async function grantMembership(db: DrizzleDB, opts: GrantOptions) {
   });
 }
 
-export type LinkOutcome =
+type LinkOutcome =
   | { linked: false; reason: "no-email" | "already-linked" | "no-payment" }
   | { linked: true; paymentId: string };
 

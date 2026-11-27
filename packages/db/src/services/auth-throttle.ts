@@ -10,11 +10,11 @@ export const CODES_PER_IDENTIFIER_PER_HOUR = 5;
  * Wrong guesses one address absorbs, across reissued codes, before it is locked
  * out of guessing. They count within 24 hours and start again after a lock.
  */
-export const FAILURES_BEFORE_LOCKOUT = 20;
+const FAILURES_BEFORE_LOCKOUT = 20;
 /** How long the first lock lasts. Each one after it lasts twice as long. */
-export const FIRST_LOCKOUT_MINUTES = 15;
+const FIRST_LOCKOUT_MINUTES = 15;
 /** The longest a lock lasts, however many came before it. */
-export const MAX_LOCKOUT_HOURS = 24;
+const MAX_LOCKOUT_HOURS = 24;
 /**
  * Code emails the whole deployment sends per hour. A loop over many addresses
  * would otherwise drain the SMTP quota one address at a time; 300 is well above
@@ -57,7 +57,7 @@ export const CODES_PER_NETWORK_PER_HOUR = 40;
  * unlimited, because an account costs an attacker one code on a catch-all
  * domain, and about 60 of them would take the deployment's whole 300 an hour.
  */
-export const CODES_PER_KNOWN_NETWORK_PER_HOUR = 150;
+const CODES_PER_KNOWN_NETWORK_PER_HOUR = 150;
 /** Codes one email domain may be sent per hour: a catch-all costs nothing. */
 export const CODES_PER_DOMAIN_PER_HOUR = 20;
 /** The same for a big school or a mail provider, where many people share it. */

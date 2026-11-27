@@ -70,7 +70,7 @@ export type Subteam = typeof subteams.$inferSelect;
 
 // `removed` is an accepted member taken off the roster — kept apart from
 // `rejected` so the history says which of the two happened.
-export const subteamApplicationStatuses = [
+const subteamApplicationStatuses = [
   "pending",
   "accepted",
   "rejected",
@@ -119,5 +119,3 @@ export const subteamApplications = pgTable(
       .where(sql`${table.status} in ('pending', 'accepted')`),
   ],
 );
-
-export type SubteamApplication = typeof subteamApplications.$inferSelect;
