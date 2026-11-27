@@ -20,6 +20,7 @@ import {
   sectionTitle,
   textLink,
 } from "@query/ui/classes";
+import { localTimeZone } from "@/components/admin/hackathons/constants";
 import {
   ErrorLine,
   plural,
@@ -147,15 +148,12 @@ export function SchedulePlanner({
     Number(fields.judgingMinutes) +
     Number(fields.teardownMinutes);
   const scheduledRooms = rooms.filter((r) => r.scheduled);
-  const station = stationWord(
-    scheduledRooms.length,
-    scheduledRooms.filter((r) => r.kind === "table").length,
-  );
+  const scheduledTables = scheduledRooms.filter((r) => r.kind === "table").length;
+  const station = stationWord(scheduledRooms.length, scheduledTables);
   const result = preview.isFetching ? undefined : preview.data;
   const stale = !!submitted && !sameTiming(timingFromFields(fields), submitted);
   const acknowledged =
     !!result?.candidateKey && acknowledgedKey === result.candidateKey;
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   const minuteInput = (name: MinuteField) => (
     <div key={name}>
@@ -220,14 +218,14 @@ export function SchedulePlanner({
               />
             </div>
           </div>
-          <p className={fieldHint}>Times are in {timeZone}.</p>
+          <p className={fieldHint}>Times are in {localTimeZone()}.</p>
           {suggestion.data && suggested && (
             <p className={fieldHint}>
               Suggested from {plural(suggestion.data.basis.projects, "project")},{" "}
               {suggestion.data.basis.rooms}{" "}
               {stationWord(
                 scheduledRooms.length,
-                scheduledRooms.filter((r) => r.kind === "table").length,
+                scheduledTables,
                 suggestion.data.basis.rooms !== 1,
               )}{" "}
               and {plural(suggestion.data.basis.memberJudges, "judge")}
