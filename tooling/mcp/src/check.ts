@@ -7,7 +7,7 @@ import { ROOT } from "./source.ts";
 import { workspaceNames } from "./workspace.ts";
 
 export const TASKS = ["lint", "typecheck", "test", "build"] as const;
-export type Task = (typeof TASKS)[number];
+type Task = (typeof TASKS)[number];
 
 const TIMEOUT_MS = 10 * 60 * 1000;
 const TAIL_LINES = 80;

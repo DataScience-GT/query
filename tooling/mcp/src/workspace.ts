@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { read, rel, ROOT } from "./source.ts";
 
-export interface Workspace {
+interface Workspace {
   name: string;
   path: string;
   version: string;
@@ -19,7 +19,7 @@ export interface Workspace {
 
 // The `packages:` list is `- dir/*` lines; anything fancier would be a change
 // to how the repo declares workspaces, and should fail loudly here.
-export function workspaceGlobs(): string[] {
+function workspaceGlobs(): string[] {
   const yaml = read(join(ROOT, "pnpm-workspace.yaml"));
   const block = /^packages:\s*\n((?:[ \t]+- .+\n?)+)/m.exec(yaml);
   if (!block) throw new Error("pnpm-workspace.yaml has no packages: list");

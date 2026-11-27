@@ -39,7 +39,7 @@ const { version } = JSON.parse(
   read(resolve(ROOT, "tooling/mcp/package.json")),
 ) as { version: string };
 
-export function createServer(): McpServer {
+function createServer(): McpServer {
   const server = new McpServer({ name: "query", version });
   const readOnly = { readOnlyHint: true, openWorldHint: false };
 
