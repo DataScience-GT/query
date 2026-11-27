@@ -36,6 +36,7 @@ type MutationCall = {
 let mutationCalls: MutationCall[] = [];
 
 vi.mock("@query/db", async () => {
+  const { bootcampWorkshopColumns } = await import("./_fake-db");
   const { createTransactionMock } = await import("./_db-tx-mock");
 
   const table = (name: string) => ({
@@ -127,22 +128,7 @@ vi.mock("@query/db", async () => {
       bootcampTerm: "bootcamp_term",
     },
     eventCheckIns: { eventId: "event_id", userId: "user_id" },
-    bootcampWorkshops: {
-      id: "id",
-      term: "term",
-      week: "week",
-      title: "title",
-      materialsKey: "materials_key",
-      materialsFileName: "materials_file_name",
-      materialsSizeBytes: "materials_size_bytes",
-      solutionKey: "solution_key",
-      solutionFileName: "solution_file_name",
-      solutionSizeBytes: "solution_size_bytes",
-      recordingUrl: "recording_url",
-      isPublished: "is_published",
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-    },
+    bootcampWorkshops: bootcampWorkshopColumns,
   };
 });
 

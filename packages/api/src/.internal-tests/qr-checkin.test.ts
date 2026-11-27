@@ -45,7 +45,7 @@ vi.mock("../services/discord/sync", async (importOriginal) => ({
 
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");
-  const { updateStub, deleteStub } = await import("./_fake-db");
+  const { updateStub, deleteStub, bootcampWorkshopColumns, eventColumns } = await import("./_fake-db");
 
   /**
    * Applies a relational query's `columns` allow-list, recursing through
@@ -210,30 +210,8 @@ vi.mock("@query/db", async () => {
       attempts: "attempts",
     },
     members: { id: "id", userId: "user_id", hackathonId: "hackathon_id" },
-    events: {
-      id: "id",
-      title: "title",
-      qrCode: "qr_code",
-      checkInEnabled: "check_in_enabled",
-      eventDate: "event_date",
-      currentCheckIns: "current_check_ins",
-    },
-    bootcampWorkshops: {
-      id: "id",
-      term: "term",
-      week: "week",
-      title: "title",
-      materialsKey: "materials_key",
-      materialsFileName: "materials_file_name",
-      materialsSizeBytes: "materials_size_bytes",
-      solutionKey: "solution_key",
-      solutionFileName: "solution_file_name",
-      solutionSizeBytes: "solution_size_bytes",
-      recordingUrl: "recording_url",
-      isPublished: "is_published",
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-    },
+    events: eventColumns,
+    bootcampWorkshops: bootcampWorkshopColumns,
     eventCheckIns: { id: "id", eventId: "event_id", userId: "user_id" },
   };
 });
@@ -272,7 +250,6 @@ const whereStrings = (node: unknown, out: string[] = []): string[] => {
 };
 const sqlHas = (node: unknown, value: string) =>
   whereStrings(node).includes(value);
-const whereHas = (args: any, value: string) => sqlHas(args?.where, value);
 
 /** Forces real interleaving between two in-flight callers. */
 const io = <T,>(value: T): Promise<T> =>
@@ -527,7 +504,7 @@ describe("QR check-in", () => {
         if (table === "admins") return ADMIN_ROW;
         // Only the code currently stored on the row resolves to the event.
         if (table === "events")
-          return whereHas(args, row.qrCode) ? { ...row } : undefined;
+          return sqlHas(args?.where, row.qrCode) ? { ...row } : undefined;
         if (table === "hackathons") return { id: HACK_A };
         if (table === "members") return activeMember;
         return undefined;

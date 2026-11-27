@@ -106,3 +106,31 @@ export const deleteStub =
   (...deleteArgs: any[]) => ({
     where: (...wArgs: any[]) => written(record("delete", deleteArgs, wArgs)),
   });
+
+// Column maps of tables the routers read at module scope, so a mocked
+// `@query/db` that stops short of them would break loading the root.
+export const bootcampWorkshopColumns = {
+  id: "id",
+  term: "term",
+  week: "week",
+  title: "title",
+  materialsKey: "materials_key",
+  materialsFileName: "materials_file_name",
+  materialsSizeBytes: "materials_size_bytes",
+  solutionKey: "solution_key",
+  solutionFileName: "solution_file_name",
+  solutionSizeBytes: "solution_size_bytes",
+  recordingUrl: "recording_url",
+  isPublished: "is_published",
+  createdAt: "created_at",
+  updatedAt: "updated_at",
+};
+
+export const eventColumns = {
+  id: "id",
+  title: "title",
+  qrCode: "qr_code",
+  checkInEnabled: "check_in_enabled",
+  eventDate: "event_date",
+  currentCheckIns: "current_check_ins",
+};
