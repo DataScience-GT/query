@@ -27,6 +27,7 @@ import {
   users,
 } from "@query/db";
 import { judgingDeskRouter } from "../routers/judging/desk";
+import { guestCtx, via } from "./_judging-desk";
 
 const HACK = "6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b";
 const CHALLENGE = "0c4a8e10-2b3d-4c5e-9f60-7a8b9c0d1e2f";
@@ -73,10 +74,6 @@ const entry = (id: string, title: string, participantCount: number) => ({
 
 const flaggedEntry = entry(FLAGGED_ENTRY, "Tidewater", 3);
 const cleanEntry = entry(CLEAN_ENTRY, "Quiet Garden", 2);
-
-/** The key a stand-in answer is filed under: the table read, then its joins. */
-const via = (from: unknown, ...joins: unknown[]) =>
-  [from, ...joins].map((table) => getTableName(table as never)).join(">");
 
 type Answers = Record<string, unknown[]>;
 
@@ -184,22 +181,6 @@ const guestAnswers = (): Answers => ({
   ],
   [via(judgingChallenges)]: challenges,
 });
-
-const guestCtx = (db: unknown) =>
-  ({
-    db,
-    session: null,
-    userId: undefined,
-    clientIp: "127.0.0.2",
-    req: {
-      headers: {
-        get: (name: string) =>
-          name.toLowerCase() === "cookie"
-            ? "query_judging_guest=guest-token"
-            : null,
-      },
-    },
-  }) as never;
 
 /** Words and ids that only organisers may see. */
 const organiserOnly = [
