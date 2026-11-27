@@ -1401,6 +1401,45 @@ describe.skipIf(!URL)("discord link against a real database", () => {
         expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({ checked: 1, synced: 1 });
         expect(lastFor(acct("va-down"))).toEqual(ZEROS);
       });
+
+      it("a ban declines the person's open applications and takes the role back, and leaves a finished edition alone", async () => {
+        const h = await makeHackathon("va-ban");
+        const { u } = await apply("va-ban", h.id, "approved");
+        await linkAs(u, h.id, acct("va-ban"));
+        expect(lastFor(acct("va-ban"))).toEqual({ ...ZEROS, volunteer: 1 });
+
+        // The record of an edition that is over stays as it was.
+        const done = await makeHackathon("va-ban-done", { status: "completed" });
+        await S.db!.insert(S.hackathonVolunteerApplications).values({
+          userId: u,
+          hackathonId: done.id,
+          status: "approved",
+          mode: "in_person",
+          answers: APPLICATION as any,
+        });
+
+        const email = (
+          await S.db!.select({ email: S.users.email }).from(S.users).where(ops.eq(S.users.id, u))
+        )[0]!.email!;
+        await organizer.hackathon.banFromHackathons({ email, reason: "Testing the ban" });
+        await S.db!.delete(S.hackathonBans).where(ops.eq(S.hackathonBans.email, email.toLowerCase()));
+
+        expect(lastFor(acct("va-ban"))).toEqual(ZEROS);
+        const statusAt = async (hackathonId: string) =>
+          (
+            await S.db!
+              .select({ status: S.hackathonVolunteerApplications.status })
+              .from(S.hackathonVolunteerApplications)
+              .where(
+                ops.and(
+                  ops.eq(S.hackathonVolunteerApplications.userId, u),
+                  ops.eq(S.hackathonVolunteerApplications.hackathonId, hackathonId),
+                ),
+              )
+          )[0]?.status;
+        expect(await statusAt(h.id)).toBe("declined");
+        expect(await statusAt(done.id)).toBe("approved");
+      });
     });
 
     it("a hacker moved out of the accepted statuses, banned, or who withdraws loses the hacker roles", async () => {

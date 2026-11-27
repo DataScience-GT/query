@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { and, eq, inArray, ne, notInArray, sql } from "drizzle-orm";
-import { hackathonBans, hackathonParticipants, hackathons, users } from "@query/db";
+import {
+  hackathonBans,
+  hackathonParticipants,
+  hackathonVolunteerApplications,
+  hackathons,
+  users,
+} from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter } from "../../trpc";
 import { hackathonBanCacheKey, isAdmin } from "../../middleware/procedures";
@@ -80,8 +86,10 @@ export const hackathonBansRouter = createTRPCRouter({
       // banned person's pending or accepted row would otherwise still be
       // picked by acceptWave, mailed, or scanned in. The ban is by email and
       // covers every hackathon, so it rejects in every hackathon that is
-      // still running; finished ones stay as the record of who took part.
-      const { ban, rejectedUserIds } = await db.transaction(async (tx) => {
+      // still running; finished ones stay as the record of who took part. Their
+      // volunteer applications are declined the same way, or an approved one
+      // would keep the volunteer role.
+      const { ban, rejectedUserIds, declinedUserIds } = await db.transaction(async (tx) => {
         // Re-banning updates the reason instead of failing on the unique email.
         const [ban] = await tx
           .insert(hackathonBans)
@@ -118,23 +126,55 @@ export const hackathonBansRouter = createTRPCRouter({
             userId: hackathonParticipants.userId,
             hackathonId: hackathonParticipants.hackathonId,
           });
-        // Rejected, so a linked Discord account is owed a sync.
-        await markDiscordRolesPending(
-          tx as unknown as DrizzleDB,
-          rejected.map((row) => row.userId),
-        );
+        const declined = await tx
+          .update(hackathonVolunteerApplications)
+          .set({
+            status: "declined",
+            reviewedById: ctx.userId as string,
+            reviewedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              inArray(hackathonVolunteerApplications.status, ["pending", "approved"]),
+              inArray(
+                hackathonVolunteerApplications.userId,
+                tx
+                  .select({ id: users.id })
+                  .from(users)
+                  .where(sql`lower(${users.email}) = ${email}`),
+              ),
+              inArray(
+                hackathonVolunteerApplications.hackathonId,
+                tx
+                  .select({ id: hackathons.id })
+                  .from(hackathons)
+                  .where(notInArray(hackathons.status, ["completed", "cancelled"])),
+              ),
+            ),
+          )
+          .returning({ userId: hackathonVolunteerApplications.userId });
+        // Rejected or declined, so a linked Discord account is owed a sync.
+        await markDiscordRolesPending(tx as unknown as DrizzleDB, [
+          ...rejected.map((row) => row.userId),
+          ...declined.map((row) => row.userId),
+        ]);
 
-        return { ban, rejectedUserIds: rejected };
+        return {
+          ban,
+          rejectedUserIds: rejected,
+          declinedUserIds: declined.map((row) => row.userId),
+        };
       });
 
       for (const row of rejectedUserIds) {
         evictParticipantCaches(ctx.cache, row.hackathonId, [row.userId]);
       }
-      // Rejected, so any Discord roles they linked come back off.
-      await syncDiscordRolesFor(
-        db,
-        rejectedUserIds.map((row) => row.userId),
-      );
+      // Rejected or declined, so any Discord roles they linked come back off.
+      await syncDiscordRolesFor(db, [
+        ...rejectedUserIds.map((row) => row.userId),
+        ...declinedUserIds,
+      ]);
 
       ctx.cache.delete(hackathonBanCacheKey(email));
 

@@ -158,6 +158,12 @@ vi.mock("@query/db", () => {
       email: "email",
       createdAt: "created_at",
     },
+    hackathonVolunteerApplications: {
+      _t: "hackathonVolunteerApplications",
+      userId: "user_id",
+      hackathonId: "hackathon_id",
+      status: "status",
+    },
     userProfiles: { _t: "userProfiles", userId: "user_id" },
     hackathons: {
       _t: "hackathons",
