@@ -174,6 +174,7 @@ describe("volunteer emails", () => {
     await sendVolunteerApprovedEmail({
       email: "ada@example.com",
       hackathonName: "Hacklytics: Digital Bloom",
+      mode: "in_person",
       volunteerUrl,
     });
 
@@ -186,6 +187,40 @@ describe("volunteer emails", () => {
     expect(message?.html).toContain("hacklytics-wordmark.png");
     // Calm copy: no exclamation marks, no promise of scanner access.
     expect(message?.text).not.toMatch(/!|scanner/i);
+  });
+
+  it("says what their way of helping means: shifts and the venue, mentor channels, or both", async () => {
+    const send = async (mode: "in_person" | "online" | "both") => {
+      sent.length = 0;
+      await sendVolunteerApprovedEmail({
+        email: "ada@example.com",
+        hackathonName: "Hacklytics: Digital Bloom",
+        mode,
+        volunteerUrl,
+      });
+      return sent[0]?.text ?? "";
+    };
+
+    const inPerson = await send("in_person");
+    expect(inPerson).toContain("You'll help in person at the venue.");
+    expect(inPerson).toContain("Shifts and venue details are shared in the Hacklytics Discord");
+    expect(inPerson).not.toContain("mentor");
+
+    const online = await send("online");
+    expect(online).toContain("You'll help as an online mentor");
+    expect(online).toContain("The mentor channels in the Hacklytics Discord");
+    expect(online).not.toContain("Shifts and venue details");
+
+    const both = await send("both");
+    expect(both).toContain("You'll help both ways");
+    expect(both).toContain("Shifts and venue details are shared");
+    expect(both).toContain("The mentor channels in the Hacklytics Discord");
+
+    // Every one still says the Discord is required, and stays calm.
+    for (const text of [inPerson, online, both]) {
+      expect(text).toContain("join the Hacklytics Discord. It is required for volunteers.");
+      expect(text).not.toMatch(/!/);
+    }
   });
 
   it("declines politely and briefly, without a link to anything", async () => {
@@ -206,6 +241,7 @@ describe("volunteer emails", () => {
     await sendVolunteerApprovedEmail({
       email: "ada@example.com",
       hackathonName: "Spring Build Jam",
+      mode: "in_person",
       volunteerUrl: "https://datasciencegt.org/hackathons/spring-build-jam/volunteer",
     });
 

@@ -615,27 +615,48 @@ export async function sendAcceptanceEmail({
 }
 
 // A volunteer application was approved. Calm and specific: what is confirmed,
-// what to do next, and where to change plans. Approving does not give
-// check-in scanner access, so the mail does not promise it.
+// what their way of helping means, what to do next, and where to change plans.
+// Approving does not give check-in scanner access, so the mail does not
+// promise it.
 export async function sendVolunteerApprovedEmail({
   email,
   hackathonName,
+  mode,
   volunteerUrl,
 }: {
   email: string;
   hackathonName: string;
+  /** How they offered to help. */
+  mode: "in_person" | "online" | "both";
   /** The edition's volunteer page in the portal. */
   volunteerUrl: string;
 }) {
   const hacklytics = /^hacklytics/i.test(hackathonName);
+  const discord = hacklytics ? "Hacklytics" : "event";
+  const inPerson =
+    "Shifts and venue details are shared in the " + discord + " Discord before the weekend.";
+  const mentoring =
+    "The mentor channels in the " + discord + " Discord are where hackers' questions come in.";
+  const meaning = {
+    in_person: "You'll help in person at the venue. " + inPerson,
+    online:
+      "You'll help as an online mentor, answering hackers' questions from wherever you are. " +
+      mentoring,
+    both:
+      "You'll help both ways: in person at the venue and as an online mentor. " +
+      inPerson +
+      " " +
+      mentoring,
+  }[mode];
   await sendTransactionalEmail({
     email,
     subject: `You're confirmed as a ${hacklytics ? "Hacklytics" : hackathonName} volunteer`,
     heading: `You're confirmed as a ${hacklytics ? "Hacklytics" : hackathonName} volunteer`,
     paragraphs: [
       `An organizer approved your application to volunteer at ${hackathonName}. Thank you for giving the weekend your time.`,
-      `Next, join the ${hacklytics ? "Hacklytics" : "event"} Discord. It is required for volunteers, and it is where shifts, locations and changes are shared during the weekend.`,
-      "Your application stays in the portal with the times and roles you offered. If your plans change, withdraw there so we can cover your shifts.",
+      meaning,
+      `Next, join the ${discord} Discord. It is required for volunteers.`,
+      "Your application stays in the portal with the times you offered. If your plans change, withdraw there so organizers can plan around you.",
       hacklytics ? "Hacklytics team" : "DS@GT",
     ],
     ctaLabel: "Open your volunteer page",
