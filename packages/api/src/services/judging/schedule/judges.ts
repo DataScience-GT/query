@@ -789,11 +789,13 @@ export function assignJudges(
       for (const to of order(item.index)) {
         if (evaluations >= MAX_EVALUATIONS) break;
         if (to === from) continue;
-        if (!state.slots[to]!.has(item.slot) && state.fits(to, item)) {
-          if (tryMove(item.index, to, current)) {
-            improved = true;
-            break;
-          }
+        if (
+          !state.slots[to]!.has(item.slot) &&
+          state.fits(to, item) &&
+          tryMove(item.index, to, current)
+        ) {
+          improved = true;
+          break;
         }
         let swapped = false;
         for (const q of [...state.slots[to]!.values()]) {

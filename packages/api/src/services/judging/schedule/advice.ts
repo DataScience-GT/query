@@ -175,14 +175,12 @@ export function adviceFor(source: {
           !memberJudges.some((j) => j.challengeIds.includes(t.challengeId)),
       );
       const busiest = Math.max(
-        ...[
-          ...count(
-            result.placements
-              .filter((p) => !guestRooms.has(p.roomId))
-              .map((p) => p.slot),
-          ).values(),
-          0,
-        ],
+        ...count(
+          result.placements
+            .filter((p) => !guestRooms.has(p.roomId))
+            .map((p) => p.slot),
+        ).values(),
+        0,
       );
       const more = Math.max(
         1,

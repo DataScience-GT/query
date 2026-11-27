@@ -178,7 +178,7 @@ export class SharedRateLimiter {
     private readonly prefix: string,
     private readonly fallback: TokenBucketLimiter,
     /** Epoch ms before which Redis is not used (see redisStartsAt). */
-    private readonly startsAt: number = 0,
+    private readonly startsAt = 0,
   ) {}
 
   async consume(
@@ -533,7 +533,7 @@ export class ClientIpResolver {
   private logged = false;
 
   constructor(
-    private readonly trustedProxyHops: number = Number(
+    private readonly trustedProxyHops = Number(
       process.env.TRUSTED_PROXY_HOPS ?? 1,
     ),
   ) {}
@@ -575,7 +575,7 @@ export function rateLimit(
   identifier: string,
   maxTokens: number,
   refillRatePerSecond: number,
-  tokensToConsume: number = 1,
+  tokensToConsume = 1,
 ): { allowed: boolean; retryAfter?: number } {
   return rateLimiter.consume(
     identifier,
@@ -602,7 +602,7 @@ export function rateLimitShared(
   identifier: string,
   maxTokens: number,
   refillRatePerSecond: number,
-  tokensToConsume: number = 1,
+  tokensToConsume = 1,
 ): Promise<{ allowed: boolean; retryAfter?: number }> {
   return sharedRateLimiter.consume(
     identifier,

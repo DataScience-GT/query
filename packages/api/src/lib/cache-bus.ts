@@ -41,9 +41,9 @@ export class CacheInvalidationBus {
     private readonly apply: (pattern: string) => void,
     /** Drops everything local, after a gap in what we could see. */
     private readonly clearAll: () => void,
-    private readonly pollMs: number = DEFAULT_POLL_MS,
+    private readonly pollMs = DEFAULT_POLL_MS,
     /** Epoch ms before which the bus sends nothing (see redisStartsAt). */
-    private readonly startsAt: number = 0,
+    private readonly startsAt = 0,
   ) {
     this.stream = `${prefix}cache:inv`;
   }

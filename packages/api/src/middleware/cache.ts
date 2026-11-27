@@ -31,8 +31,8 @@ export class CacheService {
   private bus: CacheInvalidationBus | null = null;
 
   constructor(
-    private defaultTTL: number = 300,
-    maxCacheSize: number = 10000,
+    private defaultTTL = 300,
+    maxCacheSize = 10000,
     shared?: {
       redis: RedisClient;
       prefix: string;
