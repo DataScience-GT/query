@@ -9,7 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 import { hackathons } from "./hackathons";
-import { VOLUNTEER_STATUSES } from "../constants";
+import { VOLUNTEER_MODE_IDS, VOLUNTEER_STATUSES } from "../constants";
 import type { VolunteerAnswers } from "../constants";
 
 // A person's application to volunteer at one edition. Apart from `judge`: a
@@ -33,6 +33,13 @@ export const hackathonVolunteerApplications = pgTable(
     status: text("status", { enum: VOLUNTEER_STATUSES })
       .notNull()
       .default("pending"),
+    // How they want to help: at the venue, as an online mentor, or both. Also
+    // inside `answers` (which picks the questions), but a column so the
+    // roster can filter and index on it. Always written from the parsed
+    // answers; the default only keeps a push onto a table with rows additive.
+    mode: text("mode", { enum: VOLUNTEER_MODE_IDS })
+      .notNull()
+      .default("in_person"),
     answers: jsonb("answers").$type<VolunteerAnswers>().notNull(),
     // The organiser who last approved or declined. Kept when they leave the
     // roster: the decision outlives the account.
@@ -55,10 +62,14 @@ export const hackathonVolunteerApplications = pgTable(
       table.userId,
       table.hackathonId,
     ),
-    // The admin list: one edition, filtered by status.
+    // The admin list: one edition, filtered by status or by how they help.
     index("hackathon_volunteer_application_hackathon_status_idx").on(
       table.hackathonId,
       table.status,
+    ),
+    index("hackathon_volunteer_application_hackathon_mode_idx").on(
+      table.hackathonId,
+      table.mode,
     ),
   ],
 );
