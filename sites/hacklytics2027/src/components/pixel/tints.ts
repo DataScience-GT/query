@@ -40,7 +40,7 @@ const CENTRES: Partial<Record<Tint, string>> = {
 
 /**
  * The pixels of an open flower in `tint`: petal outline p, petal P, highlight
- * c, centre Y and W. Night keeps the tint as it is, since it reads on the dark ground. Day deepens
+ * c and centre Y. Night keeps the tint as it is, since it reads on the dark ground. Day deepens
  * it, as the pink did: the petal is darkened and the outline is dark enough
  * to carry the shape where the petal is pale (the daisy, the sunflower).
  */
@@ -51,7 +51,7 @@ export function headPalette(tint: Tint, theme: Theme): Palette {
   const P = dark ? base : shade(base, "black", 0.15);
   const c = shade(base, "white", dark ? 0.55 : 0.45);
   const Y = CENTRES[tint] ?? shade(base, "white", 0.8);
-  return { p, P, c, Y, W: Y };
+  return { p, P, c, Y };
 }
 
 /** Every head palette, built once: a bed draws dozens of plants. */
