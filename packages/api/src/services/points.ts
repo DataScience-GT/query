@@ -20,15 +20,15 @@ import { isUniqueViolation } from "../middleware/db-errors";
 // through it.
 
 /** A transaction handle from `db.transaction`. */
-export type PointsTx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
+type PointsTx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
 
 /** Either the pool or a transaction. */
 export type PointsDb = DrizzleDB | PointsTx;
 
-export type AttendanceMethod = CheckInMethod;
+type AttendanceMethod = CheckInMethod;
 
 /** The three sums a balance is made of. */
-export type PointsTotals = {
+type PointsTotals = {
   /** Event points, as copied onto each attendance row. */
   awarded: number;
   /** Staff adjustments, either sign. */
@@ -37,7 +37,7 @@ export type PointsTotals = {
   spent: number;
 };
 
-export type PointsBalance = {
+type PointsBalance = {
   earned: number;
   spent: number;
   available: number;
@@ -94,7 +94,7 @@ export function pointsShort(price: number, available: number): number {
 // ---------------------------------------------------------------------------
 // Names and the leaderboard
 
-export type NameSource = {
+type NameSource = {
   firstName: string | null;
   lastName: string | null;
   /** The account's display name, for registrations without name fields. */
@@ -221,11 +221,7 @@ export async function assignCheckInCode(
   });
 }
 
-// Doors open a little early: people queue before a workshop starts, and the
-// code is on the screen as they walk in.
-export { SELF_CHECK_IN_LEAD_MS };
-
-export type SelfCheckInWindow = "early" | "open" | "ended";
+type SelfCheckInWindow = "early" | "open" | "ended";
 
 /** Self check-in runs from 15 minutes before the start to the end, inclusive. */
 export function selfCheckInWindow(
@@ -260,7 +256,7 @@ export type EarlierAttendance = {
   checkedInAt: Date;
 };
 
-export type AttendanceConflict = {
+type AttendanceConflict = {
   /** overlap: the events run at the same time. too_soon: under the gap. */
   kind: "overlap" | "too_soon";
   /** The earlier check-in that stands in the way. */

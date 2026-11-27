@@ -25,7 +25,7 @@ export const MAX_CONSECUTIVE = 4;
  * The day is cut into this many equal parts when asking whether a judge's
  * presentations are spread across it. cpsat.py cuts it the same way.
  */
-export const DAY_PARTS = 4;
+const DAY_PARTS = 4;
 
 export type JudgeInput = {
   id: string;
@@ -543,7 +543,7 @@ export function roomsJudgesCanStaff(
 }
 
 /** A slot where some presentations of one challenge have no judge. */
-export type JudgeShortfall = {
+type JudgeShortfall = {
   slot: number;
   challengeId: string;
   presentations: number;
@@ -627,7 +627,7 @@ export function judgeShortfalls(
   );
 }
 
-export type JudgeAssignmentResult = {
+type JudgeAssignmentResult = {
   /** Every presentation that has a judge, the kept ones included. */
   assignment: JudgeAssignment[];
   metrics: JudgeMetrics;

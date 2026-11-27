@@ -34,7 +34,7 @@ import { normalizeLabel, sameLabel } from "./scope";
 
 export const DEVPOST_MAX_BYTES = 10 * 1024 * 1024;
 
-export type ImportMode = "automatic" | "replace";
+type ImportMode = "automatic" | "replace";
 
 export type ImportFacts = {
   inventoryLocked: boolean;

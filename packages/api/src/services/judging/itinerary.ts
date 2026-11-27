@@ -36,7 +36,7 @@ export type ItineraryAppointment = {
   endsAt: Date;
 };
 
-export type ItineraryEvaluation = {
+type ItineraryEvaluation = {
   judgeId: string;
   challengeId: string;
   appointmentId: string | null;
@@ -114,7 +114,7 @@ export function evaluationsForAppointment<T extends ItineraryEvaluation>(
   );
 }
 
-export type ItineraryAppointmentView = {
+type ItineraryAppointmentView = {
   id: string;
   challengeId: string;
   challenge: string;
@@ -126,7 +126,7 @@ export type ItineraryAppointmentView = {
   status: AppointmentStatus;
 };
 
-export type UnscheduledChallengeView = {
+type UnscheduledChallengeView = {
   challengeId: string;
   challenge: string;
   children: string[];
@@ -241,20 +241,20 @@ function byDisplayName(
   return a.displayOrder - b.displayOrder || a.name.localeCompare(b.name);
 }
 
-export type FeedbackEvaluation = {
+type FeedbackEvaluation = {
   id: string;
   challengeId: string;
   submittedAt: Date;
 };
 
-export type FeedbackResponse = {
+type FeedbackResponse = {
   evaluationId: string;
   label: string;
   displayOrder: number;
   value: string;
 };
 
-export type FeedbackItem = {
+type FeedbackItem = {
   challenge: string;
   responses: { label: string; value: string }[];
 };

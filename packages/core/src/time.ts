@@ -4,7 +4,11 @@ export const MINUTE = 60 * 1000;
 export const HOUR = 60 * MINUTE;
 export const DAY = 24 * HOUR;
 
-/** How early before an event's start a hacker may check themselves in. */
+/**
+ * How early before an event's start a hacker may check themselves in. Doors
+ * open a little early: people queue before a workshop starts, and the code is
+ * on the screen as they walk in.
+ */
 export const SELF_CHECK_IN_LEAD_MS = 15 * MINUTE;
 
 /** Width of one /status uptime bucket, shared by the sampler and the page. */

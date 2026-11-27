@@ -47,16 +47,6 @@ export const registry = new Registry();
 // that says anything about the runtime itself.
 collectDefaultMetrics({ register: registry, prefix: "dsgt_" });
 
-/** Where a membership grant came from. Each is a separate failure mode. */
-export type GrantSource =
-  | "confirm"
-  | "webhook_intent"
-  | "webhook_checkout"
-  | "reconcile"
-  | "autolink"
-  | "link"
-  | "verify_email";
-
 export const paymentIntents = new Counter({
   name: "dsgt_payment_intents_total",
   help: "Payment intents this app minted, by what was being bought.",
@@ -225,7 +215,7 @@ const hackathonJudgingActive = new Gauge({
   registers: [registry],
 });
 
-export type LiveHackathon = {
+type LiveHackathon = {
   edition: string;
   phase: string;
   judgingActive: boolean;

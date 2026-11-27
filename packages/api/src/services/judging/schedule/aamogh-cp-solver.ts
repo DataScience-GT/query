@@ -43,7 +43,7 @@ import type { PlanDiagnostic, PlanResult } from "./solve";
 // from the inputs, so the same inputs always give the same schedule: a save
 // re-solves on the server and must land on what the organiser previewed.
 
-export type AamoghStats = {
+type AamoghStats = {
   /** Lower bounds per goal, in PlanScore order; null where none is known. */
   lowerBounds: (number | null)[];
   /** Goals whose value equals its lower bound, so no schedule does better. */
@@ -54,7 +54,7 @@ export type AamoghStats = {
   nodes: number;
 };
 
-export type AamoghResult = PlanResult & { stats: AamoghStats };
+type AamoghResult = PlanResult & { stats: AamoghStats };
 
 // Unplaced presentations are a sixth goal, ahead of the five public ones, so
 // the same search that improves a schedule also completes a partial one.

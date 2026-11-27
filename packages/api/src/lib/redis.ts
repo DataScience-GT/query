@@ -8,7 +8,7 @@ import { Redis } from "@upstash/redis";
 // never touches the network.
 
 /** Per-command ceiling. A slow Redis must cost a request this much, not more. */
-export const REDIS_TIMEOUT_MS = 250;
+const REDIS_TIMEOUT_MS = 250;
 
 /** One failure is logged per this interval, so an outage is not a log storm. */
 const FAILURE_LOG_INTERVAL_MS = 60 * 1000;
@@ -64,7 +64,7 @@ export function createRedis(
  * XRANGE keyed by entry id. With automaticDeserialization off the client
  * returns the reply as Redis sends it, `[[id, [field, value, ...]], ...]`.
  */
-export function streamEntries(
+function streamEntries(
   reply: unknown,
 ): Record<string, Record<string, unknown>> {
   if (!Array.isArray(reply)) throw new Error("unexpected XRANGE reply");

@@ -176,7 +176,7 @@ const hasInlineHandler = (lower: string, start: number, end: number) => {
 // True when the string could execute at an HTML sink. `javascript:` is a
 // case-insensitive substring; tags and handlers are found by walking `<`…`>`,
 // so long runs of spaces cannot force backtracking.
-export const hasDangerousMarkup = (value: string): boolean => {
+const hasDangerousMarkup = (value: string): boolean => {
   // Nothing below can fire without a `<` or a `:`: the scheme check needs the
   // colon and every tag and handler check starts from an angle bracket. The
   // strings that carry neither are most of every payload, and they were each

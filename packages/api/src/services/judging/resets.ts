@@ -33,7 +33,7 @@ import type { JudgingDb } from "./config";
 // (soft-deleted) portal entry as an organiser pulling the project, and a
 // reset is not that.
 
-export type ResetInput = { hackathonId: string; confirmation: string };
+type ResetInput = { hackathonId: string; confirmation: string };
 
 async function lockConfirmedEdition(tx: JudgingDb, input: ResetInput) {
   const locked = await lockEdition(tx, input.hackathonId);

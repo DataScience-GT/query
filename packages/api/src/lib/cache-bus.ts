@@ -22,7 +22,7 @@ import type { RedisClient } from "./redis";
 
 const STREAM_MAX_LEN = 500;
 const POLL_BATCH = 200;
-export const DEFAULT_POLL_MS = 2000;
+const DEFAULT_POLL_MS = 2000;
 
 export class CacheInvalidationBus {
   private cursor = "0-0";
