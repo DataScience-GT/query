@@ -48,6 +48,15 @@ export const INLINE_BUDGET_MS = 15_000;
 /** What one run of the daily job takes. */
 export const SWEEP_BATCH = 25;
 
+/**
+ * What `roles_sig` holds for a link whose tokens are missing or will not open
+ * (made before tokens were kept, or sealed under a secret since changed). No
+ * sync can serve it, so it is not pending: it stays out of the daily job
+ * rather than being tried, and taking a slot, every day. Linking again repairs
+ * it.
+ */
+export const UNREACHABLE_SIG = "unreachable";
+
 export type SweepOptions = SyncOptions & {
   /** People per run. */
   limit?: number;
@@ -176,11 +185,17 @@ async function syncOne(
   if (result === "revoked") return result;
   // What the link now says Discord has. A sync that did not land leaves it
   // pending (null), so the daily job tries again; nothing reads as done that
-  // is not.
+  // is not. A link with no usable token is set aside instead: trying it again
+  // cannot help.
   await db
     .update(discordLinks)
     .set({
-      rolesSig: result === "published" ? signature : null,
+      rolesSig:
+        result === "published"
+          ? signature
+          : result === "no_token"
+            ? UNREACHABLE_SIG
+            : null,
       syncAttemptedAt: new Date(),
     })
     .where(

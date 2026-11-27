@@ -1519,6 +1519,112 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       });
     });
 
+    describe("the daily job cannot be starved by links it cannot serve", () => {
+      const insertLink = async (
+        tag: string,
+        over: {
+          secret?: string;
+          expired?: boolean;
+          sig: string | null;
+          attemptedAt?: Date | null;
+        },
+      ) => {
+        const { sealTokens } = await import("../services/discord/tokens");
+        const userId = await makeUser(tag);
+        const account = acct(tag);
+        const issued = world.issue(account);
+        await S.db!.insert(S.discordLinks).values({
+          userId,
+          discordUserId: account,
+          discordUsername: account,
+          ...sealTokens(
+            {
+              accessToken: issued.access_token,
+              refreshToken: issued.refresh_token,
+              expiresAt: new Date(Date.now() + (over.expired ? -60_000 : 86_400_000)),
+            },
+            over.secret ?? SECRET,
+            userId,
+          ),
+          rolesSig: over.sig,
+          syncAttemptedAt: over.attemptedAt ?? null,
+        });
+        return { userId, account };
+      };
+      const sigOf = async (userId: string) => (await linkOf(userId))!.rolesSig;
+      const ROTATED = "z".repeat(40);
+
+      it("a link whose tokens cannot be opened leaves the sweep for good", async () => {
+        await clearLinks();
+        const stuck: { userId: string; account: string }[] = [];
+        for (let i = 0; i < 20; i++) {
+          stuck.push(await insertLink(`nt${i}`, { secret: ROTATED, sig: null }));
+        }
+
+        expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 15 })).toEqual({
+          checked: 15,
+          synced: 0,
+        });
+        expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 15 })).toEqual({
+          checked: 5,
+          synced: 0,
+        });
+        // Every one was tried once and marked unreachable, so nothing is left to try.
+        expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 15 })).toEqual({
+          checked: 0,
+          synced: 0,
+        });
+        for (const { userId } of stuck) expect(await sigOf(userId)).toBe("unreachable");
+        expect(world.puts).toHaveLength(0);
+      });
+
+      it("30 links that keep failing do not keep a real expired volunteer waiting", async () => {
+        await clearLinks();
+        world.refreshFails = 500;
+        const stuck: { userId: string; account: string }[] = [];
+        for (let i = 0; i < 30; i++) {
+          stuck.push(await insertLink(`fl${i}`, { expired: true, sig: null }));
+        }
+        const volunteer = await insertLink("fl-vol", {
+          sig: "a0f0r0j0v1",
+        });
+        await S.db!.insert(S.admins).values({
+          userId: volunteer.userId,
+          role: "volunteer",
+          expiresAt: new Date(Date.now() - 60_000),
+        });
+
+        const sweep = () => svc.syncExpiredDiscordRoles(S.db as any, { limit: 15 });
+        const attempts = async () =>
+          new Map(
+            (
+              await S.db!
+                .select({ id: S.discordLinks.userId, at: S.discordLinks.syncAttemptedAt })
+                .from(S.discordLinks)
+                .where(ops.inArray(S.discordLinks.userId, stuck.map((s) => s.userId)))
+            ).map((r) => [r.id, r.at]),
+          );
+
+        // Each run takes the 15 tried longest ago (never-tried first), so the
+        // 31 are all reached in three runs, whatever order they sit in.
+        const seen = new Set<string>();
+        for (let run = 0; run < 3; run++) {
+          const before = await attempts();
+          const result = await sweep();
+          expect(result.checked).toBeLessThanOrEqual(15);
+          for (const [id, at] of await attempts()) {
+            if (at && at.getTime() !== before.get(id)?.getTime()) seen.add(id);
+          }
+        }
+        expect(seen.size).toBe(30);
+        // The volunteer was served, ahead of the links that only ever fail.
+        expect(await sigOf(volunteer.userId)).toBe("a0f0r0j0v0");
+        expect(lastFor(volunteer.account)).toEqual(ZEROS);
+        // The failing ones are still owed a sync; nothing marked them done.
+        for (const { userId } of stuck) expect(await sigOf(userId)).toBeNull();
+      }, 60_000);
+    });
+
     describe("one person's changes take turns", () => {
       // Roles are changed by a sync, a link and an unlink, each of which reads
       // the link, calls Discord and writes back. Run at once they must not step
