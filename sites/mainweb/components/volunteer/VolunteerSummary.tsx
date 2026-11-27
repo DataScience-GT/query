@@ -29,7 +29,7 @@ export function VolunteerSummary({
 }) {
   const rows: [string, string][] = [
     [
-      "How they help",
+      "How you'll help",
       answers.mode === "both"
         ? "In person and online mentor"
         : volunteerModeLabel(answers.mode),
