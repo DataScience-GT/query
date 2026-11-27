@@ -106,7 +106,7 @@ export const judgePortalRouter = createTRPCRouter({
         };
       }
 
-      const cacheKey = `${CacheKeys.judge(ctx.userId as string)}:${hackathonId}`;
+      const cacheKey = `${CacheKeys.judge(ctx.userId)}:${hackathonId}`;
       const cached = ctx.cache.get<{
         isJudge: boolean;
         judgeId: string | null;
@@ -117,7 +117,7 @@ export const judgePortalRouter = createTRPCRouter({
 
       const judge = await (ctx.db as DrizzleDB).query.judges.findFirst({
         where: {
-          userId: ctx.userId as string,
+          userId: ctx.userId,
           hackathonId,
           isActive: true,
         },
@@ -141,7 +141,7 @@ export const judgePortalRouter = createTRPCRouter({
     const db = ctx.db as DrizzleDB;
 
     const myJudges = await db.query.judges.findMany({
-      where: { userId: ctx.userId as string },
+      where: { userId: ctx.userId },
       columns: {
         id: true,
         hackathonId: true,
@@ -217,7 +217,7 @@ export const judgePortalRouter = createTRPCRouter({
         const participant = await tx.query.hackathonParticipants.findFirst({
           where: {
             hackathonId: input.hackathonId,
-            userId: ctx.userId as string,
+            userId: ctx.userId,
           },
         });
 
@@ -319,7 +319,7 @@ export const judgePortalRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
       const judge = await db.query.judges.findFirst({
-        where: { userId: ctx.userId as string, hackathonId: input.hackathonId },
+        where: { userId: ctx.userId, hackathonId: input.hackathonId },
       });
       if (!judge) return null;
       const assignment = await db.query.judgeAssignments.findFirst({
@@ -352,7 +352,7 @@ export const judgePortalRouter = createTRPCRouter({
         await assertEditionNotOver(tx as unknown as DrizzleDB, input.hackathonId);
 
         const judge = await tx.query.judges.findFirst({
-          where: { userId: ctx.userId as string, hackathonId: input.hackathonId },
+          where: { userId: ctx.userId, hackathonId: input.hackathonId },
           columns: { id: true },
         });
         if (!judge) {
@@ -418,7 +418,7 @@ export const judgePortalRouter = createTRPCRouter({
         .set({ canAttendInPerson: input.canAttendInPerson })
         .where(
           and(
-            eq(judges.userId, ctx.userId as string),
+            eq(judges.userId, ctx.userId),
             eq(judges.hackathonId, input.hackathonId),
           ),
         )

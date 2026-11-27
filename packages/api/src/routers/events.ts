@@ -102,7 +102,7 @@ export const eventRouter = createTRPCRouter({
           ...input,
           bootcampTerm: input.bootcampWeek ? currentTerm() : null,
           qrCode,
-          createdById: ctx.userId as string,
+          createdById: ctx.userId,
         })
         .returning()
         .catch((error: unknown) => {
@@ -465,10 +465,10 @@ export const eventRouter = createTRPCRouter({
             // skip this lookup when none resolved and then refuse everyone at the door
             // with "Must be a member" — at an event with nothing to do with a hackathon.
             tx.query.members.findFirst({
-              where: { userId: ctx.userId as string },
+              where: { userId: ctx.userId },
             }),
             tx.query.eventCheckIns.findFirst({
-              where: { eventId: event.id, userId: ctx.userId as string },
+              where: { eventId: event.id, userId: ctx.userId },
             }),
           ]);
 
@@ -506,7 +506,7 @@ export const eventRouter = createTRPCRouter({
             event,
             {
               eventId: event.id,
-              userId: ctx.userId as string,
+              userId: ctx.userId,
               memberId: member?.id ?? null,
               checkInMethod: "qr_code",
             },
@@ -846,7 +846,7 @@ export const eventRouter = createTRPCRouter({
   myEvents: protectedProcedure.query(async ({ ctx }) => {
     const fetchCheckIns = () =>
       (ctx.db as NonNullable<typeof ctx.db>).query.eventCheckIns.findMany({
-        where: { userId: ctx.userId as string },
+        where: { userId: ctx.userId },
         with: {
           event: {
             columns: {
@@ -881,7 +881,7 @@ export const eventRouter = createTRPCRouter({
     const result = await (ctx.db as NonNullable<typeof ctx.db>)
       .select({ totalEvents: sql<number>`count(*)::int` })
       .from(eventCheckIns)
-      .where(eq(eventCheckIns.userId, ctx.userId as string));
+      .where(eq(eventCheckIns.userId, ctx.userId));
 
     const stats = { totalEvents: result[0]?.totalEvents ?? 0 };
     ctx.cache.set(cacheKey, stats, 60);

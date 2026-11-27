@@ -286,7 +286,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
           body: input.body,
           ctaLabel: input.ctaLabel ?? null,
           ctaUrl: input.ctaUrl ?? null,
-          createdById: ctx.userId as string,
+          createdById: ctx.userId,
         })
         .returning({ id: hackathonAnnouncements.id });
 
@@ -344,7 +344,7 @@ export const hackathonAnnounceRouter = createTRPCRouter({
     }
 
     const me = await db.query.users.findFirst({
-      where: { id: ctx.userId as string },
+      where: { id: ctx.userId },
       columns: { email: true },
     });
 

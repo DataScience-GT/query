@@ -165,7 +165,7 @@ export const bootcampRouter = createTRPCRouter({
     const term = currentTerm();
 
     const member = await db.query.members.findFirst({
-      where: { userId: ctx.userId as string },
+      where: { userId: ctx.userId },
       columns: { bootcampTerm: true },
     });
 
@@ -189,7 +189,7 @@ export const bootcampRouter = createTRPCRouter({
           .from(eventCheckIns)
           .where(
             and(
-              eq(eventCheckIns.userId, ctx.userId as string),
+              eq(eventCheckIns.userId, ctx.userId),
               inArray(
                 eventCheckIns.eventId,
                 sessions.map((session) => session.id),
@@ -224,7 +224,7 @@ export const bootcampRouter = createTRPCRouter({
   workshops: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
     const member = await db.query.members.findFirst({
-      where: { userId: ctx.userId as string },
+      where: { userId: ctx.userId },
       columns: { bootcampTerm: true },
     });
 
@@ -397,7 +397,7 @@ export const bootcampRouter = createTRPCRouter({
           location: input.location || null,
           eventDate: input.sessionDate,
           qrCode: randomUUID(),
-          createdById: ctx.userId as string,
+          createdById: ctx.userId,
           bootcampWeek: week,
           bootcampTerm: term,
           bootcampOnly: true,

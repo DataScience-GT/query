@@ -357,7 +357,7 @@ export const hackathonContentRouter = createTRPCRouter({
       return await (ctx.db as DrizzleDB).query.hackathonParticipants.findFirst({
         where: {
           hackathonId: input.hackathonId,
-          userId: ctx.userId as string,
+          userId: ctx.userId,
         },
         with: {
           team: true,

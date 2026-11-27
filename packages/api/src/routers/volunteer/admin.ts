@@ -118,7 +118,7 @@ export const volunteerAdminRouter = createTRPCRouter({
           .update(applications)
           .set({
             status: input.decision,
-            reviewedById: ctx.userId as string,
+            reviewedById: ctx.userId,
             reviewedAt: new Date(),
             updatedAt: new Date(),
           })

@@ -55,12 +55,12 @@ export const userRouter = createTRPCRouter({
     // getOrSet: the layout and the page both ask for this, so a cold key ran
     // the query twice.
     ctx.cache.getOrSet(
-      CacheKeys.userProfile(ctx.userId as string),
+      CacheKeys.userProfile(ctx.userId),
       async () => {
         const user = await (
           ctx.db as NonNullable<typeof ctx.db>
         ).query.users.findFirst({
-          where: { id: ctx.userId as string },
+          where: { id: ctx.userId },
           columns: { id: true, email: true, name: true, image: true },
           with: {
             profile: {
@@ -94,7 +94,7 @@ export const userRouter = createTRPCRouter({
   ),
 
   getPortalContext: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.userId as string;
+    const userId = ctx.userId;
 
     if (!ctx.db) {
       throw new TRPCError({
@@ -169,7 +169,7 @@ export const userRouter = createTRPCRouter({
           (ctx.db as NonNullable<typeof ctx.db>)
             .update(users)
             .set({ name, image })
-            .where(eq(users.id, ctx.userId as string)),
+            .where(eq(users.id, ctx.userId)),
         );
       }
 
@@ -184,7 +184,7 @@ export const userRouter = createTRPCRouter({
           (ctx.db as NonNullable<typeof ctx.db>)
             .insert(userProfiles)
             .values({
-              userId: ctx.userId as string,
+              userId: ctx.userId,
               bio,
               website,
               location,
@@ -220,7 +220,7 @@ export const userRouter = createTRPCRouter({
         throw error;
       }
 
-      ctx.cache.deletePattern(`user:${ctx.userId as string}*`);
+      ctx.cache.deletePattern(`user:${ctx.userId}*`);
 
       return { success: true };
     }),
@@ -282,9 +282,9 @@ export const userRouter = createTRPCRouter({
       await (ctx.db as NonNullable<typeof ctx.db>)
         .update(users)
         .set({ image: input.base64Image })
-        .where(eq(users.id, ctx.userId as string));
+        .where(eq(users.id, ctx.userId));
 
-      ctx.cache.deletePattern(`user:${ctx.userId as string}*`);
+      ctx.cache.deletePattern(`user:${ctx.userId}*`);
 
       return { success: true };
     }),

@@ -77,7 +77,7 @@ export const checkoutProcedures = {
       }
 
       const user = await ctx.db!.query.users.findFirst({
-        where: { id: ctx.userId! },
+        where: { id: ctx.userId },
       });
 
       if (!user?.email) {
@@ -106,17 +106,17 @@ export const checkoutProcedures = {
             amountTotal: priceForCents(input.bootcamp, input.plan),
             currency: "usd",
             paymentStatus: "paid",
-            linkedUserId: ctx.userId!,
+            linkedUserId: ctx.userId,
             linkedAt: new Date(),
             metadata: JSON.stringify({
-              userId: ctx.userId!,
+              userId: ctx.userId,
               bootcamp: input.bootcamp ? "true" : "false",
               plan: input.plan,
             }),
           });
 
           await createOrUpdateMembership(tx as unknown as DrizzleDB, {
-            userId: ctx.userId!,
+            userId: ctx.userId,
             firstName,
             lastName,
             bootcampMember,
@@ -124,7 +124,7 @@ export const checkoutProcedures = {
           });
         });
 
-        clearMembershipCaches(ctx.userId!);
+        clearMembershipCaches(ctx.userId);
 
         const mockUrl = `${input.returnUrl}${input.returnUrl.includes("?") ? "&" : "?"}payment=success&session_id=${sessionId}`;
         return { url: mockUrl };
@@ -160,7 +160,7 @@ export const checkoutProcedures = {
           cancel_url: `${input.returnUrl}?payment=cancelled`,
           customer_email: user.email,
           metadata: {
-            userId: ctx.userId!,
+            userId: ctx.userId,
             bootcamp: input.bootcamp ? "true" : "false",
             // Read back by the webhook: what expiry was paid for is decided here, never
             // by whatever the browser claims later.
@@ -195,7 +195,7 @@ export const checkoutProcedures = {
     )
     .mutation(async ({ ctx, input }) => {
       const user = await ctx.db!.query.users.findFirst({
-        where: { id: ctx.userId! },
+        where: { id: ctx.userId },
       });
 
       if (!user?.email) {
@@ -209,7 +209,7 @@ export const checkoutProcedures = {
       // their own row, never an input flag — otherwise a non-member could ask for
       // add-on pricing and get bootcamp access for $10.
       const member = await ctx.db!.query.members.findFirst({
-        where: { userId: ctx.userId! },
+        where: { userId: ctx.userId },
         columns: { isActive: true, membershipEndDate: true },
       });
       const membershipActive = !!(
@@ -264,7 +264,7 @@ export const checkoutProcedures = {
               ? `DS@GT Membership (${planLabel(input.plan)}) + Bootcamp (${formatCents(amount)})`
               : `DS@GT Membership — ${planLabel(input.plan)} (${formatCents(amount)})`,
           metadata: {
-            userId: ctx.userId!,
+            userId: ctx.userId,
             userEmail: user.email,
             // Every grant path reads this to tell a $10 add-on from a year.
             type: addOnOnly ? BOOTCAMP_ADDON_PAYMENT_TYPE : "membership",
@@ -337,7 +337,7 @@ export const checkoutProcedures = {
             : priceForCents(false, mockPlan),
           currency: "usd",
           metadata: {
-            userId: ctx.userId!,
+            userId: ctx.userId,
             bootcamp: mockAddOn ? "true" : "false",
             plan: mockPlan,
             type: mockAddOn ? BOOTCAMP_ADDON_PAYMENT_TYPE : "membership",
@@ -389,7 +389,7 @@ export const checkoutProcedures = {
       }
 
       const user = await ctx.db!.query.users.findFirst({
-        where: { id: ctx.userId! },
+        where: { id: ctx.userId },
       });
 
       const nameParts = (user?.name || "Member").split(" ");
@@ -433,7 +433,7 @@ export const checkoutProcedures = {
                 amountTotal: pi.amount,
                 currency: pi.currency,
                 paymentStatus: "paid",
-                linkedUserId: ctx.userId!,
+                linkedUserId: ctx.userId,
                 linkedAt: new Date(),
                 metadata: JSON.stringify(pi.metadata ?? {}),
               })
@@ -442,7 +442,7 @@ export const checkoutProcedures = {
             if (!inserted) return false;
 
             await createOrUpdateMembership(tx as unknown as DrizzleDB, {
-              userId: ctx.userId!,
+              userId: ctx.userId,
               firstName,
               lastName,
               bootcampMember,
@@ -461,7 +461,7 @@ export const checkoutProcedures = {
             const claimed = await tx
               .update(stripePayments)
               .set({
-                linkedUserId: ctx.userId!,
+                linkedUserId: ctx.userId,
                 linkedAt: new Date(),
                 updatedAt: new Date(),
               })
@@ -474,7 +474,7 @@ export const checkoutProcedures = {
             if (claimed.rowCount === 0) return false;
 
             await createOrUpdateMembership(tx as unknown as DrizzleDB, {
-              userId: ctx.userId!,
+              userId: ctx.userId,
               firstName,
               lastName,
               bootcampMember,
@@ -491,7 +491,7 @@ export const checkoutProcedures = {
         throw error;
       }
 
-      clearMembershipCaches(ctx.userId!);
+      clearMembershipCaches(ctx.userId);
 
       return { success: true };
     }),

@@ -36,7 +36,7 @@ export const volunteerPortalRouter = createTRPCRouter({
       const [application, edition] = await Promise.all([
         db.query.hackathonVolunteerApplications.findFirst({
           where: {
-            userId: ctx.userId as string,
+            userId: ctx.userId,
             hackathonId: input.hackathonId,
           },
           columns: {
@@ -63,7 +63,7 @@ export const volunteerPortalRouter = createTRPCRouter({
   submit: notHackathonBanned
     .input(submitInput)
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
       return await (ctx.db as DrizzleDB).transaction(async (tx) => {
         const db = tx as unknown as DrizzleDB;
         await assertTakingApplications(db, input.hackathonId);
@@ -129,7 +129,7 @@ export const volunteerPortalRouter = createTRPCRouter({
         })
         .where(
           and(
-            eq(applications.userId, ctx.userId as string),
+            eq(applications.userId, ctx.userId),
             eq(applications.hackathonId, input.hackathonId),
             eq(applications.status, "pending"),
           ),
@@ -138,7 +138,7 @@ export const volunteerPortalRouter = createTRPCRouter({
       if (updated) return { success: true };
 
       const existing = await db.query.hackathonVolunteerApplications.findFirst({
-        where: { userId: ctx.userId as string, hackathonId: input.hackathonId },
+        where: { userId: ctx.userId, hackathonId: input.hackathonId },
         columns: { status: true },
       });
       throw new TRPCError(
@@ -162,7 +162,7 @@ export const volunteerPortalRouter = createTRPCRouter({
     .input(hackathonInput)
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
       const withdrawn = await db.transaction(async (tx) => {
         const [row] = await tx
           .update(applications)
@@ -188,7 +188,7 @@ export const volunteerPortalRouter = createTRPCRouter({
       }
 
       const existing = await db.query.hackathonVolunteerApplications.findFirst({
-        where: { userId: ctx.userId as string, hackathonId: input.hackathonId },
+        where: { userId: ctx.userId, hackathonId: input.hackathonId },
         columns: { status: true },
       });
       throw new TRPCError(

@@ -49,7 +49,7 @@ export const teamProcedures = {
             const participant = await tx.query.hackathonParticipants.findFirst({
               where: {
                 hackathonId: input.hackathonId,
-                userId: ctx.userId as string,
+                userId: ctx.userId,
               },
             });
 
@@ -83,7 +83,7 @@ export const teamProcedures = {
                 hackathonId: input.hackathonId,
                 name: input.name,
                 description: input.description,
-                captainId: ctx.userId as string,
+                captainId: ctx.userId,
                 maxMembers: input.maxMembers,
               })
               .returning();
@@ -140,7 +140,7 @@ export const teamProcedures = {
             const participant = await tx.query.hackathonParticipants.findFirst({
               where: {
                 hackathonId: input.hackathonId,
-                userId: ctx.userId as string,
+                userId: ctx.userId,
               },
             });
 
@@ -257,7 +257,7 @@ export const teamProcedures = {
       ).query.hackathonParticipants.findFirst({
         where: {
           hackathonId: input.hackathonId,
-          userId: ctx.userId as string,
+          userId: ctx.userId,
         },
       });
 
@@ -287,7 +287,7 @@ export const teamProcedures = {
               });
 
             // If captain is the only one left, they can "leave" which deletes the team
-            if (team.captainId === (ctx.userId as string)) {
+            if (team.captainId === (ctx.userId)) {
               if ((await countMembers(tx, team.id)) <= 1) {
                 const project = await tx.query.hackathonProjects.findFirst({
                   where: { teamId: team.id },
@@ -382,7 +382,7 @@ export const teamProcedures = {
 
       if (!team)
         throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
-      if (team.captainId !== (ctx.userId as string)) {
+      if (team.captainId !== (ctx.userId)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Only the captain can disband the team.",
@@ -463,7 +463,7 @@ export const teamProcedures = {
 
       if (!team)
         throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
-      if (team.captainId !== (ctx.userId as string)) {
+      if (team.captainId !== (ctx.userId)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Only the captain can open or close the team.",

@@ -167,7 +167,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       await assertHasResume(
         ctx.db as DrizzleDB,
-        ctx.userId as string,
+        ctx.userId,
         input.resumeUrl,
       );
       try {
@@ -206,7 +206,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
             await tx.query.hackathonParticipants.findFirst({
               where: {
                 hackathonId: input.hackathonId,
-                userId: ctx.userId as string,
+                userId: ctx.userId,
               },
             });
 
@@ -222,7 +222,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
           const judgeRow = await tx.query.judges.findFirst({
             where: {
               hackathonId: input.hackathonId,
-              userId: ctx.userId as string,
+              userId: ctx.userId,
             },
             columns: { id: true },
           });
@@ -241,14 +241,14 @@ export const hackathonRegistrationRouter = createTRPCRouter({
           // person alone; the edition clause used to be here and made a paying member
           // read as a non-member the moment a new edition opened.
           const member = await tx.query.members.findFirst({
-            where: { userId: ctx.userId as string },
+            where: { userId: ctx.userId },
           });
 
           const [participant] = await tx
             .insert(hackathonParticipants)
             .values({
               hackathonId: input.hackathonId,
-              userId: ctx.userId as string,
+              userId: ctx.userId,
               memberId: member?.id,
               // Personal
               firstName: input.firstName,
@@ -313,7 +313,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
             .delete(hackathonApplicationDrafts)
             .where(
               and(
-                eq(hackathonApplicationDrafts.userId, ctx.userId as string),
+                eq(hackathonApplicationDrafts.userId, ctx.userId),
                 eq(hackathonApplicationDrafts.hackathonId, input.hackathonId),
               ),
             );
@@ -328,7 +328,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         ctx.cache.delete(CacheKeys.hackathon(input.hackathonId));
         ctx.cache.delete(CacheKeys.hackathon(hackathonName));
         ctx.cache.delete(`hackathon:${input.hackathonId}:participants`);
-        ctx.cache.delete(`hackathon:registrations:${ctx.userId as string}`);
+        ctx.cache.delete(`hackathon:registrations:${ctx.userId}`);
 
         return participant;
       } catch (error: unknown) {
@@ -362,7 +362,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         .from(hackathonApplicationDrafts)
         .where(
           and(
-            eq(hackathonApplicationDrafts.userId, ctx.userId as string),
+            eq(hackathonApplicationDrafts.userId, ctx.userId),
             eq(hackathonApplicationDrafts.hackathonId, input.hackathonId),
           ),
         )
@@ -378,7 +378,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     .input(saveDraftInput)
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
 
       // The form saves a moment after each pause in typing, so a long sitting
       // is dozens of saves. Per user, since the row is keyed that way and an
@@ -460,7 +460,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       const participant = await db.query.hackathonParticipants.findFirst({
         where: {
           hackathonId: input.hackathonId,
-          userId: ctx.userId as string,
+          userId: ctx.userId,
         },
         columns: { id: true, teamId: true, registrationStatus: true },
       });
@@ -549,7 +549,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         // attempt below does not reach Discord.
         if (deleted.length > 0) {
           await markDiscordRolesPending(tx as unknown as DrizzleDB, [
-            ctx.userId as string,
+            ctx.userId,
           ]);
         }
         return deleted;
@@ -563,9 +563,9 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       }
 
       evictParticipantCaches(ctx.cache, input.hackathonId, [
-        ctx.userId as string,
+        ctx.userId,
       ]);
-      await syncDiscordRoles(db, ctx.userId as string);
+      await syncDiscordRoles(db, ctx.userId);
 
       return { success: true };
     }),
@@ -584,7 +584,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
       await assertHasResume(db, userId, input.resumeUrl);
 
       const hackathon = await db.query.hackathons.findFirst({
@@ -709,7 +709,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
 
       const participant = await db.query.hackathonParticipants.findFirst({
         where: { hackathonId: input.hackathonId, userId },
@@ -773,7 +773,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     }),
 
   myRegistrations: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.userId as string;
+    const userId = ctx.userId;
 
     // getOrSet: the portal layout and the page both prefetch this, so on a cold
     // key two reads were in flight at once and each ran the query.

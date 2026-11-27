@@ -140,7 +140,7 @@ export const submissionProcedures = {
       const participant = await db.query.hackathonParticipants.findFirst({
         where: {
           hackathonId: input.hackathonId,
-          userId: ctx.userId as string,
+          userId: ctx.userId,
         },
         with: { team: true },
       });
@@ -212,7 +212,7 @@ export const submissionProcedures = {
               tx,
               input.hackathonId,
               teamId,
-              ctx.userId as string,
+              ctx.userId,
             );
           }
 
@@ -305,7 +305,7 @@ export const submissionProcedures = {
           const participant = await tx.query.hackathonParticipants.findFirst({
             where: {
               hackathonId: input.hackathonId,
-              userId: ctx.userId as string,
+              userId: ctx.userId,
             },
           });
 
@@ -337,7 +337,7 @@ export const submissionProcedures = {
             const team = await tx.query.hackathonTeams.findFirst({
               where: { id: participant.teamId },
             });
-            if (team && team.captainId !== (ctx.userId as string)) {
+            if (team && team.captainId !== (ctx.userId)) {
               throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "Only the team captain can withdraw the project.",

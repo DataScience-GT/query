@@ -70,7 +70,7 @@ export const adminRouter = createTRPCRouter({
       });
     }
     const admin = await (ctx.db as DrizzleDB).query.admins.findFirst({
-      where: { userId: ctx.userId as string, isActive: true },
+      where: { userId: ctx.userId, isActive: true },
     });
 
     const expired = isExpiredAdmin(admin);

@@ -118,7 +118,7 @@ export const teamReadProcedures = {
       const participant = await db.query.hackathonParticipants.findFirst({
         where: {
           hackathonId: input.hackathonId,
-          userId: ctx.userId as string,
+          userId: ctx.userId,
         },
         columns: { id: true, teamId: true },
       });
@@ -155,7 +155,7 @@ export const teamReadProcedures = {
   myProjects: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
 
-    const userId = ctx.userId as string;
+    const userId = ctx.userId;
 
     // One round trip: the caller's team ids and solo registrations are
     // subqueries, not a read of their own first. A caller with no registration

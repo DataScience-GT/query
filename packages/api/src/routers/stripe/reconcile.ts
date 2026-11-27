@@ -257,7 +257,7 @@ export const reconcileProcedures = {
     if (!stripe) return { recovered: 0 };
 
     const db = ctx.db!;
-    const userId = ctx.userId!;
+    const userId = ctx.userId;
     const user = await db.query.users.findFirst({
       where: { id: userId },
     });

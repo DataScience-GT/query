@@ -19,7 +19,7 @@ export const linkingProcedures = {
   // Auto-link a Stripe payment matching the user's email.
   attemptAutoLink: protectedProcedure.mutation(async ({ ctx }) => {
     // Basic rate limit to prevent loop hammering (max 1 request per 10 seconds per user)
-    const rateLimitKey = `rl:autolink:${ctx.userId!}`;
+    const rateLimitKey = `rl:autolink:${ctx.userId}`;
     if (ctx.cache.get(rateLimitKey)) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
@@ -30,7 +30,7 @@ export const linkingProcedures = {
 
     return await ctx.db!.transaction(async (tx) => {
       const user = await tx.query.users.findFirst({
-        where: { id: ctx.userId! },
+        where: { id: ctx.userId },
       });
 
       if (!user?.email) return { success: false };
@@ -51,7 +51,7 @@ export const linkingProcedures = {
 
       // Verify not already linked (double check)
       const existingLink = await tx.query.userAccountLinks.findFirst({
-        where: { userId: ctx.userId! },
+        where: { userId: ctx.userId },
       });
       if (existingLink) return { success: true };
 
@@ -65,7 +65,7 @@ export const linkingProcedures = {
       const claimed = await tx
         .update(stripePayments)
         .set({
-          linkedUserId: ctx.userId!,
+          linkedUserId: ctx.userId,
           linkedAt: new Date(),
           updatedAt: new Date(),
         })
@@ -79,7 +79,7 @@ export const linkingProcedures = {
       if (claimed.length === 0) return { success: false };
 
       await tx.insert(userAccountLinks).values({
-        userId: ctx.userId!,
+        userId: ctx.userId,
         stripePaymentId: payment.id,
         providedFirstName: firstName,
         providedLastName: lastName,
@@ -87,7 +87,7 @@ export const linkingProcedures = {
       });
 
       await createOrUpdateMembership(tx as unknown as DrizzleDB, {
-        userId: ctx.userId!,
+        userId: ctx.userId,
         firstName,
         lastName,
         bootcampMember,
@@ -96,7 +96,7 @@ export const linkingProcedures = {
       });
 
       membershipGrants.inc({ source: "autolink", plan });
-      clearMembershipCaches(ctx.userId!);
+      clearMembershipCaches(ctx.userId);
 
       return { success: true };
     });
@@ -106,7 +106,7 @@ export const linkingProcedures = {
   // email (the auto-link case).
   checkPendingPayment: protectedProcedure.query(async ({ ctx }) => {
     const user = await ctx.db!.query.users.findFirst({
-      where: { id: ctx.userId! },
+      where: { id: ctx.userId },
     });
 
     if (!user?.email) {
@@ -166,7 +166,7 @@ export const linkingProcedures = {
         // as a substitute. A payment made under a different address is linked
         // by an officer from the admin side.
         const account = await tx.query.users.findFirst({
-          where: { id: ctx.userId! },
+          where: { id: ctx.userId },
           columns: { email: true },
         });
 
@@ -209,7 +209,7 @@ export const linkingProcedures = {
         }
 
         const userExistingLink = await tx.query.userAccountLinks.findFirst({
-          where: { userId: ctx.userId! },
+          where: { userId: ctx.userId },
         });
 
         if (userExistingLink) {
@@ -230,7 +230,7 @@ export const linkingProcedures = {
         const claimed = await tx
           .update(stripePayments)
           .set({
-            linkedUserId: ctx.userId!,
+            linkedUserId: ctx.userId,
             linkedAt: new Date(),
             updatedAt: new Date(),
           })
@@ -250,7 +250,7 @@ export const linkingProcedures = {
         }
 
         await tx.insert(userAccountLinks).values({
-          userId: ctx.userId!,
+          userId: ctx.userId,
           stripePaymentId: payment.id,
           providedFirstName: input.firstName,
           providedLastName: input.lastName,
@@ -258,7 +258,7 @@ export const linkingProcedures = {
         });
 
         await createOrUpdateMembership(tx as unknown as DrizzleDB, {
-          userId: ctx.userId!,
+          userId: ctx.userId,
           firstName: input.firstName,
           lastName: input.lastName,
           bootcampMember: entitlement.bootcamp,
@@ -267,7 +267,7 @@ export const linkingProcedures = {
         });
 
         membershipGrants.inc({ source: "link", plan: entitlement.plan });
-        clearMembershipCaches(ctx.userId!);
+        clearMembershipCaches(ctx.userId);
 
         return {
           success: true,
@@ -485,7 +485,7 @@ export const linkingProcedures = {
   // The current user's linked payment status.
   getLinkedPayment: protectedProcedure.query(async ({ ctx }) => {
     const link = await ctx.db!.query.userAccountLinks.findFirst({
-      where: { userId: ctx.userId! },
+      where: { userId: ctx.userId },
       with: {
         stripePayment: true,
       },

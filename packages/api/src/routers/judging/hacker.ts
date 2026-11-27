@@ -121,7 +121,7 @@ export const judgingHackerRouter = createTRPCRouter({
     .input(hackathonInput)
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
 
       const [checkedIn, config] = await Promise.all([
         isCheckedIn(db, input.hackathonId, userId),
@@ -215,7 +215,7 @@ export const judgingHackerRouter = createTRPCRouter({
     .input(hackathonInput.extend({ memberId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
       await assertHackathonExists(db, input.hackathonId);
 
       return db.transaction(async (tx) => {
@@ -262,7 +262,7 @@ export const judgingHackerRouter = createTRPCRouter({
     .input(hackathonInput.extend({ token: tokenInput }))
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
       const now = new Date();
       const hackathon = await assertHackathonExists(db, input.hackathonId);
       await requireCheckedIn(db, input.hackathonId, userId);
@@ -335,7 +335,7 @@ export const judgingHackerRouter = createTRPCRouter({
     .input(hackathonInput.extend({ token: tokenInput }))
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
       const now = new Date();
       const hackathon = await assertHackathonExists(db, input.hackathonId);
 
@@ -383,7 +383,7 @@ export const judgingHackerRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
 
       // Per user: a campus shares one address, and the lookup below answers
       // "is this email a checked-in hacker" however carefully it is worded.
@@ -551,7 +551,7 @@ export const judgingHackerRouter = createTRPCRouter({
     .input(hackathonInput.extend({ entryId: z.string().uuid().optional() }))
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
       const now = new Date();
       await requireCheckedIn(db, input.hackathonId, userId);
 
@@ -676,7 +676,7 @@ export const judgingHackerRouter = createTRPCRouter({
     .input(hackathonInput)
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
       await requireCheckedIn(db, input.hackathonId, userId);
 
       const config = await readJudgingConfig(db, input.hackathonId);
@@ -738,7 +738,7 @@ export const judgingHackerRouter = createTRPCRouter({
     .input(hackathonInput.extend({ query: z.string().trim().min(2).max(100) }))
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      await requireCheckedIn(db, input.hackathonId, ctx.userId as string);
+      await requireCheckedIn(db, input.hackathonId, ctx.userId);
 
       const config = await readJudgingConfig(db, input.hackathonId);
       if (!config.emergencyMode || !config.itineraryPublished) {
