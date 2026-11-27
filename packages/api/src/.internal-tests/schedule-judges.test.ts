@@ -11,7 +11,6 @@
  * test decides what the script "printed" and sees exactly what it was asked.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PgDialect } from "drizzle-orm/pg-core";
 import {
   auditLogs,
   hackathons,
@@ -28,6 +27,7 @@ import {
   judgingSchedules,
 } from "@query/db";
 import { testCaller } from "./_caller";
+import { id, render } from "./_fake-db";
 import { rebalanceIfDue, rebalanceThrottle } from "../routers/judging/schedule";
 import { cache } from "../middleware/cache";
 import { assignJudges } from "../services/judging/schedule/judges";
@@ -48,8 +48,6 @@ vi.mock("../services/judging/schedule/cpsat-runner", async (importActual) => ({
   runCpsat: (...args: unknown[]) => mockRun(...args),
 }));
 
-const id = (n: number) =>
-  `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const HACK = id(1);
 const GENERAL = id(10);
 const ACME = id(11);
@@ -73,8 +71,6 @@ const SCHEDULE = id(60);
 const NOW = new Date("2027-02-06T15:00:00Z");
 const at = (time: string) => new Date(`2027-02-06T${time}:00Z`);
 
-const dialect = new PgDialect();
-const render = (condition: unknown) => dialect.sqlToQuery(condition as never);
 
 type Row = Record<string, any>;
 type Write = { table: unknown; values: Row | Row[]; where?: unknown };

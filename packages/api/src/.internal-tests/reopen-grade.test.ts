@@ -15,7 +15,6 @@
  */
 import { beforeEach, describe, expect, it } from "vitest";
 import { getTableConfig } from "drizzle-orm/pg-core";
-import { PgDialect } from "drizzle-orm/pg-core";
 import {
   auditLogs,
   hackathons,
@@ -28,6 +27,7 @@ import {
   judgingPlacements,
 } from "@query/db";
 import { testCaller } from "./_caller";
+import { matcher, render } from "./_fake-db";
 import { cache } from "../middleware/cache";
 
 const HACK_A = "11111111-1111-4111-8111-111111111111";
@@ -41,9 +41,6 @@ const DRAFT_1 = "ffffffff-ffff-4fff-8fff-fffffffffff1";
 const DRAFT_2 = "ffffffff-ffff-4fff-8fff-fffffffffff2";
 const NO_SUCH = "99999999-9999-4999-8999-999999999999";
 
-const dialect = new PgDialect();
-const render = (condition: unknown) => dialect.sqlToQuery(condition as never);
-
 type Row = Record<string, any>;
 type Event = {
   kind: "select" | "execute" | "insert" | "delete" | "update";
@@ -52,22 +49,6 @@ type Event = {
   /** A select that takes row locks. */
   locking?: boolean;
 };
-
-const camel = (name: string) =>
-  name.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
-const TERM = /"[a-z_]+"\."([a-z_]+)" = \$(\d+)/g;
-
-/** A row filter from a where of `column = value` terms joined by and. */
-function matcher(where: unknown) {
-  const { sql: text, params } = render(where);
-  const terms = [...text.matchAll(TERM)].map(
-    (match) => [camel(match[1]!), params[Number(match[2]) - 1]] as const,
-  );
-  if (text.replace(TERM, "").replace(/[()\s]|and/g, "")) {
-    throw new Error(`The fake database cannot evaluate: ${text}`);
-  }
-  return (row: Row) => terms.every(([key, value]) => row[key] === value);
-}
 
 let adminRow: Row | undefined;
 let published = false;

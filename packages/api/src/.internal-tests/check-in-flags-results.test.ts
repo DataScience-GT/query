@@ -20,7 +20,6 @@
  * result instead of passing unnoticed.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PgDialect } from "drizzle-orm/pg-core";
 import {
   hackathonCheckInFlags,
   hackathonEvents,
@@ -40,13 +39,11 @@ import {
   judgingRubricItems,
 } from "@query/db";
 import { testCaller } from "./_caller";
+import { render } from "./_fake-db";
 import { cache } from "../middleware/cache";
 
 const HACK = "11111111-1111-4111-8111-111111111111";
 const ADMIN_ROW = { userId: "admin_user", isActive: true, role: "admin" };
-
-const render = (condition: unknown) =>
-  new PgDialect().sqlToQuery(condition as never);
 
 type Query = {
   table: unknown;

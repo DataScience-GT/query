@@ -7,7 +7,6 @@
  * can be seen to leave every room as it was.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PgDialect } from "drizzle-orm/pg-core";
 import {
   auditLogs,
   judgingAnnouncements,
@@ -17,6 +16,7 @@ import {
   judgingRooms,
 } from "@query/db";
 import { testCaller } from "./_caller";
+import { id, render } from "./_fake-db";
 import { cache } from "../middleware/cache";
 import type * as Challenges from "../services/judging/challenges";
 
@@ -26,14 +26,9 @@ vi.mock("../services/judging/challenges", async (importActual) => ({
   lockEdition: async () => undefined,
 }));
 
-const id = (n: number) =>
-  `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const HACK = id(1);
 const OTHER = id(2);
 const [T1, T2, T3, BUSY, FOREIGN, DONE] = [10, 11, 12, 13, 14, 15].map(id);
-
-const dialect = new PgDialect();
-const render = (condition: unknown) => dialect.sqlToQuery(condition as never);
 
 type Row = Record<string, any>;
 

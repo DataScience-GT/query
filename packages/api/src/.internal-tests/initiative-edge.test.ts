@@ -29,30 +29,12 @@ let onSelect: (table: unknown) => unknown[] = () => [];
 
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");
+  const { tableSelectChain } = await import("./_fake-db");
 
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
     findMany: async () => [],
   });
-
-  // Mirrors drizzle's builder closely enough for the chains this router uses:
-  // .from().innerJoin().where().orderBy().limit(), .where().groupBy(), an
-  // awaited .where(), and .where().for("update").
-  const selectChain = () => {
-    let from: unknown;
-    const rows = () => Promise.resolve(onSelectRef.current(from));
-    const node: any = {
-      from: (t: unknown) => ((from = t), node),
-      innerJoin: () => node,
-      where: () => node,
-      orderBy: () => node,
-      groupBy: () => rows(),
-      limit: () => rows(),
-      for: () => rows(),
-      then: (ok: any, err: any) => rows().then(ok, err),
-    };
-    return node;
-  };
 
   return {
     db: {
@@ -71,7 +53,7 @@ vi.mock("@query/db", async () => {
         initiatives: table("initiatives"),
         initiativeApplications: table("initiativeApplications"),
       },
-      select: selectChain,
+      select: tableSelectChain((table) => onSelectRef.current(table)),
       insert: (...insertArgs: any[]) => ({
         values: (...valArgs: any[]) => {
           const val = mockInsert("insert", insertArgs, valArgs);

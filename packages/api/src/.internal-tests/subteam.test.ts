@@ -22,27 +22,12 @@ vi.mock("@query/auth/email", () => ({
 
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");
+  const { tableSelectChain } = await import("./_fake-db");
 
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
     findMany: async () => [],
   });
-
-  const selectChain = () => {
-    let from: unknown;
-    const rows = () => Promise.resolve(onSelectRef.current(from));
-    const node: any = {
-      from: (t: unknown) => ((from = t), node),
-      innerJoin: () => node,
-      where: () => node,
-      orderBy: () => node,
-      groupBy: () => rows(),
-      limit: () => rows(),
-      for: () => rows(),
-      then: (ok: any, err: any) => rows().then(ok, err),
-    };
-    return node;
-  };
 
   const writeResult = (val: unknown) =>
     Object.assign(Promise.resolve(val), {
@@ -64,7 +49,7 @@ vi.mock("@query/db", async () => {
         subteams: table("subteams"),
         subteamApplications: table("subteamApplications"),
       },
-      select: selectChain,
+      select: tableSelectChain((table) => onSelectRef.current(table)),
       insert: (...insertArgs: any[]) => ({
         values: (...valArgs: any[]) =>
           writeResult(mockInsert("insert", insertArgs, valArgs)),
