@@ -23,6 +23,7 @@ import {
   status,
   textLink,
 } from "@query/ui/classes";
+import { useDebounced } from "@/components/admin/hackathons/points/use-debounced";
 import { Itinerary, MissedBanner } from "./Itinerary";
 
 // Hackers poll every 30 seconds; the timer below covers the moment a slot ends.
@@ -31,17 +32,6 @@ const POLL_MS = 30_000;
 const MAX_TIMER_MS = 2_147_483_647;
 
 type MyClaim = RouterOutputs["judging"]["hacker"]["myClaim"];
-
-/** Delays a fast-changing value so it can drive a query without firing one per
- *  keystroke. */
-function useDebounced<T>(value: T, ms: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(timer);
-  }, [value, ms]);
-  return debounced;
-}
 
 /**
  * The hacker's side of room judging: claim a place on the project, then see
