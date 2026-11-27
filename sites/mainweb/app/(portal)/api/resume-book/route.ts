@@ -5,7 +5,6 @@ import { ZipArchive } from "archiver";
 import { db } from "@query/db";
 import { BURST_LIMITS, rateLimitShared } from "@query/api";
 import { listResumes, parseResumeBookIds } from "@query/api/resume-list";
-import type { DrizzleDB } from "@query/db";
 import { csvCell } from "@/lib/csv";
 import { staffCaller } from "@/lib/staff-caller";
 import { uniqueZipName } from "@/lib/resume-file";
@@ -91,7 +90,7 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const gradYear = Number(params.get("gradYear"));
 
-  const rows = await listResumes(db as DrizzleDB, {
+  const rows = await listResumes(db, {
     scope: params.get("scope") === "all" ? "all" : "members",
     search: params.get("search")?.slice(0, 200) || undefined,
     gradYear: Number.isFinite(gradYear) && gradYear > 0 ? gradYear : undefined,

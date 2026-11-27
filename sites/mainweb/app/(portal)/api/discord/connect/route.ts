@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { db } from "@query/db";
-import type { DrizzleDB } from "@query/db";
 import { auth } from "@query/auth";
 import { siteOrigin } from "@query/core/server";
 import {
@@ -60,7 +59,7 @@ export async function GET(request: NextRequest) {
   const hackathonId =
     rawHackathon && isUuid(rawHackathon) ? rawHackathon : null;
   const target = await resolveConnectTarget(
-    db as DrizzleDB,
+    db,
     userId,
     hackathonId,
   );

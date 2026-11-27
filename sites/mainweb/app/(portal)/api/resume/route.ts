@@ -4,7 +4,6 @@ import { db, memberResumes } from "@query/db";
 import { eq } from "drizzle-orm";
 import { cache, rateLimitShared } from "@query/api";
 import { PDFDocument } from "pdf-lib";
-import type { DrizzleDB } from "@query/db";
 import { staffCaller } from "@/lib/staff-caller";
 import { isSameOriginRequest } from "@/lib/same-origin";
 import {
@@ -124,7 +123,7 @@ export async function POST(request: NextRequest) {
 
   const record = { storageKey, fileName, sizeBytes: stored.length };
 
-  await (db as DrizzleDB)
+  await db
     .insert(memberResumes)
     .values({ userId, ...record })
     .onConflictDoUpdate({
@@ -147,7 +146,7 @@ export async function DELETE() {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
-  const [removed] = await (db as DrizzleDB)
+  const [removed] = await db
     .delete(memberResumes)
     .where(eq(memberResumes.userId, userId))
     .returning({ storageKey: memberResumes.storageKey });

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { bootcampWorkshops, db } from "@query/db";
-import type { DrizzleDB } from "@query/db";
 import { eq } from "drizzle-orm";
 import { BURST_LIMITS, rateLimitShared } from "@query/api";
 import { bootcampCaller } from "@/lib/bootcamp-access";
@@ -49,7 +48,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Too many deletes." }, { status: 429 });
   }
 
-  const [removed] = await (db as DrizzleDB)
+  const [removed] = await db
     .delete(bootcampWorkshops)
     .where(eq(bootcampWorkshops.id, workshopId))
     .returning({ id: bootcampWorkshops.id });

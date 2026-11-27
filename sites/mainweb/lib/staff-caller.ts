@@ -1,6 +1,6 @@
 import { auth } from "@query/auth";
 import { db } from "@query/db";
-import type { DrizzleDB, admins } from "@query/db";
+import type { admins } from "@query/db";
 import { cache } from "@query/api";
 import { isExpiredAdmin, isStaffRole } from "@query/api/portal-context";
 
@@ -15,7 +15,7 @@ export async function staffCaller() {
   let admin = cache.get<typeof admins.$inferSelect>(cacheKey);
   if (!admin) {
     admin =
-      (await (db as DrizzleDB).query.admins.findFirst({
+      (await db.query.admins.findFirst({
         where: { userId, isActive: true },
       })) ?? null;
     if (admin) cache.set(cacheKey, admin, 60);
