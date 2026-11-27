@@ -26,6 +26,7 @@ Templates:
 | `sendAnnouncementEmail` | Organiser announcement |
 | `sendRegistrationOpenEmail` | Registration opens, to the interest list |
 | `sendJudgeApprovedEmail`, `sendJudgeAddedEmail` | Judge approved or added |
+| `sendVolunteerApprovedEmail`, `sendVolunteerDeclinedEmail` | Volunteer application approved or declined (Hacklytics look for a Hacklytics edition) |
 | `sendJudgingTimesPostedEmail` | Judging itinerary published |
 | `sendResultsPublishedEmail` | Results published |
 | `sendJudgingClaimEmail` | Claim link for a Devpost-imported team member |
