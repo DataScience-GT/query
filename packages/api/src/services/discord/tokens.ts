@@ -4,7 +4,7 @@
 import { and, eq } from "drizzle-orm";
 import { discordLinks, hackathonParticipants } from "@query/db";
 import type { DrizzleDB } from "@query/db";
-import { readTokens, refreshAccessToken, refusal } from "./api";
+import { readTokens, refreshAccessToken, refusal, safeMessage } from "./api";
 import type { DiscordTokens } from "./api";
 import type { DiscordConfig } from "./config";
 import { openToken, sealToken } from "./token-crypto";
@@ -98,7 +98,16 @@ export async function accessTokenFor(
   const refresh = openToken(row.refreshTokenEnc, deps.secret, row.userId);
   if (!refresh) return { ok: false, reason: "no_token" };
 
-  const res = await refreshAccessToken(deps.doFetch, deps.config, refresh);
+  // A network failure is a refresh that did not happen, not an error to throw:
+  // the caller may be inside a transaction that must still commit.
+  let res: Response;
+  try {
+    res = await refreshAccessToken(deps.doFetch, deps.config, refresh);
+  } catch (error) {
+    // oxlint-disable-next-line no-console
+    console.warn(`[Discord sync] refresh did not reach Discord: ${safeMessage(error)}`);
+    return { ok: false, reason: "failed" };
+  }
   if (!res.ok) {
     const { status, error } = await refusal("refresh", res);
     if (status === 400 && error === "invalid_grant") {
@@ -123,7 +132,7 @@ export async function accessTokenFor(
     return { ok: false, reason: "failed" };
   }
 
-  const tokens = readTokens(await res.json());
+  const tokens = readTokens(await res.json().catch(() => ({})));
   if (!tokens) return { ok: false, reason: "failed" };
   const sealed = sealTokens(
     { ...tokens, refreshToken: tokens.refreshToken ?? refresh },

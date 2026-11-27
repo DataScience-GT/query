@@ -985,6 +985,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
   // that token. These run the whole path against a fake Discord that tracks
   // which account each token belongs to and records every metadata write.
   describe("taking roles back", () => {
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     type Put = { account: string; bearer: string; metadata: Record<string, number> };
     const ZEROS = { accepted: 0, food_group: 0, ramadan: 0, judge: 0, volunteer: 0 };
 
@@ -999,6 +1000,8 @@ describe.skipIf(!URL)("discord link against a real database", () => {
         puts,
         issued,
         refreshCalls: 0,
+        /** The refresh is applied at once and its answer arrives this late. */
+        refreshDelayMs: 0,
         putStatus: 200,
         refreshFails: null as null | "invalid_grant" | 500,
         beforePut: undefined as undefined | (() => Promise<void>),
@@ -1031,7 +1034,9 @@ describe.skipIf(!URL)("discord link against a real database", () => {
           const account = refreshTokens.get(form.get("refresh_token")!);
           if (!account) return json(400, { error: "invalid_grant" });
           refreshTokens.delete(form.get("refresh_token")!);
-          return json(200, world.issue(account));
+          const issued = world.issue(account);
+          if (world.refreshDelayMs) await sleep(world.refreshDelayMs);
+          return json(200, issued);
         }
         const bearer = String((init?.headers as Record<string, string>)?.Authorization ?? "")
           .replace("Bearer ", "");
@@ -1393,19 +1398,130 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       expect(putsFor(acct("r500"))).toHaveLength(2);
     });
 
+
+    describe("one person's changes take turns", () => {
+      // Roles are changed by a sync, a link and an unlink, each of which reads
+      // the link, calls Discord and writes back. Run at once they must not step
+      // on each other: a refresh token is single use, and two writes of "what
+      // Discord has" can land in the wrong order.
+      const opts = () => ({ config: CONFIG, secret: SECRET, fetchImpl: world.fn });
+      const sig = (m: Record<string, number>) =>
+        `a${m.accepted}f${m.food_group}r${m.ramadan}j${m.judge}v${m.volunteer}`;
+      const setJudge = (judgeId: string, isActive: boolean) =>
+        S.db!.update(S.judges).set({ isActive }).where(ops.eq(S.judges.id, judgeId));
+
+      it("two syncs at once refresh the token once, and neither drops the link", async () => {
+        const h = await makeHackathon("race-refresh");
+        const { u, judgeId } = await newJudge("race-refresh", h.id);
+        await linkAs(u, h.id, acct("race-refresh"));
+        await expireToken(u);
+        await setJudge(judgeId, false);
+        world.refreshDelayMs = 120;
+
+        const first = svc.syncDiscordRoles(S.db as any, u, opts());
+        await sleep(20);
+        const second = svc.syncDiscordRoles(S.db as any, u, opts());
+        const results = await Promise.all([first, second]);
+
+        expect(results).toEqual(["synced", "unchanged"]);
+        expect(world.refreshCalls).toBe(1);
+        const row = (await linkOf(u))!;
+        expect(row.rolesSig).toBe(sig(ZEROS));
+        expect(lastFor(acct("race-refresh"))).toEqual(ZEROS);
+      });
+
+      it("a sync that starts while another is publishing does not leave Discord behind the database", async () => {
+        const h = await makeHackathon("race-order");
+        const { u, judgeId } = await newJudge("race-order", h.id);
+        await linkAs(u, h.id, acct("race-order"));
+        await setJudge(judgeId, false);
+
+        // The first sync has read "no longer a judge" and is on its way to
+        // Discord. While it is there the judge is approved again, and a second
+        // sync starts.
+        let second!: Promise<unknown>;
+        let held = false;
+        world.beforePut = async () => {
+          if (held) return;
+          held = true;
+          await setJudge(judgeId, true);
+          second = svc.syncDiscordRoles(S.db as any, u, opts());
+          await sleep(120);
+        };
+        await svc.syncDiscordRoles(S.db as any, u, opts());
+        await second;
+
+        // The approval is what Discord ends up with, and the database says so.
+        expect(lastFor(acct("race-order"))).toEqual({ ...ZEROS, judge: 1 });
+        expect((await linkOf(u))!.rolesSig).toBe(sig({ ...ZEROS, judge: 1 }));
+      });
+
+      it("an unlink that starts during a sync still leaves the old account cleared", async () => {
+        const h = await makeHackathon("race-unlink");
+        const { u, judgeId } = await newJudge("race-unlink", h.id);
+        await linkAs(u, h.id, acct("race-unlink"));
+        await setJudge(judgeId, false);
+        expect(await svc.syncDiscordRoles(S.db as any, u, opts())).toBe("synced");
+        // Approved again: the next sync publishes judge, slowly.
+        await setJudge(judgeId, true);
+
+        let unlinking!: Promise<unknown>;
+        let held = false;
+        world.beforePut = async () => {
+          if (held) return;
+          held = true;
+          unlinking = hackathonAs(u).unlinkDiscord({ hackathonId: h.id });
+          await sleep(120);
+        };
+        expect(await svc.syncDiscordRoles(S.db as any, u, opts())).toBe("synced");
+        await unlinking;
+
+        expect(await linkOf(u)).toBeUndefined();
+        expect(lastFor(acct("race-unlink"))).toEqual(ZEROS);
+      });
+
+      it("linking another account while a sync runs clears the old one last-write-wins in order", async () => {
+        const h = await makeHackathon("race-relink");
+        const { u, judgeId } = await newJudge("race-relink", h.id);
+        await linkAs(u, h.id, acct("race-rx"));
+        await setJudge(judgeId, false);
+        expect(await svc.syncDiscordRoles(S.db as any, u, opts())).toBe("synced");
+        await setJudge(judgeId, true);
+
+        let linking!: Promise<unknown>;
+        let held = false;
+        world.beforePut = async () => {
+          if (held) return;
+          held = true;
+          linking = linkAs(u, h.id, acct("race-ry"));
+          await sleep(120);
+        };
+        await svc.syncDiscordRoles(S.db as any, u, opts());
+        await linking;
+
+        // X ends cleared and Y holds the role, whichever got there first.
+        expect(lastFor(acct("race-rx"))).toEqual(ZEROS);
+        expect(lastFor(acct("race-ry"))).toEqual({ ...ZEROS, judge: 1 });
+        expect(await linkOf(u)).toMatchObject({ discordUserId: acct("race-ry") });
+      });
+    });
+
     it("never throws into the change that triggered it", async () => {
       const h = await makeHackathon("nothrow");
       const { u, judgeId } = await newJudge("nothrow", h.id);
       await linkAs(u, h.id, acct("nothrow"));
-      const log = vi.spyOn(console, "error").mockImplementation(() => {});
+      const logs = [
+        vi.spyOn(console, "error").mockImplementation(() => {}),
+        vi.spyOn(console, "warn").mockImplementation(() => {}),
+      ];
       world.throws = true;
       await expect(
         (await staff("nothrow-admin")).judge.setActive({ judgeId, isActive: false }),
       ).resolves.toMatchObject({ success: true, isActive: false });
-      expect(log).toHaveBeenCalled();
-      const logged = log.mock.calls.flat().join(" ");
+      const logged = logs.flatMap((log) => log.mock.calls.flat()).join(" ");
+      expect(logged).toContain("did not reach Discord");
       for (const secret of world.issued) expect(logged).not.toContain(secret);
-      log.mockRestore();
+      for (const log of logs) log.mockRestore();
       // The judge is deactivated whether or not Discord heard about it.
       expect((await S.db!.select().from(S.judges).where(ops.eq(S.judges.id, judgeId)))[0]!.isActive).toBe(false);
     });

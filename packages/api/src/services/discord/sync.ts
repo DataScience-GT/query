@@ -4,10 +4,10 @@
 // volunteer term, a withdrawn hacker or an unlink actually take the role back.
 // A link made before tokens were kept has none, and cannot be revoked here.
 
-import { and, eq, inArray, like, lte, or } from "drizzle-orm";
+import { and, eq, inArray, like, lte, or, sql } from "drizzle-orm";
 import { admins, discordLinks, hackathonParticipants } from "@query/db";
 import type { DrizzleDB } from "@query/db";
-import { putRoleConnection, refusal } from "./api";
+import { putRoleConnection, refusal, safeMessage } from "./api";
 import { discordConfig, discordTokenSecret } from "./config";
 import {
   discordContext,
@@ -51,12 +51,39 @@ function depsFrom(options: SyncOptions): SyncDeps | null {
   return { config, secret, doFetch: options.fetchImpl ?? fetch };
 }
 
-// A Drizzle error's message carries the statement's parameters; keep to the part
-// before them, so no stored value reaches a log.
-const safeMessage = (error: unknown) =>
-  (error instanceof Error ? error.message : String(error))
-    .split("params:")[0]!
-    .slice(0, 300);
+/**
+ * Runs `fn` holding this person's Discord lock, so a sync, a link and an unlink
+ * for one person take turns. Without it they interleave: a refresh token is
+ * single use, so two runs that both refresh leave one with `invalid_grant` and
+ * the link dropped; and two reads of "what Discord has" can be written back in
+ * the wrong order, or a sync that read the old link can publish roles onto an
+ * account an unlink has just cleared.
+ *
+ * It is a transaction-scoped advisory lock, held on the transaction `fn` is
+ * given for the whole of derive, refresh, publish and write-back, across the
+ * Discord calls (each has an 8 second timeout). Everything inside must use that
+ * `tx`, never the pool: another connection that asked for the same lock would
+ * wait on this one forever. Calls made through `tx` that open a transaction of
+ * their own become savepoints.
+ *
+ * Network failures are caught at the call, so an unreachable Discord does not
+ * roll the transaction back: a rotated token pair stored a moment earlier stays
+ * stored.
+ */
+export async function withDiscordLock<T>(
+  db: DrizzleDB,
+  userId: string,
+  fn: (tx: DrizzleDB) => Promise<T>,
+): Promise<T> {
+  return db.transaction(async (tx) => {
+    // A holder that hangs must not hold everyone behind it for ever.
+    await tx.execute(sql`select set_config('lock_timeout', '30s', true)`);
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`discord:${userId}`}, 0))`,
+    );
+    return fn(tx as unknown as DrizzleDB);
+  });
+}
 
 /**
  * Puts the metadata on Discord with the link's token. A refused access token
@@ -73,13 +100,20 @@ async function publish(
     const token = await accessTokenFor(db, row, deps, force);
     if (!token.ok) return token.reason;
     row = token.row;
-    const res = await putRoleConnection(
-      deps.doFetch,
-      deps.config,
-      token.accessToken,
-      row.discordUsername,
-      metadata,
-    );
+    let res: Response;
+    try {
+      res = await putRoleConnection(
+        deps.doFetch,
+        deps.config,
+        token.accessToken,
+        row.discordUsername,
+        metadata,
+      );
+    } catch (error) {
+      // oxlint-disable-next-line no-console
+      console.warn(`[Discord sync] publish did not reach Discord: ${safeMessage(error)}`);
+      return "failed";
+    }
     if (res.ok) return "published";
     const { status } = await refusal("role-connection", res);
     if (status !== 401 || force) return "failed";
@@ -156,7 +190,7 @@ export async function syncDiscordRoles(
   const deps = depsFrom(options);
   if (!deps) return "off";
   try {
-    return await syncOne(db, userId, deps);
+    return await withDiscordLock(db, userId, (tx) => syncOne(tx, userId, deps));
   } catch (error) {
     // Deliberate operational logging: the only record that Discord kept a role
     // it should have lost.
@@ -245,36 +279,38 @@ export async function unlinkDiscord(
   options: SyncOptions = {},
 ): Promise<"unlinked" | "failed"> {
   try {
-    const [link] = await db
-      .select()
-      .from(discordLinks)
-      .where(eq(discordLinks.userId, userId))
-      .limit(1);
-    if (link && (await zeroDiscordRoles(db, link, options)) === "failed") {
-      return "failed";
-    }
+    // Clearing the roles and forgetting the link are one turn: a sync that
+    // started before cannot publish onto the account after it is cleared.
+    return await withDiscordLock(db, userId, async (tx) => {
+      const [link] = await tx
+        .select()
+        .from(discordLinks)
+        .where(eq(discordLinks.userId, userId))
+        .limit(1);
+      if (link && (await zeroDiscordRoles(tx, link, options)) === "failed") {
+        return "failed" as const;
+      }
+      await tx
+        .update(hackathonParticipants)
+        .set({
+          discordUserId: null,
+          discordUsername: null,
+          discordLinkedAt: null,
+          ramadanRoleOptIn: null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(hackathonParticipants.hackathonId, hackathonId),
+            eq(hackathonParticipants.userId, userId),
+          ),
+        );
+      await tx.delete(discordLinks).where(eq(discordLinks.userId, userId));
+      return "unlinked" as const;
+    });
   } catch (error) {
     // oxlint-disable-next-line no-console
     console.error(`[Discord sync] unlink failed for user ${userId}: ${safeMessage(error)}`);
     return "failed";
   }
-  await db.transaction(async (tx) => {
-    await tx
-      .update(hackathonParticipants)
-      .set({
-        discordUserId: null,
-        discordUsername: null,
-        discordLinkedAt: null,
-        ramadanRoleOptIn: null,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(hackathonParticipants.hackathonId, hackathonId),
-          eq(hackathonParticipants.userId, userId),
-        ),
-      );
-    await tx.delete(discordLinks).where(eq(discordLinks.userId, userId));
-  });
-  return "unlinked";
 }

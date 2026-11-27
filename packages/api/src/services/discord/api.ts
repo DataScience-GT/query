@@ -16,6 +16,16 @@ export type LinkErrorReason =
   | "discord_error"
   | "already_linked";
 
+/**
+ * An error's message for a log. A Drizzle error's message carries the
+ * statement's parameters, which can hold stored values; keep to the part before
+ * them.
+ */
+export const safeMessage = (error: unknown) =>
+  (error instanceof Error ? error.message : String(error))
+    .split("params:")[0]!
+    .slice(0, 300);
+
 export function failureFor(status: number): LinkErrorReason {
   if (status === 429) return "rate_limited";
   if (status === 401 || status === 403) return "discord_denied";
