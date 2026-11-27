@@ -395,7 +395,7 @@ export function EventsTab({ hackathonId }: { hackathonId: string }) {
         </EmptyState>
       ) : (
         <ul className="border-t border-[var(--border-subtle)]">
-          {events.map((event: NonNullable<typeof events>[number]) => {
+          {events.map((event) => {
             const typeMeta = getTypeMeta(event.type);
             const start = new Date(event.startTime);
             const end = new Date(event.endTime);

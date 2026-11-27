@@ -294,10 +294,9 @@ export function AttendeesTab({
       "Ramadan Role",
       "Registered At",
     ];
-    type Attendee = (typeof all)[number];
     // Every cell goes through csvCell: names, schools and answers are typed
     // by applicants, and a leading = + - @ would run as a formula in Excel.
-    const rows = all.map((a: Attendee) => [
+    const rows = all.map((a) => [
       `${a.firstName || ""} ${a.lastName || ""}`,
       a.user?.email || "Unknown",
       a.registrationStatus,

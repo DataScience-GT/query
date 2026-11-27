@@ -40,7 +40,7 @@ export function AnalyticsTab({ hackathonId }: { hackathonId: string }) {
             <dd className={statValue}>{analytics.totalRegistrations}</dd>
           </div>
           {Object.entries(analytics.statusBreakdown).map(
-            ([status, count]: [string, number]) => (
+            ([status, count]) => (
               <div
                 key={status}
                 className="border-l border-[var(--border-subtle)] px-8"
@@ -60,8 +60,8 @@ export function AnalyticsTab({ hackathonId }: { hackathonId: string }) {
           <h3 className={itemTitle}>Shirt sizes</h3>
           <ul className="mt-3">
             {Object.entries(analytics.shirtSizes)
-              .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
-              .map(([size, count]: [string, number]) => (
+              .sort((a, b) => b[1] - a[1])
+              .map(([size, count]) => (
                 <li key={size} className={row}>
                   <span className="text-[var(--text-muted)]">{size}</span>
                   <span className="tabular-nums text-[var(--text-primary)]">
@@ -76,8 +76,8 @@ export function AnalyticsTab({ hackathonId }: { hackathonId: string }) {
           <h3 className={itemTitle}>Dietary restrictions</h3>
           <ul className="mt-3">
             {Object.entries(analytics.dietaryRestrictions)
-              .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
-              .map(([res, count]: [string, number]) => (
+              .sort((a, b) => b[1] - a[1])
+              .map(([res, count]) => (
                 <li key={res} className={row}>
                   <span className="inline-block text-[var(--text-muted)] first-letter:uppercase">
                     {res.replace(/_/g, " ")}
