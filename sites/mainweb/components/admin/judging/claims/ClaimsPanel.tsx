@@ -19,18 +19,8 @@ import {
 } from "@query/ui/classes";
 import type { Tone } from "@query/ui/classes";
 import { eventMoment } from "@/components/hackathon/judging/event-time";
+import { useDebounced } from "@/components/admin/hackathons/points/use-debounced";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
-
-/** Delays a fast-changing value so it can drive a query without firing one per
- *  keystroke. */
-function useDebounced<T>(value: T, ms: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(timer);
-  }, [value, ms]);
-  return debounced;
-}
 
 type BatchResult = {
   sent: number;
