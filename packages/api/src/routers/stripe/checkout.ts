@@ -8,6 +8,7 @@ import type { DrizzleDB } from "@query/db";
 import { eq, and, isNull } from "drizzle-orm";
 import { siteOrigin } from "@query/core/server";
 import { logSecurityEvent } from "../../middleware/security";
+import { clearMembershipCaches } from "../../middleware/cache";
 import {
   createOrUpdateMembership,
   readPlan,
@@ -32,8 +33,28 @@ import {
   assertKeyModesMatch,
   describeKeyProblem,
   getStripe,
-  clearMembershipCaches,
 } from "./client";
+
+// The Stripe client for taking a new payment. Members see a generic outage;
+// the cause goes to the log, like describeKeyProblem.
+async function requireStripe(userId: string | undefined) {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (stripeKey) assertKeyModesMatch(stripeKey);
+  const stripe = stripeKey ? await getStripe() : null;
+  if (!stripe) {
+    logSecurityEvent({
+      type: "validation_error",
+      identifier: userId ?? "unknown",
+      details: `Stripe unavailable: ${describeKeyProblem(stripeKey) ?? "unknown cause"}`,
+    });
+    throw new TRPCError({
+      code: "SERVICE_UNAVAILABLE",
+      message:
+        "Payment service is currently unavailable. Please try again later.",
+    });
+  }
+  return stripe;
+}
 
 export const checkoutProcedures = {
   // Create a new Stripe Checkout Session for membership.
@@ -103,42 +124,13 @@ export const checkoutProcedures = {
           });
         });
 
-        // Invalidate cache
-        clearMembershipCaches(ctx.cache, ctx.userId!);
+        clearMembershipCaches(ctx.userId!);
 
         const mockUrl = `${input.returnUrl}${input.returnUrl.includes("?") ? "&" : "?"}payment=success&session_id=${sessionId}`;
         return { url: mockUrl };
       }
 
-      const stripeKey = process.env.STRIPE_SECRET_KEY;
-      if (!stripeKey) {
-        logSecurityEvent({
-          type: "validation_error",
-          identifier: ctx.userId ?? "unknown",
-          details: `Stripe unavailable: ${describeKeyProblem(stripeKey) ?? "unknown cause"}`,
-        });
-        throw new TRPCError({
-          code: "SERVICE_UNAVAILABLE",
-          message:
-            "Payment service is currently unavailable. Please try again later.",
-        });
-      }
-
-      assertKeyModesMatch(stripeKey);
-
-      const stripe = await getStripe();
-      if (!stripe) {
-        logSecurityEvent({
-          type: "validation_error",
-          identifier: ctx.userId ?? "unknown",
-          details: `Stripe unavailable: ${describeKeyProblem(process.env.STRIPE_SECRET_KEY) ?? "unknown cause"}`,
-        });
-        throw new TRPCError({
-          code: "SERVICE_UNAVAILABLE",
-          message:
-            "Payment service is currently unavailable. Please try again later.",
-        });
-      }
+      const stripe = await requireStripe(ctx.userId);
 
       try {
         const session = await stripe.checkout.sessions.create({
@@ -259,35 +251,7 @@ export const checkoutProcedures = {
         };
       }
 
-      const stripeKey = process.env.STRIPE_SECRET_KEY;
-      if (!stripeKey) {
-        logSecurityEvent({
-          type: "validation_error",
-          identifier: ctx.userId ?? "unknown",
-          details: `Stripe unavailable: ${describeKeyProblem(stripeKey) ?? "unknown cause"}`,
-        });
-        throw new TRPCError({
-          code: "SERVICE_UNAVAILABLE",
-          message:
-            "Payment service is currently unavailable. Please try again later.",
-        });
-      }
-
-      assertKeyModesMatch(stripeKey);
-
-      const stripe = await getStripe();
-      if (!stripe) {
-        logSecurityEvent({
-          type: "validation_error",
-          identifier: ctx.userId ?? "unknown",
-          details: `Stripe unavailable: ${describeKeyProblem(process.env.STRIPE_SECRET_KEY) ?? "unknown cause"}`,
-        });
-        throw new TRPCError({
-          code: "SERVICE_UNAVAILABLE",
-          message:
-            "Payment service is currently unavailable. Please try again later.",
-        });
-      }
+      const stripe = await requireStripe(ctx.userId);
 
       try {
         const paymentIntent = await stripe.paymentIntents.create({
@@ -527,7 +491,7 @@ export const checkoutProcedures = {
         throw error;
       }
 
-      clearMembershipCaches(ctx.cache, ctx.userId!);
+      clearMembershipCaches(ctx.userId!);
 
       return { success: true };
     }),

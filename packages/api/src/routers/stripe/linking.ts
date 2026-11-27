@@ -13,7 +13,7 @@ import { logSecurityEvent } from "../../middleware/security";
 import { createOrUpdateMembership, splitName } from "@query/db/services/membership";
 import { entitlementForPayment } from "@query/db/services/pricing";
 import { membershipGrants } from "../../services/metrics";
-import { clearMembershipCaches } from "./client";
+import { clearMembershipCaches } from "../../middleware/cache";
 
 export const linkingProcedures = {
   // Auto-link a Stripe payment matching the user's email.
@@ -96,7 +96,7 @@ export const linkingProcedures = {
       });
 
       membershipGrants.inc({ source: "autolink", plan });
-      clearMembershipCaches(ctx.cache, ctx.userId!);
+      clearMembershipCaches(ctx.userId!);
 
       return { success: true };
     });
@@ -267,7 +267,7 @@ export const linkingProcedures = {
         });
 
         membershipGrants.inc({ source: "link", plan: entitlement.plan });
-        clearMembershipCaches(ctx.cache, ctx.userId!);
+        clearMembershipCaches(ctx.userId!);
 
         return {
           success: true,
@@ -457,7 +457,7 @@ export const linkingProcedures = {
         source: "admin_link",
         plan: outcome.entitlement.plan,
       });
-      clearMembershipCaches(ctx.cache, outcome.user.id);
+      clearMembershipCaches(outcome.user.id);
 
       // After the transaction, as in member.adminGrant.
       await recordAdminAction(db, {

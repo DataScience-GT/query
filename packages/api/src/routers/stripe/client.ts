@@ -3,9 +3,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { logSecurityEvent } from "../../middleware/security";
-import {
-  clearMembershipCaches as clearMembershipCachesFor,
-} from "../../middleware/cache";
 import type Stripe from "stripe";
 
 // Caches the Stripe client against the key it was built from. Two loose
@@ -87,8 +84,3 @@ export const describeKeyProblem = (key: string | undefined) => {
 };
 
 export const getStripe = (): Promise<Stripe | null> => stripeClients.get();
-
-// Shared by reconcile and linking so both evict the identical key set.
-export function clearMembershipCaches(_cache: unknown, userId: string) {
-  clearMembershipCachesFor(userId);
-}

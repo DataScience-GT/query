@@ -14,7 +14,8 @@ import {
 import { MAX_MEMBERSHIP_CHARGE_CENTS } from "../../services/pricing";
 import { membershipGrants, paymentsRecovered } from "../../services/metrics";
 import type Stripe from "stripe";
-import { getStripe, clearMembershipCaches } from "./client";
+import { clearMembershipCaches } from "../../middleware/cache";
+import { getStripe } from "./client";
 
 type PortalUser = typeof users.$inferSelect | undefined;
 type StoredPayment = typeof stripePayments.$inferSelect;
@@ -296,7 +297,7 @@ export const reconcileProcedures = {
       // app — the backstop working means something upstream did not.
       paymentsRecovered.inc(recovered);
       membershipGrants.inc({ source: "reconcile", plan: "unknown" }, recovered);
-      clearMembershipCaches(ctx.cache, userId);
+      clearMembershipCaches(userId);
     }
 
     return { recovered };
