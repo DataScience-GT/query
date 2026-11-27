@@ -8,7 +8,7 @@ import { body, fieldLabel, input, meta } from "@query/ui/classes";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { useDebounced } from "./use-debounced";
 
-export type ParticipantMatch =
+type ParticipantMatch =
   RouterOutputs["points"]["store"]["searchParticipants"][number];
 
 /**

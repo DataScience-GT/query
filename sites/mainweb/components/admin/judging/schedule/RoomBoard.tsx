@@ -11,7 +11,7 @@ export type BoardRoom = {
   challengeLabel: string;
 };
 
-export type BoardRow = {
+type BoardRow = {
   key: string;
   roomId: string;
   startsAt: Date;

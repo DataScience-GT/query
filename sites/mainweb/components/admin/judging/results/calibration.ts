@@ -2,7 +2,7 @@ import type { RouterOutputs } from "@query/api";
 
 export type CalibrationChallenge =
   RouterOutputs["judging"]["results"]["list"]["calibration"][number];
-export type CalibratedJudge = CalibrationChallenge["judges"][number];
+type CalibratedJudge = CalibrationChallenge["judges"][number];
 
 type Numbers = Pick<CalibratedJudge, "grades" | "offset" | "spread" | "drift">;
 
