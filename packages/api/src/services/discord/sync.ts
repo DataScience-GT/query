@@ -5,7 +5,13 @@
 // A link made before tokens were kept has none, and cannot be revoked here.
 
 import { and, eq, inArray, isNotNull, isNull, like, lte, or, sql } from "drizzle-orm";
-import { admins, discordLinks, hackathonParticipants } from "@query/db";
+import {
+  admins,
+  discordLinks,
+  hackathonParticipants,
+  hackathonVolunteerApplications,
+  judges,
+} from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { putRoleConnection, refusal, safeMessage } from "./api";
 import { discordConfig, discordTokenSecret } from "./config";
@@ -230,6 +236,62 @@ export async function markDiscordRolesPending(
     .update(discordLinks)
     .set({ rolesSig: null })
     .where(inArray(discordLinks.userId, [...new Set(userIds)]));
+}
+
+/**
+ * Marks every linked person who holds a role for one edition as owing a sync,
+ * for when the edition ends. That is its participants, its judges, those
+ * approved to volunteer at it, and the volunteer staff tier, whose role follows
+ * whichever editions are live. Returns the ones it marked. Called inside the
+ * transaction of the status change, like `markDiscordRolesPending`; the daily
+ * job clears whoever the request does not reach.
+ */
+export async function markEditionRolesPending(
+  db: DrizzleDB,
+  hackathonId: string,
+): Promise<string[]> {
+  const rows = await db
+    .update(discordLinks)
+    .set({ rolesSig: null })
+    .where(
+      or(
+        inArray(
+          discordLinks.userId,
+          db
+            .select({ id: hackathonParticipants.userId })
+            .from(hackathonParticipants)
+            .where(eq(hackathonParticipants.hackathonId, hackathonId)),
+        ),
+        inArray(
+          discordLinks.userId,
+          db
+            .select({ id: judges.userId })
+            .from(judges)
+            .where(eq(judges.hackathonId, hackathonId)),
+        ),
+        inArray(
+          discordLinks.userId,
+          db
+            .select({ id: hackathonVolunteerApplications.userId })
+            .from(hackathonVolunteerApplications)
+            .where(
+              and(
+                eq(hackathonVolunteerApplications.hackathonId, hackathonId),
+                eq(hackathonVolunteerApplications.status, "approved"),
+              ),
+            ),
+        ),
+        inArray(
+          discordLinks.userId,
+          db
+            .select({ id: admins.userId })
+            .from(admins)
+            .where(and(eq(admins.role, "volunteer"), eq(admins.isActive, true))),
+        ),
+      ),
+    )
+    .returning({ userId: discordLinks.userId });
+  return rows.map((row) => row.userId);
 }
 
 /**

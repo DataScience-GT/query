@@ -46,6 +46,7 @@ function render(
     canEdit?: boolean;
     name?: string;
     answers?: VolunteerAnswers;
+    discordCard?: React.ReactNode;
   } = {},
 ) {
   const calls = { edit: vi.fn(), withdraw: vi.fn(), again: vi.fn() };
@@ -64,6 +65,7 @@ function render(
         accepting={over.accepting ?? true}
         canEdit={over.canEdit ?? true}
         eventHref="/hackathons/hacklytics-digital-bloom"
+        discordCard={over.discordCard}
         contactEmail="hello@hacklytics.io"
         busy={false}
         onEdit={calls.edit}
@@ -124,6 +126,17 @@ describe("VolunteerStatusView", () => {
     ).toBe("/hackathons/hacklytics-digital-bloom");
     // Plans change after approval too, so the way out stays.
     expect(view.buttons()).toEqual(["Withdraw"]);
+  });
+
+  it("puts the Discord card in an approved volunteer's page, and in no other state", () => {
+    const card = <p data-testid="discord-card">Join the Hacklytics Discord</p>;
+    const approved = render("approved", { discordCard: card });
+    expect(approved.el.querySelector("[data-testid=discord-card]")).not.toBeNull();
+    for (const s of ["pending", "declined", "withdrawn"] as const) {
+      expect(
+        render(s, { discordCard: card }).el.querySelector("[data-testid=discord-card]"),
+      ).toBeNull();
+    }
   });
 
   it("declines kindly, with no answers and nothing to do", () => {

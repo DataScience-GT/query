@@ -98,7 +98,7 @@ Roles come from `packages/api/src/middleware/procedures.ts`. `isAdmin` is full s
 | `list` | public | Hides `draft` and non-public editions for non-admins. Cached per caller type. |
 | `listAll` | admin | Every edition. |
 | `getById` | public | Takes an id, exact name or slug. |
-| `create`, `update` | admin | Names must be unique, since they appear in admin links. End must follow start. |
+| `create`, `update` | admin | Names must be unique, since they appear in admin links. End must follow start. Moving an edition to `completed` or `cancelled` (or back) marks its linked Discord accounts pending in the same transaction and syncs up to 100 inline; the daily job takes the rest (see [Discord](./discord.md#taking-roles-back)). |
 | `delete` | super admin | Needs `confirmName` typed to match. Every child table (participants, teams, projects, events, announcements, legacy votes and results, all `judging_*`, points and store) cascades. |
 
 ### Acceptance (`admin.ts`)
@@ -128,7 +128,7 @@ Audiences: `interested`, `registered`, `approved`, `checked_in`, `not_accepted`,
 
 ### Bans (`bans.ts`)
 
-`listBans`, `banFromHackathons`, `liftHackathonBan`. A ban is keyed by lowercase email in `hackathon_ban` and leaves club membership alone. Enforcement is the `notHackathonBanned` procedure, used by `register`, `registerInterest`, `updateMyRegistration`, `confirmAttendance`, `createTeam`, `joinTeam`, `submitProject`, the event-code `checkIn`, judge `register` and `judging.hacker.claimByEmail`, `claimByToken` and `invite`. Withdrawing is not blocked. Ban and unban write audit records and clear the ban cache.
+`listBans`, `banFromHackathons`, `liftHackathonBan`. A ban is keyed by lowercase email in `hackathon_ban` and leaves club membership alone. It also rejects the person's registrations and declines their pending and approved volunteer applications in every edition that is not over, in the same transaction, and syncs their Discord roles. Enforcement is the `notHackathonBanned` procedure, used by `register`, `registerInterest`, `updateMyRegistration`, `confirmAttendance`, `createTeam`, `joinTeam`, `submitProject`, the event-code `checkIn`, judge `register` and `judging.hacker.claimByEmail`, `claimByToken` and `invite`. Withdrawing is not blocked. Ban and unban write audit records and clear the ban cache.
 
 ### Volunteers (`routers/volunteer/`)
 
@@ -143,7 +143,7 @@ A volunteer runs the weekend (check-in, meals, rooms, help for hackers). It is i
 - **Organizers** (Volunteers tab next to Judges in the hackathon admin): `volunteer.list` (filters: status, type, in-person role and time block, mentor topic and online hour; coverage counts per time block and role for the venue and per online hour and topic for mentoring, plus how many chose each type, all split approved and pending and taken over everyone so the counts do not move with the filters; someone who chose both counts in both halves), `volunteer.decide` (approve or decline; `isAdmin`, so bug testers and scanner volunteers are refused; audited as `volunteer.approve` and `volunteer.decline`; either can follow the other; a withdrawn application cannot be decided) and `volunteer.exportApplications` (the filtered rows, audited as `volunteer.export`). `list` and `exportApplications` also refuse bug testers: the answers hold phone numbers. The CSV is built in the browser by `lib/volunteer-csv.ts` and carries the type, and the mentor's topics, hours and experience beside the venue's answers.
 - **Emails** (`sendVolunteerApprovedEmail`, `sendVolunteerDeclinedEmail`, Hacklytics theme for a Hacklytics edition): sent once, on the transition into the status, and best-effort. Nothing is sent on submit. The approval says what their type means: shifts and venue details for in person, the Discord's mentor channels for online, both for both.
 - **Approving does not grant the `volunteer` staff tier.** That tier is check-in scanner access, and organizers still grant it deliberately on the Staff page. The Volunteers tab says so.
-- **Discord.** Eligibility for the volunteer Discord role should use `isApprovedVolunteer(db, userId, hackathonId)` from `@query/api/volunteer` (`packages/api/src/services/volunteer.ts`), not the staff tier and not the table directly. It is true only for an `approved` application at that edition, so a withdrawal or a decline takes it away.
+- **Discord.** An `approved` application makes the person eligible for the volunteer Discord role, like the staff tier does (see [Discord](./discord.md)). The role code asks `isApprovedVolunteer` / `approvedVolunteerEditions` in `packages/api/src/services/volunteer.ts`, never the table. `volunteer.decide` (approve or decline) and `volunteer.withdraw` re-sync the person's roles after commit, so a decline or a withdrawal takes the role back. The confirmed state of the application page carries the Discord card.
 - **Phone.** It lives in `answers.phone` and is only used for contact during the event. Nothing deletes it afterwards yet.
 
 ### Content (`content.ts`)

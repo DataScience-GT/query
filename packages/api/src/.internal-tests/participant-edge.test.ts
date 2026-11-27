@@ -137,6 +137,11 @@ vi.mock("@query/db", async () => {
     users: { id: "id", email: "email", name: "name", image: "image" },
     userProfiles: { userId: "user_id" },
     hackathonBans: { id: "id", email: "email" },
+    hackathonVolunteerApplications: {
+      userId: "user_id",
+      hackathonId: "hackathon_id",
+      status: "status",
+    },
     memberResumes: { userId: "user_id" },
     hackathons: {
       id: "id",

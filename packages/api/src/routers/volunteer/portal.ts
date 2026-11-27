@@ -6,6 +6,10 @@ import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { notHackathonBanned } from "../../middleware/procedures";
 import {
+  markDiscordRolesPending,
+  syncDiscordRoles,
+} from "../../services/discord";
+import {
   allowsEdits,
   assertEditionNotOver,
   assertTakingApplications,
@@ -158,18 +162,30 @@ export const volunteerPortalRouter = createTRPCRouter({
     .input(hackathonInput)
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const [withdrawn] = await db
-        .update(applications)
-        .set({ status: "withdrawn", updatedAt: new Date() })
-        .where(
-          and(
-            eq(applications.userId, ctx.userId as string),
-            eq(applications.hackathonId, input.hackathonId),
-            inArray(applications.status, ["pending", "approved"]),
-          ),
-        )
-        .returning({ id: applications.id });
-      if (withdrawn) return { success: true };
+      const userId = ctx.userId as string;
+      const withdrawn = await db.transaction(async (tx) => {
+        const [row] = await tx
+          .update(applications)
+          .set({ status: "withdrawn", updatedAt: new Date() })
+          .where(
+            and(
+              eq(applications.userId, userId),
+              eq(applications.hackathonId, input.hackathonId),
+              inArray(applications.status, ["pending", "approved"]),
+            ),
+          )
+          .returning({ id: applications.id });
+        // An approved volunteer loses the Discord role by stepping back, so a
+        // linked account is owed a sync for as long as the withdrawal stands.
+        if (row) {
+          await markDiscordRolesPending(tx as unknown as DrizzleDB, [userId]);
+        }
+        return row;
+      });
+      if (withdrawn) {
+        await syncDiscordRoles(db, userId);
+        return { success: true };
+      }
 
       const existing = await db.query.hackathonVolunteerApplications.findFirst({
         where: { userId: ctx.userId as string, hackathonId: input.hackathonId },

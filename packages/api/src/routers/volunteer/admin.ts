@@ -6,6 +6,10 @@ import type { DrizzleDB } from "@query/db";
 import { createTRPCRouter } from "../../trpc";
 import { isAdmin } from "../../middleware/procedures";
 import { recordAdminAction } from "../../middleware/audit";
+import {
+  markDiscordRolesPending,
+  syncDiscordRoles,
+} from "../../services/discord";
 import { portalOrigin } from "../../services/judging/claims";
 import {
   matchingVolunteers,
@@ -109,21 +113,31 @@ export const volunteerAdminRouter = createTRPCRouter({
       // Conditional on the status read above: two organisers deciding at once
       // cannot both win, and neither can overwrite a withdrawal that landed
       // in between.
-      const [updated] = await db
-        .update(applications)
-        .set({
-          status: input.decision,
-          reviewedById: ctx.userId as string,
-          reviewedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(applications.id, input.applicationId),
-            eq(applications.status, before.status),
-          ),
-        )
-        .returning({ id: applications.id });
+      const updated = await db.transaction(async (tx) => {
+        const [row] = await tx
+          .update(applications)
+          .set({
+            status: input.decision,
+            reviewedById: ctx.userId as string,
+            reviewedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(applications.id, input.applicationId),
+              eq(applications.status, before.status),
+            ),
+          )
+          .returning({ id: applications.id });
+        // The volunteer role follows the decision, so a linked Discord account
+        // is owed a sync for as long as the decision stands.
+        if (row) {
+          await markDiscordRolesPending(tx as unknown as DrizzleDB, [
+            before.userId,
+          ]);
+        }
+        return row;
+      });
       if (!updated) {
         throw new TRPCError({
           code: "CONFLICT",
@@ -144,6 +158,10 @@ export const volunteerAdminRouter = createTRPCRouter({
           from: before.status,
         },
       });
+
+      // Approving grants the volunteer role to a linked Discord account and
+      // declining takes it back, with no new link needed.
+      await syncDiscordRoles(db, before.userId);
 
       // Best-effort: the decision stands if the mail does not go out, and the
       // log is the only record that it did not.

@@ -176,20 +176,30 @@ const ACCEPTING_STATUSES = ["announced", "open"] as const;
 const EDITABLE_STATUSES = ["announced", "open", "closed", "in_progress"] as const;
 
 /**
- * Whether a person has been approved to volunteer at an edition. The one
- * place that answers it: the Discord role code should call this rather than
- * reading the table, so a change to what "approved" means lands once.
+ * The editions a person is approved to volunteer at, or just the one named.
+ * The one place that answers "approved": the Discord role code calls this (or
+ * `isApprovedVolunteer`) rather than reading the table, so a change to what
+ * "approved" means lands once.
  */
+export async function approvedVolunteerEditions(
+  db: DrizzleDB,
+  userId: string,
+  hackathonId?: string,
+): Promise<string[]> {
+  const rows = await db.query.hackathonVolunteerApplications.findMany({
+    where: { userId, status: "approved", ...(hackathonId ? { hackathonId } : {}) },
+    columns: { hackathonId: true },
+  });
+  return rows.map((row) => row.hackathonId);
+}
+
+/** Whether a person has been approved to volunteer at an edition. */
 export async function isApprovedVolunteer(
   db: DrizzleDB,
   userId: string,
   hackathonId: string,
 ): Promise<boolean> {
-  const row = await db.query.hackathonVolunteerApplications.findFirst({
-    where: { userId, hackathonId, status: "approved" },
-    columns: { id: true },
-  });
-  return !!row;
+  return (await approvedVolunteerEditions(db, userId, hackathonId)).length > 0;
 }
 
 type Edition = {
