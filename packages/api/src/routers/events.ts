@@ -195,7 +195,6 @@ export const eventRouter = createTRPCRouter({
           throw error;
         });
 
-      ctx.cache.deletePattern(`event:${eventId}`);
       ctx.cache.deletePattern("event*");
 
       return updated;
@@ -219,7 +218,6 @@ export const eventRouter = createTRPCRouter({
         throw notFound("Event not found");
       }
 
-      ctx.cache.deletePattern(`event:${input.eventId}`);
       ctx.cache.deletePattern("event*");
 
       // The modal replaces its event with this result, so it carries the
@@ -392,7 +390,6 @@ export const eventRouter = createTRPCRouter({
         throw notFound("Event not found");
       }
 
-      ctx.cache.deletePattern(`event:${input.eventId}`);
       ctx.cache.deletePattern("event*");
 
       return updatedEvent;
@@ -410,7 +407,6 @@ export const eventRouter = createTRPCRouter({
         .delete(events)
         .where(eq(events.id, input.eventId));
 
-      ctx.cache.deletePattern(`event:${input.eventId}`);
       ctx.cache.deletePattern("event*");
 
       return { success: true };
@@ -488,7 +484,6 @@ export const eventRouter = createTRPCRouter({
             "Already checked in",
           );
 
-          ctx.cache.deletePattern(`event:${event.id}`);
           ctx.cache.deletePattern("event*");
 
           return {
@@ -558,7 +553,6 @@ export const eventRouter = createTRPCRouter({
             `${user.name ?? user.email} is already checked in.`,
           );
 
-          ctx.cache.deletePattern(`event:${event.id}`);
           ctx.cache.deletePattern("event*");
 
           return {
@@ -623,7 +617,6 @@ export const eventRouter = createTRPCRouter({
             `${name} is already checked in.`,
           );
 
-          ctx.cache.deletePattern(`event:${event.id}`);
           ctx.cache.deletePattern("event*");
 
           return {
@@ -693,7 +686,6 @@ export const eventRouter = createTRPCRouter({
             throw notFound("That person is not checked in to this event.");
           }
 
-          ctx.cache.deletePattern(`event:${input.eventId}`);
           ctx.cache.deletePattern("event*");
 
           return { success: true };
