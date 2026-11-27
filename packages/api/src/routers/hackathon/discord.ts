@@ -3,9 +3,8 @@
 // the OAuth route in sites/mainweb.
 
 import { z } from "zod";
-import { and, eq } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
-import { discordLinks, hackathonParticipants } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import {
   discordConfig,
@@ -17,6 +16,7 @@ import {
   isConfirmedHacker,
   NO_ROLES,
   storedLink,
+  unlinkDiscord,
 } from "../../services/discord";
 
 export const hackathonDiscordRouter = createTRPCRouter({
@@ -75,32 +75,26 @@ export const hackathonDiscordRouter = createTRPCRouter({
       };
     }),
 
-  // Clears what we stored: the person's link and, for a hacker, the copy on
-  // their registration. The Discord connection itself lives in the user's
-  // Discord settings; we hold no token and cannot remove it.
+  // Takes the roles back, then clears what we stored: the person's link and,
+  // for a hacker, the copy on their registration. The roles are cleared on
+  // Discord first, with the token kept for it, so unlinking is not a way to
+  // keep a role while linking another account. If Discord cannot be reached
+  // the link stays and the person can try again.
   unlinkDiscord: protectedProcedure
     .input(z.object({ hackathonId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
-      await db.transaction(async (tx) => {
-        await tx
-          .update(hackathonParticipants)
-          .set({
-            discordUserId: null,
-            discordUsername: null,
-            discordLinkedAt: null,
-            ramadanRoleOptIn: null,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(hackathonParticipants.hackathonId, input.hackathonId),
-              eq(hackathonParticipants.userId, userId),
-            ),
-          );
-        await tx.delete(discordLinks).where(eq(discordLinks.userId, userId));
-      });
+      const result = await unlinkDiscord(
+        ctx.db as DrizzleDB,
+        ctx.userId as string,
+        input.hackathonId,
+      );
+      if (result === "failed") {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Discord did not answer, so your roles were not cleared. Try again in a moment.",
+        });
+      }
       return { ok: true };
     }),
 });

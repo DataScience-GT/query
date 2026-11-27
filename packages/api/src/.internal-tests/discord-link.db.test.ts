@@ -1,4 +1,13 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type * as DbModule from "@query/db";
 import type * as DrizzleOps from "drizzle-orm";
 import type * as DiscordSvc from "../services/discord";
@@ -16,7 +25,11 @@ type FetchCall = { url: string; init?: RequestInit };
 
 // The mass-accept path mails each person through a dynamic import; nothing
 // here may reach a real mail provider.
-vi.mock("@query/auth/email", () => ({ sendAcceptanceEmail: vi.fn(async () => {}) }));
+vi.mock("@query/auth/email", () => ({
+  sendAcceptanceEmail: vi.fn(async () => {}),
+  sendJudgeApprovedEmail: vi.fn(async () => {}),
+  sendJudgeAddedEmail: vi.fn(async () => {}),
+}));
 
 describe.skipIf(!URL)("discord link against a real database", () => {
   const suffix = Math.random().toString(36).slice(2, 10);
@@ -34,6 +47,8 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     clientSecret: "secret-1",
     inviteUrl: "https://discord.gg/test",
   };
+  // What AUTH_SECRET is for these tests: the tokens are sealed under it.
+  const SECRET = "t".repeat(40);
 
   const makeUser = async (tag: string) => {
     const id = `dl-${suffix}-${tag}`;
@@ -86,9 +101,16 @@ describe.skipIf(!URL)("discord link against a real database", () => {
 
   /** A Discord that answers each step, recording every call. */
   const discordFetch = (
-    over: { token?: number; me?: number; put?: number; meId?: string } = {},
+    over: {
+      token?: number;
+      me?: number;
+      put?: number | number[];
+      meId?: string;
+    } = {},
   ) => {
     const calls: FetchCall[] = [];
+    const puts = [over.put ?? 200].flat();
+    let putIndex = 0;
     const fn = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
       const u = String(url);
       calls.push({ url: u, init });
@@ -97,7 +119,11 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       if (u.endsWith("/oauth2/token")) {
         const status = over.token ?? 200;
         return status === 200
-          ? json(200, { access_token: "tok-user" })
+          ? json(200, {
+              access_token: "tok-user",
+              refresh_token: "ref-user",
+              expires_in: 604800,
+            })
           : json(status, { retry_after: 4.2 });
       }
       if (u.endsWith("/users/@me")) {
@@ -110,7 +136,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
             })
           : json(status, {});
       }
-      const status = over.put ?? 200;
+      const status = puts[Math.min(putIndex++, puts.length - 1)]!;
       return json(status, status === 200 ? {} : { retry_after: 2 });
     });
     return { fn: fn as unknown as typeof fetch, calls };
@@ -135,6 +161,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     svc.completeLink({
       db: S.db as any,
       config: CONFIG,
+      secret: SECRET,
       state: state(userId, hackathonId, r, t),
       code: "code-1",
       redirectUri: "https://datasciencegt.org/api/discord/callback",
@@ -363,7 +390,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       });
     });
 
-    it("an approved judge with no registration can link and gets judge and no hacker values", async () => {
+    it("an approved judge with no registration can link and gets judge, with the hacker values at 0", async () => {
       const h = await makeHackathon("judge");
       const u = await makeUser("judge");
       await makeJudge(h.id, u);
@@ -374,7 +401,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
         home: "judge",
         username: "ada",
       });
-      expect(sent(f)).toEqual({ accepted: 0, judge: 1, volunteer: 0 });
+      expect(sent(f)).toEqual({ accepted: 0, food_group: 0, ramadan: 0, judge: 1, volunteer: 0 });
 
       const stored = await linkRow(u);
       expect(stored).toMatchObject({ discordUserId: `d-judge-${suffix}`, discordUsername: "ada" });
@@ -425,7 +452,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       await makeVolunteer(u);
       const f = discordFetch({ meId: `d-vol-${suffix}` });
       expect(await link(u, h.id, f)).toMatchObject({ ok: true, home: "scan" });
-      expect(sent(f)).toEqual({ accepted: 0, judge: 0, volunteer: 1 });
+      expect(sent(f)).toEqual({ accepted: 0, food_group: 0, ramadan: 0, judge: 0, volunteer: 1 });
       expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
         eligible: true,
         roles: { hacker: false, judge: false, volunteer: true },
@@ -508,7 +535,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       await makeJudge(h.id, u);
       const f = discordFetch({ meId: `d-ju-${suffix}` });
       expect(await link(u, h.id, f)).toMatchObject({ ok: true, home: "judge" });
-      expect(sent(f)).toEqual({ accepted: 0, judge: 1, volunteer: 0 });
+      expect(sent(f)).toEqual({ accepted: 0, food_group: 0, ramadan: 0, judge: 1, volunteer: 0 });
       // The registration is left alone: no flower role, no mirrored link.
       expect((await row(p.id)).discordUserId).toBeNull();
       expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
@@ -525,7 +552,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       await makeVolunteer(u);
       const f = discordFetch({ meId: `d-jv-${suffix}` });
       expect(await link(u, h.id, f)).toMatchObject({ ok: true });
-      expect(sent(f)).toEqual({ accepted: 0, judge: 1, volunteer: 1 });
+      expect(sent(f)).toEqual({ accepted: 0, food_group: 0, ramadan: 0, judge: 1, volunteer: 1 });
     });
 
     it("un-confirming or withdrawing leaves an existing link in place", async () => {
@@ -601,7 +628,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       expect(await linkRow(judgeC)).toBeUndefined();
     });
 
-    it("rolls back a first link, and restores a previous one, when Discord refuses the roles", async () => {
+    it("rolls back a first link, and restores the same account's previous link, when Discord refuses the roles", async () => {
       const h = await makeHackathon("rollback");
       const u = await makeUser("rollback");
       await makeJudge(h.id, u);
@@ -613,11 +640,13 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       expect(await linkRow(u)).toBeUndefined();
 
       expect(await link(u, h.id, discordFetch({ meId: `d-rb1-${suffix}` }))).toMatchObject({ ok: true });
-      expect(await link(u, h.id, discordFetch({ meId: `d-rb2-${suffix}`, put: 403 }))).toMatchObject({
+      const first = await linkRow(u);
+      expect(await link(u, h.id, discordFetch({ meId: `d-rb1-${suffix}`, put: 403 }))).toMatchObject({
         ok: false,
         reason: "discord_denied",
       });
-      expect(await linkRow(u)).toMatchObject({ discordUserId: `d-rb1-${suffix}` });
+      // The same account again: what was stored before, tokens and all, is back.
+      expect(await linkRow(u)).toEqual(first);
     });
 
     it("the signed state stays bound to the user it was made for", () => {
@@ -950,5 +979,444 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     const bug = hackathonAs(tester);
     await expect(bug.adminGetAttendees({ hackathonId: h.id })).rejects.toThrow();
     await expect(bug.exportAttendees({ hackathonId: h.id })).rejects.toThrow();
+  });
+
+  // Roles are published with the person's own token, so taking one back needs
+  // that token. These run the whole path against a fake Discord that tracks
+  // which account each token belongs to and records every metadata write.
+  describe("taking roles back", () => {
+    type Put = { account: string; bearer: string; metadata: Record<string, number> };
+    const ZEROS = { accepted: 0, food_group: 0, ramadan: 0, judge: 0, volunteer: 0 };
+
+    /** A Discord that issues, rotates and revokes tokens, and logs each metadata write. */
+    const makeWorld = () => {
+      const puts: Put[] = [];
+      const bearers = new Map<string, string>();
+      const refreshTokens = new Map<string, string>();
+      const issued: string[] = [];
+      let n = 0;
+      const world = {
+        puts,
+        issued,
+        refreshCalls: 0,
+        putStatus: 200,
+        refreshFails: null as null | "invalid_grant" | 500,
+        beforePut: undefined as undefined | (() => Promise<void>),
+        throws: false,
+        issue(account: string) {
+          const access = `at-${++n}`;
+          const refresh = `rt-${n}`;
+          bearers.set(access, account);
+          refreshTokens.set(refresh, account);
+          issued.push(access, refresh);
+          return { access_token: access, refresh_token: refresh, expires_in: 604800 };
+        },
+        fn: undefined as unknown as typeof fetch,
+      };
+      world.fn = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        if (world.throws) throw new Error("network down");
+        const u = String(url);
+        const json = (status: number, body: unknown) =>
+          new Response(JSON.stringify(body), { status });
+        if (u.endsWith("/oauth2/token")) {
+          const form = new URLSearchParams(String(init?.body));
+          if (form.get("grant_type") === "authorization_code") {
+            return json(200, world.issue(form.get("code")!.replace(/^code-/, "")));
+          }
+          world.refreshCalls++;
+          if (world.refreshFails === "invalid_grant") {
+            return json(400, { error: "invalid_grant" });
+          }
+          if (world.refreshFails === 500) return json(500, {});
+          const account = refreshTokens.get(form.get("refresh_token")!);
+          if (!account) return json(400, { error: "invalid_grant" });
+          refreshTokens.delete(form.get("refresh_token")!);
+          return json(200, world.issue(account));
+        }
+        const bearer = String((init?.headers as Record<string, string>)?.Authorization ?? "")
+          .replace("Bearer ", "");
+        const account = bearers.get(bearer);
+        if (!account) return json(401, {});
+        if (u.endsWith("/users/@me")) {
+          return json(200, { id: account, username: account, global_name: account });
+        }
+        await world.beforePut?.();
+        if (world.putStatus !== 200) return json(world.putStatus, { retry_after: 1 });
+        puts.push({ account, bearer, metadata: JSON.parse(String(init?.body)).metadata });
+        return json(200, {});
+      }) as unknown as typeof fetch;
+      return world;
+    };
+    let world: ReturnType<typeof makeWorld>;
+
+    // The sync a router runs reads the app's own settings, so those are set.
+    beforeAll(() => {
+      vi.stubEnv("DISCORD_CLIENT_ID", CONFIG.clientId);
+      vi.stubEnv("DISCORD_CLIENT_SECRET", CONFIG.clientSecret);
+      vi.stubEnv("DISCORD_INVITE_URL", CONFIG.inviteUrl);
+      vi.stubEnv("AUTH_SECRET", SECRET);
+    });
+    afterAll(() => vi.unstubAllEnvs());
+    beforeEach(() => {
+      world = makeWorld();
+      vi.stubGlobal("fetch", world.fn);
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    const linkAs = (userId: string, hackathonId: string, account: string, r: 0 | 1 | null = null) =>
+      svc.completeLink({
+        db: S.db as any,
+        config: CONFIG,
+        secret: SECRET,
+        state: state(userId, hackathonId, r),
+        code: `code-${account}`,
+        redirectUri: "https://datasciencegt.org/api/discord/callback",
+        fetchImpl: world.fn,
+      });
+    const linkOf = async (userId: string) =>
+      (await S.db!.select().from(S.discordLinks).where(ops.eq(S.discordLinks.userId, userId)))[0];
+    const putsFor = (account: string) => world.puts.filter((p) => p.account === account);
+    const lastFor = (account: string) => putsFor(account).at(-1)?.metadata;
+    const acct = (tag: string) => `d-${tag}-${suffix}`;
+    const staff = async (tag: string, role: "admin" | "super_admin" = "admin") => {
+      const id = await makeUser(tag);
+      await S.db!.insert(S.admins).values({ userId: id, role });
+      return appRouterAs(id);
+    };
+    const appRouterAs = (id: string) => appRouter.createCaller(ctx(id));
+    const expireToken = (userId: string) =>
+      S.db!
+        .update(S.discordLinks)
+        .set({ tokenExpiresAt: new Date(Date.now() - 60_000) })
+        .where(ops.eq(S.discordLinks.userId, userId));
+    const newJudge = async (tag: string, hackathonId: string) => {
+      const u = await makeUser(tag);
+      const [judge] = await S.db!
+        .insert(S.judges)
+        .values({ userId: u, hackathonId, name: "Judge", email: `${u}@example.test`, isActive: true })
+        .returning();
+      return { u, judgeId: judge!.id };
+    };
+
+    it("stores the tokens encrypted, under the person, and never hands them back", async () => {
+      const h = await makeHackathon("tok");
+      const { u } = await newJudge("tok", h.id);
+      expect(await linkAs(u, h.id, acct("tok"))).toMatchObject({ ok: true });
+
+      const row = (await linkOf(u))!;
+      const [access, refresh] = world.issued;
+      expect(row.accessTokenEnc).toMatch(/^v1\./);
+      expect(row.refreshTokenEnc).toMatch(/^v1\./);
+      expect(row.tokenExpiresAt!.getTime()).toBeGreaterThan(Date.now() + 6 * 86_400_000);
+      expect(JSON.stringify(row)).not.toContain(access);
+      expect(JSON.stringify(row)).not.toContain(refresh);
+      const { openToken } = await import("../services/discord/token-crypto");
+      expect(openToken(row.accessTokenEnc, SECRET, u)).toBe(access);
+      expect(openToken(row.refreshTokenEnc, SECRET, u)).toBe(refresh);
+      // Sealed for this person: on another row, or under another secret, it does not open.
+      expect(openToken(row.accessTokenEnc, SECRET, "someone-else")).toBeNull();
+      expect(openToken(row.accessTokenEnc, "o".repeat(40), u)).toBeNull();
+
+      // Nothing the portal asks for carries them.
+      const mine = await hackathonAs(u).myDiscord({ hackathonId: h.id });
+      const everything = JSON.stringify(mine);
+      for (const secret of [access, refresh, row.accessTokenEnc, row.refreshTokenEnc]) {
+        expect(everything).not.toContain(secret!);
+      }
+      expect(everything).not.toMatch(/token/i);
+    });
+
+    it("deactivating a judge takes the judge role back, and reactivating gives it again", async () => {
+      const h = await makeHackathon("deact");
+      const { u, judgeId } = await newJudge("deact", h.id);
+      await linkAs(u, h.id, acct("deact"));
+      expect(lastFor(acct("deact"))).toMatchObject({ judge: 1 });
+
+      const admin = await staff("deact-admin");
+      await admin.judge.setActive({ judgeId, isActive: false });
+      expect(lastFor(acct("deact"))).toEqual(ZEROS);
+
+      await admin.judge.setActive({ judgeId, isActive: true });
+      expect(lastFor(acct("deact"))).toEqual({ ...ZEROS, judge: 1 });
+    });
+
+    it("removing a judge takes the role back", async () => {
+      const h = await makeHackathon("rmjudge");
+      const { u, judgeId } = await newJudge("rmjudge", h.id);
+      await linkAs(u, h.id, acct("rmjudge"));
+      await (await staff("rmjudge-admin", "super_admin")).judge.remove({ judgeId });
+      expect(lastFor(acct("rmjudge"))).toEqual(ZEROS);
+    });
+
+    it("removing, switching off or ending a volunteer takes the role back", async () => {
+      const h = await makeHackathon("vol-rm");
+      const admin = await staff("vol-rm-admin", "super_admin");
+      const make = async (tag: string) => {
+        const u = await makeUser(tag);
+        const [row] = await S.db!
+          .insert(S.admins)
+          .values({ userId: u, role: "volunteer" })
+          .returning();
+        await linkAs(u, h.id, acct(tag));
+        expect(lastFor(acct(tag))).toMatchObject({ volunteer: 1 });
+        return row!.id;
+      };
+
+      await admin.admin.remove({ adminId: await make("vol-a") });
+      expect(lastFor(acct("vol-a"))).toEqual(ZEROS);
+
+      await admin.admin.update({ adminId: await make("vol-b"), isActive: false });
+      expect(lastFor(acct("vol-b"))).toEqual(ZEROS);
+
+      await admin.admin.update({
+        adminId: await make("vol-c"),
+        expiresAt: new Date(Date.now() - 1000),
+      });
+      expect(lastFor(acct("vol-c"))).toEqual(ZEROS);
+    });
+
+    it("the daily sweep zeroes a volunteer whose term ran out, once", async () => {
+      const h = await makeHackathon("vol-sweep");
+      const u = await makeUser("vol-sweep");
+      const [row] = await S.db!.insert(S.admins).values({ userId: u, role: "volunteer" }).returning();
+      await linkAs(u, h.id, acct("vol-sweep"));
+      const other = await makeUser("vol-sweep-live");
+      await S.db!.insert(S.admins).values({ userId: other, role: "volunteer" });
+      await linkAs(other, h.id, acct("vol-sweep-live"));
+
+      // Nothing has expired yet.
+      expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({ checked: 0, synced: 0 });
+
+      await S.db!
+        .update(S.admins)
+        .set({ expiresAt: new Date(Date.now() - 1000) })
+        .where(ops.eq(S.admins.id, row!.id));
+      const before = world.puts.length;
+      expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({ checked: 1, synced: 1 });
+      expect(world.puts.slice(before)).toHaveLength(1);
+      expect(lastFor(acct("vol-sweep"))).toEqual(ZEROS);
+      expect(lastFor(acct("vol-sweep-live"))).toMatchObject({ volunteer: 1 });
+
+      // Zeroed, so the next run has nothing to do.
+      expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({ checked: 0, synced: 0 });
+    });
+
+    it("a hacker moved out of the accepted statuses, banned, or who withdraws loses the hacker roles", async () => {
+      const h = await makeHackathon("hacker-out");
+      const admin = await staff("hacker-out-admin");
+      const linked = async (tag: string, extra: Record<string, unknown> = {}) => {
+        const u = await makeUser(tag);
+        const p = await makeParticipant(h.id, u, extra);
+        await linkAs(u, h.id, acct(tag));
+        expect(lastFor(acct(tag))).toMatchObject({ accepted: 1 });
+        return { u, p };
+      };
+
+      const a = await linked("out-a");
+      await admin.hackathon.updateParticipantStatus({
+        hackathonId: h.id,
+        participantId: a.p.id,
+        status: "waitlisted",
+      });
+      expect(lastFor(acct("out-a"))).toEqual(ZEROS);
+
+      const b = await linked("out-b");
+      await admin.hackathon.batchUpdateParticipantStatus({
+        hackathonId: h.id,
+        participantIds: [b.p.id],
+        status: "rejected",
+      });
+      expect(lastFor(acct("out-b"))).toEqual(ZEROS);
+
+      const c = await linked("out-c");
+      await hackathonAs(c.u).withdrawRegistration({ hackathonId: h.id });
+      expect(lastFor(acct("out-c"))).toEqual(ZEROS);
+
+      const d = await linked("out-d");
+      const email = (
+        await S.db!.select({ email: S.users.email }).from(S.users).where(ops.eq(S.users.id, d.u))
+      )[0]!.email!;
+      await admin.hackathon.banFromHackathons({ email, reason: "Testing the ban" });
+      expect(lastFor(acct("out-d"))).toEqual(ZEROS);
+      await S.db!.delete(S.hackathonBans).where(ops.eq(S.hackathonBans.email, email.toLowerCase()));
+    });
+
+    it("a hacker who is also a judge keeps judge when the hacker side goes", async () => {
+      const h = await makeHackathon("both-out");
+      const { u } = await newJudge("both-out", h.id);
+      const p = await makeParticipant(h.id, u);
+      await linkAs(u, h.id, acct("both-out"));
+      expect(lastFor(acct("both-out"))).toMatchObject({ accepted: 1, judge: 1 });
+      await (await staff("both-out-admin")).hackathon.updateParticipantStatus({
+        hackathonId: h.id,
+        participantId: p.id,
+        status: "rejected",
+      });
+      expect(lastFor(acct("both-out"))).toEqual({ ...ZEROS, judge: 1 });
+    });
+
+    it("unlink clears the roles with the stored token, then deletes the link", async () => {
+      const h = await makeHackathon("unlink");
+      const { u } = await newJudge("unlink", h.id);
+      await linkAs(u, h.id, acct("unlink"));
+      let linkedAtPut: boolean | undefined;
+      world.beforePut = async () => {
+        linkedAtPut = !!(await linkOf(u));
+      };
+
+      await hackathonAs(u).unlinkDiscord({ hackathonId: h.id });
+      expect(lastFor(acct("unlink"))).toEqual(ZEROS);
+      expect(linkedAtPut).toBe(true);
+      expect(await linkOf(u)).toBeUndefined();
+    });
+
+    it("unlink keeps the link, and says so, when Discord cannot be reached to clear the roles", async () => {
+      const h = await makeHackathon("unlink-fail");
+      const { u } = await newJudge("unlink-fail", h.id);
+      await linkAs(u, h.id, acct("unlink-fail"));
+      world.putStatus = 500;
+      await expect(hackathonAs(u).unlinkDiscord({ hackathonId: h.id })).rejects.toThrow(
+        /roles were not cleared/,
+      );
+      expect(await linkOf(u)).toBeDefined();
+
+      world.putStatus = 200;
+      await hackathonAs(u).unlinkDiscord({ hackathonId: h.id });
+      expect(await linkOf(u)).toBeUndefined();
+    });
+
+    it("linking another Discord account first clears the roles on the old one", async () => {
+      const h = await makeHackathon("relink");
+      const { u } = await newJudge("relink", h.id);
+      await linkAs(u, h.id, acct("relink-x"));
+      expect(await linkAs(u, h.id, acct("relink-y"))).toMatchObject({ ok: true });
+
+      expect(lastFor(acct("relink-x"))).toEqual(ZEROS);
+      expect(lastFor(acct("relink-y"))).toEqual({ ...ZEROS, judge: 1 });
+      // X was cleared before Y was given anything.
+      const order = world.puts.map((p) => `${p.account}:${p.metadata.judge}`);
+      expect(order).toEqual([
+        `${acct("relink-x")}:1`,
+        `${acct("relink-x")}:0`,
+        `${acct("relink-y")}:1`,
+      ]);
+      expect(await linkOf(u)).toMatchObject({ discordUserId: acct("relink-y") });
+    });
+
+    it("does not move the link when the old account's roles cannot be cleared", async () => {
+      const h = await makeHackathon("relink-fail");
+      const { u } = await newJudge("relink-fail", h.id);
+      await linkAs(u, h.id, acct("rf-x"));
+      world.putStatus = 500;
+      expect(await linkAs(u, h.id, acct("rf-y"))).toMatchObject({
+        ok: false,
+        reason: "discord_error",
+      });
+      expect(await linkOf(u)).toMatchObject({ discordUserId: acct("rf-x") });
+      expect(putsFor(acct("rf-y"))).toHaveLength(0);
+    });
+
+    it("linking the same account again clears nothing", async () => {
+      const h = await makeHackathon("relink-same");
+      const { u } = await newJudge("relink-same", h.id);
+      await linkAs(u, h.id, acct("rs"));
+      await linkAs(u, h.id, acct("rs"));
+      expect(putsFor(acct("rs")).map((p) => p.metadata.judge)).toEqual([1, 1]);
+    });
+
+    it("a link made before tokens were kept cannot be cleared, and still unlinks", async () => {
+      const h = await makeHackathon("legacy-link");
+      const { u, judgeId } = await newJudge("legacy-link", h.id);
+      await S.db!.insert(S.discordLinks).values({
+        userId: u,
+        discordUserId: acct("legacy"),
+        discordUsername: "old",
+      });
+      await (await staff("legacy-admin")).judge.setActive({ judgeId, isActive: false });
+      expect(world.puts).toHaveLength(0);
+      expect(await svc.syncDiscordRoles(S.db as any, u)).toBe("no_token");
+
+      await hackathonAs(u).unlinkDiscord({ hackathonId: h.id });
+      expect(await linkOf(u)).toBeUndefined();
+      expect(world.puts).toHaveLength(0);
+    });
+
+    it("refreshes an expired access token, stores the rotated pair, and publishes with the new one", async () => {
+      const h = await makeHackathon("refresh");
+      const { u, judgeId } = await newJudge("refresh", h.id);
+      await linkAs(u, h.id, acct("refresh"));
+      const before = (await linkOf(u))!;
+      await expireToken(u);
+
+      await (await staff("refresh-admin")).judge.setActive({ judgeId, isActive: false });
+      expect(world.refreshCalls).toBe(1);
+      const after = (await linkOf(u))!;
+      expect(after.refreshTokenEnc).not.toBe(before.refreshTokenEnc);
+      expect(after.tokenExpiresAt!.getTime()).toBeGreaterThan(Date.now());
+      const { openToken } = await import("../services/discord/token-crypto");
+      const newAccess = openToken(after.accessTokenEnc, SECRET, u);
+      expect(newAccess).toBe(world.issued.at(-2));
+      expect(world.puts.at(-1)).toMatchObject({ bearer: newAccess, metadata: ZEROS });
+    });
+
+    it("drops the link when Discord says the connection was withdrawn", async () => {
+      const h = await makeHackathon("revoked");
+      const { u } = await newJudge("revoked", h.id);
+      const p = await makeParticipant(h.id, u);
+      await linkAs(u, h.id, acct("revoked"));
+      expect((await row(p.id)).discordUserId).toBe(acct("revoked"));
+      await S.db!
+        .update(S.judges)
+        .set({ isActive: false })
+        .where(ops.eq(S.judges.userId, u));
+      await expireToken(u);
+      world.refreshFails = "invalid_grant";
+
+      expect(await svc.syncDiscordRoles(S.db as any, u)).toBe("revoked");
+      expect(await linkOf(u)).toBeUndefined();
+      expect((await row(p.id)).discordUserId).toBeNull();
+    });
+
+    it("keeps the link when a refresh fails for another reason, and when the sync is a no-op", async () => {
+      const h = await makeHackathon("refresh-500");
+      const { u, judgeId } = await newJudge("refresh-500", h.id);
+      await linkAs(u, h.id, acct("r500"));
+      await expireToken(u);
+      world.refreshFails = 500;
+      await S.db!.update(S.judges).set({ isActive: false }).where(ops.eq(S.judges.id, judgeId));
+      expect(await svc.syncDiscordRoles(S.db as any, u)).toBe("failed");
+      expect(await linkOf(u)).toBeDefined();
+
+      world.refreshFails = null;
+      expect(await svc.syncDiscordRoles(S.db as any, u)).toBe("synced");
+      expect(await svc.syncDiscordRoles(S.db as any, u)).toBe("unchanged");
+      expect(putsFor(acct("r500"))).toHaveLength(2);
+    });
+
+    it("never throws into the change that triggered it", async () => {
+      const h = await makeHackathon("nothrow");
+      const { u, judgeId } = await newJudge("nothrow", h.id);
+      await linkAs(u, h.id, acct("nothrow"));
+      const log = vi.spyOn(console, "error").mockImplementation(() => {});
+      world.throws = true;
+      await expect(
+        (await staff("nothrow-admin")).judge.setActive({ judgeId, isActive: false }),
+      ).resolves.toMatchObject({ success: true, isActive: false });
+      expect(log).toHaveBeenCalled();
+      const logged = log.mock.calls.flat().join(" ");
+      for (const secret of world.issued) expect(logged).not.toContain(secret);
+      log.mockRestore();
+      // The judge is deactivated whether or not Discord heard about it.
+      expect((await S.db!.select().from(S.judges).where(ops.eq(S.judges.id, judgeId)))[0]!.isActive).toBe(false);
+    });
+
+    it("does nothing when Discord is not configured", async () => {
+      const h = await makeHackathon("off");
+      const { u } = await newJudge("off", h.id);
+      await linkAs(u, h.id, acct("off"));
+      const before = world.puts.length;
+      expect(await svc.syncDiscordRoles(S.db as any, u, { config: null })).toBe("off");
+      expect(world.puts).toHaveLength(before);
+    });
   });
 });

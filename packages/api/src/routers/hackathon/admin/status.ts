@@ -19,7 +19,11 @@ import {
 } from "@query/db";
 import { eq, and, inArray, ne, notExists, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
-import { autoAssignFoodGroups } from "../../../services/discord";
+import {
+  autoAssignFoodGroups,
+  syncDiscordRoles,
+  syncDiscordRolesFor,
+} from "../../../services/discord";
 import {
   SEATED_STATUSES,
   assertSeats,
@@ -109,6 +113,10 @@ export const statusProcedures = {
       // lock itself, and assertSeats above already holds it in this transaction.
       if (input.status === "approved" || input.status === "checked_in") {
         await autoAssignFoodGroups(ctx.db as DrizzleDB, input.hackathonId);
+      } else {
+        // Moved out of the accepted statuses: a Discord link takes its hacker
+        // roles back.
+        await syncDiscordRoles(ctx.db as DrizzleDB, participant.userId);
       }
 
       evictParticipantCaches(ctx.cache, input.hackathonId, [
@@ -549,6 +557,11 @@ export const statusProcedures = {
         (status === "approved" || status === "checked_in")
       ) {
         await autoAssignFoodGroups(ctx.db as DrizzleDB, hackathonId);
+      } else if (rows.length > 0) {
+        await syncDiscordRolesFor(
+          ctx.db as DrizzleDB,
+          rows.map((row) => row.userId),
+        );
       }
 
       evictParticipantCaches(

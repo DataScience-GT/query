@@ -223,6 +223,8 @@ export function DiscordCard({
         </>
       )}
 
+      {unlink.isError && <Alert>{unlink.error.message}</Alert>}
+
       {unlinked && !data.linked && (
         <p className={meta}>
           Unlinked here. To remove the connection from Discord, open Discord

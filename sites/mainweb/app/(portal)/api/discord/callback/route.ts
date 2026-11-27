@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
     result = await completeLink({
       db: db as DrizzleDB,
       config,
+      secret,
       state,
       code,
       redirectUri: redirectUri(),

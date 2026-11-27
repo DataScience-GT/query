@@ -4,6 +4,8 @@
 
 import type { DrizzleDB } from "@query/db";
 import { isExpiredAdmin } from "../../types/portal-context";
+import { foodGroupByKey } from "./config";
+import { ensureFoodGroup } from "./food-group";
 
 /** One person can hold several of these at once. */
 export type DiscordRoles = {
@@ -71,25 +73,55 @@ export function rolesFor(input: {
   };
 }
 
+/** What the Linked Roles PUT carries: always all five registered fields. */
+export type RoleMetadata = {
+  accepted: 0 | 1;
+  food_group: number;
+  ramadan: 0 | 1;
+  judge: 0 | 1;
+  volunteer: 0 | 1;
+};
+
+/** Every field cleared: what Discord is told for someone who holds no role. */
+export const ZERO_METADATA: RoleMetadata = {
+  accepted: 0,
+  food_group: 0,
+  ramadan: 0,
+  judge: 0,
+  volunteer: 0,
+};
+
 /**
  * What the Linked Roles PUT carries. `accepted` is 1 only for confirmed
- * hackers. `food_group` and `ramadan` are hackers' alone and left out
- * otherwise. `judge` and `volunteer` are always sent, 1 or 0, so a role that
- * no longer applies is cleared the next time the person updates their roles.
+ * hackers; `food_group` and `ramadan` are a hacker's alone and 0 otherwise (no
+ * flower role matches 0). `judge` and `volunteer` are 1 or 0. All five are
+ * always sent, so a role that no longer applies is overwritten, not left behind.
  */
 export function roleMetadata(
   roles: DiscordRoles,
   hacker: { foodGroup: number; ramadan: 0 | 1 } | null,
-) {
+): RoleMetadata {
+  const asHacker = roles.hacker && hacker ? hacker : null;
   return {
     accepted: roles.hacker ? 1 : 0,
-    ...(roles.hacker && hacker
-      ? { food_group: hacker.foodGroup, ramadan: hacker.ramadan }
-      : {}),
+    food_group: asHacker?.foodGroup ?? 0,
+    ramadan: asHacker?.ramadan ?? 0,
     judge: roles.judge ? 1 : 0,
     volunteer: roles.volunteer ? 1 : 0,
   };
 }
+
+/**
+ * The metadata last published, as a short string, kept on the link. It tells a
+ * sync whether anything changed, and lets the daily job find volunteers whose
+ * published `volunteer` is still 1 (the string ends in `v1`).
+ */
+export const roleSignature = (m: RoleMetadata) =>
+  `a${m.accepted}f${m.food_group}r${m.ramadan}j${m.judge}v${m.volunteer}`;
+
+/** The Ramadan flag Discord receives: opted in AND fasting is "Yes". */
+export const ramadanFlag = (optIn: boolean, fasting: string | null | undefined) =>
+  optIn && fasting === "Yes" ? 1 : 0;
 
 export type DiscordParticipant = {
   id: string;
@@ -242,4 +274,28 @@ export async function discordContext(
       .filter(({ context }) => hasDiscordRole(context.roles))
       .sort((a, b) => b.start - a.start)[0]?.context ?? null
   );
+}
+
+/**
+ * A confirmed hacker's flower number and Ramadan flag, or null for anyone else.
+ * `ramadanOptIn` is the choice made in this flow; null keeps the stored one.
+ * The flower is assigned first if they have none, so the metadata always has one.
+ */
+export async function hackerPayload(
+  db: DrizzleDB,
+  context: DiscordContext,
+  ramadanOptIn: boolean | null,
+): Promise<{ foodGroup: number; ramadan: 0 | 1 } | null> {
+  const { participant, roles, hackathon } = context;
+  if (!roles.hacker || !participant) return null;
+  const group =
+    foodGroupByKey(participant.foodGroup) ??
+    foodGroupByKey(await ensureFoodGroup(db, hackathon.id, participant.id));
+  return {
+    foodGroup: group?.number ?? 0,
+    ramadan: ramadanFlag(
+      ramadanOptIn ?? participant.ramadanRoleOptIn ?? false,
+      participant.ramadanFasting,
+    ),
+  };
 }

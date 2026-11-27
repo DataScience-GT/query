@@ -3,14 +3,17 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import { discordConfig, FOOD_GROUPS, foodGroupByKey } from "./config";
 import { autoAssignFoodGroups, pickFoodGroup } from "./food-group";
-import { ramadanFlag } from "./link";
 import {
   hasDiscordRole,
   isConfirmedHacker,
   NO_ROLES,
+  ramadanFlag,
   roleMetadata,
+  roleSignature,
   rolesFor,
+  ZERO_METADATA,
 } from "./roles";
+import { openToken, sealToken } from "./token-crypto";
 import { signState, verifyState, STATE_TTL_MS } from "./state";
 
 const SECRET = "x".repeat(40);
@@ -153,7 +156,7 @@ describe("discord roles", () => {
     expect(hasDiscordRole({ ...NO_ROLES, volunteer: true })).toBe(true);
   });
 
-  it("sends accepted, the flower and Ramadan to hackers only, and judge and volunteer always", () => {
+  it("always sends all five fields, with the hacker's three at zero for anyone else", () => {
     const flower = { foodGroup: 4, ramadan: 1 as const };
     expect(roleMetadata({ hacker: true, judge: false, volunteer: false }, flower)).toEqual({
       accepted: 1,
@@ -163,15 +166,20 @@ describe("discord roles", () => {
       volunteer: 0,
     });
     expect(roleMetadata({ hacker: false, judge: true, volunteer: false }, null)).toEqual({
-      accepted: 0,
+      ...ZERO_METADATA,
       judge: 1,
-      volunteer: 0,
     });
     expect(roleMetadata({ hacker: false, judge: false, volunteer: true }, null)).toEqual({
-      accepted: 0,
-      judge: 0,
+      ...ZERO_METADATA,
       volunteer: 1,
     });
+    // A flower is never sent to somebody who is not a confirmed hacker.
+    expect(
+      roleMetadata({ hacker: false, judge: true, volunteer: false }, { foodGroup: 4, ramadan: 1 }),
+    ).toEqual({ ...ZERO_METADATA, judge: 1 });
+    expect(roleMetadata({ hacker: false, judge: false, volunteer: false }, null)).toEqual(
+      ZERO_METADATA,
+    );
     expect(roleMetadata({ hacker: true, judge: true, volunteer: true }, flower)).toEqual({
       accepted: 1,
       food_group: 4,
@@ -202,5 +210,61 @@ describe("registered Linked Roles metadata", () => {
     );
     expect([...registered].sort()).toEqual([...sent].sort());
     expect(registered.length).toBeLessThanOrEqual(5);
+  });
+});
+
+describe("roleSignature", () => {
+  it("changes with every field, and ends in the volunteer flag", () => {
+    const seen = new Set([roleSignature(ZERO_METADATA)]);
+    for (const patch of [
+      { accepted: 1 as const },
+      { food_group: 3 },
+      { ramadan: 1 as const },
+      { judge: 1 as const },
+      { volunteer: 1 as const },
+    ]) {
+      seen.add(roleSignature({ ...ZERO_METADATA, ...patch }));
+    }
+    expect(seen.size).toBe(6);
+    expect(roleSignature({ ...ZERO_METADATA, volunteer: 1 })).toMatch(/v1$/);
+    expect(roleSignature({ ...ZERO_METADATA, judge: 1 })).not.toMatch(/v1$/);
+  });
+});
+
+describe("stored Discord tokens", () => {
+  const key = "k".repeat(40);
+
+  it("round-trips, and never shows the token in the sealed value", () => {
+    const sealed = sealToken("a-discord-access-token", key, "user-1");
+    expect(sealed).toMatch(/^v1\.[\w-]+\.[\w-]+\.[\w-]+$/);
+    expect(sealed).not.toContain("a-discord-access-token");
+    expect(openToken(sealed, key, "user-1")).toBe("a-discord-access-token");
+  });
+
+  it("seals the same token differently each time", () => {
+    expect(sealToken("same", key, "user-1")).not.toBe(sealToken("same", key, "user-1"));
+  });
+
+  it("does not open for another person, another secret, or a malformed value", () => {
+    const sealed = sealToken("tok", key, "user-1");
+    expect(openToken(sealed, key, "user-2")).toBeNull();
+    expect(openToken(sealed, "j".repeat(40), "user-1")).toBeNull();
+    for (const bad of [null, undefined, "", "garbage", "v2.a.b.c", `${sealed}.extra`, "v1.a.b"]) {
+      expect(openToken(bad, key, "user-1")).toBeNull();
+    }
+  });
+
+  it("fails when any part of the ciphertext is changed, or the tag is cut short", () => {
+    const [version, iv, ciphertext, tag] = sealToken("tok-to-protect", key, "user-1").split(".");
+    const flip = (part: string) => {
+      const bytes = Buffer.from(part!, "base64url");
+      bytes[0] = bytes[0]! ^ 1;
+      return bytes.toString("base64url");
+    };
+    expect(openToken([version, iv, flip(ciphertext!), tag].join("."), key, "user-1")).toBeNull();
+    expect(openToken([version, flip(iv!), ciphertext, tag].join("."), key, "user-1")).toBeNull();
+    expect(openToken([version, iv, ciphertext, flip(tag!)].join("."), key, "user-1")).toBeNull();
+    const short = Buffer.from(tag!, "base64url").subarray(0, 8).toString("base64url");
+    expect(openToken([version, iv, ciphertext, short].join("."), key, "user-1")).toBeNull();
   });
 });

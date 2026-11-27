@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { sendApplicationReminders } from "@query/api/application-reminders";
+import { syncExpiredDiscordRoles } from "@query/api/discord";
 import {
   rateLimitShared,
   resolveClientIp,
@@ -10,9 +11,11 @@ import {
 import { db } from "@query/db";
 
 /**
- * The daily nudge to finish an application. App Hosting has no scheduler, so
- * Cloud Scheduler (set up separately, docs/features/hackathons.md) posts here
- * with the shared secret.
+ * The daily nudge to finish an application, and the daily sweep that takes the
+ * Discord volunteer role back from volunteers whose term has run out, which
+ * has no event of its own. App Hosting has no scheduler, so Cloud Scheduler
+ * (set up separately, docs/features/hackathons.md) posts here with the shared
+ * secret.
  *
  * Node runtime and never cached: every call has to do the work.
  *
@@ -72,15 +75,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Both jobs run whatever the other does. The sweep never throws and is
+  // capped, so one bad run of either cannot hold up the other.
+  let run;
   try {
-    const run = await sendApplicationReminders(db);
-    return NextResponse.json(run, { headers: noStore });
+    run = await sendApplicationReminders(db);
   } catch (error) {
     // Logged here, not returned: the caller only needs to know it failed.
     console.error("[application-reminders] run failed:", error);
+  }
+  const discord = await syncExpiredDiscordRoles(db);
+  if (!run) {
     return NextResponse.json(
       { error: "Run failed" },
       { status: 500, headers: noStore },
     );
   }
+  return NextResponse.json({ ...run, discord }, { headers: noStore });
 }

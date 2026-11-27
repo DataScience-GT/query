@@ -21,6 +21,7 @@ import type { DrizzleDB } from "@query/db";
 import { evictParticipantCaches } from "./admin";
 import { teamMemberCountsForUser } from "../../services/derived-counts";
 import { saveDraftInput } from "../../services/application-drafts";
+import { syncDiscordRoles } from "../../services/discord";
 import { rateLimitShared } from "../../middleware/security";
 
 // Postgres unique_violation on hackathon_participant_hackathon_user_idx — a second
@@ -551,6 +552,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       evictParticipantCaches(ctx.cache, input.hackathonId, [
         ctx.userId as string,
       ]);
+      await syncDiscordRoles(db, ctx.userId as string);
 
       return { success: true };
     }),
