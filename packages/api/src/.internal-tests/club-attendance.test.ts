@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 
 /**
@@ -79,14 +79,7 @@ const callerAs = (role: string | null) => {
       ? { id: "ad_1", userId: "user_1", role, isActive: true, expiresAt: null }
       : undefined,
   );
-  return appRouter.createCaller({
-    db,
-    session: { user: { id: "user_1" } },
-    userId: "user_1",
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as never);
+  return testCaller(db, "user_1");
 };
 
 /** The three selects run in order: per event, per person, active members. */

@@ -2,6 +2,7 @@ import { applicationAnswers } from "./_application-answers";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
+import { testCtx } from "./_caller";
 import { db } from "@query/db";
 
 // Fully mock the DB at the file level. vi.mock factories are hoisted and
@@ -201,15 +202,7 @@ describe("Hackathon end-to-end flow", () => {
     cache.clear();
   });
 
-  const createMockCtx = (userId?: string) =>
-    ({
-      db,
-      session: userId ? { user: { id: userId } } : null,
-      userId: userId || undefined,
-      cache,
-      clientIp: "127.0.0.1",
-      req: { headers: { get: () => null } },
-    }) as any;
+  const createMockCtx = (userId?: string) => testCtx(db, userId);
 
   const adminCaller = () => {
     mockFindFirst.mockImplementation((table) =>

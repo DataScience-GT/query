@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 import { hackathonInterest } from "@query/db";
 
@@ -141,15 +141,7 @@ const HACK = "22222222-2222-4222-8222-222222222222";
 const VISITOR = "user_visitor";
 const ADMIN = "user_admin";
 
-const callerFor = (userId?: string) =>
-  appRouter.createCaller({
-    db,
-    session: userId ? { user: { id: userId } } : null,
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as never);
+const callerFor = (userId?: string) => testCaller(db, userId);
 
 /**
  * Deliberately a made-up edition. Real names, dates and themes belong in the

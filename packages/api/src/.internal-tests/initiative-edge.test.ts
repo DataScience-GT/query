@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 import {
   initiatives,
@@ -173,14 +173,7 @@ const INITIATIVE = "11111111-1111-4111-8111-111111111111";
 const DAY = 24 * 60 * 60 * 1000;
 
 const callerFor = (userId: string) =>
-  appRouter.createCaller({
-    db,
-    session: { user: { id: userId } },
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: undefined,
-  } as never);
+  testCaller(db, userId, { req: undefined });
 
 /** An initiative open to applications, led by LEADER. */
 const openInitiative = (overrides: Record<string, any> = {}) => ({

@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
+import { testCtx } from "./_caller";
 import { db, judges, judgeAssignments, judgingEntries } from "@query/db";
 
 // Fully mock the DB at the file level, mirroring hackathon-flow.test.ts.
@@ -271,15 +272,7 @@ describe("Judge roster edge cases", () => {
     mockDelete.mockReturnValue([{ id: "deleted" }]);
   });
 
-  const ctxFor = (userId?: string) =>
-    ({
-      db,
-      session: userId ? { user: { id: userId } } : null,
-      userId: userId || undefined,
-      cache,
-      clientIp: "127.0.0.1",
-      req: { headers: { get: () => null } },
-    }) as any;
+  const ctxFor = (userId?: string) => testCtx(db, userId);
 
   /** Every row a mutation inserted into `table`, flattened. */
   const insertsInto = (table: unknown) =>

@@ -28,7 +28,7 @@ import {
   judgingEvaluations,
   judgingRooms,
 } from "@query/db";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 import type * as Store from "../services/judging/evaluation-store";
 import type * as RepoCheck from "../services/judging/repo-check";
@@ -121,15 +121,7 @@ const fakeDb: any = {
   transaction: async (callback: (tx: unknown) => unknown) => callback(fakeDb),
 };
 
-const callerAs = (userId: string) =>
-  appRouter.createCaller({
-    db: fakeDb,
-    session: { user: { id: userId } },
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as any);
+const callerAs = (userId: string) => testCaller(fakeDb, userId);
 const admin = () => callerAs("admin_user");
 const hacker = () => callerAs("hacker_user");
 

@@ -27,7 +27,7 @@ import {
   judgingRooms,
   judgingSchedules,
 } from "@query/db";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { rebalanceIfDue, rebalanceThrottle } from "../routers/judging/schedule";
 import { cache } from "../middleware/cache";
 import { assignJudges } from "../services/judging/schedule/judges";
@@ -158,15 +158,7 @@ const fakeDb: any = {
   transaction: async (callback: (tx: unknown) => unknown) => callback(fakeDb),
 };
 
-const callerAs = (userId: string | undefined) =>
-  appRouter.createCaller({
-    db: fakeDb,
-    session: userId ? { user: { id: userId } } : null,
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as any);
+const callerAs = (userId: string | undefined) => testCaller(fakeDb, userId);
 const admin = () => callerAs("admin_user");
 
 const audits = () =>

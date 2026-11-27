@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 import { currentTerm } from "@query/db/services/membership";
 
@@ -188,14 +188,7 @@ const WEEK_3 = "33333333-3333-4333-8333-333333333333";
 const DAY = 24 * 60 * 60 * 1000;
 
 const callerFor = (userId: string) =>
-  appRouter.createCaller({
-    db,
-    session: { user: { id: userId } },
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: undefined,
-  } as never);
+  testCaller(db, userId, { req: undefined });
 
 /** Two sessions already taught, one still to come. */
 const SESSIONS = [

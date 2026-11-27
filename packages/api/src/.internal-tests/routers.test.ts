@@ -6,6 +6,7 @@ import { appRouter } from "../root";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { cache } from "../middleware/cache";
+import { testCtx } from "./_caller";
 import { db } from "@query/db";
 import { errorFormatter } from "../trpc";
 import { scrubMarkup } from "../trpc";
@@ -365,21 +366,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
     userId?: string,
     extra: Record<string, any> = {},
     headers: Record<string, string> = {},
-  ) => {
-    return {
-      db,
-      session: userId ? { user: { id: userId } } : null,
-      userId: userId || undefined,
-      cache: cache,
-      clientIp: "127.0.0.1",
-      req: {
-        headers: {
-          get: (name: string) => headers[name.toLowerCase()] || null,
-        },
-      },
-      ...extra,
-    } as any;
-  };
+  ) => testCtx(db, userId, extra, headers);
 
   describe("1. Admin Permissions and Role Restrictons", () => {
     it("should query the database on cache miss and verify admin status", async () => {

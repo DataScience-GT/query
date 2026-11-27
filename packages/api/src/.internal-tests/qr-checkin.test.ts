@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type * as DiscordSync from "../services/discord/sync";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
+import { testCtx } from "./_caller";
 import {
   db,
   events,
@@ -304,15 +305,7 @@ describe("QR check-in", () => {
     mockEarlierAttendance.mockReturnValue([]);
   });
 
-  const createMockCtx = (userId?: string) =>
-    ({
-      db,
-      session: userId ? { user: { id: userId } } : null,
-      userId: userId || undefined,
-      cache,
-      clientIp: "127.0.0.1",
-      req: { headers: { get: () => null } },
-    }) as any;
+  const createMockCtx = (userId?: string) => testCtx(db, userId);
 
   const ADMIN_ROW = {
     userId: "admin_user_id",

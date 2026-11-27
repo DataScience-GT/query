@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type * as DiscordSync from "../services/discord/sync";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
+import { testCtx } from "./_caller";
 import {
   db,
   hackathons,
@@ -262,15 +263,7 @@ const PARTICIPANT_A = "33333333-3333-4333-8333-333333333333";
 const PARTICIPANT_B = "44444444-4444-4444-8444-444444444444";
 const PROJECT_A = "66666666-6666-4666-8666-666666666666";
 
-const createMockCtx = (userId?: string) =>
-  ({
-    db,
-    session: userId ? { user: { id: userId } } : null,
-    userId: userId || undefined,
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  }) as any;
+const createMockCtx = (userId?: string) => testCtx(db, userId);
 
 const callerFor = (userId?: string) =>
   appRouter.createCaller(createMockCtx(userId));

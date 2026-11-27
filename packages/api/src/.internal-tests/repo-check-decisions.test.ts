@@ -16,7 +16,7 @@ import {
   judgingEntries,
   judgingRepoChecks,
 } from "@query/db";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 import type * as Challenges from "../services/judging/challenges";
 import { repoCheckThrottle } from "../services/judging/repo-check";
@@ -126,15 +126,7 @@ const fakeDb: any = {
   },
 };
 
-const admin = () =>
-  appRouter.createCaller({
-    db: fakeDb,
-    session: { user: { id: "admin_user" } },
-    userId: "admin_user",
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as any);
+const admin = () => testCaller(fakeDb, "admin_user");
 
 const entry = (entryId: string, over: Row = {}): Row => ({
   id: entryId,

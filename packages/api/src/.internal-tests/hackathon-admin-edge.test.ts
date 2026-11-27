@@ -3,6 +3,7 @@ import type * as DiscordSync from "../services/discord/sync";
 import { appRouter } from "../root";
 import { errorFormatter } from "../trpc";
 import { cache } from "../middleware/cache";
+import { testCtx } from "./_caller";
 import {
   db,
   hackathons,
@@ -337,15 +338,7 @@ describe("Hackathon admin management edge cases", () => {
     mockDelete.mockReturnValue([{}]);
   });
 
-  const createMockCtx = (userId?: string) =>
-    ({
-      db,
-      session: userId ? { user: { id: userId } } : null,
-      userId: userId || undefined,
-      cache,
-      clientIp: "127.0.0.1",
-      req: { headers: { get: () => null } },
-    }) as any;
+  const createMockCtx = (userId?: string) => testCtx(db, userId);
 
   const publicCaller = () => appRouter.createCaller(createMockCtx());
 

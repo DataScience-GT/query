@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 
 /**
@@ -37,15 +37,7 @@ vi.mock("@query/db", async (importOriginal) => {
 
 import { db } from "@query/db";
 
-const callerFor = (userId?: string) =>
-  appRouter.createCaller({
-    db,
-    session: userId ? { user: { id: userId } } : null,
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as never);
+const callerFor = (userId?: string) => testCaller(db, userId);
 
 describe("judge.interestList", () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 
 /**
@@ -173,15 +173,7 @@ const boundValues = (calls: unknown[][]) =>
     )
     .flatMap((condition) => new PgDialect().sqlToQuery(condition as never).params);
 
-const callerFor = (userId?: string) =>
-  appRouter.createCaller({
-    db,
-    session: userId ? { user: { id: userId } } : null,
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as never);
+const callerFor = (userId?: string) => testCaller(db, userId);
 
 const asAdmin = (extra: (table: string) => unknown = () => undefined) =>
   mockFindFirst.mockImplementation((table: string) => {

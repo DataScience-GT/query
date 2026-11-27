@@ -39,7 +39,7 @@ import {
   judgingPlacements,
   judgingRubricItems,
 } from "@query/db";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 
 const HACK = "11111111-1111-4111-8111-111111111111";
@@ -120,25 +120,9 @@ const fakeDb: any = {
   }),
 };
 
-const adminCaller = () =>
-  appRouter.createCaller({
-    db: fakeDb,
-    session: { user: { id: "admin_user" } },
-    userId: "admin_user",
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as any);
+const adminCaller = () => testCaller(fakeDb, "admin_user");
 
-const anonCaller = () =>
-  appRouter.createCaller({
-    db: fakeDb,
-    session: null,
-    userId: undefined,
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as any);
+const anonCaller = () => testCaller(fakeDb);
 
 const placementsInserted = () =>
   inserts

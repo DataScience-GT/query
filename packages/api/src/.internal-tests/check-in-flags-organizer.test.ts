@@ -21,7 +21,7 @@ import {
   judgingConfigs,
   judgingEntries,
 } from "@query/db";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 import type * as CheckInFlags from "../services/check-in-flags";
 import type * as RepoCheck from "../services/judging/repo-check";
@@ -160,15 +160,7 @@ const fakeDb: any = {
   transaction: async (callback: (tx: unknown) => unknown) => callback(fakeDb),
 };
 
-const callerAs = (userId: string | undefined) =>
-  appRouter.createCaller({
-    db: fakeDb,
-    session: userId ? { user: { id: userId } } : null,
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as any);
+const callerAs = (userId: string | undefined) => testCaller(fakeDb, userId);
 
 const admin = () => callerAs("admin_user");
 
