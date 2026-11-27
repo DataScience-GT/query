@@ -21,7 +21,7 @@ import {
   localTimeZone,
   toInputDate,
 } from "@/components/admin/hackathons/constants";
-import type { HackathonStatus } from "@/components/admin/hackathons/constants";
+import type { HackathonStatus } from "@query/db/constants";
 
 // What toLocaleString() prints for en-US, on the venue's clock so the server
 // and the browser agree on it.

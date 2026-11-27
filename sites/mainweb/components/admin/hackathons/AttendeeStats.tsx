@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import type { RegistrationStatus } from "./attendee-status";
+import type { ParticipantStatus } from "@query/db/constants";
 import { sectionRule, status } from "@query/ui/classes";
 import type { Tone } from "@query/ui/classes";
 
-export interface AttendeeStatsData {
+interface AttendeeStatsData {
   total: number;
   pending: number;
   approved: number;
@@ -14,7 +14,7 @@ export interface AttendeeStatsData {
   checked_in: number;
 }
 
-type Filter = "all" | RegistrationStatus;
+type Filter = "all" | ParticipantStatus;
 
 const CARDS: {
   label: string;

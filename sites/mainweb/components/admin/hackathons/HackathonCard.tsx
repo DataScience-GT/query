@@ -24,11 +24,8 @@ import {
   textLink,
 } from "@query/ui/classes";
 import { adminHackathonPath } from "@/lib/hackathon-slug";
-import {
-  STATUS_TONE,
-  getStatusMeta,
-} from "@/components/admin/hackathons/constants";
-import type { HackathonStatus } from "@/components/admin/hackathons/constants";
+import { STATUS_PILL } from "@/components/admin/hackathons/constants";
+import type { HackathonStatus } from "@query/db/constants";
 
 export function HackathonCard({
   hackathon,
@@ -56,6 +53,7 @@ export function HackathonCard({
   // hackathon.delete is super-admin only; other staff would only meet the refusal.
   const canDelete = portalContext?.role === "super_admin";
   const dashboardPath = adminHackathonPath(hackathon.name, hackathon.id);
+  const pill = STATUS_PILL[hackathon.status] ?? STATUS_PILL.draft;
 
   const { data: events, isLoading: eventsLoading } =
     trpc.hackathon.getEvents.useQuery({ hackathonId: hackathon.id });
@@ -92,8 +90,8 @@ export function HackathonCard({
             >
               <h3 className={sectionTitle}>{hackathon.name}</h3>
             </Link>
-            <span className={statusPill(STATUS_TONE[hackathon.status])}>
-              {getStatusMeta(hackathon.status)?.label}
+            <span className={statusPill(pill.tone)}>
+              {pill.label}
             </span>
           </div>
           {hackathon.description && (

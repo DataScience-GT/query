@@ -19,7 +19,7 @@ import {
   textLink,
 } from "@query/ui/classes";
 import { FormInput } from "@query/ui/FormInput";
-import type { HackathonStatus } from "@/components/admin/hackathons/constants";
+import type { HackathonStatus } from "@query/db/constants";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
 
 const AUDIENCES = [
