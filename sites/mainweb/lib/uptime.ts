@@ -8,16 +8,17 @@
 // it is reported as stale instead.
 
 import { DAY, MINUTE } from "@query/core";
+import { fillDays, uptimePercent } from "./status";
 import type { Day, StatusSummary } from "./status";
 
 export type Probe = { t: number; ok: boolean; ms: number; code: number };
-export type ProbeDay = {
+type ProbeDay = {
   day: string;
   probes: number;
   up: number;
   worstMs: number;
 };
-export type Deploy = {
+type Deploy = {
   sha: string;
   committedAt: string | null;
   rollout: string;
@@ -68,34 +69,24 @@ export function combinedDays(data: UptimeData): ProbeDay[] {
  * same strip draws them. Requests and errors are probes and failed probes;
  * minutes are probe counts, which only matter as a ratio.
  */
-export function probeDays(data: UptimeData, now: number, count = 90): Day[] {
-  const byDay = new Map(combinedDays(data).map((d) => [d.day, d]));
-  const today = now - (now % DAY);
-  return Array.from({ length: count }, (_, i) => {
-    const day = new Date(today - (count - 1 - i) * DAY)
-      .toISOString()
-      .slice(0, 10);
-    const mine = byDay.get(day);
-    return {
-      day,
-      requests: mine?.probes ?? 0,
-      errors: mine ? mine.probes - mine.up : 0,
-      worstP95Ms: mine?.worstMs ?? 0,
+export function probeDays(data: UptimeData, now: number): Day[] {
+  return fillDays(
+    combinedDays(data).map((d) => ({
+      day: d.day,
+      requests: d.probes,
+      errors: d.probes - d.up,
+      worstP95Ms: d.worstMs,
       // A probe has one duration per check; there is no p99 to report.
       worstP99Ms: null,
-      minutesWithData: mine?.probes ?? 0,
+      minutesWithData: d.probes,
       minutesDbDown: 0,
-      minutesUp: mine?.up ?? 0,
-    };
-  });
+      minutesUp: d.up,
+    })),
+    now,
+  );
 }
 
-/** Share of probes that succeeded, or null when there were none. */
-export function probePercent(probes: { up: number; total: number }) {
-  return probes.total === 0 ? null : (probes.up / probes.total) * 100;
-}
-
-export type UptimeWindows = {
+type UptimeWindows = {
   h24: number | null;
   d30: number | null;
   d90: number | null;
@@ -104,21 +95,16 @@ export type UptimeWindows = {
 export function uptimeWindows(data: UptimeData, now: number): UptimeWindows {
   const last24 = data.recent.filter((p) => p.t > now - DAY);
   const days = probeDays(data, now);
-  const sum = (list: Day[]) => ({
-    up: list.reduce((s, d) => s + d.minutesUp, 0),
-    total: list.reduce((s, d) => s + d.minutesWithData, 0),
-  });
   return {
-    h24: probePercent({
-      up: last24.filter((p) => p.ok).length,
-      total: last24.length,
-    }),
-    d30: probePercent(sum(days.slice(-30))),
-    d90: probePercent(sum(days)),
+    h24: last24.length
+      ? (last24.filter((p) => p.ok).length / last24.length) * 100
+      : null,
+    d30: uptimePercent(days.slice(-30)),
+    d90: uptimePercent(days),
   };
 }
 
-export type ExternalState =
+type ExternalState =
   | { kind: "ok"; last: Probe }
   | { kind: "down"; last: Probe }
   | { kind: "stale"; last: Probe | null };
