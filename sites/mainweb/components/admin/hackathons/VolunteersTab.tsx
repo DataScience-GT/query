@@ -219,7 +219,10 @@ export function VolunteersTab({
   async function exportCsv() {
     setExporting(true);
     try {
-      const rows = await utils.volunteer.exportApplications.fetch(filter);
+      const rows = await utils.volunteer.exportApplications.fetch(filter, {
+        // Every export reaches the server, so every one is audited.
+        staleTime: 0,
+      });
       if (rows.length === 0) {
         setError("Nothing to export with these filters.");
         return;

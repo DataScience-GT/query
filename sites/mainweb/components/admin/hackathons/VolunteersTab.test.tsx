@@ -297,7 +297,7 @@ describe("VolunteersTab", () => {
     );
     const { press } = render();
     await act(async () => press("Export CSV"));
-    expect(state.exportRows).toHaveBeenCalledWith(NONE);
+    expect(state.exportRows).toHaveBeenCalledWith(NONE, { staleTime: 0 });
     expect(created).toHaveLength(1);
     expect(await created[0]?.text()).toContain("ada@example.com");
   });

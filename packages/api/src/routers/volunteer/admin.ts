@@ -62,6 +62,9 @@ export const volunteerAdminRouter = createTRPCRouter({
           status: input.status ?? null,
           role: input.role ?? null,
           block: input.block ?? null,
+          mode: input.mode ?? null,
+          topic: input.topic ?? null,
+          onlineBlock: input.onlineBlock ?? null,
         },
       });
 
