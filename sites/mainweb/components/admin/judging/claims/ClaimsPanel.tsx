@@ -19,6 +19,7 @@ import {
 } from "@query/ui/classes";
 import type { Tone } from "@query/ui/classes";
 import { eventMoment } from "@/components/hackathon/judging/event-time";
+import { OFFICER_POLL_MS } from "@/components/admin/judging/shared";
 import { useDebounced } from "@/components/admin/hackathons/points/use-debounced";
 import { confirmDialog } from "@query/ui/ConfirmDialog";
 
@@ -52,7 +53,7 @@ export function ClaimsPanel({ hackathonId }: { hackathonId: string }) {
 
   const overview = trpc.judging.hacker.claimOverview.useQuery(
     { hackathonId, search: debouncedSearch || undefined },
-    { refetchInterval: 10_000, placeholderData: (previous) => previous },
+    { refetchInterval: OFFICER_POLL_MS, placeholderData: (previous) => previous },
   );
 
   const sendBatch = trpc.judging.hacker.sendClaimEmails.useMutation({

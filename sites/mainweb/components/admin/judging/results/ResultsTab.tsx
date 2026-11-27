@@ -27,6 +27,7 @@ import {
 import {
   ErrorLine,
   NoticeLine,
+  OFFICER_POLL_MS,
   plural,
   useRefreshJudging,
 } from "@/components/admin/judging/shared";
@@ -38,8 +39,6 @@ import type { CalibrationChallenge } from "@/components/admin/judging/results/ca
 import { confirmDialog } from "@query/ui/ConfirmDialog";
 import { EmptyState } from "@query/ui/EmptyState";
 
-// Officer screens poll every 10 seconds while judges are still submitting.
-const POLL_MS = 10_000;
 // A line above the lists that asks the organiser to look before they publish.
 const WARNING_BANNER =
   "border-l-2 border-[var(--warning)] pl-3 text-[15px] text-[var(--text-primary)]";
@@ -89,7 +88,7 @@ export function ResultsTab({ hackathonId }: { hackathonId: string }) {
 
   const list = trpc.judging.results.list.useQuery(
     { hackathonId },
-    { refetchInterval: POLL_MS },
+    { refetchInterval: OFFICER_POLL_MS },
   );
 
   const refresh = () => {
@@ -582,7 +581,7 @@ function EvaluationAudit({
 
   const audit = trpc.judging.results.evaluationAudit.useQuery(
     { hackathonId, entryId: entryFilter?.id },
-    { refetchInterval: POLL_MS, placeholderData: (previous) => previous },
+    { refetchInterval: OFFICER_POLL_MS, placeholderData: (previous) => previous },
   );
 
   // Deleting the grade changes the project list and the judges' queues as
@@ -805,7 +804,7 @@ function AppointmentDetail({
 }) {
   const detail = trpc.judging.results.appointmentResults.useQuery(
     { hackathonId, appointmentId },
-    { refetchInterval: POLL_MS },
+    { refetchInterval: OFFICER_POLL_MS },
   );
 
   if (detail.isLoading) {
