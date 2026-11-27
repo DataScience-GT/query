@@ -18,7 +18,7 @@ import {
   roleMetadata,
   roleSignature,
 } from "./roles";
-import type { DiscordParticipant, DiscordRoles } from "./roles";
+import type { DiscordContext, DiscordParticipant } from "./roles";
 import type { DiscordState } from "./state";
 import { withDiscordLock, zeroDiscordRoles } from "./sync";
 import { sealTokens } from "./tokens";
@@ -28,10 +28,11 @@ type HackathonRef = { id: string; name: string };
 
 /**
  * Where the person goes back to: the hackathon page for a hacker, the judge
- * page for a judge, the check-in desk for a volunteer. Each is where that
- * role's Discord card lives.
+ * page for a judge, the check-in desk for a volunteer on the staff tier, and
+ * the volunteer application page for one who was approved without it. Each is
+ * where that role's Discord card lives.
  */
-export type LinkHome = "hackathon" | "judge" | "scan";
+export type LinkHome = "hackathon" | "judge" | "scan" | "volunteer";
 
 type LinkResult =
   | {
@@ -127,8 +128,11 @@ async function heldByAnother(
   return !!participant;
 }
 
-const homeOf = (roles: DiscordRoles): LinkHome =>
-  roles.hacker ? "hackathon" : roles.judge ? "judge" : "scan";
+const homeOf = ({
+  roles,
+  deskStaff,
+}: Pick<DiscordContext, "roles" | "deskStaff">): LinkHome =>
+  roles.hacker ? "hackathon" : roles.judge ? "judge" : deskStaff ? "scan" : "volunteer";
 
 const failWith =
   (hackathon: HackathonRef, home: LinkHome) =>
@@ -164,7 +168,7 @@ export async function completeLink(opts: {
   // Refused here, before Discord is called at all, when they hold no role.
   const early = await resolveConnectTarget(db, state.u, state.h);
   if (!early) return { ok: false, reason: "not_accepted" };
-  const failEarly = failWith(early.hackathon, homeOf(early.roles));
+  const failEarly = failWith(early.hackathon, homeOf(early));
 
   const tokenRes = await doFetch(`${API}/oauth2/token`, {
     method: "POST",
@@ -211,7 +215,7 @@ export async function completeLink(opts: {
     const target = await resolveConnectTarget(tx, state.u, state.h);
     if (!target) return { ok: false, reason: "not_accepted" };
     const { hackathon, participant, roles } = target;
-    const home = homeOf(roles);
+    const home = homeOf(target);
     const fail = failWith(hackathon, home);
 
     if (await heldByAnother(tx, discordId, state.u, hackathon.id)) {

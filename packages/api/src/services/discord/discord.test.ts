@@ -130,24 +130,57 @@ describe("discord roles", () => {
   });
 
   it("holds each role independently, and any combination", () => {
-    const base = { participant: null, judge: false, volunteer: false, hackathonStatus: "open" };
+    const base = {
+      participant: null,
+      judge: false,
+      staff: false,
+      approvedVolunteer: false,
+      hackathonStatus: "open",
+    };
     expect(rolesFor(base)).toEqual(NO_ROLES);
     expect(rolesFor({ ...base, judge: true })).toEqual({ ...NO_ROLES, judge: true });
-    expect(rolesFor({ ...base, volunteer: true })).toEqual({ ...NO_ROLES, volunteer: true });
+    expect(rolesFor({ ...base, staff: true })).toEqual({ ...NO_ROLES, volunteer: true });
+    expect(rolesFor({ ...base, approvedVolunteer: true })).toEqual({
+      ...NO_ROLES,
+      volunteer: true,
+    });
     expect(
-      rolesFor({ ...base, participant: hacker("approved", at), judge: true, volunteer: true }),
+      rolesFor({ ...base, participant: hacker("approved", at), judge: true, staff: true }),
     ).toEqual({ hacker: true, judge: true, volunteer: true });
     expect(
       rolesFor({ ...base, participant: hacker("approved", null), judge: true }),
     ).toEqual({ hacker: false, judge: true, volunteer: false });
   });
 
-  it("gives volunteers a role only while the edition is open or live", () => {
+  it("gives the volunteer staff tier a role only while the edition is open or live", () => {
     const volunteerIn = (hackathonStatus: string) =>
-      rolesFor({ participant: null, judge: false, volunteer: true, hackathonStatus }).volunteer;
+      rolesFor({
+        participant: null,
+        judge: false,
+        staff: true,
+        approvedVolunteer: false,
+        hackathonStatus,
+      }).volunteer;
     for (const status of ["open", "closed", "in_progress"]) expect(volunteerIn(status)).toBe(true);
     for (const status of ["draft", "announced", "completed", "cancelled"]) {
       expect(volunteerIn(status)).toBe(false);
+    }
+  });
+
+  it("gives an approved volunteer a role from the announcement until the edition is over", () => {
+    const applicantIn = (hackathonStatus: string) =>
+      rolesFor({
+        participant: null,
+        judge: false,
+        staff: false,
+        approvedVolunteer: true,
+        hackathonStatus,
+      }).volunteer;
+    for (const status of ["announced", "open", "closed", "in_progress"]) {
+      expect(applicantIn(status)).toBe(true);
+    }
+    for (const status of ["draft", "completed", "cancelled"]) {
+      expect(applicantIn(status)).toBe(false);
     }
   });
 

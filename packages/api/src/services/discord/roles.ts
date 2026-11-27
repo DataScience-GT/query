@@ -4,6 +4,7 @@
 
 import type { DrizzleDB } from "@query/db";
 import { isExpiredAdmin } from "../../types/portal-context";
+import { approvedVolunteerEditions } from "../volunteer";
 import { foodGroupByKey } from "./config";
 import { ensureFoodGroup } from "./food-group";
 
@@ -13,7 +14,10 @@ export type DiscordRoles = {
   hacker: boolean;
   /** An approved judge of the edition. */
   judge: boolean;
-  /** Event staff of the volunteer tier, while an edition is open or live. */
+  /**
+   * Event staff of the volunteer tier while an edition is open or live, or a
+   * volunteer an organizer approved for the edition.
+   */
   volunteer: boolean;
 };
 
@@ -56,6 +60,18 @@ export const VOLUNTEER_EDITION_STATUSES = [
 const isVolunteerEdition = (status: string) =>
   (VOLUNTEER_EDITION_STATUSES as readonly string[]).includes(status);
 
+/**
+ * An approved volunteer application is for one edition and is taken from the
+ * announcement on, since that is when applications open. Not a draft, a
+ * finished or a cancelled edition.
+ */
+const isApplicantEdition = (status: string) =>
+  status === "announced" || isVolunteerEdition(status);
+
+/** The volunteer staff tier is what opens the check-in desk. */
+const holdsDesk = (staff: boolean, hackathonStatus: string) =>
+  staff && isVolunteerEdition(hackathonStatus);
+
 /** The roles one person holds in one edition, from what the database says. */
 export function rolesFor(input: {
   participant: {
@@ -63,13 +79,18 @@ export function rolesFor(input: {
     attendanceConfirmedAt: Date | null | undefined;
   } | null;
   judge: boolean;
-  volunteer: boolean;
+  /** An active, unexpired volunteer staff tier. */
+  staff: boolean;
+  /** An approved volunteer application for this edition. */
+  approvedVolunteer: boolean;
   hackathonStatus: string;
 }): DiscordRoles {
   return {
     hacker: !!input.participant && isConfirmedHacker(input.participant),
     judge: input.judge,
-    volunteer: input.volunteer && isVolunteerEdition(input.hackathonStatus),
+    volunteer:
+      holdsDesk(input.staff, input.hackathonStatus) ||
+      (input.approvedVolunteer && isApplicantEdition(input.hackathonStatus)),
   };
 }
 
@@ -139,6 +160,8 @@ export type DiscordContext = {
   hackathon: { id: string; name: string };
   participant: DiscordParticipant | null;
   roles: DiscordRoles;
+  /** Volunteer through the staff tier, so the check-in desk is theirs. */
+  deskStaff: boolean;
 };
 
 const PARTICIPANT_COLUMNS = {
@@ -189,7 +212,7 @@ export async function discordContext(
       columns: HACKATHON_COLUMNS,
     });
     if (!hackathon) return null;
-    const [participant, judge, volunteer] = await Promise.all([
+    const [participant, judge, staff, approved] = await Promise.all([
       db.query.hackathonParticipants.findFirst({
         where: { hackathonId, userId },
         columns: PARTICIPANT_COLUMNS,
@@ -199,6 +222,7 @@ export async function discordContext(
         columns: { id: true },
       }),
       isVolunteer(db, userId),
+      approvedVolunteerEditions(db, userId, hackathonId),
     ]);
     return {
       hackathon: { id: hackathon.id, name: hackathon.name },
@@ -206,14 +230,19 @@ export async function discordContext(
       roles: rolesFor({
         participant: participant ?? null,
         judge: !!judge,
-        volunteer,
+        staff,
+        approvedVolunteer: approved.length > 0,
         hackathonStatus: hackathon.status,
       }),
+      deskStaff: holdsDesk(staff, hackathon.status),
     };
   }
 
-  const volunteer = await isVolunteer(db, userId);
-  const [participants, judgeRows, openEditions] = await Promise.all([
+  const [staff, approvedIds] = await Promise.all([
+    isVolunteer(db, userId),
+    approvedVolunteerEditions(db, userId),
+  ]);
+  const [participants, judgeRows, volunteerEditions] = await Promise.all([
     db.query.hackathonParticipants.findMany({
       where: { userId },
       columns: PARTICIPANT_COLUMNS,
@@ -224,9 +253,18 @@ export async function discordContext(
       columns: { id: true },
       with: { hackathon: { columns: HACKATHON_COLUMNS } },
     }),
-    volunteer
+    // The editions a volunteer qualifies for: every open or live one for the
+    // staff tier, the ones they were approved for as an applicant.
+    staff || approvedIds.length > 0
       ? db.query.hackathons.findMany({
-          where: { status: { in: [...VOLUNTEER_EDITION_STATUSES] } },
+          where: {
+            OR: [
+              ...(staff
+                ? [{ status: { in: [...VOLUNTEER_EDITION_STATUSES] } }]
+                : []),
+              ...(approvedIds.length > 0 ? [{ id: { in: approvedIds } }] : []),
+            ],
+          },
           columns: HACKATHON_COLUMNS,
         })
       : Promise.resolve([] as Edition[]),
@@ -250,7 +288,7 @@ export async function discordContext(
   for (const { hackathon } of judgeRows) {
     if (hackathon) entry(hackathon).judge = true;
   }
-  for (const edition of openEditions) entry(edition);
+  for (const edition of volunteerEditions) entry(edition);
 
   return (
     [...editions.values()]
@@ -266,9 +304,11 @@ export async function discordContext(
           roles: rolesFor({
             participant,
             judge,
-            volunteer,
+            staff,
+            approvedVolunteer: approvedIds.includes(edition.id),
             hackathonStatus: edition.status,
           }),
+          deskStaff: holdsDesk(staff, edition.status),
         } satisfies DiscordContext,
       }))
       .filter(({ context }) => hasDiscordRole(context.roles))
