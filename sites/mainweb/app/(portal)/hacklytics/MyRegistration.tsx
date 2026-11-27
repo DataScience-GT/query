@@ -5,13 +5,7 @@ import Link from "next/link";
 import type { RouterOutputs } from "@query/api";
 import { trpc } from "@/lib/trpc";
 import { hackathonSlug } from "@/lib/hackathon-slug";
-import {
-  discordStep,
-  hackathonNextStep,
-  isAdmitted,
-  nextStepQueries,
-  projectSubmitted,
-} from "@/lib/hackathon-next-step";
+import { useNextStep } from "@/lib/use-next-step";
 import { StatusBadge } from "@/components/hackathon/StatusBadge";
 import { body, btnPrimary, meta, textLink } from "@query/ui/classes";
 import { hlSectionTitle } from "./styles";
@@ -38,56 +32,11 @@ export function MyRegistration({
   // oxlint-disable-next-line react/purity
   const now = new Date();
   const myReg = myRegs?.find((r) => r.hackathonId === event.id);
-  // The rest of the step is read only when it can change the answer: the
-  // submission and judging for a checked-in hacker while the event runs,
-  // results for an admitted one once it has begun.
-  const needs = myReg
-    ? nextStepQueries({
-        now,
-        hackathon: event,
-        registrationStatus: myReg.registrationStatus,
-      })
-    : { submission: false, judging: false, results: false };
-  const discord = trpc.hackathon.myDiscord.useQuery(
-    { hackathonId: event.id },
-    { enabled: isAdmitted(myReg?.registrationStatus) },
-  );
-  const submissionWindow = trpc.team.submissionWindow.useQuery(
-    { hackathonId: event.id },
-    { enabled: needs.submission },
-  );
-  const mySubmission = trpc.team.mySubmission.useQuery(
-    { hackathonId: event.id },
-    { enabled: needs.submission },
-  );
-  const itinerary = trpc.judging.hacker.itinerary.useQuery(
-    { hackathonId: event.id },
-    { enabled: needs.judging },
-  );
-  const results = trpc.hackathon.getResults.useQuery(
-    { hackathonId: event.id },
-    { enabled: needs.results },
-  );
-  const stepLoading =
-    submissionWindow.isLoading ||
-    mySubmission.isLoading ||
-    itinerary.isLoading ||
-    results.isLoading ||
-    discord.isLoading;
-  const nextStep =
-    myReg && !stepLoading
-      ? hackathonNextStep({
-          now,
-          hackathon: event,
-          registrationStatus: myReg.registrationStatus,
-          hasTeam: !!myReg.teamId,
-          submissionWindow: submissionWindow.data,
-          submitted: projectSubmitted(mySubmission.data),
-          itinerary: itinerary.data,
-          resultsPublished: (results.data?.length ?? 0) > 0,
-          discord: discordStep(discord.data),
-        })
-      : null;
+  const { step: nextStep } = useNextStep({
+    now,
+    hackathon: event,
+    registration: myReg,
+  });
 
   if (!myReg) return children;
 
