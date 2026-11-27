@@ -28,6 +28,7 @@ import {
   Calendar,
   Coins,
   Gavel,
+  HeartHandshake,
   Megaphone,
   ScanLine,
   Store,
@@ -47,6 +48,8 @@ const loadEventsTab = () => import("@/components/admin/hackathons/EventsTab").th
 const EventsTab = dynamic(loadEventsTab);
 const loadJudgesTab = () => import("@/components/admin/hackathons/JudgesTab").then((m) => m.JudgesTab);
 const JudgesTab = dynamic(loadJudgesTab);
+const loadVolunteersTab = () => import("@/components/admin/hackathons/VolunteersTab").then((m) => m.VolunteersTab);
+const VolunteersTab = dynamic(loadVolunteersTab);
 const loadAnnouncementsTab = () => import("@/components/admin/hackathons/AnnouncementsTab").then((m) => m.AnnouncementsTab);
 const AnnouncementsTab = dynamic(loadAnnouncementsTab);
 const loadPointsTab = () => import("@/components/admin/hackathons/points/PointsAdminTab").then((m) => m.PointsAdminTab);
@@ -54,7 +57,7 @@ const PointsAdminTab = dynamic(loadPointsTab);
 const loadStoreTab = () => import("@/components/admin/hackathons/points/StoreTab").then((m) => m.StoreTab);
 const StoreTab = dynamic(loadStoreTab);
 const preloadTabs = () => {
-  for (const load of [loadEditForm, loadScannerTab, loadAnalyticsTab, loadEventsTab, loadJudgesTab, loadAnnouncementsTab, loadPointsTab, loadStoreTab]) void load();
+  for (const load of [loadEditForm, loadScannerTab, loadAnalyticsTab, loadEventsTab, loadJudgesTab, loadVolunteersTab, loadAnnouncementsTab, loadPointsTab, loadStoreTab]) void load();
 };
 
 const TABS = [
@@ -63,6 +66,7 @@ const TABS = [
   "attendees",
   "analytics",
   "judges",
+  "volunteers",
   "points",
   "store",
   "announcements",
@@ -187,6 +191,11 @@ export default function AdminHackathonDashboard() {
       icon: <BarChart3 {...icon} />,
     },
     { id: "judges", label: "Judges", icon: <Gavel {...icon} /> },
+    {
+      id: "volunteers",
+      label: "Volunteers",
+      icon: <HeartHandshake {...icon} />,
+    },
     { id: "points", label: "Points", icon: <Coins {...icon} /> },
     { id: "store", label: "Store", icon: <Store {...icon} /> },
     {
@@ -273,6 +282,13 @@ export default function AdminHackathonDashboard() {
             <AnalyticsTab hackathonId={hackathon.id} />
           )}
           {activeTab === "judges" && <JudgesTab hackathonId={hackathon.id} />}
+          {activeTab === "volunteers" && (
+            <VolunteersTab
+              hackathonId={hackathon.id}
+              hackathonName={hackathon.name}
+              startDate={hackathon.startDate}
+            />
+          )}
           {activeTab === "points" && (
             <PointsAdminTab hackathonId={hackathon.id} />
           )}
@@ -288,7 +304,7 @@ export default function AdminHackathonDashboard() {
 
       {/* MOBILE BOTTOM NAVIGATION */}
       {/* Scrolls horizontally rather than a fixed 5-column grid: there are
-          eight tabs, so the last ones would be laid out off the right edge of
+          nine tabs, so the last ones would be laid out off the right edge of
           the phone an organizer actually carries — unreachable, with nothing
           to suggest they existed. */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)] border-t border-[var(--border-subtle)] z-40 flex overflow-x-auto pb-safe [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
