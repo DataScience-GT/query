@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import { discordConfig, FOOD_GROUPS, foodGroupByKey } from "./config";
 import { autoAssignFoodGroups, pickFoodGroup } from "./food-group";
@@ -177,5 +179,28 @@ describe("discord roles", () => {
       judge: 1,
       volunteer: 1,
     });
+  });
+});
+
+describe("registered Linked Roles metadata", () => {
+  it("is exactly what the link sends, and within Discord's limit of 5 fields", () => {
+    const script = readFileSync(
+      fileURLToPath(
+        new URL(
+          "../../../../../tooling/scripts/src/discord-register-metadata.ts",
+          import.meta.url,
+        ),
+      ),
+      "utf8",
+    );
+    const registered = [...script.matchAll(/key: "(\w+)"/g)].map((m) => m[1]);
+    const sent = Object.keys(
+      roleMetadata(
+        { hacker: true, judge: true, volunteer: true },
+        { foodGroup: 1, ramadan: 1 },
+      ),
+    );
+    expect([...registered].sort()).toEqual([...sent].sort());
+    expect(registered.length).toBeLessThanOrEqual(5);
   });
 });
