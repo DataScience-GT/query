@@ -7,16 +7,16 @@ import { HOUR } from "@query/core";
 export type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
 
 /** All hackathon milestones, as hour offsets from the hacking start time. */
-export const SUBMISSION_OPEN_HOURS = 12;
-export const TEAM_WINDOW_CLOSE_HOURS = 34;
-export const SUBMISSION_HARD_DEADLINE_HOURS = 36;
+const SUBMISSION_OPEN_HOURS = 12;
+const TEAM_WINDOW_CLOSE_HOURS = 34;
+const SUBMISSION_HARD_DEADLINE_HOURS = 36;
 /** Rosters freeze 12h before the hard submission deadline, i.e. at +24h. */
-export const LEAVE_LOCK_HOURS = SUBMISSION_HARD_DEADLINE_HOURS - 12;
+const LEAVE_LOCK_HOURS = SUBMISSION_HARD_DEADLINE_HOURS - 12;
 
 // Teams form any time before +34h, so accepted people can find teammates
 // before kickoff. Who may form one is checkAdmitted's job, not the clock's:
 // this window used to open only at +12h, a third of the way into the event.
-export function computeTeamWindow(baseTime: Date, now: Date) {
+function computeTeamWindow(baseTime: Date, now: Date) {
   const at = (hours: number) => new Date(baseTime.getTime() + hours * HOUR);
 
   const closesAt = at(TEAM_WINDOW_CLOSE_HOURS);

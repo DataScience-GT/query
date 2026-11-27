@@ -14,6 +14,7 @@ import {
 } from "../../middleware/db-errors";
 import { recordAdminAction } from "../../middleware/audit";
 import { CacheKeys, VOLATILE_TTL } from "../../middleware/cache";
+import { STAFF_ONLY_STATUSES } from "./visibility";
 import type { DrizzleDB } from "@query/db";
 import { seatedCounts, withSeatedCounts } from "../../services/derived-counts";
 import {
@@ -25,13 +26,6 @@ import {
 // Every hackathon read below returns currentParticipants counted from the
 // participant rows (one grouped query per call). The stored column is retired:
 // it drifted whenever a deleted user cascaded their registration away.
-
-// A draft has not been announced, so it does not belong in a participant's
-// browse list. "cancelled" is deliberately NOT hidden: both detail pages ship
-// a Cancelled badge, and people who already registered need to see it is off.
-const STAFF_ONLY_STATUSES: (typeof hackathons.$inferSelect)["status"][] = [
-  "draft",
-];
 
 /** Must match `hackathonSlug` in sites/mainweb/lib/hackathon-slug.ts. */
 export const toSlug = (value: string) =>

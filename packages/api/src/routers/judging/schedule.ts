@@ -730,15 +730,14 @@ async function loadJudging(
   const planned = new Set(
     board.plan.tasks.map((t) => taskKey(t.entryId, t.challengeId)),
   );
-  const rootOfChallenge = (id: string) =>
-    rootOf(board.inventory.challenges, id)?.id ?? null;
   const started = (a: Board["appointments"][number]) =>
     drafts.some(
       (d) =>
         d.entryId === a.entryId &&
         (d.appointmentId
           ? d.appointmentId === a.id
-          : rootOfChallenge(d.challengeId) === a.challengeId),
+          : (rootOf(board.inventory.challenges, d.challengeId)?.id ?? null) ===
+            a.challengeId),
     );
 
   const saved: SavedAppointment[] = board.appointments.flatMap((a) => {

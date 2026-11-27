@@ -59,6 +59,7 @@ import type {
   VisibleChallenge,
 } from "../../services/judging/itinerary";
 import { holdsEveryRating } from "../../services/judging/scoring-sql";
+import { escapeLike } from "./admin/shared";
 
 const hackathonInput = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -75,8 +76,6 @@ const LINK_UNUSABLE =
 
 const LINKS_CLOSED =
   "The event has ended, so claim links no longer work. Move the event's end date first if judging is still running.";
-
-const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
 
 async function loadChallenges(db: JudgingDb, hackathonId: string) {
   return db

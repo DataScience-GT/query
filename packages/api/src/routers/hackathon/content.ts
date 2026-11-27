@@ -14,7 +14,7 @@ const PUBLIC_PROJECT_STATUSES: (typeof hackathonProjects.$inferSelect)["status"]
   ["submitted", "judging", "winner"];
 
 /** One published placing, from either judging system, in the shape the results tab reads. */
-export type PublicResult = {
+type PublicResult = {
   id: string;
   /** "overall", a legacy track label, or a judging_challenge id. */
   scope: string;

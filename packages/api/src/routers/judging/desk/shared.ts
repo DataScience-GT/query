@@ -27,7 +27,7 @@ import { guestScope, seatOf } from "../../../services/judging/evaluation-store";
 import type { ChallengeRow } from "../../../services/judging/evaluation-store";
 import { effectiveMode } from "../../../services/judging/scope";
 
-export const NOT_A_JUDGE =
+const NOT_A_JUDGE =
   "Judge access needed. Sign in with the account an organizer approved as a judge, or scan the QR code at your judging room or table.";
 
 // Every desk call names its edition. A member's judge access is per edition;
@@ -80,8 +80,6 @@ export const sectionTitle = z
   .trim()
   .min(1, "Give the section a name.")
   .max(80, "Keep section names under 80 characters.");
-
-export const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
 
 export const NOT_OPEN_YET =
   "Judging has not opened yet. You can start once organizers open it.";

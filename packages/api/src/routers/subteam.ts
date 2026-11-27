@@ -23,6 +23,7 @@ import type {
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { isAdmin } from "../middleware/procedures";
 import { isUniqueViolation, requireActiveMember } from "./initiative";
+import { escapeLike } from "./judging/admin/shared";
 
 const notFound = (message = "Subteam not found") =>
   new TRPCError({ code: "NOT_FOUND", message });
@@ -78,21 +79,6 @@ function normaliseQuestions(
     seen.add(id);
     return { id, prompt: question.prompt, required: question.required };
   });
-}
-
-/** `%` and `_` in a search box are text, not wildcards. */
-const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
-
-/** What `db.transaction(async (tx) => …)` hands its callback. */
-type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
-
-/** Serialises applications to one subteam against an admin closing it. */
-function lockSubteam(tx: Tx, id: string) {
-  return tx
-    .select({ id: subteams.id })
-    .from(subteams)
-    .where(eq(subteams.id, id))
-    .for("update");
 }
 
 /**
@@ -224,7 +210,11 @@ export const subteamRouter = createTRPCRouter({
       const outcome = await db.transaction(async (tx) => {
         // Lock BEFORE reading, so an admin closing or archiving mid-flight is
         // seen and the application does not land anyway.
-        await lockSubteam(tx, input.subteamId);
+        await tx
+          .select({ id: subteams.id })
+          .from(subteams)
+          .where(eq(subteams.id, input.subteamId))
+          .for("update");
 
         const subteam = await tx.query.subteams.findFirst({
           where: { id: input.subteamId },

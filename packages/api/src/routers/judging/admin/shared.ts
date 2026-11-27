@@ -63,6 +63,7 @@ export const rubricItem = z.discriminatedUnion("kind", [
 // Presence older than this is a closed laptop, not a judge in the room.
 export const SEATED_WINDOW_MS = 15 * 60 * 1000;
 
+/** `%` and `_` in a search box are text, not wildcards. */
 export const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
 
 export const notFound = (message: string) =>
