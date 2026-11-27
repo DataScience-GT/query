@@ -25,8 +25,6 @@ type PointsTx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
 /** Either the pool or a transaction. */
 export type PointsDb = DrizzleDB | PointsTx;
 
-type AttendanceMethod = CheckInMethod;
-
 /** The three sums a balance is made of. */
 type PointsTotals = {
   /** Event points, as copied onto each attendance row. */
@@ -324,7 +322,7 @@ export type CheckInRuleBreakDetails = {
   /** The event they were already in. */
   conflictEventId: string;
   rule: AttendanceConflict["kind"];
-  method: AttendanceMethod;
+  method: CheckInMethod;
   /** The hacker on a code, staff otherwise. */
   actorId: string | null;
   /** The clock the rule was judged on. */
@@ -341,7 +339,7 @@ export class CheckInRuleBreak extends Error implements CheckInRuleBreakDetails {
   readonly eventId: string;
   readonly conflictEventId: string;
   readonly rule: AttendanceConflict["kind"];
-  readonly method: AttendanceMethod;
+  readonly method: CheckInMethod;
   readonly actorId: string | null;
   readonly at: Date;
 
@@ -388,7 +386,7 @@ export async function recordEventAttendance(
       endTime: Date;
     };
     participant: { id: string; name: string };
-    method: AttendanceMethod;
+    method: CheckInMethod;
     actorId: string | null;
   },
 ): Promise<{ pointsAwarded: number }> {
@@ -468,7 +466,7 @@ export async function recordEventAttendance(
 export function alreadyCheckedInMessage(input: {
   event: { name: string };
   participant: { name: string };
-  method: AttendanceMethod;
+  method: CheckInMethod;
 }): string {
   // A code is entered by the hacker themselves; everything else by staff.
   return input.method === "code"
@@ -483,7 +481,7 @@ export function attendanceConflictMessage(
   input: {
     event: { name: string };
     participant: { name: string };
-    method: AttendanceMethod;
+    method: CheckInMethod;
   },
   conflict: AttendanceConflict,
 ): string {

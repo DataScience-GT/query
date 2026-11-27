@@ -417,7 +417,6 @@ export async function unlinkDiscord(
   db: DrizzleDB,
   userId: string,
   hackathonId: string,
-  options: SyncOptions = {},
 ): Promise<"unlinked" | "failed"> {
   try {
     // Clearing the roles and forgetting the link are one turn: a sync that
@@ -428,7 +427,7 @@ export async function unlinkDiscord(
         .from(discordLinks)
         .where(eq(discordLinks.userId, userId))
         .limit(1);
-      if (link && (await zeroDiscordRoles(tx, link, options)) === "failed") {
+      if (link && (await zeroDiscordRoles(tx, link)) === "failed") {
         return "failed" as const;
       }
       await tx

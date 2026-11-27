@@ -476,7 +476,7 @@ async function mapLimit<T>(
   );
 }
 
-type RunDeps = { fetchFn?: typeof fetch; token?: string; now?: Date };
+type RunDeps = { fetchFn?: typeof fetch; now?: Date };
 
 /**
  * Editions with a run going in this process, so two never overlap. A run older
@@ -548,7 +548,7 @@ export async function runRepoCheck(
 
     const client = new GithubClient(
       deps.fetchFn ?? fetch,
-      deps.token ?? (process.env.GITHUB_TOKEN || undefined),
+      process.env.GITHUB_TOKEN || undefined,
     );
     await mapLimit(todo, MAX_IN_FLIGHT, async (entry) => {
       const found = await checkEntry(
