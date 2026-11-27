@@ -29,6 +29,8 @@ vi.mock("@query/auth/email", () => ({
   sendAcceptanceEmail: vi.fn(async () => {}),
   sendJudgeApprovedEmail: vi.fn(async () => {}),
   sendJudgeAddedEmail: vi.fn(async () => {}),
+  sendVolunteerApprovedEmail: vi.fn(async () => {}),
+  sendVolunteerDeclinedEmail: vi.fn(async () => {}),
 }));
 
 describe.skipIf(!URL)("discord link against a real database", () => {
@@ -1223,6 +1225,182 @@ describe.skipIf(!URL)("discord link against a real database", () => {
 
       // Zeroed, so the next run has nothing to do.
       expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({ checked: 0, synced: 0 });
+    });
+
+    describe("a volunteer application", () => {
+      const APPLICATION = {
+        mode: "in_person",
+        affiliation: "gt_student",
+        availability: ["sat_morning"],
+        roles: ["check_in"],
+        shirtSize: "M",
+        dietary: [],
+        phone: "(404) 555-0142",
+        acknowledged: true,
+      };
+      let organizer: ReturnType<typeof appRouterAs>;
+      beforeAll(async () => {
+        organizer = await staff("va-organizer");
+      });
+
+      /** Applies for the edition, and has an organizer decide it when asked. */
+      const apply = async (
+        tag: string,
+        hackathonId: string,
+        decision?: "approved" | "declined",
+        userId?: string,
+      ) => {
+        const u = userId ?? (await makeUser(tag));
+        await appRouterAs(u).volunteer.submit({ hackathonId, answers: APPLICATION });
+        const [application] = await S.db!
+          .select()
+          .from(S.hackathonVolunteerApplications)
+          .where(ops.eq(S.hackathonVolunteerApplications.userId, u));
+        const decide = (to: "approved" | "declined") =>
+          organizer.volunteer.decide({ applicationId: application!.id, decision: to });
+        if (decision) await decide(decision);
+        return { u, decide };
+      };
+      const eligible = (u: string, hackathonId: string) =>
+        svc.resolveConnectTarget(S.db as any, u, hackathonId);
+
+      it("an approved applicant with no staff tier is eligible, links, and the PUT carries volunteer=1", async () => {
+        const h = await makeHackathon("va-approved");
+        const { u } = await apply("va-approved", h.id, "approved");
+        expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+          eligible: true,
+          roles: { hacker: false, judge: false, volunteer: true },
+        });
+
+        expect(await linkAs(u, h.id, acct("va-approved"))).toMatchObject({
+          ok: true,
+          // Not the check-in desk: the staff tier is what opens that.
+          home: "volunteer",
+        });
+        expect(lastFor(acct("va-approved"))).toEqual({ ...ZEROS, volunteer: 1 });
+      });
+
+      it("a pending applicant is not eligible and cannot link", async () => {
+        const h = await makeHackathon("va-pending");
+        const { u } = await apply("va-pending", h.id);
+        expect(await eligible(u, h.id)).toBeNull();
+        expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+          eligible: false,
+          roles: { volunteer: false },
+        });
+        const before = world.puts.length;
+        expect(await linkAs(u, h.id, acct("va-pending"))).toMatchObject({
+          ok: false,
+          reason: "not_accepted",
+        });
+        expect(world.puts).toHaveLength(before);
+      });
+
+      it("approving gives the role to someone already linked, and declining takes it back, with no new link", async () => {
+        const h = await makeHackathon("va-decide");
+        const { u: judge } = await newJudge("va-decide", h.id);
+        await linkAs(judge, h.id, acct("va-decide"));
+        expect(lastFor(acct("va-decide"))).toEqual({ ...ZEROS, judge: 1 });
+
+        const { decide } = await apply("va-decide", h.id, undefined, judge);
+        // Pending changes nothing on Discord.
+        expect(lastFor(acct("va-decide"))).toEqual({ ...ZEROS, judge: 1 });
+
+        await decide("approved");
+        expect(lastFor(acct("va-decide"))).toEqual({ ...ZEROS, judge: 1, volunteer: 1 });
+        await decide("declined");
+        expect(lastFor(acct("va-decide"))).toEqual({ ...ZEROS, judge: 1 });
+        // Either can follow the other.
+        await decide("approved");
+        expect(lastFor(acct("va-decide"))).toEqual({ ...ZEROS, judge: 1, volunteer: 1 });
+      });
+
+      it("a declined applicant gets volunteer=0, so declining revokes the role", async () => {
+        const h = await makeHackathon("va-declined");
+        const { u, decide } = await apply("va-declined", h.id, "approved");
+        await linkAs(u, h.id, acct("va-declined"));
+        expect(lastFor(acct("va-declined"))).toEqual({ ...ZEROS, volunteer: 1 });
+
+        await decide("declined");
+        expect(lastFor(acct("va-declined"))).toEqual(ZEROS);
+        expect(await eligible(u, h.id)).toBeNull();
+      });
+
+      it("a withdrawn applicant gets volunteer=0, from the portal", async () => {
+        const h = await makeHackathon("va-withdrawn");
+        const { u } = await apply("va-withdrawn", h.id, "approved");
+        await linkAs(u, h.id, acct("va-withdrawn"));
+        expect(lastFor(acct("va-withdrawn"))).toEqual({ ...ZEROS, volunteer: 1 });
+
+        await appRouterAs(u).volunteer.withdraw({ hackathonId: h.id });
+        expect(lastFor(acct("va-withdrawn"))).toEqual(ZEROS);
+        expect(await eligible(u, h.id)).toBeNull();
+      });
+
+      it("someone who is a judge and an approved volunteer gets both flags in one link", async () => {
+        const h = await makeHackathon("va-both");
+        const { u } = await newJudge("va-both", h.id);
+        await apply("va-both", h.id, "approved", u);
+        expect(await linkAs(u, h.id, acct("va-both"))).toMatchObject({ ok: true, home: "judge" });
+        expect(lastFor(acct("va-both"))).toEqual({ ...ZEROS, judge: 1, volunteer: 1 });
+      });
+
+      it("a staff-tier volunteer is unchanged: a declined application does not take the role", async () => {
+        const h = await makeHackathon("va-staff");
+        const u = await makeUser("va-staff");
+        await S.db!.insert(S.admins).values({ userId: u, role: "volunteer" });
+        expect(await linkAs(u, h.id, acct("va-staff"))).toMatchObject({ ok: true, home: "scan" });
+        expect(lastFor(acct("va-staff"))).toEqual({ ...ZEROS, volunteer: 1 });
+
+        const { decide } = await apply("va-staff", h.id, "approved", u);
+        expect(lastFor(acct("va-staff"))).toEqual({ ...ZEROS, volunteer: 1 });
+        await decide("declined");
+        // Still a volunteer by the tier, so what Discord is told does not change.
+        expect(lastFor(acct("va-staff"))).toEqual({ ...ZEROS, volunteer: 1 });
+        expect((await eligible(u, h.id))?.roles.volunteer).toBe(true);
+      });
+
+      it("counts from the announcement until the edition is over, and finds the edition without being told", async () => {
+        const u = await makeUser("va-window");
+        const approve = async (hackathonId: string) =>
+          S.db!.insert(S.hackathonVolunteerApplications).values({
+            userId: u,
+            hackathonId,
+            status: "approved",
+            mode: "in_person",
+            answers: APPLICATION as any,
+          });
+        for (const status of ["draft", "completed", "cancelled"]) {
+          const h = await makeHackathon(`va-w-${status}`, { status });
+          await approve(h.id);
+          expect(await eligible(u, h.id)).toBeNull();
+        }
+        expect(await svc.resolveConnectTarget(S.db as any, u, null)).toBeNull();
+
+        const announced = await makeHackathon("va-w-announced", { status: "announced" });
+        await approve(announced.id);
+        expect((await eligible(u, announced.id))?.roles.volunteer).toBe(true);
+        expect((await svc.resolveConnectTarget(S.db as any, u, null))?.hackathon.id).toBe(
+          announced.id,
+        );
+      });
+
+      it("a decision Discord cannot take is still owed, and never fails the decision", async () => {
+        await clearLinks();
+        const h = await makeHackathon("va-down");
+        const { u, decide } = await apply("va-down", h.id, "approved");
+        await linkAs(u, h.id, acct("va-down"));
+        expect(lastFor(acct("va-down"))).toEqual({ ...ZEROS, volunteer: 1 });
+
+        world.putStatus = 500;
+        await expect(decide("declined")).resolves.toMatchObject({ status: "declined" });
+        expect(lastFor(acct("va-down"))).toEqual({ ...ZEROS, volunteer: 1 });
+        expect((await linkOf(u))?.rolesSig).toBeNull();
+
+        world.putStatus = 200;
+        expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({ checked: 1, synced: 1 });
+        expect(lastFor(acct("va-down"))).toEqual(ZEROS);
+      });
     });
 
     it("a hacker moved out of the accepted statuses, banned, or who withdraws loses the hacker roles", async () => {
