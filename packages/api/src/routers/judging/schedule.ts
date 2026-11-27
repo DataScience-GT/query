@@ -965,7 +965,6 @@ async function applyJudgeChanges(
 function rebalanceOf(
   judging: Judging,
   board: Board,
-  now: Date,
   here: ReturnType<typeof hereOf>,
 ) {
   const roster = givableRosterOf(judging, here.absent, here.receivers);
@@ -1000,7 +999,7 @@ async function rebalance(db: DrizzleDB, hackathonId: string, now: Date) {
   if (!first.schedule) return;
   const before = await loadJudging(db, first, first.schedule, now);
   const hereBefore = hereOf(before, first, now);
-  const made = rebalanceOf(before, first, now, hereBefore);
+  const made = rebalanceOf(before, first, hereBefore);
   if (!made) return;
 
   const changed = await db.transaction(async (tx) => {
