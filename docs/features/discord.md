@@ -37,7 +37,8 @@ It runs after commit on:
 | A judge approved, switched off, added or removed | `judge.setActive`, `judge.create`, `judge.remove` |
 | A volunteer granted, switched off, renewed with a new end date, or removed | `admin.create`, `admin.update`, `admin.remove` |
 | A volunteer application approved or declined, or withdrawn by the applicant | `volunteer.decide`, `volunteer.withdraw` |
-| A hacker's status changed in any direction, banned, or withdrawn | `updateParticipantStatus`, `batchUpdateParticipantStatus`, `banFromHackathons`, `withdrawRegistration`. Moving out of the accepted statuses takes the hacker roles back; moving in can give them, so a judge who is moved to approved after confirming gets the flower role at once. |
+| An edition moved to or from `completed` or `cancelled` | `hackathon.update` |
+| A hacker's status changed in any direction, banned (which also declines their volunteer applications), or withdrawn | `updateParticipantStatus`, `batchUpdateParticipantStatus`, `banFromHackathons`, `withdrawRegistration`. Moving out of the accepted statuses takes the hacker roles back; moving in can give them, so a judge who is moved to approved after confirming gets the flower role at once. |
 | Unlink | `unlinkDiscord`: the roles are zeroed with the stored token before the row is deleted. If Discord cannot be reached the unlink fails with an error and nothing is deleted. |
 | Linking a different Discord account | `completeLink` zeroes the old account first, with the old account's token, then stores the new link. If the old account cannot be reached the link does not move. Linking X, unlinking, then linking Y, or linking Y straight over X, leaves the roles only on Y. |
 
@@ -50,7 +51,7 @@ If Discord answers `invalid_grant` to a refresh, the person withdrew the connect
 Not covered:
 
 - **Links made before tokens were stored** have no token, so their roles cannot be changed from here. Today that is hackers' `accepted`, flower and Ramadan values, since judges and volunteers could not link before. To revoke one by hand, ask the person to remove the Hacklytics connection under Discord Settings > Connections, or to press "Update my roles" in the portal (which stores a token, after which everything above applies). Taking the server role away by hand is not enough on its own: Linked Roles lets them claim it again while their metadata still qualifies.
-- **An edition ending** does not clear anything. A judge or volunteer role stays on until the person is removed, unlinks or their term expires. Hacker roles stay too.
+- **An edition ending** clears its roles. `rolesFor` gives no hacker, judge or volunteer role for a `completed` or `cancelled` edition. Moving an edition to either (or back) with `hackathon.update` marks everyone linked who held a role for it pending, in the status transaction (`markEditionRolesPending`: participants, judges, approved volunteer applicants and the volunteer staff tier, whose role follows whichever editions are live), then syncs up to 100 of them inline. The daily job takes the rest, 15 a run, so a large edition takes days to clear fully.
 - There is no way to un-confirm "I'm coming" from the portal; an organizer changing the status is what takes a hacker's roles back.
 - A person whose roles apply in more than one live edition is synced for the newest, the same one a fresh link uses.
 

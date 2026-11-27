@@ -98,7 +98,7 @@ Roles come from `packages/api/src/middleware/procedures.ts`. `isAdmin` is full s
 | `list` | public | Hides `draft` and non-public editions for non-admins. Cached per caller type. |
 | `listAll` | admin | Every edition. |
 | `getById` | public | Takes an id, exact name or slug. |
-| `create`, `update` | admin | Names must be unique, since they appear in admin links. End must follow start. |
+| `create`, `update` | admin | Names must be unique, since they appear in admin links. End must follow start. Moving an edition to `completed` or `cancelled` (or back) marks its linked Discord accounts pending in the same transaction and syncs up to 100 inline; the daily job takes the rest (see [Discord](./discord.md#taking-roles-back)). |
 | `delete` | super admin | Needs `confirmName` typed to match. Every child table (participants, teams, projects, events, announcements, legacy votes and results, all `judging_*`, points and store) cascades. |
 
 ### Acceptance (`admin.ts`)
@@ -128,7 +128,7 @@ Audiences: `interested`, `registered`, `approved`, `checked_in`, `not_accepted`,
 
 ### Bans (`bans.ts`)
 
-`listBans`, `banFromHackathons`, `liftHackathonBan`. A ban is keyed by lowercase email in `hackathon_ban` and leaves club membership alone. Enforcement is the `notHackathonBanned` procedure, used by `register`, `registerInterest`, `updateMyRegistration`, `confirmAttendance`, `createTeam`, `joinTeam`, `submitProject`, the event-code `checkIn`, judge `register` and `judging.hacker.claimByEmail`, `claimByToken` and `invite`. Withdrawing is not blocked. Ban and unban write audit records and clear the ban cache.
+`listBans`, `banFromHackathons`, `liftHackathonBan`. A ban is keyed by lowercase email in `hackathon_ban` and leaves club membership alone. It also rejects the person's registrations and declines their pending and approved volunteer applications in every edition that is not over, in the same transaction, and syncs their Discord roles. Enforcement is the `notHackathonBanned` procedure, used by `register`, `registerInterest`, `updateMyRegistration`, `confirmAttendance`, `createTeam`, `joinTeam`, `submitProject`, the event-code `checkIn`, judge `register` and `judging.hacker.claimByEmail`, `claimByToken` and `invite`. Withdrawing is not blocked. Ban and unban write audit records and clear the ban cache.
 
 ### Volunteers (`routers/volunteer/`)
 
