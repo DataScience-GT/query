@@ -15,20 +15,34 @@ describe("the application deadline in the copy", () => {
 
 describe("volunteers", () => {
   const mailto = `mailto:${event.contactEmail}`;
+  const volunteerUrl =
+    "https://datasciencegt.org/hackathons/hacklytics-digital-bloom/volunteer";
   const link = (rich: unknown) => JSON.stringify(rich);
 
-  it("tells people what the work is and how to offer, and does not promise more", () => {
-    const [lead, how, confirmed] = event.volunteers?.body ?? [];
+  it("tells people what the work is and how to apply, and does not promise more", () => {
+    const [lead, how, confirmed, questions] = event.volunteers?.body ?? [];
     expect(lead).toContain("check-in desk");
-    expect(link(how)).toContain(mailto);
-    expect(link(how)).toContain("Volunteer");
+    expect(how).toContain("Apply on the portal");
     expect(confirmed).toBe("Organizers confirm volunteers before the event.");
-    expect(event.volunteers?.body).toHaveLength(3);
+    expect(event.volunteers?.body).toHaveLength(4);
+    // The email stays, as a question line and not the way to volunteer.
+    expect(link(questions)).toContain(mailto);
+    expect(link(questions)).toContain("Questions?");
+    expect(link(event.volunteers?.body)).not.toContain("Volunteer” in the subject");
   });
 
-  it("answers 'How do I volunteer?' with the same email", () => {
+  it("has one button, \"Apply to volunteer\", that opens the application on the portal", () => {
+    expect(event.volunteers?.cta).toEqual({
+      label: "Apply to volunteer",
+      href: volunteerUrl,
+    });
+  });
+
+  it("answers 'How do I volunteer?' with the same application link, and keeps the email for questions", () => {
     const faq = event.faqs.find((f) => f.q === "How do I volunteer?");
+    expect(link(faq?.a)).toContain(volunteerUrl);
     expect(link(faq?.a)).toContain(mailto);
+    expect(link(faq?.a)).not.toContain("in the subject");
   });
 });
 

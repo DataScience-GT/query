@@ -24,6 +24,12 @@ const ORG = ORG_NAME_SHORT;
  */
 const APPLY_URL = `${SITE_ORIGIN}/hackathons/hacklytics-digital-bloom`;
 
+/**
+ * The volunteer application, on the same edition's page. Signed-out visitors
+ * are sent to sign in and come back to it.
+ */
+const VOLUNTEER_URL = `${APPLY_URL}/volunteer`;
+
 const CODE_OF_CONDUCT = {
   label: "MLH Code of Conduct",
   href: MLH_CODE_OF_CONDUCT_URL,
@@ -170,9 +176,11 @@ export default defineEvent({
     volunteers: {
       body: [
         "Volunteers keep the weekend running: the check-in desk, badge scans at meals and workshops, and helping hackers find their way around Klaus.",
-        ["To volunteer, email ", email, " with “Volunteer” in the subject and the times you can help."],
+        "Apply on the portal: you sign in, then answer three short steps about the times you can help and the roles you would like.",
         "Organizers confirm volunteers before the event.",
+        ["Questions? Email ", email, "."],
       ],
+      cta: { label: "Apply to volunteer", href: VOLUNTEER_URL },
     },
 
     // An empty plot: the seedlings are the 2027 partners, not announced yet.
@@ -240,7 +248,12 @@ export default defineEvent({
       },
       {
         q: "How do I volunteer?",
-        a: ["Email ", email, " with “Volunteer” in the subject and the times you can help."],
+        a: [
+          { text: "Apply to volunteer", href: VOLUNTEER_URL },
+          ` on the ${ORG} portal. You sign in, answer three short steps about the times you can help, and an organizer confirms you before the event. Questions? Email `,
+          email,
+          ".",
+        ],
       },
       {
         q: "What is the MLH Code of Conduct?",
