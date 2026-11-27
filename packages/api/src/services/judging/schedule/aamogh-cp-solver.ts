@@ -48,10 +48,6 @@ type AamoghStats = {
   lowerBounds: (number | null)[];
   /** Goals whose value equals its lower bound, so no schedule does better. */
   proven: boolean[];
-  iterations: number;
-  improvements: number;
-  /** Values tried by the repair search, summed. */
-  nodes: number;
 };
 
 type AamoghResult = PlanResult & { stats: AamoghStats };
@@ -467,7 +463,6 @@ function complete(
   board: Board,
   random: () => number,
   budget: number,
-  counter: { nodes: number },
 ): boolean {
   const start = new Board(m);
   start.copyFrom(board);
@@ -545,7 +540,6 @@ function complete(
     board.place(t, r, s);
     for (const u of waiting) weight[u] += 1;
   }
-  counter.nodes += work;
   if (waiting.length === 0) return true;
   board.copyFrom(start);
   return false;
@@ -850,15 +844,15 @@ function neighbourhood(
  *
  * Works through a queue of every project; a project that changes goes back
  * on the queue along with its trade partner, so later rounds touch only
- * what moved. Fewer changes first, then more breaks. Returns the tries
- * spent, at most `budget`.
+ * what moved. Fewer changes first, then more breaks. Spends at most `budget`
+ * tries.
  */
 function polish(
   m: Model,
   board: Board,
   finish: number,
   budget: number,
-): number {
+) {
   // Lower is better. One building change outweighs any difference in spread
   // two projects can make between them.
   const weight = 2 * m.S + 1;
@@ -1009,7 +1003,6 @@ function polish(
     }
     if (moved) enqueue(e);
   }
-  return tries;
 }
 
 /**
@@ -1084,8 +1077,7 @@ class Mates {
  * touches two rooms and one project, so a trial costs two row scans and one
  * short itinerary. While the finish is still open (`settled` false), only
  * moves that cut idle are made: spreading sponsor presentations out for
- * breaks can leave the general ones no room to finish earlier. Returns the
- * trials spent.
+ * breaks can leave the general ones no room to finish earlier.
  */
 function compact(
   m: Model,
@@ -1093,7 +1085,7 @@ function compact(
   sponsorFinish: number,
   settled: boolean,
   budget: number,
-): number {
+) {
   // Each room's sponsor presentations: first and last slot, and how many.
   const firstOf = new Int32Array(m.R);
   const lastOf = new Int32Array(m.R);
@@ -1231,7 +1223,6 @@ function compact(
       moved = true;
     }
   }
-  return tries;
 }
 
 /**
@@ -1245,7 +1236,7 @@ function compact(
  * more breaks. Sponsor challenges keep the cells they hold, so sponsor idle
  * and the sponsor finish stay as they are; general presentations may take
  * any free cell before the finish. Rounds repeat while any challenge
- * improves, up to `budget` units of work. Returns the work spent.
+ * improves, up to `budget` units of work.
  */
 function reassign(
   m: Model,
@@ -1253,7 +1244,7 @@ function reassign(
   finish: number,
   budget: number,
   seated: { board: Board; finish: number },
-): number {
+) {
   // A single move shifts at most one project's spread, by less than S, so
   // one building change outweighs any cycle's worth of spread.
   const mates = new Mates(m, board, m.S * m.T + 1);
@@ -1430,7 +1421,6 @@ function reassign(
     seated.board.copyFrom(board);
     seated.finish = finish;
   }
-  return work;
 }
 
 const patienceFor = (goal: number) =>
@@ -1442,7 +1432,6 @@ function improve(
   bounds: number[],
   iterations: number,
   seed: number,
-  stats: { iterations: number; improvements: number; nodes: number },
 ) {
   const random = generator(seed);
   const best = new Board(m);
@@ -1480,7 +1469,6 @@ function improve(
     if (lexCompare(current, bestScore) < 0) {
       bestScore.set(current);
       best.copyFrom(board);
-      stats.improvements += 1;
     }
     return order < 0;
   };
@@ -1488,11 +1476,11 @@ function improve(
   // Sponsor moves, then exact re-seating and sponsor moves in turn for as
   // long as the pair helps.
   const settle = () => {
-    stats.nodes += compact(m, board, current[SPONSOR_FINISH]!, true, polishBudget);
+    compact(m, board, current[SPONSOR_FINISH]!, true, polishBudget);
     board.score(trial);
     for (let round = 0; round < SETTLE_ROUNDS; round += 1) {
-      stats.nodes += reassign(m, board, current[FINISH]!, reassignBudget, seated);
-      stats.nodes += compact(m, board, current[SPONSOR_FINISH]!, true, polishBudget);
+      reassign(m, board, current[FINISH]!, reassignBudget, seated);
+      compact(m, board, current[SPONSOR_FINISH]!, true, polishBudget);
       board.score(next);
       if (lexCompare(next, trial) >= 0) break;
       trial.set(next);
@@ -1517,7 +1505,7 @@ function improve(
       compacted = true;
       saved.copyFrom(board);
       const settled = goal > FINISH || current[FINISH]! <= bounds[FINISH]!;
-      stats.nodes += compact(m, board, current[SPONSOR_FINISH]!, settled, polishBudget);
+      compact(m, board, current[SPONSOR_FINISH]!, settled, polishBudget);
       keepIfNoWorse();
       continue;
     }
@@ -1526,7 +1514,7 @@ function improve(
     if (goal >= CHANGES && !polished) {
       polished = true;
       saved.copyFrom(board);
-      stats.nodes += polish(m, board, current[FINISH]!, polishBudget);
+      polish(m, board, current[FINISH]!, polishBudget);
       settle();
       keepIfNoWorse();
       continue;
@@ -1536,7 +1524,6 @@ function improve(
     // to changes and breaks, and settling from there is kept if it lands
     // no worse than before.
     if (goal >= CHANGES && (kicks += 1) > KICKS) break;
-    stats.iterations += 1;
 
     const freed = neighbourhood(m, board, goal, current, random);
     if (freed.length === 0) {
@@ -1563,12 +1550,11 @@ function improve(
     else stalled[goal] += 1;
   }
 
-  stats.nodes += counter.nodes;
   board.copyFrom(best);
   // A last polish of the best schedule, which the kicks may have left with
   // trades still open.
   if (bestScore[UNPLACED] === 0 && polished) {
-    stats.nodes += polish(m, board, bestScore[FINISH]!, polishBudget);
+    polish(m, board, bestScore[FINISH]!, polishBudget);
     board.score(trial);
     if (lexCompare(trial, bestScore) < 0) bestScore.set(trial);
     else board.copyFrom(best);
@@ -1598,9 +1584,7 @@ function placementsOf(m: Model, inputs: PlanInputs, board: Board): Placement[] {
  * also says what the bounds proved.
  */
 export function aamoghCPSolver(inputs: PlanInputs): AamoghResult {
-  const stats = { iterations: 0, improvements: 0, nodes: 0 };
   const report = (bounds: number[], score: Float64Array | null): AamoghStats => ({
-    ...stats,
     lowerBounds: bounds.slice(1).map((b) => (Number.isFinite(b) ? b : null)),
     proven: bounds.slice(1).map((b, g) => score !== null && score[g + 1] === b),
   });
@@ -1628,9 +1612,9 @@ export function aamoghCPSolver(inputs: PlanInputs): AamoghResult {
     bounds = lowerBounds(m);
     const board = new Board(m);
     sweep(m, board);
-    let score = improve(m, board, bounds, iterations, seed, stats);
-    if (score[UNPLACED]! > 0 && complete(m, board, generator(seed), COMPLETE_CELLS * m.T, stats)) {
-      score = improve(m, board, bounds, iterations, seed, stats);
+    let score = improve(m, board, bounds, iterations, seed);
+    if (score[UNPLACED]! > 0 && complete(m, board, generator(seed), COMPLETE_CELLS * m.T)) {
+      score = improve(m, board, bounds, iterations, seed);
     }
 
     if (score[UNPLACED]! > 0) {
