@@ -182,12 +182,10 @@ export async function POST(request: NextRequest) {
 
       // Consume the code.
       await tx.delete(verificationTokens).where(ownRow);
-      const invite = live;
       // The right code, from whoever has the inbox: the guessing is over.
       await clearFailures(tx, identifier);
 
-      // Check expiry
-      if (new Date(invite.expires) < new Date()) {
+      if (new Date(live.expires) < new Date()) {
         console.warn(`[verify-email] Code expired for ${safeEmail}`);
         return { error: "Code has expired. Please request a new one." };
       }
@@ -221,7 +219,6 @@ export async function POST(request: NextRequest) {
           .where(eq(users.id, user.id));
       }
 
-      // Create a database session
       const sessionToken = crypto.randomUUID();
       const sessionExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
@@ -271,7 +268,6 @@ export async function POST(request: NextRequest) {
           const entitlement = payment && entitlementForPayment(payment);
           if (!payment || !entitlement) return;
 
-          // Check no existing link for this user
           const existingLink = await link.query.userAccountLinks.findFirst({
             where: { userId: user.id },
           });

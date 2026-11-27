@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { cache, rateLimitShared } from "@query/api";
 import { PDFDocument } from "pdf-lib";
 import type { DrizzleDB } from "@query/db";
-import { resumeCaller } from "@/lib/resume-access";
+import { staffCaller } from "@/lib/staff-caller";
 import { isSameOriginRequest } from "@/lib/same-origin";
 import {
   MAX_RESUME_BYTES,
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
   if (!isSameOriginRequest(request.headers)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  const { userId } = await resumeCaller();
+  const { userId } = await staffCaller();
   if (!userId || !db) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE() {
-  const { userId } = await resumeCaller();
+  const { userId } = await staffCaller();
   if (!userId || !db) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
