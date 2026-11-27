@@ -185,16 +185,14 @@ export function PixelBed({
         <div className="wrap flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-x-6 gap-y-1 pt-3 font-sans text-[13px] text-ink-3">
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
             {heading}
-            {hint && (
-              <span
-                aria-hidden="true"
-                className={`transition-opacity duration-300 ease-(--ease) motion-reduce:transition-none ${
-                  hasPlanted ? "opacity-0" : ""
-                }`}
-              >
-                {touch ? "Tap" : "Click"} the soil to plant one
-              </span>
-            )}
+            <span
+              aria-hidden="true"
+              className={`transition-opacity duration-300 ease-(--ease) motion-reduce:transition-none ${
+                hasPlanted ? "opacity-0" : ""
+              }`}
+            >
+              {touch ? "Tap" : "Click"} the soil to plant one
+            </span>
           </div>
           {button}
         </div>
