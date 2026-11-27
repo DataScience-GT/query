@@ -21,6 +21,7 @@ import { eq, and, inArray, ne, notExists, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import {
   autoAssignFoodGroups,
+  markDiscordRolesPending,
   syncDiscordRoles,
   syncDiscordRolesFor,
 } from "../../../services/discord";
@@ -107,6 +108,10 @@ export const statusProcedures = {
               "This applicant's status changed just now. Refresh and check again before letting them in.",
           });
         }
+        // A linked Discord account is owed a sync, whatever this request reaches.
+        await markDiscordRolesPending(tx as unknown as DrizzleDB, [
+          participant.userId,
+        ]);
       });
 
       // After the commit, not inside it: the assignment takes the hackathon row
@@ -515,7 +520,7 @@ export const statusProcedures = {
             participantIds,
           );
         }
-        return tx
+        const changed = await tx
           .update(hackathonParticipants)
           .set({
             registrationStatus: status,
@@ -550,6 +555,13 @@ export const statusProcedures = {
             id: hackathonParticipants.id,
             userId: hackathonParticipants.userId,
           });
+        // Every linked Discord account among them is owed a sync, however many
+        // this request manages to reach.
+        await markDiscordRolesPending(
+          tx as unknown as DrizzleDB,
+          changed.map((row) => row.userId),
+        );
+        return changed;
       });
 
       if (

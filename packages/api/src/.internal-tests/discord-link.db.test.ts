@@ -1089,6 +1089,10 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       return appRouterAs(id);
     };
     const appRouterAs = (id: string) => appRouter.createCaller(ctx(id));
+    // The daily job looks at every link in the database, so a case that counts
+    // what it did starts from none of this file's earlier ones.
+    const clearLinks = () =>
+      S.db!.delete(S.discordLinks).where(ops.like(S.discordLinks.userId, `dl-${suffix}-%`));
     const expireToken = (userId: string) =>
       S.db!
         .update(S.discordLinks)
@@ -1181,6 +1185,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     });
 
     it("the daily sweep zeroes a volunteer whose term ran out, once", async () => {
+      await clearLinks();
       const h = await makeHackathon("vol-sweep");
       const u = await makeUser("vol-sweep");
       const [row] = await S.db!.insert(S.admins).values({ userId: u, role: "volunteer" }).returning();
@@ -1398,6 +1403,121 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       expect(putsFor(acct("r500"))).toHaveLength(2);
     });
 
+
+    describe("a batch that revokes more roles than one request can sync", () => {
+      const HACKER = { ...ZEROS, accepted: 1, food_group: 4 };
+      const sigOf = (m: Record<string, number>) =>
+        `a${m.accepted}f${m.food_group}r${m.ramadan}j${m.judge}v${m.volunteer}`;
+
+      /** n hackers, each with a stored link and tokens, as if linked a while ago. */
+      const linkedHackers = async (hackathonId: string, n: number, tag: string) => {
+        const { sealTokens } = await import("../services/discord/tokens");
+        const people: { userId: string; participantId: string; account: string }[] = [];
+        const links: (typeof S.discordLinks.$inferInsert)[] = [];
+        for (let i = 0; i < n; i++) {
+          const userId = await makeUser(`${tag}${i}`);
+          const participantId = (await makeParticipant(hackathonId, userId)).id;
+          const account = acct(`${tag}${i}`);
+          const issued = world.issue(account);
+          links.push({
+            userId,
+            discordUserId: account,
+            discordUsername: account,
+            ...sealTokens(
+              {
+                accessToken: issued.access_token,
+                refreshToken: issued.refresh_token,
+                expiresAt: new Date(Date.now() + 86_400_000),
+              },
+              SECRET,
+              userId,
+            ),
+            rolesSig: sigOf(HACKER),
+          });
+          people.push({ userId, participantId, account });
+        }
+        await S.db!.insert(S.discordLinks).values(links);
+        return people;
+      };
+      const sigs = async (people: { userId: string }[]) =>
+        (
+          await S.db!
+            .select({ sig: S.discordLinks.rolesSig })
+            .from(S.discordLinks)
+            .where(ops.inArray(S.discordLinks.userId, people.map((p) => p.userId)))
+        ).map((r) => r.sig);
+
+      it("marks every linked person pending in the same change, so nothing is left looking synced", async () => {
+        await clearLinks();
+        const h = await makeHackathon("batch-down");
+        const admin = await staff("batch-down-admin");
+        const people = await linkedHackers(h.id, 150, "bd");
+        expect(new Set(await sigs(people))).toEqual(new Set([sigOf(HACKER)]));
+
+        // Discord is down, so no inline sync can land.
+        world.putStatus = 500;
+        await admin.hackathon.batchUpdateParticipantStatus({
+          hackathonId: h.id,
+          participantIds: people.map((p) => p.participantId),
+          status: "rejected",
+        });
+        expect(new Set(await sigs(people))).toEqual(new Set([null]));
+        expect(world.puts).toHaveLength(0);
+
+        // Discord is back: the daily job clears them, a run at a time.
+        world.putStatus = 200;
+        expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 100 })).toEqual({
+          checked: 100,
+          synced: 100,
+        });
+        expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 100 })).toEqual({
+          checked: 50,
+          synced: 50,
+        });
+        expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 100 })).toEqual({
+          checked: 0,
+          synced: 0,
+        });
+        expect(new Set(await sigs(people))).toEqual(new Set([sigOf(ZEROS)]));
+        for (const p of people) expect(lastFor(p.account)).toEqual(ZEROS);
+      }, 60_000);
+
+      it("syncs what one request can and leaves the rest pending for the daily job", async () => {
+        await clearLinks();
+        const h = await makeHackathon("batch-up");
+        const admin = await staff("batch-up-admin");
+        const people = await linkedHackers(h.id, 150, "bu");
+
+        await admin.hackathon.batchUpdateParticipantStatus({
+          hackathonId: h.id,
+          participantIds: people.map((p) => p.participantId),
+          status: "rejected",
+        });
+        // Whatever the request did not reach is pending, never still "accepted".
+        const after = await sigs(people);
+        expect(after.filter((sig) => sig === sigOf(HACKER))).toHaveLength(0);
+        expect(after.filter((sig) => sig === sigOf(ZEROS)).length).toBeGreaterThanOrEqual(50);
+        expect(after.filter((sig) => sig === null).length).toBe(150 - after.filter((sig) => sig === sigOf(ZEROS)).length);
+
+        for (let run = 0; run < 3; run++) await svc.syncExpiredDiscordRoles(S.db as any, { limit: 100 });
+        expect(new Set(await sigs(people))).toEqual(new Set([sigOf(ZEROS)]));
+        for (const p of people) expect(lastFor(p.account)).toEqual(ZEROS);
+      }, 60_000);
+
+      it("marks a ban's people pending too", async () => {
+        await clearLinks();
+        const h = await makeHackathon("batch-ban");
+        const admin = await staff("batch-ban-admin");
+        const [person] = await linkedHackers(h.id, 1, "bb");
+        world.putStatus = 500;
+        const email = (
+          await S.db!.select({ email: S.users.email }).from(S.users).where(ops.eq(S.users.id, person!.userId))
+        )[0]!.email!;
+        await admin.hackathon.banFromHackathons({ email, reason: "Testing the ban" });
+        expect(await sigs([person!])).toEqual([null]);
+        await S.db!.delete(S.hackathonBans).where(ops.eq(S.hackathonBans.email, email.toLowerCase()));
+      });
+    });
 
     describe("one person's changes take turns", () => {
       // Roles are changed by a sync, a link and an unlink, each of which reads

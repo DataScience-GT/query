@@ -4,7 +4,7 @@
 // volunteer term, a withdrawn hacker or an unlink actually take the role back.
 // A link made before tokens were kept has none, and cannot be revoked here.
 
-import { and, eq, inArray, like, lte, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, like, lte, or, sql } from "drizzle-orm";
 import { admins, discordLinks, hackathonParticipants } from "@query/db";
 import type { DrizzleDB } from "@query/db";
 import { putRoleConnection, refusal, safeMessage } from "./api";
@@ -38,9 +38,20 @@ export type SyncResult =
   | "revoked"
   | "failed";
 
-/** How many people one batch call or one daily run will touch. */
+/**
+ * What one request syncs inline for a batch change: at most this many people,
+ * and no longer than the budget. Whoever is left is already marked pending, and
+ * the daily job picks them up.
+ */
 export const SYNC_BATCH = 100;
-export const EXPIRED_BATCH = 25;
+export const INLINE_BUDGET_MS = 15_000;
+/** What one run of the daily job takes. */
+export const SWEEP_BATCH = 25;
+
+export type SweepOptions = SyncOptions & {
+  /** People per run. */
+  limit?: number;
+};
 
 function depsFrom(options: SyncOptions): SyncDeps | null {
   const config =
@@ -162,17 +173,40 @@ async function syncOne(
   if (link.rolesSig === signature) return "unchanged";
 
   const result = await publish(db, link, deps, metadata);
-  if (result !== "published") return result;
+  if (result === "revoked") return result;
+  // What the link now says Discord has. A sync that did not land leaves it
+  // pending (null), so the daily job tries again; nothing reads as done that
+  // is not.
   await db
     .update(discordLinks)
-    .set({ rolesSig: signature })
+    .set({
+      rolesSig: result === "published" ? signature : null,
+      syncAttemptedAt: new Date(),
+    })
     .where(
       and(
         eq(discordLinks.userId, userId),
         eq(discordLinks.discordUserId, link.discordUserId),
       ),
     );
-  return "synced";
+  return result === "published" ? "synced" : result;
+}
+
+/**
+ * Marks people's links as owing a sync. Called inside the transaction of the
+ * change that can revoke their roles, so the debt exists whenever the change
+ * does, however many people it touched and whether or not this request gets to
+ * Discord. People with no link are untouched.
+ */
+export async function markDiscordRolesPending(
+  db: DrizzleDB,
+  userIds: readonly string[],
+): Promise<void> {
+  if (userIds.length === 0) return;
+  await db
+    .update(discordLinks)
+    .set({ rolesSig: null })
+    .where(inArray(discordLinks.userId, [...new Set(userIds)]));
 }
 
 /**
@@ -196,27 +230,32 @@ export async function syncDiscordRoles(
     // it should have lost.
     // oxlint-disable-next-line no-console
     console.error(`[Discord sync] failed for user ${userId}: ${safeMessage(error)}`);
+    // The locked turn rolled back, so say a sync is still owed.
+    await markDiscordRolesPending(db, [userId]).catch(() => undefined);
     return "failed";
   }
 }
 
 /**
  * The same for many people (a batch status change, a ban). Only people with a
- * link are touched, a few at a time, and at most SYNC_BATCH of them.
+ * link are touched, a few at a time, at most SYNC_BATCH of them and for no
+ * longer than the budget. The change that called this has already marked every
+ * one of them pending, so whoever is not reached is left to the daily job.
  */
 export async function syncDiscordRolesFor(
   db: DrizzleDB,
   userIds: readonly string[],
-  options: SyncOptions = {},
+  options: SyncOptions & { budgetMs?: number } = {},
 ): Promise<void> {
   if (!depsFrom(options) || userIds.length === 0) return;
+  const stopAt = Date.now() + (options.budgetMs ?? INLINE_BUDGET_MS);
   try {
     const linked = await db
       .select({ userId: discordLinks.userId })
       .from(discordLinks)
       .where(inArray(discordLinks.userId, [...new Set(userIds)]))
       .limit(SYNC_BATCH);
-    for (let i = 0; i < linked.length; i += 5) {
+    for (let i = 0; i < linked.length && Date.now() < stopAt; i += 5) {
       await Promise.all(
         linked
           .slice(i, i + 5)
@@ -230,29 +269,42 @@ export async function syncDiscordRolesFor(
 }
 
 /**
- * The daily sweep for the one change that has no event: a volunteer's term
- * running out. Volunteers whose published `volunteer` is still 1 although
- * their tier has expired or been switched off are synced, which zeroes it.
- * Capped, and a person drops out of the query once their sync lands.
+ * The daily sweep. Two kinds of link are owed a sync: those marked pending
+ * (a change that could revoke their roles that this site has not yet told
+ * Discord about, because the request ran out of time or Discord was down) and
+ * volunteers whose published `volunteer` is still 1 although their term has
+ * expired or been switched off, which has no event of its own. Capped, and
+ * the link tried longest ago goes first, so one that keeps failing cannot hold
+ * the rest.
  */
 export async function syncExpiredDiscordRoles(
   db: DrizzleDB,
-  options: SyncOptions = {},
+  options: SweepOptions = {},
 ): Promise<{ checked: number; synced: number }> {
   if (!depsFrom(options)) return { checked: 0, synced: 0 };
   try {
     const rows = await db
       .select({ userId: discordLinks.userId })
       .from(discordLinks)
-      .innerJoin(admins, eq(admins.userId, discordLinks.userId))
+      .leftJoin(admins, eq(admins.userId, discordLinks.userId))
       .where(
-        and(
-          eq(admins.role, "volunteer"),
-          or(lte(admins.expiresAt, new Date()), eq(admins.isActive, false)),
-          like(discordLinks.rolesSig, "%v1"),
+        or(
+          and(
+            isNull(discordLinks.rolesSig),
+            or(
+              isNotNull(discordLinks.refreshTokenEnc),
+              isNotNull(discordLinks.accessTokenEnc),
+            ),
+          ),
+          and(
+            eq(admins.role, "volunteer"),
+            or(lte(admins.expiresAt, new Date()), eq(admins.isActive, false)),
+            like(discordLinks.rolesSig, "%v1"),
+          ),
         ),
       )
-      .limit(EXPIRED_BATCH);
+      .orderBy(sql`${discordLinks.syncAttemptedAt} asc nulls first`)
+      .limit(options.limit ?? SWEEP_BATCH);
     let synced = 0;
     for (const { userId } of rows) {
       if ((await syncDiscordRoles(db, userId, options)) === "synced") synced++;
@@ -260,7 +312,7 @@ export async function syncExpiredDiscordRoles(
     return { checked: rows.length, synced };
   } catch (error) {
     // oxlint-disable-next-line no-console
-    console.error(`[Discord sync] expired sweep failed: ${safeMessage(error)}`);
+    console.error(`[Discord sync] sweep failed: ${safeMessage(error)}`);
     return { checked: 0, synced: 0 };
   }
 }

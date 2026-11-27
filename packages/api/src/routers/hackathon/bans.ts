@@ -6,7 +6,10 @@ import { createTRPCRouter } from "../../trpc";
 import { hackathonBanCacheKey, isAdmin } from "../../middleware/procedures";
 import { recordAdminAction } from "../../middleware/audit";
 import { evictParticipantCaches } from "./admin/seats";
-import { syncDiscordRolesFor } from "../../services/discord";
+import {
+  markDiscordRolesPending,
+  syncDiscordRolesFor,
+} from "../../services/discord";
 
 const normalize = (email: string) => email.trim().toLowerCase();
 
@@ -115,6 +118,11 @@ export const hackathonBansRouter = createTRPCRouter({
             userId: hackathonParticipants.userId,
             hackathonId: hackathonParticipants.hackathonId,
           });
+        // Rejected, so a linked Discord account is owed a sync.
+        await markDiscordRolesPending(
+          tx as unknown as DrizzleDB,
+          rejected.map((row) => row.userId),
+        );
 
         return { ban, rejectedUserIds: rejected };
       });
