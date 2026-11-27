@@ -204,9 +204,9 @@ describe("Resilience and Domain Edge Cases Verification Suite", () => {
       };
 
       expect(validateSkew(serverTime)).toBe(true);
-      expect(validateSkew(serverTime - 10000)).toBe(true); // 10s skew is fine
-      expect(validateSkew(serverTime - 20000)).toBe(false); // 20s skew is blocked
-      expect(validateSkew(serverTime + 20000)).toBe(false); // future skew blocked
+      expect(validateSkew(serverTime - 10000)).toBe(true);
+      expect(validateSkew(serverTime - 20000)).toBe(false);
+      expect(validateSkew(serverTime + 20000)).toBe(false);
     });
   });
 });

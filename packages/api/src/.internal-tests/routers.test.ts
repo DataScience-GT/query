@@ -850,7 +850,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       const hackathonId = "00000000-0000-4000-8000-000000000001";
       const teamId = "00000000-0000-4000-8000-000000000002";
 
-      const recentStartDate = new Date(Date.now() - 11 * 60 * 60 * 1000); // 11 hours ago
+      const recentStartDate = new Date(Date.now() - 11 * 60 * 60 * 1000);
 
       mockFindFirst.mockImplementation((table) => {
         if (table === "hackathonParticipants") {
@@ -895,7 +895,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       const hackathonId = "00000000-0000-4000-8000-000000000001";
       const teamId = "00000000-0000-4000-8000-000000000002";
 
-      const startDate35hAgo = new Date(Date.now() - 35 * 60 * 60 * 1000); // 35 hours ago
+      const startDate35hAgo = new Date(Date.now() - 35 * 60 * 60 * 1000);
 
       mockFindFirst.mockImplementation((table) => {
         if (table === "hackathonParticipants") {
@@ -1005,7 +1005,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       const hackathonId = "00000000-0000-4000-8000-000000000001";
       const teamId = "00000000-0000-4000-8000-000000000002";
 
-      const pastStartDate = new Date(Date.now() - 37 * 60 * 60 * 1000); // 37 hours ago
+      const pastStartDate = new Date(Date.now() - 37 * 60 * 60 * 1000);
 
       mockFindFirst.mockImplementation((table) => {
         if (table === "hackathonParticipants") {
