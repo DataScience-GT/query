@@ -30,6 +30,24 @@ const phoneSchema = z
   .regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number")
   .optional();
 
+// What the staff directory shows of a member. Everything else, the phone
+// number included, stays out.
+const directoryEntry = {
+  with: { user: { columns: { id: true, name: true, image: true } } },
+  columns: {
+    id: true,
+    firstName: true,
+    lastName: true,
+    school: true,
+    major: true,
+    skills: true,
+    interests: true,
+    joinedAt: true,
+    memberType: true,
+    phoneNumber: false,
+  },
+} as const;
+
 export const memberRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
     // getOrSet, so "no member row" caches too. Through get() it read as a miss,
@@ -219,27 +237,7 @@ export const memberRouter = createTRPCRouter({
         },
         limit: input.limit,
         offset: input.offset,
-        with: {
-          user: {
-            columns: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-        },
-        columns: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          school: true,
-          major: true,
-          skills: true,
-          interests: true,
-          joinedAt: true,
-          memberType: true,
-          phoneNumber: false,
-        },
+        ...directoryEntry,
       });
 
       ctx.cache.set(cacheKey, allMembers, 60);
@@ -253,27 +251,7 @@ export const memberRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const member = await (ctx.db as DrizzleDB).query.members.findFirst({
         where: { id: input.id },
-        with: {
-          user: {
-            columns: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-        },
-        columns: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          school: true,
-          major: true,
-          skills: true,
-          interests: true,
-          joinedAt: true,
-          memberType: true,
-          phoneNumber: false,
-        },
+        ...directoryEntry,
       });
 
       if (!member) {
