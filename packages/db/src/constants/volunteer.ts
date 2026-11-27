@@ -140,11 +140,11 @@ export type VolunteerAnswers =
       InPersonFields &
       OnlineFields & { mode: "both"; phone: string });
 
-export type InPersonAnswers = Extract<
+type InPersonAnswers = Extract<
   VolunteerAnswers,
   { mode: "in_person" | "both" }
 >;
-export type OnlineAnswers = Extract<
+type OnlineAnswers = Extract<
   VolunteerAnswers,
   { mode: "online" | "both" }
 >;
@@ -156,12 +156,6 @@ export const isInPerson = (a: VolunteerAnswers): a is InPersonAnswers =>
 /** Narrows to the answers of someone who will mentor online. */
 export const isOnline = (a: VolunteerAnswers): a is OnlineAnswers =>
   a.mode === "online" || a.mode === "both";
-
-export const volunteerAffiliationLabel = (id: string) =>
-  VOLUNTEER_AFFILIATIONS.find((a) => a.id === id)?.label ?? id;
-
-export const volunteerRoleLabel = (id: string) =>
-  VOLUNTEER_ROLES.find((r) => r.id === id)?.label ?? id;
 
 export const volunteerModeLabel = (id: string) =>
   VOLUNTEER_MODES.find((m) => m.id === id)?.label ?? id;
