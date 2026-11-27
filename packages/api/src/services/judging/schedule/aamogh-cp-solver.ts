@@ -43,15 +43,6 @@ import type { PlanDiagnostic, PlanResult } from "./solve";
 // from the inputs, so the same inputs always give the same schedule: a save
 // re-solves on the server and must land on what the organiser previewed.
 
-/** Which goal each position of a score is (rules.ts PlanScore order). */
-export const GOAL_NAMES = [
-  "sponsorFinish",
-  "sponsorIdle",
-  "finish",
-  "buildingChanges",
-  "breaks",
-] as const;
-
 export type AamoghStats = {
   /** Lower bounds per goal, in PlanScore order; null where none is known. */
   lowerBounds: (number | null)[];
@@ -61,13 +52,6 @@ export type AamoghStats = {
   improvements: number;
   /** Values tried by the repair search, summed. */
   nodes: number;
-};
-
-export type AamoghOptions = {
-  /** A schedule to start from instead of the sweep; invalid rows are dropped. */
-  start?: readonly Placement[];
-  /** Neighbourhoods tried per attempt. Defaults by problem size. */
-  iterations?: number;
 };
 
 export type AamoghResult = PlanResult & { stats: AamoghStats };
@@ -1607,31 +1591,13 @@ function placementsOf(m: Model, inputs: PlanInputs, board: Board): Placement[] {
   return out;
 }
 
-function seedFrom(m: Model, inputs: PlanInputs, board: Board, start: readonly Placement[]) {
-  const roomIndex = new Map(inputs.rooms.map((room, i) => [room.id, i]));
-  const taskIndex = new Map(
-    inputs.tasks.map((task, i) => [taskKey(task.entryId, task.challengeId), i]),
-  );
-  for (const p of start) {
-    const t = taskIndex.get(taskKey(p.entryId, p.challengeId));
-    const r = roomIndex.get(p.roomId);
-    if (t === undefined || r === undefined || board.roomOf[t]! >= 0) continue;
-    if (m.roomChallenge[r] !== m.taskChallenge[t]) continue;
-    if (!Number.isInteger(p.slot) || p.slot < 0 || p.slot >= m.S) continue;
-    if (board.fits(t, r, p.slot)) board.place(t, r, p.slot);
-  }
-}
-
 /**
  * Builds a schedule: full cross-building breaks first, and when no complete
  * schedule is found that way, the same-building break everywhere, flagged as
- * relaxed. Every schedule returned has passed `validateSchedule`. Same shape
- * as `solvePlan`, plus what the bounds proved.
+ * relaxed. Every schedule returned has passed `validateSchedule`; the result
+ * also says what the bounds proved.
  */
-export function aamoghCPSolver(
-  inputs: PlanInputs,
-  options: AamoghOptions = {},
-): AamoghResult {
+export function aamoghCPSolver(inputs: PlanInputs): AamoghResult {
   const stats = { iterations: 0, improvements: 0, nodes: 0 };
   const report = (bounds: number[], score: Float64Array | null): AamoghStats => ({
     ...stats,
@@ -1652,8 +1618,7 @@ export function aamoghCPSolver(
     inputs.tasks.map((t) => taskKey(t.entryId, t.challengeId)).join("|") +
       `#${inputs.slots}:${inputs.sameGap}:${inputs.crossGap}`,
   );
-  const iterations =
-    options.iterations ?? Math.min(20_000, 2_000 + inputs.tasks.length * 12);
+  const iterations = Math.min(20_000, 2_000 + inputs.tasks.length * 12);
 
   let unplaced: PlanDiagnostic[] = [];
   let bounds: number[] = [];
@@ -1662,7 +1627,6 @@ export function aamoghCPSolver(
     const m = compile(inputs, relaxed);
     bounds = lowerBounds(m);
     const board = new Board(m);
-    if (options.start) seedFrom(m, inputs, board, options.start);
     sweep(m, board);
     let score = improve(m, board, bounds, iterations, seed, stats);
     if (score[UNPLACED]! > 0 && complete(m, board, generator(seed), COMPLETE_CELLS * m.T, stats)) {

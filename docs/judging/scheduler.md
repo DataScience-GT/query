@@ -88,7 +88,7 @@ Sponsor challenges finish first because their judges are other people with their
 
 Budgets count work, never time, and the only randomness is a generator seeded from the inputs, so a slow server gives the same answer as a fast one. After the search, the result is validated, and its own score is checked against `scoreSchedule`.
 
-`solve.ts` also holds `solvePlan`, an older deterministic heuristic (greedy build, augmenting-path repair, hill climbing). No router code calls it; the app uses it only for `capacityProblems`, and `solve.test.ts` and `aamogh-cp-solver.test.ts` keep it as a reference.
+`solve.ts` also holds `solvePlan`, an older deterministic heuristic (greedy build, augmenting-path repair, hill climbing). No router code calls it; the app uses it only for `capacityProblems`, and `solve.test.ts` keeps it as a reference.
 
 ## CP-SAT: bridge and runner
 
