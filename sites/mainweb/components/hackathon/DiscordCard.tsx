@@ -13,30 +13,64 @@ import {
 } from "@query/ui/classes";
 
 const REASONS: Record<string, string> = {
-  not_accepted: "Only accepted hackers can link Discord.",
+  not_accepted:
+    "Discord opens for hackers who confirmed they're coming, judges and volunteers.",
   bad_code: "Discord did not accept that sign-in. Try again.",
   bad_state: "That link expired. Try again.",
   cancelled: "Discord linking was cancelled.",
   rate_limited: "Discord asked us to slow down. Try again in a minute.",
   discord_denied: "Discord refused the request. Try again.",
   discord_error: "Discord had a problem. Try again in a moment.",
-  already_linked:
-    "That Discord account is already linked to another registration.",
+  already_linked: "That Discord account is already linked to someone else.",
 };
 
-const LINKED_ROLES_HINT =
-  "In the server, open the server menu > Linked Roles and connect Hacklytics to get your flower role.";
+type Roles = { hacker: boolean; judge: boolean; volunteer: boolean };
 
 /**
- * Join the DS@GT Discord, for an accepted hacker. The food group shows even
- * with Discord off or never linked: it is their meal wave.
+ * Why joining is not optional, for the roles that require it. Hackers join by
+ * choice, so they get none.
+ */
+export function requiredLine(roles: Pick<Roles, "judge" | "volunteer">) {
+  if (roles.judge && roles.volunteer) {
+    return "It's required for judges and volunteers: schedules, room changes and desk updates are posted there.";
+  }
+  if (roles.judge) {
+    return "It's required for judges: schedules and room changes are posted there.";
+  }
+  if (roles.volunteer) {
+    return "It's required for volunteers: shifts and desk changes are posted there.";
+  }
+  return null;
+}
+
+/** Where roles are claimed in the server, naming the ones this person holds. */
+export function linkedRolesHint(roles: Roles) {
+  const names = [
+    roles.hacker && "flower role",
+    roles.judge && "judge role",
+    roles.volunteer && "volunteer role",
+  ].filter(Boolean);
+  const list =
+    names.length > 1
+      ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`
+      : names[0];
+  return `In the server, open the server menu > Linked Roles and connect Hacklytics to get your ${list}.`;
+}
+
+/**
+ * Join the DS@GT Discord. For a hacker who confirmed they are coming, an
+ * approved judge, or a volunteer; judges and volunteers are told it is
+ * required. An accepted hacker who has not confirmed is asked to, and still
+ * sees their flower, which is also their meal wave. With no `hackathonId` the
+ * edition is the newest live one the person holds a role in (the judge page
+ * and the check-in desk have none to name).
  */
 export function DiscordCard({
   hackathonId,
   bloom = false,
 }: {
-  hackathonId: string;
-  /** A Hacklytics edition: the food group gets its flower. */
+  hackathonId?: string;
+  /** A Hacklytics edition: the flower gets its sprite. */
   bloom?: boolean;
 }) {
   const utils = trpc.useUtils();
@@ -63,15 +97,22 @@ export function DiscordCard({
   const unlink = trpc.hackathon.unlinkDiscord.useMutation({
     onSuccess: () => {
       setUnlinked(true);
-      void utils.hackathon.myDiscord.invalidate({ hackathonId });
+      void utils.hackathon.myDiscord.invalidate();
     },
   });
 
   const data = query.data;
-  if (!data?.eligible) return null;
+  const editionId = data?.hackathon?.id ?? hackathonId;
+  if (
+    !data ||
+    !editionId ||
+    (!data.eligible && !data.awaitingConfirmation && !data.linked)
+  ) {
+    return null;
+  }
 
   const optIn = ramadan ?? data.ramadanOptIn;
-  const base = `/api/discord/connect?hackathon=${hackathonId}`;
+  const base = `/api/discord/connect?hackathon=${editionId}`;
   const ramadanParam = data.fasting ? `&ramadan=${optIn ? 1 : 0}` : "";
   const groupName = data.foodGroup?.name;
   const flower = bloom && data.foodGroup && (
@@ -86,6 +127,16 @@ export function DiscordCard({
     <p className={body}>
       {flower}Your bloom: <strong>{groupName}</strong>
     </p>
+  );
+  const unlinkButton = (
+    <button
+      type="button"
+      className={textLink}
+      disabled={unlink.isPending}
+      onClick={() => unlink.mutate({ hackathonId: editionId })}
+    >
+      Unlink
+    </button>
   );
 
   const ramadanBox = data.fasting && (
@@ -102,6 +153,8 @@ export function DiscordCard({
     </label>
   );
 
+  const required = requiredLine(data.roles);
+
   return (
     <div className="flex flex-col items-start gap-2" data-testid="discord-card">
       {outcome &&
@@ -115,6 +168,19 @@ export function DiscordCard({
 
       {!data.enabled ? (
         bloomLine
+      ) : !data.eligible ? (
+        <>
+          {data.linked && (
+            <p className={`${body} font-semibold`}>Linked as @{data.username}</p>
+          )}
+          {bloomLine}
+          {data.awaitingConfirmation && (
+            <p className={body}>
+              Confirm you&apos;re coming to get the Discord invite.
+            </p>
+          )}
+          {data.linked && unlinkButton}
+        </>
       ) : data.linked ? (
         <>
           <p className={`${body} font-semibold`}>
@@ -131,20 +197,17 @@ export function DiscordCard({
             <a href={`${base}${ramadanParam}`} className={btnSecondary}>
               Update my roles
             </a>
-            <button
-              type="button"
-              className={textLink}
-              disabled={unlink.isPending}
-              onClick={() => unlink.mutate({ hackathonId })}
-            >
-              Unlink
-            </button>
+            {unlinkButton}
           </div>
-          <p className={meta}>{LINKED_ROLES_HINT}</p>
+          <p className={meta}>{linkedRolesHint(data.roles)}</p>
         </>
       ) : (
         <>
-          <p className={`${body} font-semibold`}>Join the DS@GT Discord</p>
+          <p className={`${body} font-semibold`}>
+            {required
+              ? `Join the Hacklytics Discord. ${required}`
+              : "Join the DS@GT Discord"}
+          </p>
           {bloomLine}
           {ramadanBox}
           <a
@@ -156,9 +219,11 @@ export function DiscordCard({
           <a href={`${base}${ramadanParam}`} className={`${meta} ${textLink}`}>
             Already in the server? Update my roles
           </a>
-          <p className={meta}>{LINKED_ROLES_HINT}</p>
+          <p className={meta}>{linkedRolesHint(data.roles)}</p>
         </>
       )}
+
+      {unlink.isError && <Alert>{unlink.error.message}</Alert>}
 
       {unlinked && !data.linked && (
         <p className={meta}>

@@ -24,6 +24,7 @@ import {
 import type { DrizzleDB } from "@query/db";
 import { startOfEasternDay } from "../services/eastern-time";
 import { readLiveHackathons } from "../services/metrics";
+import { syncDiscordRoles } from "../services/discord";
 
 // Roles are a super admin's to give, with one exception: anyone on the admin
 // team may staff the check-in desk by granting and revoking the volunteer tier,
@@ -424,6 +425,11 @@ export const adminRouter = createTRPCRouter({
       ctx.cache.delete(`admins:list`);
       invalidatePortalContext(input.userId);
 
+      // A volunteer who is already linked to Discord gets the role at once.
+      if (newAdmin.role === "volunteer") {
+        await syncDiscordRoles(ctx.db as DrizzleDB, input.userId);
+      }
+
       await recordAdminAction(ctx.db as DrizzleDB, {
         userId: ctx.userId,
         action: "admin.create",
@@ -539,6 +545,12 @@ export const adminRouter = createTRPCRouter({
       ctx.cache.delete(`admins:list`);
       invalidatePortalContext(targetAdmin.userId);
 
+      // Becoming, ceasing to be, switching off or renewing a volunteer moves the
+      // Discord volunteer role.
+      if (targetAdmin.role === "volunteer" || updatedAdmin.role === "volunteer") {
+        await syncDiscordRoles(ctx.db as DrizzleDB, targetAdmin.userId);
+      }
+
       await recordAdminAction(ctx.db as DrizzleDB, {
         userId: ctx.userId,
         action: "admin.update",
@@ -580,6 +592,10 @@ export const adminRouter = createTRPCRouter({
       ctx.cache.deletePattern(`${CacheKeys.admin(targetAdmin.userId)}*`);
       ctx.cache.delete(`admins:list`);
       invalidatePortalContext(targetAdmin.userId);
+
+      if (targetAdmin.role === "volunteer") {
+        await syncDiscordRoles(ctx.db as DrizzleDB, targetAdmin.userId);
+      }
 
       await recordAdminAction(ctx.db as DrizzleDB, {
         userId: ctx.userId,

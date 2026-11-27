@@ -30,11 +30,20 @@ const mailed = vi.hoisted(() => ({
     deadline?: Date | null;
   }[],
   refuse: new Set<string>(),
+  /** While set, a mail waits here before it counts as sent. */
+  hold: undefined as Promise<void> | undefined,
+  inFlight: 0,
 }));
 vi.mock("@query/auth/email", () => ({
   sendAcceptanceEmail: vi.fn(async () => {}),
   sendApplicationReminderEmail: vi.fn(
     async (message: (typeof mailed.calls)[number]) => {
+      mailed.inFlight++;
+      try {
+        await mailed.hold;
+      } finally {
+        mailed.inFlight--;
+      }
       if (mailed.refuse.has(message.email)) throw new Error("550 mailbox full");
       mailed.calls.push(message);
     },
@@ -138,6 +147,7 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
   beforeEach(() => {
     mailed.calls.length = 0;
     mailed.refuse.clear();
+    mailed.hold = undefined;
   });
 
   afterAll(async () => {
@@ -498,6 +508,47 @@ describe.skipIf(!URL)("application drafts against a real database", () => {
       expect(a.sent + b.sent + c.sent).toBe(mailed.calls.length);
       expect(a.claimed + b.claimed + c.claimed).toBe(mailed.calls.length);
     }, 60_000);
+
+    it("a Scheduler retry while the first run is still mailing sends nothing twice, because the claim comes first", async () => {
+      const h = await makeHackathon("rem-retry");
+      const addresses: string[] = [];
+      const ids: string[] = [];
+      for (let i = 0; i < 5; i++) {
+        const id = await makeUser(`retry${i}`);
+        await plantDraft(id, h.id, NOW, 4);
+        addresses.push(email(`retry${i}`));
+        ids.push(id);
+      }
+
+      // The mailer is slow, so the first run is mid-send when the retry arrives.
+      let release!: () => void;
+      mailed.hold = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const first = run(NOW);
+      await vi.waitFor(() => expect(mailed.inFlight).toBe(5));
+
+      // Nothing has left yet, and every draft is already stamped as taken.
+      expect(mailedTo(addresses)).toEqual([]);
+      for (const id of ids) {
+        expect((await draftRow(id, h.id))?.reminderSentAt).not.toBeNull();
+      }
+
+      const retry = await run(new Date(NOW.getTime() + 60_000));
+      expect(retry).toEqual({ claimed: 0, sent: 0, failed: 0 });
+      expect(mailedTo(addresses)).toEqual([]);
+
+      release();
+      expect(await first).toEqual({ claimed: 5, sent: 5, failed: 0 });
+      expect([...mailedTo(addresses)].sort()).toEqual([...addresses].sort());
+      // And a retry after it finished has nothing left either.
+      expect(await run(new Date(NOW.getTime() + 120_000))).toEqual({
+        claimed: 0,
+        sent: 0,
+        failed: 0,
+      });
+      expect(mailedTo(addresses)).toHaveLength(5);
+    }, 30_000);
 
     it("re-checks a draft it had to wait for, so one taken or edited meanwhile is not mailed", async () => {
       const h = await makeHackathon("rem-lock");

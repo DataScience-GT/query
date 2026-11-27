@@ -122,6 +122,8 @@ export function InfoTab({
       utils.hackathon.myParticipantRecord.invalidate({
         hackathonId: hackathon.id,
       });
+      // Saying they are coming is what opens the Discord step.
+      utils.hackathon.myDiscord.invalidate({ hackathonId: hackathon.id });
     },
   });
 

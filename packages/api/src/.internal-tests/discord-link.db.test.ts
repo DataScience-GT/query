@@ -1,12 +1,22 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type * as DbModule from "@query/db";
 import type * as DrizzleOps from "drizzle-orm";
 import type * as DiscordSvc from "../services/discord";
 
 /**
  * Real-Postgres test for the Discord link: balanced food groups, the
- * Linked Roles callback with a mocked fetch (Discord is never called), the
- * default edition for the verification URL, unlink, and the admin bits.
+ * Linked Roles callback with a mocked fetch (Discord is never called), who may
+ * link (confirmed hackers, approved judges, volunteers), the default edition
+ * for the verification URL, unlink, and the admin bits.
  * Needs TEST_DATABASE_URL (disposable; never Neon or production).
  */
 const URL = process.env.TEST_DATABASE_URL;
@@ -15,7 +25,11 @@ type FetchCall = { url: string; init?: RequestInit };
 
 // The mass-accept path mails each person through a dynamic import; nothing
 // here may reach a real mail provider.
-vi.mock("@query/auth/email", () => ({ sendAcceptanceEmail: vi.fn(async () => {}) }));
+vi.mock("@query/auth/email", () => ({
+  sendAcceptanceEmail: vi.fn(async () => {}),
+  sendJudgeApprovedEmail: vi.fn(async () => {}),
+  sendJudgeAddedEmail: vi.fn(async () => {}),
+}));
 
 describe.skipIf(!URL)("discord link against a real database", () => {
   const suffix = Math.random().toString(36).slice(2, 10);
@@ -33,6 +47,8 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     clientSecret: "secret-1",
     inviteUrl: "https://discord.gg/test",
   };
+  // What AUTH_SECRET is for these tests: the tokens are sealed under it.
+  const SECRET = "t".repeat(40);
 
   const makeUser = async (tag: string) => {
     const id = `dl-${suffix}-${tag}`;
@@ -67,6 +83,8 @@ describe.skipIf(!URL)("discord link against a real database", () => {
         hackathonId,
         userId,
         registrationStatus: "approved",
+        // Said "I'm coming": the Discord step waits for it.
+        attendanceConfirmedAt: new Date(),
         ramadanFasting: "Yes",
         ...extra,
       })
@@ -83,9 +101,16 @@ describe.skipIf(!URL)("discord link against a real database", () => {
 
   /** A Discord that answers each step, recording every call. */
   const discordFetch = (
-    over: { token?: number; me?: number; put?: number; meId?: string } = {},
+    over: {
+      token?: number;
+      me?: number;
+      put?: number | number[];
+      meId?: string;
+    } = {},
   ) => {
     const calls: FetchCall[] = [];
+    const puts = [over.put ?? 200].flat();
+    let putIndex = 0;
     const fn = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
       const u = String(url);
       calls.push({ url: u, init });
@@ -94,7 +119,11 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       if (u.endsWith("/oauth2/token")) {
         const status = over.token ?? 200;
         return status === 200
-          ? json(200, { access_token: "tok-user" })
+          ? json(200, {
+              access_token: "tok-user",
+              refresh_token: "ref-user",
+              expires_in: 604800,
+            })
           : json(status, { retry_after: 4.2 });
       }
       if (u.endsWith("/users/@me")) {
@@ -107,7 +136,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
             })
           : json(status, {});
       }
-      const status = over.put ?? 200;
+      const status = puts[Math.min(putIndex++, puts.length - 1)]!;
       return json(status, status === 200 ? {} : { retry_after: 2 });
     });
     return { fn: fn as unknown as typeof fetch, calls };
@@ -132,6 +161,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     svc.completeLink({
       db: S.db as any,
       config: CONFIG,
+      secret: SECRET,
       state: state(userId, hackathonId, r, t),
       code: "code-1",
       redirectUri: "https://datasciencegt.org/api/discord/callback",
@@ -154,6 +184,20 @@ describe.skipIf(!URL)("discord link against a real database", () => {
       req: { headers: { get: () => null } },
     });
   }, 120_000);
+
+  // Other files share this database and list every open edition, so the ones
+  // made here go as soon as each case is done, not at the end of the file.
+  let hackathonsBefore = 0;
+  beforeEach(() => {
+    hackathonsBefore = hackathonIds.length;
+  });
+  afterEach(async () => {
+    const made = hackathonIds.splice(hackathonsBefore);
+    const db = S?.db;
+    if (made.length && db) {
+      await db.delete(S.hackathons).where(ops.inArray(S.hackathons.id, made));
+    }
+  });
 
   afterAll(async () => {
     const db = S?.db;
@@ -220,7 +264,13 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     expect(body).toEqual({
       platform_name: "Hacklytics",
       platform_username: "Ada L",
-      metadata: { accepted: 1, food_group: number, ramadan: 1 },
+      metadata: {
+        accepted: 1,
+        food_group: number,
+        ramadan: 1,
+        judge: 0,
+        volunteer: 0,
+      },
     });
     expect(stored).toMatchObject({
       discordUserId: `d-happy-${suffix}`,
@@ -267,6 +317,357 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     const stranger = await makeUser("stranger");
     expect(await link(stranger, h.id, discordFetch())).toMatchObject({
       reason: "not_accepted",
+    });
+  });
+
+  describe("who may link: hackers who confirmed, approved judges, volunteers", () => {
+    const makeJudge = async (hackathonId: string, userId: string, isActive = true) => {
+      const [judge] = await S.db!
+        .insert(S.judges)
+        .values({ userId, hackathonId, name: "Judge", email: `${userId}@example.test`, isActive })
+        .returning();
+      return judge!;
+    };
+    const makeVolunteer = async (userId: string, extra: Record<string, unknown> = {}) => {
+      await S.db!.insert(S.admins).values({ userId, role: "volunteer", ...extra });
+    };
+    const sent = (f: ReturnType<typeof discordFetch>) =>
+      JSON.parse(f.calls[2]!.init!.body as string).metadata;
+    const linkRow = async (userId: string) =>
+      (
+        await S.db!
+          .select()
+          .from(S.discordLinks)
+          .where(ops.eq(S.discordLinks.userId, userId))
+      )[0];
+
+    it("an accepted hacker who has not said they are coming cannot link or get an invite", async () => {
+      const h = await makeHackathon("rsvp");
+      const u = await makeUser("rsvp");
+      const p = await makeParticipant(h.id, u, { attendanceConfirmedAt: null });
+      const f = discordFetch();
+      expect(await link(u, h.id, f, null, "invite")).toEqual({
+        ok: false,
+        reason: "not_accepted",
+      });
+      expect(f.calls).toHaveLength(0);
+      expect(await svc.resolveConnectTarget(S.db as any, u, h.id)).toBeNull();
+      expect(await svc.resolveConnectTarget(S.db as any, u, null)).toBeNull();
+
+      // The portal still shows them their flower (it is their meal wave) and
+      // asks for the answer.
+      const mine = await hackathonAs(u).myDiscord({ hackathonId: h.id });
+      expect(mine).toMatchObject({
+        eligible: false,
+        awaitingConfirmation: true,
+        roles: { hacker: false, judge: false, volunteer: false },
+        linked: false,
+      });
+      expect(mine.foodGroup?.key).toBe((await row(p.id)).foodGroup);
+      expect(await linkRow(u)).toBeUndefined();
+    });
+
+    it("saying they are coming opens the step, and the metadata says accepted with their flower", async () => {
+      const h = await makeHackathon("rsvp-yes");
+      const u = await makeUser("rsvp-yes");
+      const p = await makeParticipant(h.id, u, { attendanceConfirmedAt: null });
+      expect((await hackathonAs(u).myDiscord({ hackathonId: h.id })).eligible).toBe(false);
+
+      await hackathonAs(u).confirmAttendance({ hackathonId: h.id });
+      expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+        eligible: true,
+        awaitingConfirmation: false,
+        roles: { hacker: true, judge: false, volunteer: false },
+      });
+
+      const f = discordFetch({ meId: `d-rsvp-${suffix}` });
+      expect(await link(u, h.id, f)).toMatchObject({ ok: true, home: "hackathon" });
+      const number = svc.foodGroupByKey((await row(p.id)).foodGroup)!.number;
+      expect(sent(f)).toEqual({
+        accepted: 1,
+        food_group: number,
+        ramadan: 0,
+        judge: 0,
+        volunteer: 0,
+      });
+    });
+
+    it("a hacker who is already checked in is through the door without the answer", async () => {
+      const h = await makeHackathon("rsvp-door");
+      const u = await makeUser("rsvp-door");
+      await makeParticipant(h.id, u, {
+        registrationStatus: "checked_in",
+        attendanceConfirmedAt: null,
+      });
+      expect(await link(u, h.id, discordFetch({ meId: `d-door-${suffix}` }))).toMatchObject({
+        ok: true,
+      });
+    });
+
+    it("an approved judge with no registration can link and gets judge, with the hacker values at 0", async () => {
+      const h = await makeHackathon("judge");
+      const u = await makeUser("judge");
+      await makeJudge(h.id, u);
+      const f = discordFetch({ meId: `d-judge-${suffix}` });
+      expect(await link(u, h.id, f, null, "invite")).toMatchObject({
+        ok: true,
+        then: "invite",
+        home: "judge",
+        username: "ada",
+      });
+      expect(sent(f)).toEqual({ accepted: 0, food_group: 0, ramadan: 0, judge: 1, volunteer: 0 });
+
+      const stored = await linkRow(u);
+      expect(stored).toMatchObject({ discordUserId: `d-judge-${suffix}`, discordUsername: "ada" });
+      expect(JSON.stringify(stored)).not.toContain("tok-user");
+      const participants = await S.db!
+        .select()
+        .from(S.hackathonParticipants)
+        .where(ops.eq(S.hackathonParticipants.userId, u));
+      expect(participants).toHaveLength(0);
+
+      expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+        eligible: true,
+        roles: { hacker: false, judge: true, volunteer: false },
+        linked: true,
+        username: "ada",
+        foodGroup: null,
+        fasting: false,
+      });
+      // Updating roles again keeps the one row.
+      expect(await link(u, h.id, discordFetch({ meId: `d-judge-${suffix}` }))).toMatchObject({ ok: true });
+      const again = await S.db!
+        .select()
+        .from(S.discordLinks)
+        .where(ops.eq(S.discordLinks.userId, u));
+      expect(again).toHaveLength(1);
+
+      await hackathonAs(u).unlinkDiscord({ hackathonId: h.id });
+      expect(await linkRow(u)).toBeUndefined();
+      expect((await hackathonAs(u).myDiscord({ hackathonId: h.id })).linked).toBe(false);
+    });
+
+    it("a judge who is not approved cannot link", async () => {
+      const h = await makeHackathon("judge-no");
+      const u = await makeUser("judge-no");
+      await makeJudge(h.id, u, false);
+      const f = discordFetch();
+      expect(await link(u, h.id, f)).toEqual({ ok: false, reason: "not_accepted" });
+      expect(f.calls).toHaveLength(0);
+      expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+        eligible: false,
+        roles: { judge: false },
+      });
+    });
+
+    it("a volunteer links while an edition is open or live, with volunteer set", async () => {
+      const h = await makeHackathon("vol");
+      const u = await makeUser("vol");
+      await makeVolunteer(u);
+      const f = discordFetch({ meId: `d-vol-${suffix}` });
+      expect(await link(u, h.id, f)).toMatchObject({ ok: true, home: "scan" });
+      expect(sent(f)).toEqual({ accepted: 0, food_group: 0, ramadan: 0, judge: 0, volunteer: 1 });
+      expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+        eligible: true,
+        roles: { hacker: false, judge: false, volunteer: true },
+        linked: true,
+      });
+    });
+
+    it("a volunteer has no step on an edition that is not open or live", async () => {
+      const u = await makeUser("vol-status");
+      await makeVolunteer(u);
+      for (const status of ["draft", "announced", "completed", "cancelled"]) {
+        const h = await makeHackathon(`vol-${status}`, { status });
+        expect(await svc.resolveConnectTarget(S.db as any, u, h.id)).toBeNull();
+      }
+      for (const status of ["open", "closed", "in_progress"]) {
+        const h = await makeHackathon(`vol-${status}`, { status });
+        expect((await svc.resolveConnectTarget(S.db as any, u, h.id))?.roles.volunteer).toBe(true);
+      }
+    });
+
+    it("an inactive or expired volunteer, and full staff, are not volunteers", async () => {
+      const h = await makeHackathon("vol-no");
+      const inactive = await makeUser("vol-inactive");
+      await makeVolunteer(inactive, { isActive: false });
+      const expired = await makeUser("vol-expired");
+      await makeVolunteer(expired, { expiresAt: new Date(Date.now() - 60_000) });
+      const staff = await makeUser("vol-staff");
+      await S.db!.insert(S.admins).values({ userId: staff, role: "admin" });
+      for (const u of [inactive, expired, staff]) {
+        expect(await svc.resolveConnectTarget(S.db as any, u, h.id)).toBeNull();
+      }
+    });
+
+    it("the default edition for a volunteer is the newest one that is open or live", async () => {
+      const u = await makeUser("vol-default");
+      await makeVolunteer(u);
+      await makeHackathon("vd-old", {
+        status: "completed",
+        startDate: new Date("2026-02-01T00:00:00Z"),
+        endDate: new Date("2026-02-03T00:00:00Z"),
+      });
+      const live = await makeHackathon("vd-live", {
+        startDate: new Date("2033-02-01T00:00:00Z"),
+        endDate: new Date("2033-02-03T00:00:00Z"),
+      });
+      await makeHackathon("vd-next", {
+        status: "announced",
+        startDate: new Date("2034-02-01T00:00:00Z"),
+        endDate: new Date("2034-02-03T00:00:00Z"),
+      });
+      expect((await svc.resolveConnectTarget(S.db as any, u, null))?.hackathon.id).toBe(live.id);
+      const mine = await hackathonAs(u).myDiscord({});
+      expect(mine.hackathon?.id).toBe(live.id);
+      expect(mine.roles.volunteer).toBe(true);
+    });
+
+    it("a judge who is also a confirmed hacker gets both, and both stores hold the link", async () => {
+      const h = await makeHackathon("both");
+      const u = await makeUser("both");
+      const p = await makeParticipant(h.id, u);
+      await makeJudge(h.id, u);
+      const f = discordFetch({ meId: `d-both-${suffix}` });
+      expect(await link(u, h.id, f, 1)).toMatchObject({ ok: true, home: "hackathon" });
+      const number = svc.foodGroupByKey((await row(p.id)).foodGroup)!.number;
+      expect(sent(f)).toEqual({
+        accepted: 1,
+        food_group: number,
+        ramadan: 1,
+        judge: 1,
+        volunteer: 0,
+      });
+      expect(await row(p.id)).toMatchObject({ discordUserId: `d-both-${suffix}`, ramadanRoleOptIn: true });
+      expect(await linkRow(u)).toMatchObject({ discordUserId: `d-both-${suffix}` });
+    });
+
+    it("a judge who is an accepted hacker not yet confirmed gets judge only, and the card asks for the answer", async () => {
+      const h = await makeHackathon("judge-unconfirmed");
+      const u = await makeUser("judge-unconfirmed");
+      const p = await makeParticipant(h.id, u, { attendanceConfirmedAt: null });
+      await makeJudge(h.id, u);
+      const f = discordFetch({ meId: `d-ju-${suffix}` });
+      expect(await link(u, h.id, f)).toMatchObject({ ok: true, home: "judge" });
+      expect(sent(f)).toEqual({ accepted: 0, food_group: 0, ramadan: 0, judge: 1, volunteer: 0 });
+      // The registration is left alone: no flower role, no mirrored link.
+      expect((await row(p.id)).discordUserId).toBeNull();
+      expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+        eligible: true,
+        awaitingConfirmation: true,
+        linked: true,
+      });
+    });
+
+    it("a judge and a volunteer at once get both", async () => {
+      const h = await makeHackathon("jv");
+      const u = await makeUser("jv");
+      await makeJudge(h.id, u);
+      await makeVolunteer(u);
+      const f = discordFetch({ meId: `d-jv-${suffix}` });
+      expect(await link(u, h.id, f)).toMatchObject({ ok: true });
+      expect(sent(f)).toEqual({ accepted: 0, food_group: 0, ramadan: 0, judge: 1, volunteer: 1 });
+    });
+
+    it("un-confirming or withdrawing leaves an existing link in place", async () => {
+      const h = await makeHackathon("keeplink");
+      const u = await makeUser("keeplink");
+      const p = await makeParticipant(h.id, u);
+      expect(await link(u, h.id, discordFetch({ meId: `d-keep2-${suffix}` }))).toMatchObject({ ok: true });
+
+      await S.db!
+        .update(S.hackathonParticipants)
+        .set({ attendanceConfirmedAt: null })
+        .where(ops.eq(S.hackathonParticipants.id, p.id));
+      const after = await hackathonAs(u).myDiscord({ hackathonId: h.id });
+      expect(after).toMatchObject({
+        eligible: false,
+        awaitingConfirmation: true,
+        linked: true,
+        username: "ada",
+      });
+      expect(await row(p.id)).toMatchObject({ discordUserId: `d-keep2-${suffix}` });
+
+      await S.db!
+        .delete(S.hackathonParticipants)
+        .where(ops.eq(S.hackathonParticipants.id, p.id));
+      expect(await linkRow(u)).toMatchObject({ discordUserId: `d-keep2-${suffix}` });
+    });
+
+    it("a hacker linked before the confirmation step keeps the link", async () => {
+      const h = await makeHackathon("legacy");
+      const u = await makeUser("legacy");
+      await makeParticipant(h.id, u, {
+        attendanceConfirmedAt: null,
+        discordUserId: `d-legacy-${suffix}`,
+        discordUsername: "old",
+        discordLinkedAt: new Date(),
+      });
+      expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+        eligible: false,
+        awaitingConfirmation: true,
+        linked: true,
+        username: "old",
+      });
+    });
+
+    it("refuses a Discord account another person already holds, whichever store holds it", async () => {
+      const h = await makeHackathon("held");
+      const judgeA = await makeUser("held-a");
+      const judgeB = await makeUser("held-b");
+      await makeJudge(h.id, judgeA);
+      await makeJudge(h.id, judgeB);
+      const shared = `d-held-${suffix}`;
+      expect(await link(judgeA, h.id, discordFetch({ meId: shared }))).toMatchObject({ ok: true });
+      const f = discordFetch({ meId: shared });
+      expect(await link(judgeB, h.id, f)).toMatchObject({ ok: false, reason: "already_linked" });
+      expect(f.calls).toHaveLength(2);
+      expect(await linkRow(judgeB)).toBeUndefined();
+
+      // A hacker linked before this table existed holds the account on the
+      // registration alone.
+      const hackerAccount = `d-held-hacker-${suffix}`;
+      const hacker = await makeUser("held-h");
+      await makeParticipant(h.id, hacker, {
+        discordUserId: hackerAccount,
+        discordUsername: "old",
+        discordLinkedAt: new Date(),
+      });
+      const judgeC = await makeUser("held-c");
+      await makeJudge(h.id, judgeC);
+      expect(await link(judgeC, h.id, discordFetch({ meId: hackerAccount }))).toMatchObject({
+        ok: false,
+        reason: "already_linked",
+      });
+      expect(await linkRow(judgeC)).toBeUndefined();
+    });
+
+    it("rolls back a first link, and restores the same account's previous link, when Discord refuses the roles", async () => {
+      const h = await makeHackathon("rollback");
+      const u = await makeUser("rollback");
+      await makeJudge(h.id, u);
+      expect(await link(u, h.id, discordFetch({ meId: `d-rb1-${suffix}`, put: 500 }))).toMatchObject({
+        ok: false,
+        reason: "discord_error",
+        home: "judge",
+      });
+      expect(await linkRow(u)).toBeUndefined();
+
+      expect(await link(u, h.id, discordFetch({ meId: `d-rb1-${suffix}` }))).toMatchObject({ ok: true });
+      const first = await linkRow(u);
+      expect(await link(u, h.id, discordFetch({ meId: `d-rb1-${suffix}`, put: 403 }))).toMatchObject({
+        ok: false,
+        reason: "discord_denied",
+      });
+      // The same account again: what was stored before, tokens and all, is back.
+      expect(await linkRow(u)).toEqual(first);
+    });
+
+    it("the signed state stays bound to the user it was made for", () => {
+      const secret = "s".repeat(40);
+      const token = svc.signState({ u: "judge-1", h: "hack-1", r: null, t: "portal" }, secret);
+      expect(svc.verifyState(token, secret, { userId: "judge-1" })).toMatchObject({ u: "judge-1" });
+      expect(svc.verifyState(token, secret, { userId: "judge-2" })).toBeNull();
     });
   });
 
@@ -331,7 +732,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     await makeParticipant(current.id, u);
     await makeParticipant(pending.id, u, { registrationStatus: "pending" });
     const target = await svc.resolveConnectTarget(S.db as any, u, null);
-    expect(target?.hackathon?.id).toBe(current.id);
+    expect(target?.hackathon.id).toBe(current.id);
     expect(await svc.resolveConnectTarget(S.db as any, u, pending.id)).toBeNull();
   });
 
@@ -346,9 +747,12 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     expect(before.foodGroup?.name).toBeTruthy();
     expect(before.fasting).toBe(true);
     expect((await row(p.id)).foodGroup).toBe(before.foodGroup?.key);
-    expect(
-      await hackathonAs(stranger).myDiscord({ hackathonId: h.id }),
-    ).toEqual({ eligible: false });
+    expect(await hackathonAs(stranger).myDiscord({ hackathonId: h.id })).toMatchObject({
+      eligible: false,
+      awaitingConfirmation: false,
+      foodGroup: null,
+      linked: false,
+    });
 
     await link(u, h.id, discordFetch({ meId: `d-my-${suffix}` }), 1);
     const linked = await hackathonAs(u).myDiscord({ hackathonId: h.id });
@@ -589,5 +993,848 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     const bug = hackathonAs(tester);
     await expect(bug.adminGetAttendees({ hackathonId: h.id })).rejects.toThrow();
     await expect(bug.exportAttendees({ hackathonId: h.id })).rejects.toThrow();
+  });
+
+  // Roles are published with the person's own token, so taking one back needs
+  // that token. These run the whole path against a fake Discord that tracks
+  // which account each token belongs to and records every metadata write.
+  describe("taking roles back", () => {
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    type Put = { account: string; bearer: string; metadata: Record<string, number> };
+    const ZEROS = { accepted: 0, food_group: 0, ramadan: 0, judge: 0, volunteer: 0 };
+
+    /** A Discord that issues, rotates and revokes tokens, and logs each metadata write. */
+    const makeWorld = () => {
+      const puts: Put[] = [];
+      const bearers = new Map<string, string>();
+      const refreshTokens = new Map<string, string>();
+      const issued: string[] = [];
+      let n = 0;
+      const world = {
+        puts,
+        issued,
+        refreshCalls: 0,
+        /** The refresh is applied at once and its answer arrives this late. */
+        refreshDelayMs: 0,
+        putStatus: 200,
+        refreshFails: null as null | "invalid_grant" | 500,
+        beforePut: undefined as undefined | (() => Promise<void>),
+        throws: false,
+        issue(account: string) {
+          const access = `at-${++n}`;
+          const refresh = `rt-${n}`;
+          bearers.set(access, account);
+          refreshTokens.set(refresh, account);
+          issued.push(access, refresh);
+          return { access_token: access, refresh_token: refresh, expires_in: 604800 };
+        },
+        fn: undefined as unknown as typeof fetch,
+      };
+      world.fn = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        if (world.throws) throw new Error("network down");
+        const u = String(url);
+        const json = (status: number, body: unknown) =>
+          new Response(JSON.stringify(body), { status });
+        if (u.endsWith("/oauth2/token")) {
+          const form = new URLSearchParams(String(init?.body));
+          if (form.get("grant_type") === "authorization_code") {
+            return json(200, world.issue(form.get("code")!.replace(/^code-/, "")));
+          }
+          world.refreshCalls++;
+          if (world.refreshFails === "invalid_grant") {
+            return json(400, { error: "invalid_grant" });
+          }
+          if (world.refreshFails === 500) return json(500, {});
+          const account = refreshTokens.get(form.get("refresh_token")!);
+          if (!account) return json(400, { error: "invalid_grant" });
+          refreshTokens.delete(form.get("refresh_token")!);
+          const issued = world.issue(account);
+          if (world.refreshDelayMs) await sleep(world.refreshDelayMs);
+          return json(200, issued);
+        }
+        const bearer = String((init?.headers as Record<string, string>)?.Authorization ?? "")
+          .replace("Bearer ", "");
+        const account = bearers.get(bearer);
+        if (!account) return json(401, {});
+        if (u.endsWith("/users/@me")) {
+          return json(200, { id: account, username: account, global_name: account });
+        }
+        await world.beforePut?.();
+        if (world.putStatus !== 200) return json(world.putStatus, { retry_after: 1 });
+        puts.push({ account, bearer, metadata: JSON.parse(String(init?.body)).metadata });
+        return json(200, {});
+      }) as unknown as typeof fetch;
+      return world;
+    };
+    let world: ReturnType<typeof makeWorld>;
+
+    // The sync a router runs reads the app's own settings, so those are set.
+    beforeAll(() => {
+      vi.stubEnv("DISCORD_CLIENT_ID", CONFIG.clientId);
+      vi.stubEnv("DISCORD_CLIENT_SECRET", CONFIG.clientSecret);
+      vi.stubEnv("DISCORD_INVITE_URL", CONFIG.inviteUrl);
+      vi.stubEnv("AUTH_SECRET", SECRET);
+    });
+    afterAll(() => vi.unstubAllEnvs());
+    beforeEach(() => {
+      world = makeWorld();
+      vi.stubGlobal("fetch", world.fn);
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    const linkAs = (userId: string, hackathonId: string, account: string, r: 0 | 1 | null = null) =>
+      svc.completeLink({
+        db: S.db as any,
+        config: CONFIG,
+        secret: SECRET,
+        state: state(userId, hackathonId, r),
+        code: `code-${account}`,
+        redirectUri: "https://datasciencegt.org/api/discord/callback",
+        fetchImpl: world.fn,
+      });
+    const linkOf = async (userId: string) =>
+      (await S.db!.select().from(S.discordLinks).where(ops.eq(S.discordLinks.userId, userId)))[0];
+    const putsFor = (account: string) => world.puts.filter((p) => p.account === account);
+    const lastFor = (account: string) => putsFor(account).at(-1)?.metadata;
+    const acct = (tag: string) => `d-${tag}-${suffix}`;
+    const staff = async (tag: string, role: "admin" | "super_admin" = "admin") => {
+      const id = await makeUser(tag);
+      await S.db!.insert(S.admins).values({ userId: id, role });
+      return appRouterAs(id);
+    };
+    const appRouterAs = (id: string) => appRouter.createCaller(ctx(id));
+    // The daily job looks at every link in the database, so a case that counts
+    // what it did starts from none of this file's earlier ones.
+    const clearLinks = () =>
+      S.db!.delete(S.discordLinks).where(ops.like(S.discordLinks.userId, `dl-${suffix}-%`));
+    const expireToken = (userId: string) =>
+      S.db!
+        .update(S.discordLinks)
+        .set({ tokenExpiresAt: new Date(Date.now() - 60_000) })
+        .where(ops.eq(S.discordLinks.userId, userId));
+    const newJudge = async (tag: string, hackathonId: string) => {
+      const u = await makeUser(tag);
+      const [judge] = await S.db!
+        .insert(S.judges)
+        .values({ userId: u, hackathonId, name: "Judge", email: `${u}@example.test`, isActive: true })
+        .returning();
+      return { u, judgeId: judge!.id };
+    };
+
+    it("stores the tokens encrypted, under the person, and never hands them back", async () => {
+      const h = await makeHackathon("tok");
+      const { u } = await newJudge("tok", h.id);
+      expect(await linkAs(u, h.id, acct("tok"))).toMatchObject({ ok: true });
+
+      const row = (await linkOf(u))!;
+      const [access, refresh] = world.issued;
+      expect(row.accessTokenEnc).toMatch(/^v1\./);
+      expect(row.refreshTokenEnc).toMatch(/^v1\./);
+      expect(row.tokenExpiresAt!.getTime()).toBeGreaterThan(Date.now() + 6 * 86_400_000);
+      expect(JSON.stringify(row)).not.toContain(access);
+      expect(JSON.stringify(row)).not.toContain(refresh);
+      const { openToken } = await import("../services/discord/token-crypto");
+      expect(openToken(row.accessTokenEnc, SECRET, u)).toBe(access);
+      expect(openToken(row.refreshTokenEnc, SECRET, u)).toBe(refresh);
+      // Sealed for this person: on another row, or under another secret, it does not open.
+      expect(openToken(row.accessTokenEnc, SECRET, "someone-else")).toBeNull();
+      expect(openToken(row.accessTokenEnc, "o".repeat(40), u)).toBeNull();
+
+      // Nothing the portal asks for carries them.
+      const mine = await hackathonAs(u).myDiscord({ hackathonId: h.id });
+      const everything = JSON.stringify(mine);
+      for (const secret of [access, refresh, row.accessTokenEnc, row.refreshTokenEnc]) {
+        expect(everything).not.toContain(secret!);
+      }
+      expect(everything).not.toMatch(/token/i);
+    });
+
+    it("deactivating a judge takes the judge role back, and reactivating gives it again", async () => {
+      const h = await makeHackathon("deact");
+      const { u, judgeId } = await newJudge("deact", h.id);
+      await linkAs(u, h.id, acct("deact"));
+      expect(lastFor(acct("deact"))).toMatchObject({ judge: 1 });
+
+      const admin = await staff("deact-admin");
+      await admin.judge.setActive({ judgeId, isActive: false });
+      expect(lastFor(acct("deact"))).toEqual(ZEROS);
+
+      await admin.judge.setActive({ judgeId, isActive: true });
+      expect(lastFor(acct("deact"))).toEqual({ ...ZEROS, judge: 1 });
+    });
+
+    it("removing a judge takes the role back", async () => {
+      const h = await makeHackathon("rmjudge");
+      const { u, judgeId } = await newJudge("rmjudge", h.id);
+      await linkAs(u, h.id, acct("rmjudge"));
+      await (await staff("rmjudge-admin", "super_admin")).judge.remove({ judgeId });
+      expect(lastFor(acct("rmjudge"))).toEqual(ZEROS);
+    });
+
+    it("removing, switching off or ending a volunteer takes the role back", async () => {
+      const h = await makeHackathon("vol-rm");
+      const admin = await staff("vol-rm-admin", "super_admin");
+      const make = async (tag: string) => {
+        const u = await makeUser(tag);
+        const [row] = await S.db!
+          .insert(S.admins)
+          .values({ userId: u, role: "volunteer" })
+          .returning();
+        await linkAs(u, h.id, acct(tag));
+        expect(lastFor(acct(tag))).toMatchObject({ volunteer: 1 });
+        return row!.id;
+      };
+
+      await admin.admin.remove({ adminId: await make("vol-a") });
+      expect(lastFor(acct("vol-a"))).toEqual(ZEROS);
+
+      await admin.admin.update({ adminId: await make("vol-b"), isActive: false });
+      expect(lastFor(acct("vol-b"))).toEqual(ZEROS);
+
+      await admin.admin.update({
+        adminId: await make("vol-c"),
+        expiresAt: new Date(Date.now() - 1000),
+      });
+      expect(lastFor(acct("vol-c"))).toEqual(ZEROS);
+    });
+
+    it("the daily sweep zeroes a volunteer whose term ran out, once", async () => {
+      await clearLinks();
+      const h = await makeHackathon("vol-sweep");
+      const u = await makeUser("vol-sweep");
+      const [row] = await S.db!.insert(S.admins).values({ userId: u, role: "volunteer" }).returning();
+      await linkAs(u, h.id, acct("vol-sweep"));
+      const other = await makeUser("vol-sweep-live");
+      await S.db!.insert(S.admins).values({ userId: other, role: "volunteer" });
+      await linkAs(other, h.id, acct("vol-sweep-live"));
+
+      // Nothing has expired yet.
+      expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({ checked: 0, synced: 0 });
+
+      await S.db!
+        .update(S.admins)
+        .set({ expiresAt: new Date(Date.now() - 1000) })
+        .where(ops.eq(S.admins.id, row!.id));
+      const before = world.puts.length;
+      expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({ checked: 1, synced: 1 });
+      expect(world.puts.slice(before)).toHaveLength(1);
+      expect(lastFor(acct("vol-sweep"))).toEqual(ZEROS);
+      expect(lastFor(acct("vol-sweep-live"))).toMatchObject({ volunteer: 1 });
+
+      // Zeroed, so the next run has nothing to do.
+      expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({ checked: 0, synced: 0 });
+    });
+
+    it("a hacker moved out of the accepted statuses, banned, or who withdraws loses the hacker roles", async () => {
+      const h = await makeHackathon("hacker-out");
+      const admin = await staff("hacker-out-admin");
+      const linked = async (tag: string, extra: Record<string, unknown> = {}) => {
+        const u = await makeUser(tag);
+        const p = await makeParticipant(h.id, u, extra);
+        await linkAs(u, h.id, acct(tag));
+        expect(lastFor(acct(tag))).toMatchObject({ accepted: 1 });
+        return { u, p };
+      };
+
+      const a = await linked("out-a");
+      await admin.hackathon.updateParticipantStatus({
+        hackathonId: h.id,
+        participantId: a.p.id,
+        status: "waitlisted",
+      });
+      expect(lastFor(acct("out-a"))).toEqual(ZEROS);
+
+      const b = await linked("out-b");
+      await admin.hackathon.batchUpdateParticipantStatus({
+        hackathonId: h.id,
+        participantIds: [b.p.id],
+        status: "rejected",
+      });
+      expect(lastFor(acct("out-b"))).toEqual(ZEROS);
+
+      const c = await linked("out-c");
+      await hackathonAs(c.u).withdrawRegistration({ hackathonId: h.id });
+      expect(lastFor(acct("out-c"))).toEqual(ZEROS);
+
+      const d = await linked("out-d");
+      const email = (
+        await S.db!.select({ email: S.users.email }).from(S.users).where(ops.eq(S.users.id, d.u))
+      )[0]!.email!;
+      await admin.hackathon.banFromHackathons({ email, reason: "Testing the ban" });
+      expect(lastFor(acct("out-d"))).toEqual(ZEROS);
+      await S.db!.delete(S.hackathonBans).where(ops.eq(S.hackathonBans.email, email.toLowerCase()));
+    });
+
+    it("a hacker who is also a judge keeps judge when the hacker side goes", async () => {
+      const h = await makeHackathon("both-out");
+      const { u } = await newJudge("both-out", h.id);
+      const p = await makeParticipant(h.id, u);
+      await linkAs(u, h.id, acct("both-out"));
+      expect(lastFor(acct("both-out"))).toMatchObject({ accepted: 1, judge: 1 });
+      await (await staff("both-out-admin")).hackathon.updateParticipantStatus({
+        hackathonId: h.id,
+        participantId: p.id,
+        status: "rejected",
+      });
+      expect(lastFor(acct("both-out"))).toEqual({ ...ZEROS, judge: 1 });
+    });
+
+    it("unlink clears the roles with the stored token, then deletes the link", async () => {
+      const h = await makeHackathon("unlink");
+      const { u } = await newJudge("unlink", h.id);
+      await linkAs(u, h.id, acct("unlink"));
+      let linkedAtPut: boolean | undefined;
+      world.beforePut = async () => {
+        linkedAtPut = !!(await linkOf(u));
+      };
+
+      await hackathonAs(u).unlinkDiscord({ hackathonId: h.id });
+      expect(lastFor(acct("unlink"))).toEqual(ZEROS);
+      expect(linkedAtPut).toBe(true);
+      expect(await linkOf(u)).toBeUndefined();
+    });
+
+    it("unlink keeps the link, and says so, when Discord cannot be reached to clear the roles", async () => {
+      const h = await makeHackathon("unlink-fail");
+      const { u } = await newJudge("unlink-fail", h.id);
+      await linkAs(u, h.id, acct("unlink-fail"));
+      world.putStatus = 500;
+      await expect(hackathonAs(u).unlinkDiscord({ hackathonId: h.id })).rejects.toThrow(
+        /roles were not cleared/,
+      );
+      expect(await linkOf(u)).toBeDefined();
+
+      world.putStatus = 200;
+      await hackathonAs(u).unlinkDiscord({ hackathonId: h.id });
+      expect(await linkOf(u)).toBeUndefined();
+    });
+
+    it("linking another Discord account first clears the roles on the old one", async () => {
+      const h = await makeHackathon("relink");
+      const { u } = await newJudge("relink", h.id);
+      await linkAs(u, h.id, acct("relink-x"));
+      expect(await linkAs(u, h.id, acct("relink-y"))).toMatchObject({ ok: true });
+
+      expect(lastFor(acct("relink-x"))).toEqual(ZEROS);
+      expect(lastFor(acct("relink-y"))).toEqual({ ...ZEROS, judge: 1 });
+      // X was cleared before Y was given anything.
+      const order = world.puts.map((p) => `${p.account}:${p.metadata.judge}`);
+      expect(order).toEqual([
+        `${acct("relink-x")}:1`,
+        `${acct("relink-x")}:0`,
+        `${acct("relink-y")}:1`,
+      ]);
+      expect(await linkOf(u)).toMatchObject({ discordUserId: acct("relink-y") });
+    });
+
+    it("does not move the link when the old account's roles cannot be cleared", async () => {
+      const h = await makeHackathon("relink-fail");
+      const { u } = await newJudge("relink-fail", h.id);
+      await linkAs(u, h.id, acct("rf-x"));
+      world.putStatus = 500;
+      expect(await linkAs(u, h.id, acct("rf-y"))).toMatchObject({
+        ok: false,
+        reason: "discord_error",
+      });
+      expect(await linkOf(u)).toMatchObject({ discordUserId: acct("rf-x") });
+      expect(putsFor(acct("rf-y"))).toHaveLength(0);
+    });
+
+    it("linking the same account again clears nothing", async () => {
+      const h = await makeHackathon("relink-same");
+      const { u } = await newJudge("relink-same", h.id);
+      await linkAs(u, h.id, acct("rs"));
+      await linkAs(u, h.id, acct("rs"));
+      expect(putsFor(acct("rs")).map((p) => p.metadata.judge)).toEqual([1, 1]);
+    });
+
+    it("a link made before tokens were kept cannot be cleared, and still unlinks", async () => {
+      const h = await makeHackathon("legacy-link");
+      const { u, judgeId } = await newJudge("legacy-link", h.id);
+      await S.db!.insert(S.discordLinks).values({
+        userId: u,
+        discordUserId: acct("legacy"),
+        discordUsername: "old",
+      });
+      await (await staff("legacy-admin")).judge.setActive({ judgeId, isActive: false });
+      expect(world.puts).toHaveLength(0);
+      expect(await svc.syncDiscordRoles(S.db as any, u)).toBe("no_token");
+
+      await hackathonAs(u).unlinkDiscord({ hackathonId: h.id });
+      expect(await linkOf(u)).toBeUndefined();
+      expect(world.puts).toHaveLength(0);
+    });
+
+    it("refreshes an expired access token, stores the rotated pair, and publishes with the new one", async () => {
+      const h = await makeHackathon("refresh");
+      const { u, judgeId } = await newJudge("refresh", h.id);
+      await linkAs(u, h.id, acct("refresh"));
+      const before = (await linkOf(u))!;
+      await expireToken(u);
+
+      await (await staff("refresh-admin")).judge.setActive({ judgeId, isActive: false });
+      expect(world.refreshCalls).toBe(1);
+      const after = (await linkOf(u))!;
+      expect(after.refreshTokenEnc).not.toBe(before.refreshTokenEnc);
+      expect(after.tokenExpiresAt!.getTime()).toBeGreaterThan(Date.now());
+      const { openToken } = await import("../services/discord/token-crypto");
+      const newAccess = openToken(after.accessTokenEnc, SECRET, u);
+      expect(newAccess).toBe(world.issued.at(-2));
+      expect(world.puts.at(-1)).toMatchObject({ bearer: newAccess, metadata: ZEROS });
+    });
+
+    it("drops the link when Discord says the connection was withdrawn", async () => {
+      const h = await makeHackathon("revoked");
+      const { u } = await newJudge("revoked", h.id);
+      const p = await makeParticipant(h.id, u);
+      await linkAs(u, h.id, acct("revoked"));
+      expect((await row(p.id)).discordUserId).toBe(acct("revoked"));
+      await S.db!
+        .update(S.judges)
+        .set({ isActive: false })
+        .where(ops.eq(S.judges.userId, u));
+      await expireToken(u);
+      world.refreshFails = "invalid_grant";
+
+      expect(await svc.syncDiscordRoles(S.db as any, u)).toBe("revoked");
+      expect(await linkOf(u)).toBeUndefined();
+      expect((await row(p.id)).discordUserId).toBeNull();
+    });
+
+    it("keeps the link when a refresh fails for another reason, and when the sync is a no-op", async () => {
+      const h = await makeHackathon("refresh-500");
+      const { u, judgeId } = await newJudge("refresh-500", h.id);
+      await linkAs(u, h.id, acct("r500"));
+      await expireToken(u);
+      world.refreshFails = 500;
+      await S.db!.update(S.judges).set({ isActive: false }).where(ops.eq(S.judges.id, judgeId));
+      expect(await svc.syncDiscordRoles(S.db as any, u)).toBe("failed");
+      expect(await linkOf(u)).toBeDefined();
+
+      world.refreshFails = null;
+      expect(await svc.syncDiscordRoles(S.db as any, u)).toBe("synced");
+      expect(await svc.syncDiscordRoles(S.db as any, u)).toBe("unchanged");
+      expect(putsFor(acct("r500"))).toHaveLength(2);
+    });
+
+
+    describe("a batch that revokes more roles than one request can sync", () => {
+      const HACKER = { ...ZEROS, accepted: 1, food_group: 4 };
+      const sigOf = (m: Record<string, number>) =>
+        `a${m.accepted}f${m.food_group}r${m.ramadan}j${m.judge}v${m.volunteer}`;
+
+      /** n hackers, each with a stored link and tokens, as if linked a while ago. */
+      const linkedHackers = async (hackathonId: string, n: number, tag: string) => {
+        const { sealTokens } = await import("../services/discord/tokens");
+        const people: { userId: string; participantId: string; account: string }[] = [];
+        const links: (typeof S.discordLinks.$inferInsert)[] = [];
+        for (let i = 0; i < n; i++) {
+          const userId = await makeUser(`${tag}${i}`);
+          const participantId = (await makeParticipant(hackathonId, userId)).id;
+          const account = acct(`${tag}${i}`);
+          const issued = world.issue(account);
+          links.push({
+            userId,
+            discordUserId: account,
+            discordUsername: account,
+            ...sealTokens(
+              {
+                accessToken: issued.access_token,
+                refreshToken: issued.refresh_token,
+                expiresAt: new Date(Date.now() + 86_400_000),
+              },
+              SECRET,
+              userId,
+            ),
+            rolesSig: sigOf(HACKER),
+          });
+          people.push({ userId, participantId, account });
+        }
+        await S.db!.insert(S.discordLinks).values(links);
+        return people;
+      };
+      const sigs = async (people: { userId: string }[]) =>
+        (
+          await S.db!
+            .select({ sig: S.discordLinks.rolesSig })
+            .from(S.discordLinks)
+            .where(ops.inArray(S.discordLinks.userId, people.map((p) => p.userId)))
+        ).map((r) => r.sig);
+
+      it("marks every linked person pending in the same change, so nothing is left looking synced", async () => {
+        await clearLinks();
+        const h = await makeHackathon("batch-down");
+        const admin = await staff("batch-down-admin");
+        const people = await linkedHackers(h.id, 150, "bd");
+        expect(new Set(await sigs(people))).toEqual(new Set([sigOf(HACKER)]));
+
+        // Discord is down, so no inline sync can land.
+        world.putStatus = 500;
+        await admin.hackathon.batchUpdateParticipantStatus({
+          hackathonId: h.id,
+          participantIds: people.map((p) => p.participantId),
+          status: "rejected",
+        });
+        expect(new Set(await sigs(people))).toEqual(new Set([null]));
+        expect(world.puts).toHaveLength(0);
+
+        // Discord is back: the daily job clears them, a run at a time.
+        world.putStatus = 200;
+        expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 100 })).toEqual({
+          checked: 100,
+          synced: 100,
+        });
+        expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 100 })).toEqual({
+          checked: 50,
+          synced: 50,
+        });
+        expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 100 })).toEqual({
+          checked: 0,
+          synced: 0,
+        });
+        expect(new Set(await sigs(people))).toEqual(new Set([sigOf(ZEROS)]));
+        for (const p of people) expect(lastFor(p.account)).toEqual(ZEROS);
+      }, 60_000);
+
+      it("syncs what one request can and leaves the rest pending for the daily job", async () => {
+        await clearLinks();
+        const h = await makeHackathon("batch-up");
+        const admin = await staff("batch-up-admin");
+        const people = await linkedHackers(h.id, 150, "bu");
+
+        await admin.hackathon.batchUpdateParticipantStatus({
+          hackathonId: h.id,
+          participantIds: people.map((p) => p.participantId),
+          status: "rejected",
+        });
+        // Whatever the request did not reach is pending, never still "accepted".
+        const after = await sigs(people);
+        expect(after.filter((sig) => sig === sigOf(HACKER))).toHaveLength(0);
+        expect(after.filter((sig) => sig === sigOf(ZEROS)).length).toBeGreaterThanOrEqual(50);
+        expect(after.filter((sig) => sig === null).length).toBe(150 - after.filter((sig) => sig === sigOf(ZEROS)).length);
+
+        for (let run = 0; run < 3; run++) await svc.syncExpiredDiscordRoles(S.db as any, { limit: 100 });
+        expect(new Set(await sigs(people))).toEqual(new Set([sigOf(ZEROS)]));
+        for (const p of people) expect(lastFor(p.account)).toEqual(ZEROS);
+      }, 60_000);
+
+      it("marks a ban's people pending too", async () => {
+        await clearLinks();
+        const h = await makeHackathon("batch-ban");
+        const admin = await staff("batch-ban-admin");
+        const [person] = await linkedHackers(h.id, 1, "bb");
+        world.putStatus = 500;
+        const email = (
+          await S.db!.select({ email: S.users.email }).from(S.users).where(ops.eq(S.users.id, person!.userId))
+        )[0]!.email!;
+        await admin.hackathon.banFromHackathons({ email, reason: "Testing the ban" });
+        expect(await sigs([person!])).toEqual([null]);
+        await S.db!.delete(S.hackathonBans).where(ops.eq(S.hackathonBans.email, email.toLowerCase()));
+      });
+    });
+
+    describe("the daily job cannot be starved by links it cannot serve", () => {
+      const insertLink = async (
+        tag: string,
+        over: {
+          secret?: string;
+          expired?: boolean;
+          sig: string | null;
+          attemptedAt?: Date | null;
+        },
+      ) => {
+        const { sealTokens } = await import("../services/discord/tokens");
+        const userId = await makeUser(tag);
+        const account = acct(tag);
+        const issued = world.issue(account);
+        await S.db!.insert(S.discordLinks).values({
+          userId,
+          discordUserId: account,
+          discordUsername: account,
+          ...sealTokens(
+            {
+              accessToken: issued.access_token,
+              refreshToken: issued.refresh_token,
+              expiresAt: new Date(Date.now() + (over.expired ? -60_000 : 86_400_000)),
+            },
+            over.secret ?? SECRET,
+            userId,
+          ),
+          rolesSig: over.sig,
+          syncAttemptedAt: over.attemptedAt ?? null,
+        });
+        return { userId, account };
+      };
+      const sigOf = async (userId: string) => (await linkOf(userId))!.rolesSig;
+      const ROTATED = "z".repeat(40);
+
+      it("a link whose tokens cannot be opened leaves the sweep for good", async () => {
+        await clearLinks();
+        const stuck: { userId: string; account: string }[] = [];
+        for (let i = 0; i < 20; i++) {
+          stuck.push(await insertLink(`nt${i}`, { secret: ROTATED, sig: null }));
+        }
+
+        expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 15 })).toEqual({
+          checked: 15,
+          synced: 0,
+        });
+        expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 15 })).toEqual({
+          checked: 5,
+          synced: 0,
+        });
+        // Every one was tried once and marked unreachable, so nothing is left to try.
+        expect(await svc.syncExpiredDiscordRoles(S.db as any, { limit: 15 })).toEqual({
+          checked: 0,
+          synced: 0,
+        });
+        for (const { userId } of stuck) expect(await sigOf(userId)).toBe("unreachable");
+        expect(world.puts).toHaveLength(0);
+      });
+
+      it("takes at most 15 a run by default, and stops when its time is up", async () => {
+        await clearLinks();
+        expect(svc.SWEEP_BATCH).toBe(15);
+        const pending: { userId: string; account: string }[] = [];
+        for (let i = 0; i < 20; i++) {
+          pending.push(await insertLink(`cap${i}`, { sig: null }));
+        }
+        expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({ checked: 15, synced: 15 });
+
+        // Five are left; Discord answers slowly, and the run has 150 ms.
+        world.beforePut = async () => {
+          await sleep(100);
+        };
+        const run = await svc.syncExpiredDiscordRoles(S.db as any, { budgetMs: 150 });
+        expect(run.checked).toBeGreaterThanOrEqual(1);
+        expect(run.checked).toBeLessThan(5);
+        const left = (
+          await S.db!
+            .select({ sig: S.discordLinks.rolesSig })
+            .from(S.discordLinks)
+            .where(ops.inArray(S.discordLinks.userId, pending.map((p) => p.userId)))
+        ).filter((r) => r.sig === null);
+        expect(left.length).toBe(5 - run.checked);
+
+        // What it did not reach is still owed, and the next run finishes it.
+        world.beforePut = undefined;
+        expect(await svc.syncExpiredDiscordRoles(S.db as any)).toEqual({
+          checked: left.length,
+          synced: left.length,
+        });
+      }, 30_000);
+
+      it("30 links that keep failing do not keep a real expired volunteer waiting", async () => {
+        await clearLinks();
+        world.refreshFails = 500;
+        const stuck: { userId: string; account: string }[] = [];
+        for (let i = 0; i < 30; i++) {
+          stuck.push(await insertLink(`fl${i}`, { expired: true, sig: null }));
+        }
+        const volunteer = await insertLink("fl-vol", {
+          sig: "a0f0r0j0v1",
+        });
+        await S.db!.insert(S.admins).values({
+          userId: volunteer.userId,
+          role: "volunteer",
+          expiresAt: new Date(Date.now() - 60_000),
+        });
+
+        const sweep = () => svc.syncExpiredDiscordRoles(S.db as any, { limit: 15 });
+        const attempts = async () =>
+          new Map(
+            (
+              await S.db!
+                .select({ id: S.discordLinks.userId, at: S.discordLinks.syncAttemptedAt })
+                .from(S.discordLinks)
+                .where(ops.inArray(S.discordLinks.userId, stuck.map((s) => s.userId)))
+            ).map((r) => [r.id, r.at]),
+          );
+
+        // Each run takes the 15 tried longest ago (never-tried first), so the
+        // 31 are all reached in three runs, whatever order they sit in.
+        const seen = new Set<string>();
+        for (let run = 0; run < 3; run++) {
+          const before = await attempts();
+          const result = await sweep();
+          expect(result.checked).toBeLessThanOrEqual(15);
+          for (const [id, at] of await attempts()) {
+            if (at && at.getTime() !== before.get(id)?.getTime()) seen.add(id);
+          }
+        }
+        expect(seen.size).toBe(30);
+        // The volunteer was served, ahead of the links that only ever fail.
+        expect(await sigOf(volunteer.userId)).toBe("a0f0r0j0v0");
+        expect(lastFor(volunteer.account)).toEqual(ZEROS);
+        // The failing ones are still owed a sync; nothing marked them done.
+        for (const { userId } of stuck) expect(await sigOf(userId)).toBeNull();
+      }, 60_000);
+    });
+
+    describe("one person's changes take turns", () => {
+      // Roles are changed by a sync, a link and an unlink, each of which reads
+      // the link, calls Discord and writes back. Run at once they must not step
+      // on each other: a refresh token is single use, and two writes of "what
+      // Discord has" can land in the wrong order.
+      const opts = () => ({ config: CONFIG, secret: SECRET, fetchImpl: world.fn });
+      const sig = (m: Record<string, number>) =>
+        `a${m.accepted}f${m.food_group}r${m.ramadan}j${m.judge}v${m.volunteer}`;
+      const setJudge = (judgeId: string, isActive: boolean) =>
+        S.db!.update(S.judges).set({ isActive }).where(ops.eq(S.judges.id, judgeId));
+
+      it("two syncs at once refresh the token once, and neither drops the link", async () => {
+        const h = await makeHackathon("race-refresh");
+        const { u, judgeId } = await newJudge("race-refresh", h.id);
+        await linkAs(u, h.id, acct("race-refresh"));
+        await expireToken(u);
+        await setJudge(judgeId, false);
+        world.refreshDelayMs = 120;
+
+        const first = svc.syncDiscordRoles(S.db as any, u, opts());
+        await sleep(20);
+        const second = svc.syncDiscordRoles(S.db as any, u, opts());
+        const results = await Promise.all([first, second]);
+
+        expect(results).toEqual(["synced", "unchanged"]);
+        expect(world.refreshCalls).toBe(1);
+        const row = (await linkOf(u))!;
+        expect(row.rolesSig).toBe(sig(ZEROS));
+        expect(lastFor(acct("race-refresh"))).toEqual(ZEROS);
+      });
+
+      it("a sync that starts while another is publishing does not leave Discord behind the database", async () => {
+        const h = await makeHackathon("race-order");
+        const { u, judgeId } = await newJudge("race-order", h.id);
+        await linkAs(u, h.id, acct("race-order"));
+        await setJudge(judgeId, false);
+
+        // The first sync has read "no longer a judge" and is on its way to
+        // Discord. While it is there the judge is approved again, and a second
+        // sync starts.
+        let second!: Promise<unknown>;
+        let held = false;
+        world.beforePut = async () => {
+          if (held) return;
+          held = true;
+          await setJudge(judgeId, true);
+          second = svc.syncDiscordRoles(S.db as any, u, opts());
+          await sleep(120);
+        };
+        await svc.syncDiscordRoles(S.db as any, u, opts());
+        await second;
+
+        // The approval is what Discord ends up with, and the database says so.
+        expect(lastFor(acct("race-order"))).toEqual({ ...ZEROS, judge: 1 });
+        expect((await linkOf(u))!.rolesSig).toBe(sig({ ...ZEROS, judge: 1 }));
+      });
+
+      it("an unlink that starts during a sync still leaves the old account cleared", async () => {
+        const h = await makeHackathon("race-unlink");
+        const { u, judgeId } = await newJudge("race-unlink", h.id);
+        await linkAs(u, h.id, acct("race-unlink"));
+        await setJudge(judgeId, false);
+        expect(await svc.syncDiscordRoles(S.db as any, u, opts())).toBe("synced");
+        // Approved again: the next sync publishes judge, slowly.
+        await setJudge(judgeId, true);
+
+        let unlinking!: Promise<unknown>;
+        let held = false;
+        world.beforePut = async () => {
+          if (held) return;
+          held = true;
+          unlinking = hackathonAs(u).unlinkDiscord({ hackathonId: h.id });
+          await sleep(120);
+        };
+        expect(await svc.syncDiscordRoles(S.db as any, u, opts())).toBe("synced");
+        await unlinking;
+
+        expect(await linkOf(u)).toBeUndefined();
+        expect(lastFor(acct("race-unlink"))).toEqual(ZEROS);
+      });
+
+      it("linking another account while a sync runs clears the old one last-write-wins in order", async () => {
+        const h = await makeHackathon("race-relink");
+        const { u, judgeId } = await newJudge("race-relink", h.id);
+        await linkAs(u, h.id, acct("race-rx"));
+        await setJudge(judgeId, false);
+        expect(await svc.syncDiscordRoles(S.db as any, u, opts())).toBe("synced");
+        await setJudge(judgeId, true);
+
+        let linking!: Promise<unknown>;
+        let held = false;
+        world.beforePut = async () => {
+          if (held) return;
+          held = true;
+          linking = linkAs(u, h.id, acct("race-ry"));
+          await sleep(120);
+        };
+        await svc.syncDiscordRoles(S.db as any, u, opts());
+        await linking;
+
+        // X ends cleared and Y holds the role, whichever got there first.
+        expect(lastFor(acct("race-rx"))).toEqual(ZEROS);
+        expect(lastFor(acct("race-ry"))).toEqual({ ...ZEROS, judge: 1 });
+        expect(await linkOf(u)).toMatchObject({ discordUserId: acct("race-ry") });
+      });
+    });
+
+    it("a status change that gives a role is synced too, single or in a batch", async () => {
+      await clearLinks();
+      const h = await makeHackathon("status-up");
+      const admin = await staff("status-up-admin");
+      const make = async (tag: string) => {
+        const { u } = await newJudge(tag, h.id);
+        // Waitlisted, but already said they are coming.
+        const p = await makeParticipant(h.id, u, { registrationStatus: "waitlisted" });
+        await linkAs(u, h.id, acct(tag));
+        expect(lastFor(acct(tag))).toEqual({ ...ZEROS, judge: 1 });
+        return p.id;
+      };
+
+      await admin.hackathon.updateParticipantStatus({
+        hackathonId: h.id,
+        participantId: await make("up-single"),
+        status: "approved",
+      });
+      expect(lastFor(acct("up-single"))).toMatchObject({ accepted: 1, judge: 1 });
+      expect(lastFor(acct("up-single"))!.food_group).toBeGreaterThan(0);
+
+      await admin.hackathon.batchUpdateParticipantStatus({
+        hackathonId: h.id,
+        participantIds: [await make("up-batch")],
+        status: "approved",
+      });
+      expect(lastFor(acct("up-batch"))).toMatchObject({ accepted: 1, judge: 1 });
+      expect(lastFor(acct("up-batch"))!.food_group).toBeGreaterThan(0);
+    });
+
+    it("never throws into the change that triggered it", async () => {
+      const h = await makeHackathon("nothrow");
+      const { u, judgeId } = await newJudge("nothrow", h.id);
+      await linkAs(u, h.id, acct("nothrow"));
+      const logs = [
+        vi.spyOn(console, "error").mockImplementation(() => {}),
+        vi.spyOn(console, "warn").mockImplementation(() => {}),
+      ];
+      world.throws = true;
+      await expect(
+        (await staff("nothrow-admin")).judge.setActive({ judgeId, isActive: false }),
+      ).resolves.toMatchObject({ success: true, isActive: false });
+      const logged = logs.flatMap((log) => log.mock.calls.flat()).join(" ");
+      expect(logged).toContain("did not reach Discord");
+      for (const secret of world.issued) expect(logged).not.toContain(secret);
+      for (const log of logs) log.mockRestore();
+      // The judge is deactivated whether or not Discord heard about it.
+      expect((await S.db!.select().from(S.judges).where(ops.eq(S.judges.id, judgeId)))[0]!.isActive).toBe(false);
+    });
+
+    it("does nothing when Discord is not configured", async () => {
+      const h = await makeHackathon("off");
+      const { u } = await newJudge("off", h.id);
+      await linkAs(u, h.id, acct("off"));
+      const before = world.puts.length;
+      expect(await svc.syncDiscordRoles(S.db as any, u, { config: null })).toBe("off");
+      expect(world.puts).toHaveLength(before);
+    });
   });
 });

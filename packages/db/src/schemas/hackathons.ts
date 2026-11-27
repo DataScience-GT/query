@@ -411,6 +411,47 @@ export const hackathonApplicationDrafts = pgTable(
 export type HackathonApplicationDraft =
   typeof hackathonApplicationDrafts.$inferSelect;
 
+// The Discord account of someone who is not (or not only) a hacker. Judges and
+// volunteers have no hackathon_participant row to hold the link, and the
+// account is the person's, not an edition's, so it lives here, one row per
+// user. A confirmed hacker's link is still mirrored on their participant row
+// (it carries the Ramadan choice and the per-edition roster columns); the two
+// are written together. The id and username are what Discord gave us.
+//
+// The token columns hold the OAuth tokens AES-256-GCM encrypted (see
+// services/discord/token-crypto.ts), so a role can be taken back when a judge
+// is removed, a volunteer's term ends or the person unlinks: with no token the
+// site cannot change what Discord holds. They are null for a link made before
+// they were stored, which cannot be revoked. `roles_sig` is the metadata last
+// published ("a1f4r0j0v1"), so a sync that would change nothing sends nothing.
+// Null means a sync is owed (a change that could revoke a role was made and
+// Discord has not been told yet), and the daily job picks those up, oldest
+// `sync_attempted_at` first.
+export const discordLinks = pgTable(
+  "discord_link",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    discordUserId: text("discord_user_id").notNull(),
+    discordUsername: text("discord_username").notNull(),
+    linkedAt: timestamp("linked_at", { withTimezone: true }).defaultNow().notNull(),
+    accessTokenEnc: text("access_token_enc"),
+    refreshTokenEnc: text("refresh_token_enc"),
+    tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+    rolesSig: text("roles_sig"),
+    syncAttemptedAt: timestamp("sync_attempted_at", { withTimezone: true }),
+  },
+  (table) => [
+    // One Discord account per person; the first also makes the link upsert safe.
+    uniqueIndex("discord_link_user_idx").on(table.userId),
+    uniqueIndex("discord_link_discord_user_idx").on(table.discordUserId),
+  ],
+);
+
+export type DiscordLink = typeof discordLinks.$inferSelect;
+
 // Event scheduling for hackathons
 export const hackathonEvents = pgTable(
   "hackathon_event",

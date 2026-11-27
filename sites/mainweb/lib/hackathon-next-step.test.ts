@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  discordStep,
   hackathonNextStep,
   isWithinEditionDates,
   nextStepQueries,
@@ -588,5 +589,67 @@ describe("hackathonNextStep Discord step", () => {
       step({ now: AFTER, registrationStatus: "approved", discord: { linked: false } })
         ?.step,
     ).toBe("status");
+  });
+
+  it("asks an accepted hacker who has not confirmed to confirm, and holds the invite back", () => {
+    const next = step({
+      now: BEFORE,
+      registrationStatus: "approved",
+      discord: { linked: false, awaitingConfirmation: true },
+    });
+    expect(next).toEqual({
+      step: "confirm",
+      label: "Confirm you're coming",
+      detail: "You get the Discord invite once you do.",
+      href: `${BASE}?tab=INFO`,
+    });
+    // The same hacker who linked before the confirmation step still confirms.
+    expect(
+      step({
+        now: BEFORE,
+        registrationStatus: "approved",
+        discord: { linked: true, awaitingConfirmation: true },
+      })?.step,
+    ).toBe("confirm");
+  });
+
+  it("drops the confirm step once the event is over", () => {
+    expect(
+      step({
+        now: AFTER,
+        registrationStatus: "approved",
+        discord: { linked: false, awaitingConfirmation: true },
+      })?.step,
+    ).toBe("status");
+  });
+});
+
+describe("discordStep", () => {
+  const data = (over: Record<string, unknown> = {}) => ({
+    enabled: true,
+    linked: false,
+    awaitingConfirmation: false,
+    roles: { hacker: false },
+    ...over,
+  });
+
+  it("is off when the feature is off or nothing has loaded", () => {
+    expect(discordStep(undefined)).toBeNull();
+    expect(discordStep(data({ enabled: false, roles: { hacker: true } }))).toBeNull();
+  });
+
+  it("joins a confirmed hacker, and asks an unconfirmed one to confirm", () => {
+    expect(discordStep(data({ roles: { hacker: true } }))).toEqual({ linked: false });
+    expect(discordStep(data({ roles: { hacker: true }, linked: true }))).toEqual({
+      linked: true,
+    });
+    expect(discordStep(data({ awaitingConfirmation: true }))).toEqual({
+      linked: false,
+      awaitingConfirmation: true,
+    });
+  });
+
+  it("gives a judge or volunteer who is no hacker no hacker step", () => {
+    expect(discordStep(data())).toBeNull();
   });
 });

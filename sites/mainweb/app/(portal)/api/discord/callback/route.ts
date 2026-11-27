@@ -18,8 +18,8 @@ export const dynamic = "force-dynamic";
 /**
  * Discord sends the user back here with ?code=&state=. Checks the signed
  * state and the signed-in user, then links. On success it goes to the server
- * invite (first join) or the portal; on any failure back to the hackathon page
- * with ?discord=error&reason=.
+ * invite (first join) or the portal; on any failure back to the page the role's
+ * card lives on with ?discord=error&reason=.
  */
 export async function GET(request: NextRequest) {
   const config = discordConfig();
@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
     result = await completeLink({
       db: db as DrizzleDB,
       config,
+      secret,
       state,
       code,
       redirectUri: redirectUri(),
@@ -64,14 +65,14 @@ export async function GET(request: NextRequest) {
   if (!result.ok) {
     const extra: Record<string, string> = {};
     if (result.retryAfter) extra.retry = String(result.retryAfter);
-    return backToPortal(result.hackathon ?? null, {
-      discord: "error",
-      reason: result.reason,
-      ...extra,
-    });
+    return backToPortal(
+      result.hackathon ?? null,
+      { discord: "error", reason: result.reason, ...extra },
+      result.home,
+    );
   }
   if (result.then === "invite") {
     return NextResponse.redirect(config.inviteUrl);
   }
-  return backToPortal(result.hackathon, { discord: "linked" });
+  return backToPortal(result.hackathon, { discord: "linked" }, result.home);
 }

@@ -19,7 +19,12 @@ import {
 } from "@query/db";
 import { eq, and, inArray, ne, notExists, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
-import { autoAssignFoodGroups } from "../../../services/discord";
+import {
+  autoAssignFoodGroups,
+  markDiscordRolesPending,
+  syncDiscordRoles,
+  syncDiscordRolesFor,
+} from "../../../services/discord";
 import {
   SEATED_STATUSES,
   assertSeats,
@@ -103,6 +108,10 @@ export const statusProcedures = {
               "This applicant's status changed just now. Refresh and check again before letting them in.",
           });
         }
+        // A linked Discord account is owed a sync, whatever this request reaches.
+        await markDiscordRolesPending(tx as unknown as DrizzleDB, [
+          participant.userId,
+        ]);
       });
 
       // After the commit, not inside it: the assignment takes the hackathon row
@@ -110,6 +119,11 @@ export const statusProcedures = {
       if (input.status === "approved" || input.status === "checked_in") {
         await autoAssignFoodGroups(ctx.db as DrizzleDB, input.hackathonId);
       }
+      // Whichever way it moved, a linked Discord account follows: out of the
+      // accepted statuses it loses its hacker roles, and into them (with the
+      // flower just assigned) it may gain them. Nothing is sent when nothing
+      // changed.
+      await syncDiscordRoles(ctx.db as DrizzleDB, participant.userId);
 
       evictParticipantCaches(ctx.cache, input.hackathonId, [
         participant.userId,
@@ -507,7 +521,7 @@ export const statusProcedures = {
             participantIds,
           );
         }
-        return tx
+        const changed = await tx
           .update(hackathonParticipants)
           .set({
             registrationStatus: status,
@@ -542,6 +556,13 @@ export const statusProcedures = {
             id: hackathonParticipants.id,
             userId: hackathonParticipants.userId,
           });
+        // Every linked Discord account among them is owed a sync, however many
+        // this request manages to reach.
+        await markDiscordRolesPending(
+          tx as unknown as DrizzleDB,
+          changed.map((row) => row.userId),
+        );
+        return changed;
       });
 
       if (
@@ -550,6 +571,12 @@ export const statusProcedures = {
       ) {
         await autoAssignFoodGroups(ctx.db as DrizzleDB, hackathonId);
       }
+      // Any direction, as for one person above. Everyone linked among them is
+      // already marked pending; this reaches as many as the request has time for.
+      await syncDiscordRolesFor(
+        ctx.db as DrizzleDB,
+        rows.map((row) => row.userId),
+      );
 
       evictParticipantCaches(
         ctx.cache,

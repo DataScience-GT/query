@@ -21,6 +21,10 @@ import type { DrizzleDB } from "@query/db";
 import { evictParticipantCaches } from "./admin";
 import { teamMemberCountsForUser } from "../../services/derived-counts";
 import { saveDraftInput } from "../../services/application-drafts";
+import {
+  markDiscordRolesPending,
+  syncDiscordRoles,
+} from "../../services/discord";
 import { rateLimitShared } from "../../middleware/security";
 
 // Postgres unique_violation on hackathon_participant_hackathon_user_idx — a second
@@ -526,20 +530,30 @@ export const hackathonRegistrationRouter = createTRPCRouter({
 
       // The checks above are a read; a badge scan or a team join can land
       // before this. Repeating them here deletes nothing in that case.
-      const removed = await db
-        .delete(hackathonParticipants)
-        .where(
-          and(
-            eq(hackathonParticipants.id, participant.id),
-            notInArray(hackathonParticipants.registrationStatus, [
-              "checked_in",
-              "rejected",
-              "waitlisted",
-            ]),
-            isNull(hackathonParticipants.teamId),
-          ),
-        )
-        .returning({ id: hackathonParticipants.id });
+      const removed = await db.transaction(async (tx) => {
+        const deleted = await tx
+          .delete(hackathonParticipants)
+          .where(
+            and(
+              eq(hackathonParticipants.id, participant.id),
+              notInArray(hackathonParticipants.registrationStatus, [
+                "checked_in",
+                "rejected",
+                "waitlisted",
+              ]),
+              isNull(hackathonParticipants.teamId),
+            ),
+          )
+          .returning({ id: hackathonParticipants.id });
+        // A linked Discord account is owed a sync, even if this request's own
+        // attempt below does not reach Discord.
+        if (deleted.length > 0) {
+          await markDiscordRolesPending(tx as unknown as DrizzleDB, [
+            ctx.userId as string,
+          ]);
+        }
+        return deleted;
+      });
       if (removed.length === 0) {
         throw new TRPCError({
           code: "CONFLICT",
@@ -551,6 +565,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       evictParticipantCaches(ctx.cache, input.hackathonId, [
         ctx.userId as string,
       ]);
+      await syncDiscordRoles(db, ctx.userId as string);
 
       return { success: true };
     }),

@@ -28,10 +28,6 @@ export function foodGroupByKey(
   return FOOD_GROUPS.find((g) => g.key === key) ?? null;
 }
 
-/** Statuses that may link: accepted, or already through the door. */
-export const isDiscordEligible = (status: string | null | undefined) =>
-  status === "approved" || status === "checked_in";
-
 export type DiscordConfig = {
   clientId: string;
   clientSecret: string;
@@ -48,4 +44,15 @@ export function discordConfig(
   if (!clientId || !clientSecret || !inviteUrl) return null;
   if (!/^https:\/\//.test(inviteUrl)) return null;
   return { clientId, clientSecret, inviteUrl };
+}
+
+/**
+ * The secret the stored Discord tokens are sealed under (through HKDF, see
+ * token-crypto.ts): the same AUTH_SECRET the rest of the app reads. Null when
+ * it is not set, and nothing then reads or writes a token.
+ */
+export function discordTokenSecret(
+  env: Record<string, string | undefined> = process.env,
+): string | null {
+  return env.AUTH_SECRET || env.NEXTAUTH_SECRET || null;
 }

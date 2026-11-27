@@ -25,7 +25,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /**
  * Starts the Discord link. Also the "Linked Roles Verification URL" in the
  * Discord developer portal, which sends no query: the edition then defaults to
- * the live one the signed-in user is accepted to.
+ * the newest live one in which the signed-in user holds a role (a hacker who
+ * confirmed they are coming, an approved judge, or a volunteer).
  *
  *   ?hackathon=ID     optional
  *   ?ramadan=1|0      optional; absent keeps the stored choice
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
     userId,
     hackathonId,
   );
-  if (!target?.hackathon) {
+  if (!target) {
     return backToPortal(null, { discord: "error", reason: "not_accepted" });
   }
 

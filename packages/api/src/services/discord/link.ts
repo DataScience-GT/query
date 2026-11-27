@@ -1,141 +1,170 @@
-import { and, eq } from "drizzle-orm";
-import { hackathonParticipants } from "@query/db";
+import { and, eq, ne } from "drizzle-orm";
+import { discordLinks, hackathonParticipants } from "@query/db";
 import type { DrizzleDB } from "@query/db";
-import { foodGroupByKey, isDiscordEligible } from "./config";
+import {
+  API,
+  failureFor,
+  putRoleConnection,
+  readTokens,
+  refusal,
+  safeMessage,
+} from "./api";
+import type { LinkErrorReason } from "./api";
 import type { DiscordConfig } from "./config";
-import { ensureFoodGroup } from "./food-group";
+import {
+  discordContext,
+  hackerPayload,
+  hasDiscordRole,
+  roleMetadata,
+  roleSignature,
+} from "./roles";
+import type { DiscordParticipant, DiscordRoles } from "./roles";
 import type { DiscordState } from "./state";
+import { withDiscordLock, zeroDiscordRoles } from "./sync";
+import { sealTokens } from "./tokens";
 import { isUniqueViolation } from "../../middleware/db-errors";
 
-const API = "https://discord.com/api/v10";
-
-type LinkErrorReason =
-  | "not_accepted"
-  | "bad_code"
-  | "rate_limited"
-  | "discord_denied"
-  | "discord_error"
-  | "already_linked";
-
 type HackathonRef = { id: string; name: string };
+
+/**
+ * Where the person goes back to: the hackathon page for a hacker, the judge
+ * page for a judge, the check-in desk for a volunteer. Each is where that
+ * role's Discord card lives.
+ */
+export type LinkHome = "hackathon" | "judge" | "scan";
 
 type LinkResult =
   | {
       ok: true;
       then: DiscordState["t"];
       hackathon: HackathonRef;
+      home: LinkHome;
       username: string;
     }
   | {
       ok: false;
       reason: LinkErrorReason;
       hackathon?: HackathonRef;
+      home?: LinkHome;
       retryAfter?: number;
     };
 
 /**
- * The participant a connect request is for. With a hackathon id, that one;
- * without (Discord's Linked Roles verification URL sends none), the newest
- * edition that is not cancelled or over which the user is accepted to.
- * Null when they are not accepted there.
+ * The edition a connect request is for, with what the person holds there.
+ * With a hackathon id, that one; without (Discord's Linked Roles verification
+ * URL sends none), the newest edition that is not cancelled or over in which
+ * they hold a role. Null when they hold none: not a confirmed hacker, an
+ * approved judge or a volunteer.
  */
 export async function resolveConnectTarget(
   db: DrizzleDB,
   userId: string,
   hackathonId: string | null,
 ) {
-  if (hackathonId) {
-    const row = await db.query.hackathonParticipants.findFirst({
-      where: { hackathonId, userId },
-      with: { hackathon: { columns: { id: true, name: true } } },
-    });
-    return row && isDiscordEligible(row.registrationStatus) ? row : null;
-  }
-  const rows = await db.query.hackathonParticipants.findMany({
-    where: { userId },
-    with: {
-      hackathon: {
-        columns: { id: true, name: true, status: true, startDate: true },
-      },
-    },
-  });
-  const live = rows
-    .filter(
-      (r) =>
-        isDiscordEligible(r.registrationStatus) &&
-        r.hackathon &&
-        r.hackathon.status !== "cancelled" &&
-        r.hackathon.status !== "completed",
-    )
-    .sort(
-      (a, b) =>
-        new Date(b.hackathon!.startDate).getTime() -
-        new Date(a.hackathon!.startDate).getTime(),
-    );
-  return live[0] ?? null;
-}
-
-/** The Ramadan flag Discord receives: opted in AND fasting is "Yes". */
-export const ramadanFlag = (optIn: boolean, fasting: string | null | undefined) =>
-  optIn && fasting === "Yes" ? 1 : 0;
-
-function failureFor(status: number): LinkErrorReason {
-  if (status === 429) return "rate_limited";
-  if (status === 401 || status === 403) return "discord_denied";
-  return "discord_error";
+  const context = await discordContext(db, userId, hackathonId);
+  return context && hasDiscordRole(context.roles) ? context : null;
 }
 
 /**
- * A refused Discord call: logs the step, status and Discord's error body (never
- * a token; the bodies of failed calls carry only an error code and message),
- * and reads `retry_after` from the same body for a 429.
+ * The Discord account stored for this person: the one on their participant
+ * row (where hackers linked before judges and volunteers could), else their
+ * own link row.
  */
-async function refusal(
-  step: "token" | "me" | "role-connection",
-  res: Response,
-): Promise<{ status: number; retryAfter?: number }> {
-  const text = await res.text().catch(() => "");
-  // Deliberate operational logging: the only trace of why a link failed.
-  // oxlint-disable-next-line no-console
-  console.warn(`[Discord link] ${step} refused: ${res.status} ${text.slice(0, 300)}`);
-  let retryAfter: number | undefined;
-  if (res.status === 429) {
-    try {
-      const n = (JSON.parse(text) as { retry_after?: number }).retry_after;
-      if (typeof n === "number") retryAfter = Math.ceil(n);
-    } catch {
-      // No JSON body: retry with no hint.
-    }
+export async function storedLink(
+  db: DrizzleDB,
+  userId: string,
+  participant: Pick<
+    DiscordParticipant,
+    "discordUsername" | "discordLinkedAt"
+  > | null,
+): Promise<{ username: string; linkedAt: Date } | null> {
+  if (participant?.discordLinkedAt && participant.discordUsername) {
+    return {
+      username: participant.discordUsername,
+      linkedAt: participant.discordLinkedAt,
+    };
   }
-  return { status: res.status, retryAfter };
+  const [row] = await db
+    .select({
+      username: discordLinks.discordUsername,
+      linkedAt: discordLinks.linkedAt,
+    })
+    .from(discordLinks)
+    .where(eq(discordLinks.userId, userId))
+    .limit(1);
+  return row ?? null;
 }
+
+/** Whether somebody else already holds this Discord account, in either store. */
+async function heldByAnother(
+  db: DrizzleDB,
+  discordUserId: string,
+  userId: string,
+  hackathonId: string,
+): Promise<boolean> {
+  const [link] = await db
+    .select({ id: discordLinks.id })
+    .from(discordLinks)
+    .where(
+      and(
+        eq(discordLinks.discordUserId, discordUserId),
+        ne(discordLinks.userId, userId),
+      ),
+    )
+    .limit(1);
+  if (link) return true;
+  const [participant] = await db
+    .select({ id: hackathonParticipants.id })
+    .from(hackathonParticipants)
+    .where(
+      and(
+        eq(hackathonParticipants.hackathonId, hackathonId),
+        eq(hackathonParticipants.discordUserId, discordUserId),
+        ne(hackathonParticipants.userId, userId),
+      ),
+    )
+    .limit(1);
+  return !!participant;
+}
+
+const homeOf = (roles: DiscordRoles): LinkHome =>
+  roles.hacker ? "hackathon" : roles.judge ? "judge" : "scan";
+
+const failWith =
+  (hackathon: HackathonRef, home: LinkHome) =>
+  (reason: LinkErrorReason, extra: { retryAfter?: number } = {}): LinkResult => ({
+    ok: false,
+    reason,
+    hackathon,
+    home,
+    ...extra,
+  });
 
 /**
  * The callback, after the route has checked the state and session. Exchanges
- * the code, reads the account, stores the link, then publishes the Linked
- * Roles metadata with the user's own token. The token is never kept.
+ * the code, reads the account, stores the link and the person's tokens
+ * (encrypted, so a role can be taken back later), then publishes the Linked
+ * Roles metadata with their own token. When the person is changing to a
+ * different Discord account, the old account's roles are cleared first, so
+ * one person cannot leave a role on each account they link in turn.
  */
 export async function completeLink(opts: {
   db: DrizzleDB;
   config: DiscordConfig;
+  /** AUTH_SECRET: the tokens are sealed under a key derived from it. */
+  secret: string;
   state: DiscordState;
   code: string;
   redirectUri: string;
   fetchImpl?: typeof fetch;
 }): Promise<LinkResult> {
-  const { db, config, state, code } = opts;
+  const { db, config, secret, state, code } = opts;
   const doFetch = opts.fetchImpl ?? fetch;
 
-  const participant = await resolveConnectTarget(db, state.u, state.h);
-  if (!participant) return { ok: false, reason: "not_accepted" };
-  const hackathon: HackathonRef = {
-    id: participant.hackathon!.id,
-    name: participant.hackathon!.name,
-  };
-  const fail = (
-    reason: LinkErrorReason,
-    extra: { retryAfter?: number } = {},
-  ): LinkResult => ({ ok: false, reason, hackathon, ...extra });
+  // Refused here, before Discord is called at all, when they hold no role.
+  const early = await resolveConnectTarget(db, state.u, state.h);
+  if (!early) return { ok: false, reason: "not_accepted" };
+  const failEarly = failWith(early.hackathon, homeOf(early.roles));
 
   const tokenRes = await doFetch(`${API}/oauth2/token`, {
     method: "POST",
@@ -150,97 +179,188 @@ export async function completeLink(opts: {
   });
   if (!tokenRes.ok) {
     const { status, retryAfter } = await refusal("token", tokenRes);
-    if (status === 400) return fail("bad_code");
-    return fail(failureFor(status), { retryAfter });
+    if (status === 400) return failEarly("bad_code");
+    return failEarly(failureFor(status), { retryAfter });
   }
-  const accessToken = ((await tokenRes.json()) as { access_token?: string })
-    .access_token;
-  if (!accessToken) return fail("bad_code");
+  const tokens = readTokens(await tokenRes.json());
+  if (!tokens) return failEarly("bad_code");
+  const accessToken = tokens.accessToken;
 
   const meRes = await doFetch(`${API}/users/@me`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!meRes.ok) {
     const { status, retryAfter } = await refusal("me", meRes);
-    return fail(failureFor(status), { retryAfter });
+    return failEarly(failureFor(status), { retryAfter });
   }
   const me = (await meRes.json()) as {
     id?: string;
     username?: string;
     global_name?: string | null;
   };
-  if (!me.id || !me.username) return fail("discord_error");
+  if (!me.id || !me.username) return failEarly("discord_error");
+  const discordId = me.id;
+  const discordName = me.username;
   const displayName = me.global_name || me.username;
 
-  // The food group first, so the metadata always has one.
-  const groupKey = await ensureFoodGroup(db, hackathon.id, participant.id);
-  const optIn =
-    state.r === null
-      ? (participant.ramadanRoleOptIn ?? false)
-      : state.r === 1;
-  const ramadan = ramadanFlag(optIn, participant.ramadanFasting);
-  const before = {
-    discordUserId: participant.discordUserId,
-    discordUsername: participant.discordUsername,
-    discordLinkedAt: participant.discordLinkedAt,
-    ramadanRoleOptIn: participant.ramadanRoleOptIn,
-  };
-  try {
-    await db
-      .update(hackathonParticipants)
-      .set({
-        discordUserId: me.id,
-        discordUsername: me.username,
-        discordLinkedAt: new Date(),
-        ramadanRoleOptIn: ramadan === 1,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(hackathonParticipants.id, participant.id),
-          eq(hackathonParticipants.hackathonId, hackathon.id),
-        ),
+  // From here the person's Discord changes: their old account may be cleared,
+  // the link is stored and the roles are published. That is one turn, so a
+  // sync or an unlink for the same person cannot interleave. What they hold is
+  // read again inside it, since it may have changed while Discord was asked.
+  return withDiscordLock(db, state.u, async (tx): Promise<LinkResult> => {
+    const target = await resolveConnectTarget(tx, state.u, state.h);
+    if (!target) return { ok: false, reason: "not_accepted" };
+    const { hackathon, participant, roles } = target;
+    const home = homeOf(roles);
+    const fail = failWith(hackathon, home);
+
+    if (await heldByAnother(tx, discordId, state.u, hackathon.id)) {
+      return fail("already_linked");
+    }
+
+    const [priorLink] = await tx
+      .select()
+      .from(discordLinks)
+      .where(eq(discordLinks.userId, state.u))
+      .limit(1);
+    // A different account than the one linked before: its roles are cleared
+    // first, with the token kept for it. If Discord cannot be reached to do
+    // that, the link does not move. A link with no token, or one Discord says
+    // was withdrawn, has nothing to clear.
+    let clearedOldAccount = false;
+    if (priorLink && priorLink.discordUserId !== discordId) {
+      const cleared = await zeroDiscordRoles(tx, priorLink, {
+        config,
+        secret,
+        fetchImpl: doFetch,
+      });
+      if (cleared === "failed") return fail("discord_error");
+      clearedOldAccount = cleared === "cleared" || cleared === "revoked";
+    }
+
+    // Only a confirmed hacker has a flower and a Ramadan choice.
+    const hacker = await hackerPayload(
+      tx,
+      target,
+      state.r === null ? null : state.r === 1,
+    );
+    const metadata = roleMetadata(roles, hacker);
+    const signature = roleSignature(metadata);
+
+    const before = participant && {
+      discordUserId: participant.discordUserId,
+      discordUsername: participant.discordUsername,
+      discordLinkedAt: participant.discordLinkedAt,
+      ramadanRoleOptIn: participant.ramadanRoleOptIn,
+    };
+    const linkedAt = new Date();
+    const link = {
+      discordUserId: discordId,
+      discordUsername: discordName,
+      linkedAt,
+      ...sealTokens(tokens, secret, state.u),
+      // Set once Discord has taken the roles.
+      rolesSig: null,
+    };
+    try {
+      await tx.transaction(async (inner) => {
+        await inner
+          .insert(discordLinks)
+          .values({ userId: state.u, ...link })
+          .onConflictDoUpdate({ target: discordLinks.userId, set: link });
+        // A confirmed hacker's link is mirrored on their participant row, which
+        // carries the Ramadan choice and the roster columns.
+        if (hacker && participant) {
+          await inner
+            .update(hackathonParticipants)
+            .set({
+              discordUserId: discordId,
+              discordUsername: discordName,
+              discordLinkedAt: linkedAt,
+              ramadanRoleOptIn: hacker.ramadan === 1,
+              updatedAt: linkedAt,
+            })
+            .where(
+              and(
+                eq(hackathonParticipants.id, participant.id),
+                eq(hackathonParticipants.hackathonId, hackathon.id),
+              ),
+            );
+        }
+      });
+    } catch (error) {
+      if (isUniqueViolation(error)) return fail("already_linked");
+      throw error;
+    }
+
+    let putRes: Response | null = null;
+    try {
+      putRes = await putRoleConnection(
+        doFetch,
+        config,
+        accessToken,
+        displayName,
+        metadata,
       );
-  } catch (error) {
-    if (isUniqueViolation(error)) return fail("already_linked");
-    throw error;
-  }
+    } catch (error) {
+      // oxlint-disable-next-line no-console
+      console.warn(`[Discord link] publish did not reach Discord: ${safeMessage(error)}`);
+    }
+    if (!putRes?.ok) {
+      // Roll the link back: a stored link whose roles never reached Discord
+      // would read as done. When the old account was just cleared there is
+      // nothing to go back to, so nothing is linked.
+      await tx.transaction(async (inner) => {
+        if (priorLink && !clearedOldAccount) {
+          await inner
+            .update(discordLinks)
+            .set({
+              discordUserId: priorLink.discordUserId,
+              discordUsername: priorLink.discordUsername,
+              linkedAt: priorLink.linkedAt,
+              accessTokenEnc: priorLink.accessTokenEnc,
+              refreshTokenEnc: priorLink.refreshTokenEnc,
+              tokenExpiresAt: priorLink.tokenExpiresAt,
+              rolesSig: priorLink.rolesSig,
+            })
+            .where(eq(discordLinks.userId, state.u));
+        } else {
+          await inner
+            .delete(discordLinks)
+            .where(eq(discordLinks.userId, state.u));
+        }
+        if (hacker && participant && before) {
+          await inner
+            .update(hackathonParticipants)
+            .set(
+              clearedOldAccount
+                ? {
+                    discordUserId: null,
+                    discordUsername: null,
+                    discordLinkedAt: null,
+                    ramadanRoleOptIn: null,
+                  }
+                : before,
+            )
+            .where(eq(hackathonParticipants.id, participant.id));
+        }
+      });
+      if (!putRes) return fail("discord_error");
+      const { status, retryAfter } = await refusal("role-connection", putRes);
+      return fail(failureFor(status), { retryAfter });
+    }
 
-  const group = foodGroupByKey(groupKey);
-  const putRes = await doFetch(
-    `${API}/users/@me/applications/${config.clientId}/role-connection`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        platform_name: "Hacklytics",
-        platform_username: displayName,
-        metadata: {
-          accepted: 1,
-          food_group: group?.number ?? 0,
-          ramadan,
-        },
-      }),
-    },
-  );
-  if (!putRes.ok) {
-    // Roll the link back: a stored link whose roles never reached Discord
-    // would read as done.
-    await db
-      .update(hackathonParticipants)
-      .set(before)
-      .where(eq(hackathonParticipants.id, participant.id));
-    const { status, retryAfter } = await refusal("role-connection", putRes);
-    return fail(failureFor(status), { retryAfter });
-  }
+    await tx
+      .update(discordLinks)
+      .set({ rolesSig: signature })
+      .where(eq(discordLinks.userId, state.u));
 
-  return {
-    ok: true,
-    then: state.t,
-    hackathon,
-    username: me.username,
-  };
+    return {
+      ok: true,
+      then: state.t,
+      hackathon,
+      home,
+      username: discordName,
+    };
+  });
 }

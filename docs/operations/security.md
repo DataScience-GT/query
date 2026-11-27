@@ -11,6 +11,7 @@ This page is the map of controls already in the product. It is not a pentest rep
 - Email code requests are capped in the database per client network, per email domain, per address and for the whole deployment. A request any cap refuses is answered as busy, never as sent (see [email](../features/email.md#sign-in-codes-are-separate))
 - `allowDangerousEmailAccountLinking` is on so Google/Discord can attach to an existing verified email. That is why CSRF on the OAuth callback must stay on, and why Discord sign-in is refused unless Discord marks the email `verified`
 - Redirect callback only allows same-origin URLs
+- Discord Linked Roles keep the person's OAuth tokens, encrypted with AES-256-GCM under a key derived from `AUTH_SECRET` (HKDF, its own label, bound to the person), so a role can be taken back when a judge, volunteer or hacker loses it. They are never logged or returned. See [Discord link](../features/discord.md#taking-roles-back)
 
 ## Authorization
 

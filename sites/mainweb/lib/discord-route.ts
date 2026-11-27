@@ -6,6 +6,7 @@ import {
   rateLimitShared,
   resolveClientIp,
 } from "@query/api/middleware/security";
+import type { LinkHome } from "@query/api/discord";
 import { hackathonPathSegment } from "@/lib/hackathon-slug";
 
 export function authSecret(): string | null {
@@ -29,14 +30,23 @@ export async function overLimit(
   return !allowed;
 }
 
-/** Back to the hackathon page (or the dashboard) with a Discord outcome. */
+/**
+ * Back to the page the person's Discord card lives on, with a Discord outcome:
+ * the hackathon page for a hacker, the judge page for a judge, the check-in
+ * desk for a volunteer. The dashboard when no edition is known.
+ */
 export function backToPortal(
   hackathon: { id: string; name: string } | null,
   params: Record<string, string>,
+  home: LinkHome = "hackathon",
 ) {
-  const path = hackathon
-    ? `/hackathons/${hackathonPathSegment(hackathon.name, hackathon.id)}`
-    : "/dashboard";
+  const path = !hackathon
+    ? "/dashboard"
+    : home === "judge"
+      ? "/judge"
+      : home === "scan"
+        ? "/scan"
+        : `/hackathons/${hackathonPathSegment(hackathon.name, hackathon.id)}`;
   const url = new URL(path, siteOrigin());
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   return NextResponse.redirect(url);

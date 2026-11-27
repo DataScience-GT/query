@@ -12,6 +12,7 @@ import { FormChipSelect } from "@query/ui/FormChipSelect";
 import { useIsClient } from "@/lib/use-is-client";
 import { usePortalContext } from "@/lib/use-portal-context";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import { DiscordCard } from "@/components/hackathon/DiscordCard";
 import {
   body,
   btnSecondary,
@@ -164,6 +165,12 @@ export default function JudgePage() {
             : "Apply to judge an edition. An organizer approves you before judging day."}
         </p>
       </header>
+
+      {/* The card shows itself only to an approved judge, for the newest live
+          edition; empty, the wrapper and its rule are hidden too. */}
+      <div className={`mt-10 empty:hidden ${sectionRule}`}>
+        <DiscordCard />
+      </div>
 
       {judging.length > 0 && (
         <section className={`mt-10 ${sectionRule}`}>

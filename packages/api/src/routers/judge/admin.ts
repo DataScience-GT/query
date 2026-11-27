@@ -10,6 +10,7 @@ import { eq, and, sql, desc } from "drizzle-orm";
 import { isAdmin, isSuperAdmin } from "../../middleware/procedures";
 import { CacheKeys, invalidatePortalContext } from "../../middleware/cache";
 import { portalOrigin } from "../../services/judging/claims";
+import { syncDiscordRoles } from "../../services/discord";
 import type { DrizzleDB } from "@query/db";
 
 // The organiser's side of the judge roster: who applied, who is approved, and
@@ -116,6 +117,10 @@ export const judgeAdminRouter = createTRPCRouter({
       ctx.cache.deletePattern(`${CacheKeys.judge(user.id)}*`);
       invalidatePortalContext(user.id);
 
+      // Someone already linked to Discord gets the judge role without linking
+      // again.
+      await syncDiscordRoles(ctx.db as DrizzleDB, user.id);
+
       // There was no application, so nothing else tells them they are a judge.
       // Its own copy rather than the approval's. Best-effort: a mail failure
       // must not undo a judge already in the database.
@@ -195,6 +200,10 @@ export const judgeAdminRouter = createTRPCRouter({
       // The sidebar reads portal context, which lives 5 minutes — without this the
       // approved judge waits out that TTL before the Judge tab appears.
       invalidatePortalContext(updated.userId);
+
+      // Approval and removal of approval both move the Discord role: the judge
+      // role is granted or taken back on their linked account.
+      await syncDiscordRoles(ctx.db as DrizzleDB, updated.userId);
 
       // Tells the judge they were approved — the register success screen
       // promises this. Only on the transition. Best-effort: a mail failure must
@@ -277,6 +286,7 @@ export const judgeAdminRouter = createTRPCRouter({
       if (removed) {
         ctx.cache.deletePattern(`${CacheKeys.judge(removed.userId)}*`);
         invalidatePortalContext(removed.userId);
+        await syncDiscordRoles(ctx.db as DrizzleDB, removed.userId);
       }
       return { success: true };
     }),

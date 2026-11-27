@@ -18,7 +18,8 @@ if (!clientId || !token) {
 }
 
 // type 3 = integer_equal, type 7 = boolean_equal. `key` is what the callback
-// sends (packages/api/src/services/discord/link.ts); do not rename it.
+// sends (roleMetadata in packages/api/src/services/discord/roles.ts); do not
+// rename it. Discord allows at most 5 fields, and this is all 5.
 const records = [
   {
     key: "accepted",
@@ -36,6 +37,18 @@ const records = [
     key: "ramadan",
     name: "Ramadan meals",
     description: "Opted in to the Ramadan meals role",
+    type: 7,
+  },
+  {
+    key: "judge",
+    name: "Hacklytics judge",
+    description: "An approved judge of the current Hacklytics",
+    type: 7,
+  },
+  {
+    key: "volunteer",
+    name: "Hacklytics volunteer",
+    description: "A volunteer for the current Hacklytics",
     type: 7,
   },
 ];
