@@ -84,7 +84,7 @@ export const volunteerAdminRouter = createTRPCRouter({
 
       const before = await db.query.hackathonVolunteerApplications.findFirst({
         where: { id: input.applicationId },
-        columns: { status: true, hackathonId: true, userId: true },
+        columns: { status: true, hackathonId: true, userId: true, mode: true },
         with: { user: { columns: { email: true } } },
       });
       if (!before) {
@@ -157,6 +157,7 @@ export const volunteerAdminRouter = createTRPCRouter({
             await mail.sendVolunteerApprovedEmail({
               email,
               hackathonName,
+              mode: before.mode,
               volunteerUrl: `${portalOrigin()}/hackathons/${toSlug(hackathonName) || before.hackathonId}/volunteer`,
             });
           } else {

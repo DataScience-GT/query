@@ -23,7 +23,12 @@ import type * as Volunteer from "../services/volunteer";
 const URL = process.env.TEST_DATABASE_URL;
 
 const mailed = vi.hoisted(() => ({
-  approved: [] as { email: string; hackathonName: string; volunteerUrl: string }[],
+  approved: [] as {
+    email: string;
+    hackathonName: string;
+    mode: string;
+    volunteerUrl: string;
+  }[],
   declined: [] as { email: string; hackathonName: string }[],
   refuse: new Set<string>(),
 }));
@@ -45,6 +50,7 @@ const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
 const answers = (over: Record<string, unknown> = {}) => ({
+  mode: "in_person",
   affiliation: "gt_student",
   availability: ["sat_morning", "fri_setup"],
   roles: ["check_in", "meals"],
@@ -55,6 +61,29 @@ const answers = (over: Record<string, unknown> = {}) => ({
   acknowledged: true,
   ...over,
 });
+
+// An online mentor: no shirt size, diet or phone.
+const onlineAnswers = (over: Record<string, unknown> = {}) => ({
+  mode: "online",
+  affiliation: "industry",
+  topics: ["llm_apps", "python"],
+  onlineAvailability: ["o_sat_evening", "o_fri_evening"],
+  mentorExperience: "Four years shipping ML services; mentored at two hackathons.",
+  acknowledged: true,
+  ...over,
+});
+
+// Both sets of questions.
+const bothAnswers = (over: Record<string, unknown> = {}) =>
+  onlineAnswers({
+    mode: "both",
+    availability: ["sat_morning"],
+    roles: ["help_desk"],
+    shirtSize: "L",
+    dietary: [],
+    phone: "(404) 555-0142",
+    ...over,
+  });
 
 describe.skipIf(!URL)("volunteer application against a real database", () => {
   const suffix = Math.random().toString(36).slice(2, 10);
@@ -100,17 +129,18 @@ describe.skipIf(!URL)("volunteer application against a real database", () => {
     return row!;
   };
   const as = (userId: string) => appRouter.createCaller(ctx(userId)).volunteer;
-  const rowFor = async (userId: string, hackathonId: string) =>
-    (
-      await S.db!.select()
-        .from(S.hackathonVolunteerApplications)
-        .where(
-          ops.and(
-            ops.eq(S.hackathonVolunteerApplications.userId, userId),
-            ops.eq(S.hackathonVolunteerApplications.hackathonId, hackathonId),
-          ),
-        )
-    )[0];
+  // answers is read loosely: the shape depends on how the person offered to help.
+  const rowFor = async (userId: string, hackathonId: string) => {
+    const [row] = await S.db!.select()
+      .from(S.hackathonVolunteerApplications)
+      .where(
+        ops.and(
+          ops.eq(S.hackathonVolunteerApplications.userId, userId),
+          ops.eq(S.hackathonVolunteerApplications.hackathonId, hackathonId),
+        ),
+      );
+    return row && { ...row, answers: row.answers as Record<string, any> };
+  };
   const auditFor = async (action: string, resourceId: string) =>
     S.db!.select()
       .from(S.auditLogs)
@@ -181,11 +211,16 @@ describe.skipIf(!URL)("volunteer application against a real database", () => {
       const result = await as(u).submit({ hackathonId: h.id, answers: answers() });
       expect(result).toEqual({ status: "pending" });
 
-      const { application: mine } = await as(u).myApplication({
+      const { application } = await as(u).myApplication({
         hackathonId: h.id,
       });
+      const mine = application && {
+        ...application,
+        answers: application.answers as Record<string, any>,
+      };
       expect(mine?.status).toBe("pending");
       // Held in the form's own order, whatever order they were picked in.
+      expect(mine?.mode).toBe("in_person");
       expect(mine?.answers.availability).toEqual(["fri_setup", "sat_morning"]);
       expect(mine?.answers.phone).toBe("(404) 555-0142");
       // Who decides stays off what the applicant reads.
@@ -224,6 +259,7 @@ describe.skipIf(!URL)("volunteer application against a real database", () => {
           "availability",
           "dietary",
           "experience",
+          "mode",
           "phone",
           "roles",
           "shirtSize",
@@ -270,7 +306,10 @@ describe.skipIf(!URL)("volunteer application against a real database", () => {
         .where(ops.eq(S.hackathonVolunteerApplications.hackathonId, h.id));
       expect(rows).toHaveLength(1);
       // The refused second submit changed nothing.
-      expect(rows[0]!.answers.roles).toEqual(["check_in", "meals"]);
+      expect((rows[0]!.answers as unknown as Record<string, unknown>).roles).toEqual([
+        "check_in",
+        "meals",
+      ]);
 
       // Another edition is another application.
       await as(u).submit({ hackathonId: other.id, answers: answers() });
@@ -307,6 +346,131 @@ describe.skipIf(!URL)("volunteer application against a real database", () => {
         as(u).update({ hackathonId: h.id, answers: answers() }),
       ).rejects.toMatchObject(refused("FORBIDDEN"));
       await expect(as(u).withdraw({ hackathonId: h.id })).resolves.toEqual({ success: true });
+    });
+  });
+
+  describe("how they want to help", () => {
+    it("stores the mode as a column, from what the answers say", async () => {
+      const h = await makeHackathon("mode-column");
+      const inPerson = await makeUser("mode-in");
+      const mentor = await makeUser("mode-online");
+      const both = await makeUser("mode-both");
+
+      await as(inPerson).submit({ hackathonId: h.id, answers: answers() });
+      await as(mentor).submit({ hackathonId: h.id, answers: onlineAnswers() });
+      await as(both).submit({ hackathonId: h.id, answers: bothAnswers() });
+
+      expect((await rowFor(inPerson, h.id))?.mode).toBe("in_person");
+      expect((await rowFor(mentor, h.id))?.mode).toBe("online");
+      expect((await rowFor(both, h.id))?.mode).toBe("both");
+      // The same word is inside the answers, which is what picked the questions.
+      expect((await rowFor(mentor, h.id))?.answers.mode).toBe("online");
+    });
+
+    it("lets an online mentor apply with no shirt size, diet or phone", async () => {
+      const h = await makeHackathon("mentor-minimal");
+      const u = await makeUser("mentor-minimal");
+
+      await as(u).submit({
+        hackathonId: h.id,
+        answers: onlineAnswers({
+          // Sent by a client that still carries the venue's answers: dropped.
+          shirtSize: "M",
+          dietary: ["Vegan"],
+          availability: ["fri_setup"],
+        }),
+      });
+
+      const row = await rowFor(u, h.id);
+      expect(row?.answers).toEqual({
+        mode: "online",
+        affiliation: "industry",
+        topics: ["python", "llm_apps"],
+        onlineAvailability: ["o_fri_evening", "o_sat_evening"],
+        mentorExperience:
+          "Four years shipping ML services; mentored at two hackathons.",
+        acknowledged: true,
+      });
+    });
+
+    it("holds an in-person application to availability, and refuses it without", async () => {
+      const h = await makeHackathon("branch-in");
+      const u = await makeUser("branch-in");
+      await expect(
+        as(u).submit({ hackathonId: h.id, answers: answers({ availability: [] }) }),
+      ).rejects.toThrow(/at least one time block/);
+      // A mentor's hours do not stand in for the venue's.
+      await expect(
+        as(u).submit({
+          hackathonId: h.id,
+          answers: answers({ availability: [], onlineAvailability: ["o_fri_evening"] }),
+        }),
+      ).rejects.toThrow(/at least one time block/);
+      expect(await rowFor(u, h.id)).toBeUndefined();
+    });
+
+    it("holds an application for both to both sets", async () => {
+      const h = await makeHackathon("branch-both");
+      const u = await makeUser("branch-both");
+      const submit = (over: Record<string, unknown>) =>
+        as(u).submit({ hackathonId: h.id, answers: bothAnswers(over) });
+
+      await expect(submit({ topics: [] })).rejects.toThrow(/at least one topic/);
+      await expect(submit({ availability: [] })).rejects.toThrow(/at least one time block/);
+      await expect(submit({ phone: "" })).rejects.toThrow(/phone number/);
+      expect(await rowFor(u, h.id)).toBeUndefined();
+
+      await submit({});
+      const row = await rowFor(u, h.id);
+      expect(row?.mode).toBe("both");
+      expect(row?.answers).toMatchObject({
+        availability: ["sat_morning"],
+        topics: ["python", "llm_apps"],
+        phone: "(404) 555-0142",
+      });
+    });
+
+    it("moves the column with the answers when someone changes how they help", async () => {
+      const h = await makeHackathon("mode-change");
+      const u = await makeUser("mode-change");
+      await as(u).submit({ hackathonId: h.id, answers: answers() });
+
+      await as(u).update({ hackathonId: h.id, answers: onlineAnswers() });
+      let row = await rowFor(u, h.id);
+      expect(row?.mode).toBe("online");
+      // The venue's answers are gone with it, not left beside the mentor's.
+      expect(row?.answers).not.toHaveProperty("shirtSize");
+      expect(row?.answers).not.toHaveProperty("availability");
+
+      await as(u).withdraw({ hackathonId: h.id });
+      await as(u).submit({ hackathonId: h.id, answers: bothAnswers() });
+      row = await rowFor(u, h.id);
+      expect(row?.status).toBe("pending");
+      expect(row?.mode).toBe("both");
+    });
+
+    it("keeps the text behind 'other' only while it is picked", async () => {
+      const h = await makeHackathon("topic-other");
+      const u = await makeUser("topic-other");
+      await as(u).submit({
+        hackathonId: h.id,
+        answers: onlineAnswers({ topics: ["python", "other"], topicOther: "Rust" }),
+      });
+      expect((await rowFor(u, h.id))?.answers.topicOther).toBe("Rust");
+
+      await as(u).update({
+        hackathonId: h.id,
+        answers: onlineAnswers({ topics: ["python"], topicOther: "Rust" }),
+      });
+      expect((await rowFor(u, h.id))?.answers).not.toHaveProperty("topicOther");
+    });
+
+    it("reads the mode back for the page", async () => {
+      const h = await makeHackathon("mode-read");
+      const u = await makeUser("mode-read");
+      await as(u).submit({ hackathonId: h.id, answers: bothAnswers() });
+      const { application } = await as(u).myApplication({ hackathonId: h.id });
+      expect(application?.mode).toBe("both");
     });
   });
 
@@ -523,11 +687,31 @@ describe.skipIf(!URL)("volunteer application against a real database", () => {
       expect(mailed.approved[0]).toMatchObject({
         email: email("approve"),
         hackathonName: h.name,
+        mode: "in_person",
       });
       expect(mailed.approved[0]!.volunteerUrl).toMatch(
         /\/hackathons\/hacklytics-vol-[a-z0-9-]+\/volunteer$/,
       );
       expect(await volunteer.isApprovedVolunteer(S.db!, u, h.id)).toBe(true);
+    });
+
+    it("tells the email how the volunteer offered to help", async () => {
+      const h = await makeHackathon("approve-mode");
+      const admin = await makeUser("approve-mode-admin", "admin");
+      const mentor = await makeUser("approve-mode-online");
+      const both = await makeUser("approve-mode-both");
+      await as(mentor).submit({ hackathonId: h.id, answers: onlineAnswers() });
+      await as(both).submit({ hackathonId: h.id, answers: bothAnswers() });
+      for (const u of [mentor, both]) {
+        await as(admin).decide({
+          applicationId: (await rowFor(u, h.id))!.id,
+          decision: "approved",
+        });
+      }
+      expect(mailed.approved.map((m) => [m.email, m.mode])).toEqual([
+        [email("approve-mode-online"), "online"],
+        [email("approve-mode-both"), "both"],
+      ]);
     });
 
     it("does not give approved volunteers the scanner staff tier", async () => {
@@ -696,6 +880,115 @@ describe.skipIf(!URL)("volunteer application against a real database", () => {
       expect(coverage.roles.meals).toEqual({ approved: 0, pending: 0 });
     });
 
+    it("filters by type, and counts coverage for the venue and for mentoring apart", async () => {
+      const h = await makeHackathon("roster-modes");
+      const admin = await makeUser("rm-admin", "admin");
+      const venue = await makeUser("rm-venue");
+      const mentor = await makeUser("rm-mentor");
+      const mentor2 = await makeUser("rm-mentor2");
+      const both = await makeUser("rm-both");
+      const gone = await makeUser("rm-gone");
+      await as(venue).submit({
+        hackathonId: h.id,
+        answers: answers({ roles: ["check_in"], availability: ["sat_morning"] }),
+      });
+      await as(mentor).submit({
+        hackathonId: h.id,
+        answers: onlineAnswers({
+          topics: ["python", "other"],
+          topicOther: "Rust",
+          onlineAvailability: ["o_sat_evening"],
+        }),
+      });
+      await as(mentor2).submit({
+        hackathonId: h.id,
+        answers: onlineAnswers({
+          topics: ["python", "data_viz"],
+          onlineAvailability: ["o_fri_evening", "o_sat_evening"],
+        }),
+      });
+      await as(both).submit({
+        hackathonId: h.id,
+        answers: bothAnswers({
+          roles: ["check_in", "help_desk"],
+          availability: ["sat_morning"],
+          topics: ["python"],
+          onlineAvailability: ["o_sat_evening"],
+        }),
+      });
+      await as(gone).submit({ hackathonId: h.id, answers: onlineAnswers() });
+      await as(gone).withdraw({ hackathonId: h.id });
+      await as(admin).decide({
+        applicationId: (await rowFor(mentor, h.id))!.id,
+        decision: "approved",
+      });
+      await as(admin).decide({
+        applicationId: (await rowFor(both, h.id))!.id,
+        decision: "approved",
+      });
+
+      const who = async (filter: Record<string, string>) =>
+        (await as(admin).list({ hackathonId: h.id, ...filter }) as any).applications
+          .map((a: any) => a.user.email.split("-rm-")[1].split("@")[0])
+          .sort();
+
+      // By how they want to help: the column.
+      expect(await who({ mode: "in_person" })).toEqual(["venue"]);
+      expect(await who({ mode: "online" })).toEqual(["gone", "mentor", "mentor2"]);
+      expect(await who({ mode: "both" })).toEqual(["both"]);
+
+      // A role or block is a venue answer: a mentor is never in them, and
+      // someone who chose both is.
+      expect(await who({ role: "check_in" })).toEqual(["both", "venue"]);
+      expect(await who({ block: "sat_morning" })).toEqual(["both", "venue"]);
+      // A topic or online hour is a mentoring answer, and the both-person is in it.
+      expect(await who({ topic: "python" })).toEqual(["both", "gone", "mentor", "mentor2"]);
+      expect(await who({ topic: "data_viz" })).toEqual(["mentor2"]);
+      expect(await who({ onlineBlock: "o_sat_evening" })).toEqual([
+        "both",
+        "gone",
+        "mentor",
+        "mentor2",
+      ]);
+      expect(await who({ mode: "online", status: "pending" })).toEqual(["mentor2"]);
+
+      const { coverage } = await as(admin).list({ hackathonId: h.id });
+      // Chosen ways of helping, among those who could still come.
+      expect(coverage.byMode).toEqual({
+        in_person: { approved: 0, pending: 1 },
+        online: { approved: 1, pending: 1 },
+        both: { approved: 1, pending: 0 },
+      });
+      // The venue half: venue and both.
+      expect(coverage.blocks.sat_morning).toEqual({ approved: 1, pending: 1 });
+      expect(coverage.roles.check_in).toEqual({ approved: 1, pending: 1 });
+      expect(coverage.roles.help_desk).toEqual({ approved: 1, pending: 0 });
+      // The mentoring half: mentors and both, never the venue-only volunteer,
+      // and never the one who withdrew.
+      expect(coverage.onlineBlocks.o_sat_evening).toEqual({ approved: 2, pending: 1 });
+      expect(coverage.onlineBlocks.o_fri_evening).toEqual({ approved: 0, pending: 1 });
+      expect(coverage.topics.python).toEqual({ approved: 2, pending: 1 });
+      expect(coverage.topics.other).toEqual({ approved: 1, pending: 0 });
+      expect(coverage.topics.data_viz).toEqual({ approved: 0, pending: 1 });
+      expect(coverage.topics.pitching).toEqual({ approved: 0, pending: 0 });
+    });
+
+    it("exports the type with each row", async () => {
+      const h = await makeHackathon("export-modes");
+      const admin = await makeUser("export-modes-admin", "admin");
+      const mentor = await makeUser("export-modes-mentor");
+      await as(mentor).submit({ hackathonId: h.id, answers: onlineAnswers() });
+
+      const [row] = await as(admin).exportApplications({
+        hackathonId: h.id,
+        mode: "online",
+      });
+      expect(row).toMatchObject({ mode: "online", status: "pending" });
+      expect(await as(admin).exportApplications({ hackathonId: h.id, mode: "both" })).toEqual(
+        [],
+      );
+    });
+
     it("keeps one edition's volunteers out of another's roster", async () => {
       const a = await makeHackathon("scope-a");
       const b = await makeHackathon("scope-b");
@@ -720,7 +1013,7 @@ describe.skipIf(!URL)("volunteer application against a real database", () => {
         role: "photography",
       });
       expect(rows).toHaveLength(1);
-      expect(rows[0].answers.phone).toBe("(404) 555-0142");
+      expect(rows[0]?.answers).toMatchObject({ phone: "(404) 555-0142" });
 
       const audit = await auditFor("volunteer.export", h.id);
       expect(audit).toHaveLength(1);
@@ -754,17 +1047,153 @@ describe.skipIf(!URL)("volunteer application against a real database", () => {
   });
 });
 
-// The answers schema on its own, with no database.
+// The answers schema on its own, with no database: what each way of helping
+// must and need not be asked.
 describe("volunteerAnswers", () => {
-  it("drops unknown keys and orders and dedupes the time blocks", async () => {
+  const parse = async (input: unknown) => {
     const { volunteerAnswers } = await import("../services/volunteer");
-    const parsed = volunteerAnswers.parse(
+    return volunteerAnswers.safeParse(input);
+  };
+  const messages = (result: { success: boolean; error?: { issues: { message: string }[] } }) =>
+    result.error?.issues.map((i) => i.message) ?? [];
+
+  it("drops unknown keys and orders and dedupes the time blocks", async () => {
+    const result = await parse(
       answers({
         availability: ["sat_morning", "fri_setup", "sat_morning"],
         isAdmin: true,
       }),
     );
-    expect(parsed.availability).toEqual(["fri_setup", "sat_morning"]);
-    expect(parsed).not.toHaveProperty("isAdmin");
+    expect(result.success).toBe(true);
+    const data = result.data as Record<string, unknown>;
+    expect(data.availability).toEqual(["fri_setup", "sat_morning"]);
+    expect(data).not.toHaveProperty("isAdmin");
+  });
+
+  it("needs a way of helping, and says so", async () => {
+    for (const mode of [undefined, "", "remote", "hybrid"]) {
+      const result = await parse(answers({ mode }));
+      expect(result.success, String(mode)).toBe(false);
+      expect(messages(result)).toEqual(["Choose how you want to help."]);
+    }
+  });
+
+  describe("in person", () => {
+    it("needs availability, a shirt size and a phone", async () => {
+      expect(await parse(answers())).toMatchObject({ success: true });
+      expect(messages(await parse(answers({ availability: [] })))).toEqual([
+        "Pick at least one time block you can cover.",
+      ]);
+      expect(messages(await parse(answers({ shirtSize: undefined })))).toEqual([
+        "Choose a shirt size.",
+      ]);
+      expect(messages(await parse(answers({ phone: "" })))).toEqual([
+        "Enter a phone number we can reach on event days.",
+      ]);
+    });
+
+    it("does not ask the mentor questions, and drops them if they come anyway", async () => {
+      const result = await parse(
+        answers({ topics: ["python"], onlineAvailability: ["o_fri_evening"] }),
+      );
+      expect(result.success).toBe(true);
+      expect(result.data).not.toHaveProperty("topics");
+      expect(result.data).not.toHaveProperty("onlineAvailability");
+    });
+  });
+
+  describe("online mentor", () => {
+    it("needs topics, hours online and a line of experience, and nothing for the venue", async () => {
+      const result = await parse(onlineAnswers());
+      expect(result.success).toBe(true);
+      // No shirt size, diet or phone to give.
+      expect(result.data).toMatchObject({
+        mode: "online",
+        topics: ["python", "llm_apps"],
+        onlineAvailability: ["o_fri_evening", "o_sat_evening"],
+      });
+      expect(result.data).not.toHaveProperty("shirtSize");
+      expect(result.data).not.toHaveProperty("dietary");
+    });
+
+    it("asks for each of the three things it needs", async () => {
+      expect(messages(await parse(onlineAnswers({ topics: [] })))).toEqual([
+        "Pick at least one topic you can help with.",
+      ]);
+      expect(
+        messages(await parse(onlineAnswers({ onlineAvailability: [] }))),
+      ).toEqual(["Pick at least one time you can be online."]);
+      expect(
+        messages(await parse(onlineAnswers({ mentorExperience: "  " }))),
+      ).toEqual(["Add a line about your experience."]);
+    });
+
+    it("does not ask for the venue's answers, so an empty availability is fine", async () => {
+      expect(
+        await parse(onlineAnswers({ availability: [], shirtSize: "", dietary: ["Other"] })),
+      ).toMatchObject({ success: true });
+    });
+
+    it("takes a phone if one is given, and a blank one as none", async () => {
+      const blank = await parse(onlineAnswers({ phone: "" }));
+      expect(blank.success).toBe(true);
+      expect((blank.data as { phone?: string }).phone).toBeUndefined();
+      expect((await parse(onlineAnswers({ phone: "  (678) 555-0100 " }))).data).toMatchObject({
+        phone: "(678) 555-0100",
+      });
+      expect((await parse(onlineAnswers({ phone: "123" }))).success).toBe(false);
+      expect((await parse(onlineAnswers({ phone: "call me" }))).success).toBe(false);
+    });
+
+    it("asks what the other topic is, and keeps it only while other is picked", async () => {
+      expect(
+        messages(await parse(onlineAnswers({ topics: ["other"] }))),
+      ).toEqual(["Tell us which other topic you can help with."]);
+
+      const { storedAnswers } = await import("../services/volunteer");
+      const withOther = await parse(
+        onlineAnswers({ topics: ["python", "other"], topicOther: "  Rust  " }),
+      );
+      expect(withOther.success).toBe(true);
+      expect(storedAnswers(withOther.data as never)).toMatchObject({ topicOther: "Rust" });
+
+      // Typed, then the chip was turned off again: nothing stale is stored.
+      const switchedOff = await parse(
+        onlineAnswers({ topics: ["python"], topicOther: "Rust" }),
+      );
+      expect(storedAnswers(switchedOff.data as never)).not.toHaveProperty("topicOther");
+    });
+  });
+
+  describe("both", () => {
+    it("needs both sets", async () => {
+      expect(await parse(bothAnswers())).toMatchObject({ success: true });
+
+      // Missing the venue half.
+      expect(messages(await parse(bothAnswers({ availability: [] })))).toEqual([
+        "Pick at least one time block you can cover.",
+      ]);
+      expect(messages(await parse(bothAnswers({ shirtSize: undefined })))).toEqual([
+        "Choose a shirt size.",
+      ]);
+      expect(messages(await parse(bothAnswers({ phone: undefined })))).toEqual([
+        "Enter a phone number we can reach on event days.",
+      ]);
+
+      // Missing the mentor half.
+      expect(messages(await parse(bothAnswers({ topics: [] })))).toEqual([
+        "Pick at least one topic you can help with.",
+      ]);
+      expect(
+        messages(await parse(bothAnswers({ onlineAvailability: [] }))),
+      ).toEqual(["Pick at least one time you can be online."]);
+      expect(
+        messages(await parse(bothAnswers({ mentorExperience: "" }))),
+      ).toEqual(["Add a line about your experience."]);
+    });
+
+    it("is held to the phone, which an online-only mentor is not", async () => {
+      expect((await parse(bothAnswers({ phone: "" }))).success).toBe(false);
+    });
   });
 });

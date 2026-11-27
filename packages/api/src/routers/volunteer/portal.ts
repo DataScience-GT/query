@@ -10,6 +10,7 @@ import {
   assertEditionNotOver,
   assertTakingApplications,
   loadEdition,
+  storedAnswers,
   takesNewApplications,
   volunteerAnswers,
 } from "../../services/volunteer";
@@ -37,6 +38,7 @@ export const volunteerPortalRouter = createTRPCRouter({
           columns: {
             id: true,
             status: true,
+            mode: true,
             answers: true,
             reviewedAt: true,
             createdAt: true,
@@ -67,7 +69,8 @@ export const volunteerPortalRouter = createTRPCRouter({
           .values({
             userId,
             hackathonId: input.hackathonId,
-            answers: input.answers,
+            mode: input.answers.mode,
+            answers: storedAnswers(input.answers),
           })
           // The unique (user, edition) index decides a double submit: the
           // second finds the row the first wrote.
@@ -81,7 +84,8 @@ export const volunteerPortalRouter = createTRPCRouter({
           .update(applications)
           .set({
             status: "pending",
-            answers: input.answers,
+            mode: input.answers.mode,
+            answers: storedAnswers(input.answers),
             reviewedById: null,
             reviewedAt: null,
             updatedAt: new Date(),
@@ -114,7 +118,11 @@ export const volunteerPortalRouter = createTRPCRouter({
 
       const [updated] = await db
         .update(applications)
-        .set({ answers: input.answers, updatedAt: new Date() })
+        .set({
+          mode: input.answers.mode,
+          answers: storedAnswers(input.answers),
+          updatedAt: new Date(),
+        })
         .where(
           and(
             eq(applications.userId, ctx.userId as string),
