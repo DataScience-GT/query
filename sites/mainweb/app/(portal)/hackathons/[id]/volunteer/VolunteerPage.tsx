@@ -101,7 +101,7 @@ export default function VolunteerPage() {
       <header className="mt-6">
         <p className={kicker}>Volunteers</p>
         <h1 className={`mt-1 ${pageTitle}`}>Volunteer at {brand}</h1>
-        <p className={`${pageDek}${bloom ? " hl-dek" : ""}`}>
+        <p className={pageDek}>
           Volunteers run the weekend: check-in, meals, rooms and help for
           hackers. You don&apos;t judge projects.
         </p>

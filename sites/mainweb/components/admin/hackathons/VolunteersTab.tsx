@@ -344,7 +344,7 @@ export function VolunteersTab({
                                 app.user?.email,
                                 `${app.answers.availability.length} of 9 blocks`,
                                 app.answers.roles.length
-                                  ? `${app.answers.roles.length} roles`
+                                  ? `${app.answers.roles.length} ${app.answers.roles.length === 1 ? "role" : "roles"}`
                                   : "any role",
                               ]
                                 .filter(Boolean)
