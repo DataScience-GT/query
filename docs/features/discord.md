@@ -12,7 +12,7 @@ Three roles, held independently. One person can hold several, and the site publi
 | --- | --- | --- |
 | Hacker | A participant whose status is `approved` and who pressed "I'm coming" on the hackathon Overview (`attendance_confirmed_at` is set), or who is `checked_in`. Being accepted alone is not enough. | Optional |
 | Judge | A `judge` row for that edition with `is_active` true, which is what approval sets. A pending, rejected or removed judge holds nothing. | Required |
-| Volunteer | An active, unexpired `admin` row with role `volunteer` (added on the staff page). Volunteers are org-wide, not per edition, so the role applies to any edition that is `open`, `closed` or `in_progress`: registration has opened and the event is not over. Not a draft, an announcement, a finished or a cancelled edition. Full staff are not volunteers. | Required |
+| Volunteer | An active, unexpired `admin` row with role `volunteer` (added on the staff page). Volunteers are org-wide, not per edition, so the role applies to any edition that is `open`, `closed` or `in_progress`: registration has opened and the event is not over. Not a draft, an announcement, a finished or a cancelled edition. Full staff are not volunteers. Also an `approved` volunteer application for that edition (`isApprovedVolunteer`), from the announcement until the edition is over; a decline, a withdrawal or a pending application holds nothing. Either one is enough. | Required |
 
 Judges and volunteers need no registration. The edition is the one in the link (`?hackathon=ID`), or, from Discord's verification URL, the newest edition that is not cancelled or over in which the person holds a role. A confirmed hacker who is also a judge gets both. One Discord account links to one person: `discord_link.discord_user_id` is unique, and the same account may not sit on another person's registration for that hackathon.
 
@@ -36,6 +36,7 @@ It runs after commit on:
 | --- | --- |
 | A judge approved, switched off, added or removed | `judge.setActive`, `judge.create`, `judge.remove` |
 | A volunteer granted, switched off, renewed with a new end date, or removed | `admin.create`, `admin.update`, `admin.remove` |
+| A volunteer application approved or declined, or withdrawn by the applicant | `volunteer.decide`, `volunteer.withdraw` |
 | A hacker's status changed in any direction, banned, or withdrawn | `updateParticipantStatus`, `batchUpdateParticipantStatus`, `banFromHackathons`, `withdrawRegistration`. Moving out of the accepted statuses takes the hacker roles back; moving in can give them, so a judge who is moved to approved after confirming gets the flower role at once. |
 | Unlink | `unlinkDiscord`: the roles are zeroed with the stored token before the row is deleted. If Discord cannot be reached the unlink fails with an error and nothing is deleted. |
 | Linking a different Discord account | `completeLink` zeroes the old account first, with the old account's token, then stores the new link. If the old account cannot be reached the link does not move. Linking X, unlinking, then linking Y, or linking Y straight over X, leaves the roles only on Y. |
@@ -66,7 +67,8 @@ Not covered:
 
 - Judges: a card at the top of the judge page (`/judge`). It reads "Join the Hacklytics Discord. It's required for judges: schedules and room changes are posted there." The approval email and the added-by-organizer email say the same and point to the portal step.
 - Volunteers: the same card at the top of the check-in desk (`/scan`): "It's required for volunteers: shifts and desk changes are posted there." There is no volunteer email, because a volunteer is added on the staff page and nothing is sent; the card is the notice.
-- Someone who is both reads "judges and volunteers". After linking they return to the page the card is on (hackers to the hackathon page, judges to `/judge`, volunteers to `/scan`), or go on to the server invite.
+- A volunteer who was approved without the staff tier sees the same card on their application page (`/hackathons/<slug>/volunteer`) once the application is confirmed, and returns there after linking.
+- Someone who is both reads "judges and volunteers". After linking they return to the page the card is on (hackers to the hackathon page, judges to `/judge`, staff-tier volunteers to `/scan`, approved applicants to their application page), or go on to the server invite.
 - Judges and volunteers have no flower and no Ramadan choice.
 
 ## Flowers
