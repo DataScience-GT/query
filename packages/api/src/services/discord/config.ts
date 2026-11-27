@@ -51,8 +51,6 @@ export function discordConfig(
  * token-crypto.ts): the same AUTH_SECRET the rest of the app reads. Null when
  * it is not set, and nothing then reads or writes a token.
  */
-export function discordTokenSecret(
-  env: Record<string, string | undefined> = process.env,
-): string | null {
-  return env.AUTH_SECRET || env.NEXTAUTH_SECRET || null;
+export function discordTokenSecret(): string | null {
+  return process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || null;
 }

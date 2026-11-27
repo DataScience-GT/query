@@ -364,28 +364,6 @@ function compareVectors(a: readonly number[], b: readonly number[]): number {
   return 0;
 }
 
-/** Lower is better, compared as the fields are listed in JudgeMetrics. */
-export function compareJudgeMetrics(a: JudgeMetrics, b: JudgeMetrics): number {
-  return compareVectors(
-    [
-      a.unassigned,
-      a.memberOnSponsor,
-      a.maxLoad,
-      a.loadSpread,
-      a.repeats,
-      -a.dayPartsCovered,
-    ],
-    [
-      b.unassigned,
-      b.memberOnSponsor,
-      b.maxLoad,
-      b.loadSpread,
-      b.repeats,
-      -b.dayPartsCovered,
-    ],
-  );
-}
-
 /** A state holding `assignment`, skipping rows that name nothing known. */
 function stateOf(context: Context, assignment: readonly JudgeAssignment[]) {
   const state = new State(context);

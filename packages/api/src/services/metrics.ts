@@ -248,9 +248,8 @@ const countByEdition = (
 // has to be able to show the same counts when nothing is scraping.
 export async function readLiveHackathons(
   db: DrizzleDB,
-  now = new Date(),
 ): Promise<LiveHackathon[]> {
-  const startOfToday = startOfEasternDay(now);
+  const startOfToday = startOfEasternDay(new Date());
 
   const editions = await db
     .select({
@@ -410,12 +409,12 @@ function planFromMetadata(metadata: string | null) {
   return typeof parsed.plan === "string" && parsed.plan ? parsed.plan : "annual";
 }
 
-const currentTermLabel = (now = new Date()) => {
+const currentTermLabel = () => {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: VENUE_TZ,
     year: "numeric",
     month: "numeric",
-  }).formatToParts(now);
+  }).formatToParts(new Date());
   const year = parts.find((p) => p.type === "year")?.value;
   const month = Number(parts.find((p) => p.type === "month")?.value);
   return month <= 5 ? `${year}-spring` : `${year}-fall`;
