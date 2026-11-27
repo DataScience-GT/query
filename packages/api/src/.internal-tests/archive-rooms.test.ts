@@ -38,10 +38,6 @@ let appointments: Row[] = [];
 let updates: { table: unknown; values: Row; params: unknown[] }[] = [];
 let audits: Row[] = [];
 
-/** The room ids a where of `id in (...)` or `id = x` names, from its params. */
-const idsIn = (where: unknown) =>
-  render(where).params.filter((p) => typeof p === "string");
-
 const fakeDb: any = {
   query: { admins: { findFirst: async () => adminRow } },
   select: () => {
@@ -54,7 +50,8 @@ const fakeDb: any = {
           const hit = appointments.filter((a) => a.roomId === params[0]);
           return Promise.resolve([{ value: hit.length }]).then(ok, err);
         }
-        const wanted = idsIn(where);
+        // The room ids a where of `id in (...)` or `id = x` names, from its params.
+        const wanted = render(where).params.filter((p) => typeof p === "string");
         const hit = rooms
           .filter((r) => wanted.includes(r.id) && wanted.includes(r.hackathonId))
           .map((r) => ({ ...r }));
