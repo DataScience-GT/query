@@ -175,13 +175,10 @@ env:
   # Scheduler, set up separately) posts to /api/cron/application-reminders
   # with this value (docs/features/hackathons.md, "Reminder setup"). Without it
   # the route answers 404 and no reminder is sent. RUNTIME only: nothing in the
-  # build reads it. Left commented out because a reference to a secret that does not
-  # exist breaks the rollout. Create it first, then uncomment:
-  #   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-  #   firebase apphosting:secrets:set CRON_SECRET
-  #   firebase apphosting:secrets:grantaccess CRON_SECRET --backend query
-  # Give the scheduler job the same value in its Authorization header.
-  # - variable: CRON_SECRET
-  #   secret: CRON_SECRET
-  #   availability:
-  #     - RUNTIME
+  # build reads it. The secret exists (created 2026-11-26 with backend access
+  # granted); to rotate it, set a new version and update the scheduler job's
+  # Authorization header to match.
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
+    availability:
+      - RUNTIME
