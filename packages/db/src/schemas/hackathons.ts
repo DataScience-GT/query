@@ -411,6 +411,33 @@ export const hackathonApplicationDrafts = pgTable(
 export type HackathonApplicationDraft =
   typeof hackathonApplicationDrafts.$inferSelect;
 
+// The Discord account of someone who is not (or not only) a hacker. Judges and
+// volunteers have no hackathon_participant row to hold the link, and the
+// account is the person's, not an edition's, so it lives here, one row per
+// user. A confirmed hacker's link is still mirrored on their participant row
+// (it carries the Ramadan choice and the per-edition roster columns); the two
+// are written together. Only the id and username Discord gave us are kept,
+// never the access token.
+export const discordLinks = pgTable(
+  "discord_link",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    discordUserId: text("discord_user_id").notNull(),
+    discordUsername: text("discord_username").notNull(),
+    linkedAt: timestamp("linked_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // One Discord account per person; the first also makes the link upsert safe.
+    uniqueIndex("discord_link_user_idx").on(table.userId),
+    uniqueIndex("discord_link_discord_user_idx").on(table.discordUserId),
+  ],
+);
+
+export type DiscordLink = typeof discordLinks.$inferSelect;
+
 // Event scheduling for hackathons
 export const hackathonEvents = pgTable(
   "hackathon_event",
