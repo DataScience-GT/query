@@ -46,7 +46,8 @@ vi.mock("../services/discord/sync", async (importOriginal) => ({
   syncDiscordRolesFor: vi.fn(async () => {}),
 }));
 
-vi.mock("@query/db", () => {
+vi.mock("@query/db", async () => {
+  const { updateStub, deleteStub } = await import("./_fake-db");
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
     findMany: (...args: any[]) => mockFindMany(name, ...args),
@@ -109,24 +110,8 @@ vi.mock("@query/db", () => {
           });
         },
       }),
-      update: (...updateArgs: any[]) => ({
-        set: (...setArgs: any[]) => ({
-          where: (...wArgs: any[]) => {
-            const val = mockUpdate("update", updateArgs, setArgs, wArgs);
-            return Object.assign(Promise.resolve(val), {
-              returning: vi.fn().mockResolvedValue(val),
-            });
-          },
-        }),
-      }),
-      delete: (...deleteArgs: any[]) => ({
-        where: (...wArgs: any[]) => {
-          const val = mockDelete("delete", deleteArgs, wArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-          });
-        },
-      }),
+      update: updateStub((...a) => mockUpdate(...a)),
+      delete: deleteStub((...a) => mockDelete(...a)),
       select: vi.fn().mockImplementation(() => ({
         from: (tbl: any) => {
           const count = mockCount(tbl?._t) ?? 0;

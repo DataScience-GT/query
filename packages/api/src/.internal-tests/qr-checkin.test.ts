@@ -45,6 +45,7 @@ vi.mock("../services/discord/sync", async (importOriginal) => ({
 
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");
+  const { updateStub, deleteStub } = await import("./_fake-db");
 
   /**
    * Applies a relational query's `columns` allow-list, recursing through
@@ -145,24 +146,8 @@ vi.mock("@query/db", async () => {
           });
         },
       }),
-      update: (...updateArgs: any[]) => ({
-        set: (...setArgs: any[]) => ({
-          where: (...wArgs: any[]) => {
-            const val = mockUpdate("update", updateArgs, setArgs, wArgs);
-            return Object.assign(Promise.resolve(val), {
-              returning: vi.fn().mockResolvedValue(val),
-            });
-          },
-        }),
-      }),
-      delete: (...deleteArgs: any[]) => ({
-        where: (...wArgs: any[]) => {
-          const val = mockDelete("delete", deleteArgs, wArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-          });
-        },
-      }),
+      update: updateStub((...a) => mockUpdate(...a)),
+      delete: deleteStub((...a) => mockDelete(...a)),
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation(() => ({
           // `.for("update")` row-locks before a recount, so the where node has

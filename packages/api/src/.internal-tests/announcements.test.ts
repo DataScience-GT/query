@@ -27,7 +27,8 @@ vi.mock("@query/auth/email", () => ({
   sendAnnouncementEmail: (...args: unknown[]) => mockSendAnnouncement(...args),
 }));
 
-vi.mock("@query/db", () => {
+vi.mock("@query/db", async () => {
+  const { insertStub, updateStub } = await import("./_fake-db");
   const selectChain = () => {
     const node: any = {
       from: () => node,
@@ -70,24 +71,8 @@ vi.mock("@query/db", () => {
         judges: table("judges"),
       },
       select: selectChain,
-      insert: (...insertArgs: any[]) => ({
-        values: (...valArgs: any[]) => {
-          const val = mockInsert("insert", insertArgs, valArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-          });
-        },
-      }),
-      update: (...updateArgs: any[]) => ({
-        set: (...setArgs: any[]) => ({
-          where: (...wArgs: any[]) => {
-            const val = mockUpdate("update", updateArgs, setArgs, wArgs);
-            return Object.assign(Promise.resolve(val), {
-              returning: vi.fn().mockResolvedValue(val),
-            });
-          },
-        }),
-      }),
+      insert: insertStub((...a) => mockInsert(...a)),
+      update: updateStub((...a) => mockUpdate(...a)),
     },
     admins: { userId: "user_id", isActive: "is_active", role: "role" },
     users: { id: "id", name: "name", email: "email" },

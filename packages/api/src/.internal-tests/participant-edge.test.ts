@@ -36,6 +36,7 @@ vi.mock("../services/discord/sync", async (importOriginal) => ({
 
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");
+  const { insertStub, updateStub, deleteStub } = await import("./_fake-db");
 
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
@@ -76,35 +77,9 @@ vi.mock("@query/db", async () => {
         userAccountLinks: table("userAccountLinks"),
         auditLogs: table("auditLogs"),
       },
-      insert: (...insertArgs: any[]) => ({
-        values: (...valArgs: any[]) => {
-          const val = mockInsert("insert", insertArgs, valArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-            onConflictDoUpdate: vi.fn().mockImplementation(() => ({
-              returning: vi.fn().mockResolvedValue(val),
-            })),
-          });
-        },
-      }),
-      update: (...updateArgs: any[]) => ({
-        set: (...setArgs: any[]) => ({
-          where: (...wArgs: any[]) => {
-            const val = mockUpdate("update", updateArgs, setArgs, wArgs);
-            return Object.assign(Promise.resolve(val), {
-              returning: vi.fn().mockResolvedValue(val),
-            });
-          },
-        }),
-      }),
-      delete: (...deleteArgs: any[]) => ({
-        where: (...wArgs: any[]) => {
-          const val = mockDelete("delete", deleteArgs, wArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-          });
-        },
-      }),
+      insert: insertStub((...a) => mockInsert(...a), { upsert: true }),
+      update: updateStub((...a) => mockUpdate(...a)),
+      delete: deleteStub((...a) => mockDelete(...a)),
       // A lazily-resolved builder chain that records the methods it was called
       // with, so a test can assert that a read took `.for("update")` — the lock
       // is the whole point of some of these paths, and a chain of fixed stubs

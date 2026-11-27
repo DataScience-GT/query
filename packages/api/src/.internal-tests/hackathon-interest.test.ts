@@ -24,7 +24,8 @@ vi.mock("@query/auth/email", () => ({
     mockSendRegistrationOpen(...args),
 }));
 
-vi.mock("@query/db", () => {
+vi.mock("@query/db", async () => {
+  const { updateStub, deleteStub } = await import("./_fake-db");
   const selectChain = () => {
     const node: any = {
       from: () => node,
@@ -68,24 +69,8 @@ vi.mock("@query/db", () => {
           });
         },
       }),
-      delete: (...deleteArgs: any[]) => ({
-        where: (...wArgs: any[]) => {
-          const val = mockDelete("delete", deleteArgs, wArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-          });
-        },
-      }),
-      update: (...updateArgs: any[]) => ({
-        set: (...setArgs: any[]) => ({
-          where: (...wArgs: any[]) => {
-            const val = mockUpdate("update", updateArgs, setArgs, wArgs);
-            return Object.assign(Promise.resolve(val), {
-              returning: vi.fn().mockResolvedValue(val),
-            });
-          },
-        }),
-      }),
+      delete: deleteStub((...a) => mockDelete(...a)),
+      update: updateStub((...a) => mockUpdate(...a)),
     },
     admins: { userId: "user_id", isActive: "is_active", role: "role" },
     users: { id: "id", name: "name", email: "email" },

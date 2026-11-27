@@ -1,5 +1,5 @@
-import { getTableName } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
+import { getTableName } from "drizzle-orm";
 
 /**
  * Fixtures and the stand-in database the judge-desk suites share: a router that
@@ -54,8 +54,7 @@ export const name = (table: unknown) => getTableName(table as never);
 export const via = (...tables: unknown[]) => tables.map(name).join(">");
 
 type Rows =
-  | unknown[]
-  | ((call: number, fields?: Record<string, unknown>) => unknown[]);
+  unknown[] | ((call: number, fields?: Record<string, unknown>) => unknown[]);
 export type Answers = Record<string, Rows>;
 export type Event = {
   kind: "select" | "execute" | "insert" | "update" | "delete";

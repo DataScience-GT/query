@@ -22,17 +22,14 @@ vi.mock("@query/auth/email", () => ({
 
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");
-  const { tableSelectChain } = await import("./_fake-db");
+  const { tableSelectChain, insertStub, updateStub } = await import(
+    "./_fake-db"
+  );
 
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
     findMany: async () => [],
   });
-
-  const writeResult = (val: unknown) =>
-    Object.assign(Promise.resolve(val), {
-      returning: vi.fn().mockResolvedValue(val),
-    });
 
   return {
     db: {
@@ -50,16 +47,8 @@ vi.mock("@query/db", async () => {
         subteamApplications: table("subteamApplications"),
       },
       select: tableSelectChain((table) => onSelectRef.current(table)),
-      insert: (...insertArgs: any[]) => ({
-        values: (...valArgs: any[]) =>
-          writeResult(mockInsert("insert", insertArgs, valArgs)),
-      }),
-      update: (...updateArgs: any[]) => ({
-        set: (...setArgs: any[]) => ({
-          where: (...wArgs: any[]) =>
-            writeResult(mockUpdate("update", updateArgs, setArgs, wArgs)),
-        }),
-      }),
+      insert: insertStub((...a) => mockInsert(...a)),
+      update: updateStub((...a) => mockUpdate(...a)),
     },
     admins: { userId: "user_id", isActive: "is_active", role: "role" },
     users: { id: "id", name: "name", email: "email" },

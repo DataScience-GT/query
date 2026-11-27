@@ -29,7 +29,7 @@ let onSelect: (table: unknown) => unknown[] = () => [];
 
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");
-  const { tableSelectChain } = await import("./_fake-db");
+  const { tableSelectChain, insertStub, updateStub, deleteStub } = await import("./_fake-db");
 
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
@@ -54,32 +54,9 @@ vi.mock("@query/db", async () => {
         initiativeApplications: table("initiativeApplications"),
       },
       select: tableSelectChain((table) => onSelectRef.current(table)),
-      insert: (...insertArgs: any[]) => ({
-        values: (...valArgs: any[]) => {
-          const val = mockInsert("insert", insertArgs, valArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-          });
-        },
-      }),
-      update: (...updateArgs: any[]) => ({
-        set: (...setArgs: any[]) => ({
-          where: (...wArgs: any[]) => {
-            const val = mockUpdate("update", updateArgs, setArgs, wArgs);
-            return Object.assign(Promise.resolve(val), {
-              returning: vi.fn().mockResolvedValue(val),
-            });
-          },
-        }),
-      }),
-      delete: (...deleteArgs: any[]) => ({
-        where: (...wArgs: any[]) => {
-          const val = mockDelete("delete", deleteArgs, wArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-          });
-        },
-      }),
+      insert: insertStub((...a) => mockInsert(...a)),
+      update: updateStub((...a) => mockUpdate(...a)),
+      delete: deleteStub((...a) => mockDelete(...a)),
     },
     admins: { userId: "user_id", isActive: "is_active", role: "role" },
     users: { id: "id", name: "name", email: "email", image: "image" },

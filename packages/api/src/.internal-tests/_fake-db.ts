@@ -1,4 +1,5 @@
 import { PgDialect } from "drizzle-orm/pg-core";
+import { vi } from "vitest";
 
 const dialect = new PgDialect();
 
@@ -37,18 +38,62 @@ export function matcher(where: unknown) {
  * .where().groupBy(), an awaited .where(), and .where().for("update"). Every
  * terminal resolves to `rowsOf(table in .from())`.
  */
-export const tableSelectChain = (rowsOf: (table: unknown) => unknown[]) => () => {
-  let from: unknown;
-  const rows = () => Promise.resolve(rowsOf(from));
-  const node: any = {
-    from: (t: unknown) => ((from = t), node),
-    innerJoin: () => node,
-    where: () => node,
-    orderBy: () => node,
-    groupBy: () => rows(),
-    limit: () => rows(),
-    for: () => rows(),
-    then: (ok: any, err: any) => rows().then(ok, err),
+export const tableSelectChain =
+  (rowsOf: (table: unknown) => unknown[]) => () => {
+    let from: unknown;
+    const rows = () => Promise.resolve(rowsOf(from));
+    const node: any = {
+      from: (t: unknown) => ((from = t), node),
+      innerJoin: () => node,
+      where: () => node,
+      orderBy: () => node,
+      groupBy: () => rows(),
+      limit: () => rows(),
+      for: () => rows(),
+      then: (ok: any, err: any) => rows().then(ok, err),
+    };
+    return node;
   };
-  return node;
-};
+
+type Mock = (...args: any[]) => any;
+
+// A write is awaitable and chains `.returning()`. `record` is told what ran,
+// and what it returns is what the write resolves to.
+const written = (val: unknown) =>
+  Object.assign(Promise.resolve(val), {
+    returning: vi.fn().mockResolvedValue(val),
+  });
+
+/** `db.insert(t).values(v)`; `upsert` adds `.onConflictDoUpdate(...)`. */
+export const insertStub =
+  (record: Mock, { upsert = false } = {}) =>
+  (...insertArgs: any[]) => ({
+    values: (...valArgs: any[]) => {
+      const val = record("insert", insertArgs, valArgs);
+      return Object.assign(
+        written(val),
+        upsert && {
+          onConflictDoUpdate: vi.fn().mockImplementation(() => ({
+            returning: vi.fn().mockResolvedValue(val),
+          })),
+        },
+      );
+    },
+  });
+
+/** `db.update(t).set(v).where(w)`. */
+export const updateStub =
+  (record: Mock) =>
+  (...updateArgs: any[]) => ({
+    set: (...setArgs: any[]) => ({
+      where: (...wArgs: any[]) =>
+        written(record("update", updateArgs, setArgs, wArgs)),
+    }),
+  });
+
+/** `db.delete(t).where(w)`. */
+export const deleteStub =
+  (record: Mock) =>
+  (...deleteArgs: any[]) => ({
+    where: (...wArgs: any[]) => written(record("delete", deleteArgs, wArgs)),
+  });
