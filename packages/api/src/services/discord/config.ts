@@ -28,10 +28,6 @@ export function foodGroupByKey(
   return FOOD_GROUPS.find((g) => g.key === key) ?? null;
 }
 
-/** Statuses that may link: accepted, or already through the door. */
-export const isDiscordEligible = (status: string | null | undefined) =>
-  status === "approved" || status === "checked_in";
-
 export type DiscordConfig = {
   clientId: string;
   clientSecret: string;

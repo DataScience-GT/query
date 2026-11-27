@@ -5,8 +5,9 @@ import type * as DiscordSvc from "../services/discord";
 
 /**
  * Real-Postgres test for the Discord link: balanced food groups, the
- * Linked Roles callback with a mocked fetch (Discord is never called), the
- * default edition for the verification URL, unlink, and the admin bits.
+ * Linked Roles callback with a mocked fetch (Discord is never called), who may
+ * link (confirmed hackers, approved judges, volunteers), the default edition
+ * for the verification URL, unlink, and the admin bits.
  * Needs TEST_DATABASE_URL (disposable; never Neon or production).
  */
 const URL = process.env.TEST_DATABASE_URL;
@@ -67,6 +68,8 @@ describe.skipIf(!URL)("discord link against a real database", () => {
         hackathonId,
         userId,
         registrationStatus: "approved",
+        // Said "I'm coming": the Discord step waits for it.
+        attendanceConfirmedAt: new Date(),
         ramadanFasting: "Yes",
         ...extra,
       })
@@ -220,7 +223,13 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     expect(body).toEqual({
       platform_name: "Hacklytics",
       platform_username: "Ada L",
-      metadata: { accepted: 1, food_group: number, ramadan: 1 },
+      metadata: {
+        accepted: 1,
+        food_group: number,
+        ramadan: 1,
+        judge: 0,
+        volunteer: 0,
+      },
     });
     expect(stored).toMatchObject({
       discordUserId: `d-happy-${suffix}`,
@@ -267,6 +276,355 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     const stranger = await makeUser("stranger");
     expect(await link(stranger, h.id, discordFetch())).toMatchObject({
       reason: "not_accepted",
+    });
+  });
+
+  describe("who may link: hackers who confirmed, approved judges, volunteers", () => {
+    const makeJudge = async (hackathonId: string, userId: string, isActive = true) => {
+      const [judge] = await S.db!
+        .insert(S.judges)
+        .values({ userId, hackathonId, name: "Judge", email: `${userId}@example.test`, isActive })
+        .returning();
+      return judge!;
+    };
+    const makeVolunteer = async (userId: string, extra: Record<string, unknown> = {}) => {
+      await S.db!.insert(S.admins).values({ userId, role: "volunteer", ...extra });
+    };
+    const sent = (f: ReturnType<typeof discordFetch>) =>
+      JSON.parse(f.calls[2]!.init!.body as string).metadata;
+    const linkRow = async (userId: string) =>
+      (
+        await S.db!
+          .select()
+          .from(S.discordLinks)
+          .where(ops.eq(S.discordLinks.userId, userId))
+      )[0];
+
+    it("an accepted hacker who has not said they are coming cannot link or get an invite", async () => {
+      const h = await makeHackathon("rsvp");
+      const u = await makeUser("rsvp");
+      const p = await makeParticipant(h.id, u, { attendanceConfirmedAt: null });
+      const f = discordFetch();
+      expect(await link(u, h.id, f, null, "invite")).toEqual({
+        ok: false,
+        reason: "not_accepted",
+      });
+      expect(f.calls).toHaveLength(0);
+      expect(await svc.resolveConnectTarget(S.db as any, u, h.id)).toBeNull();
+      expect(await svc.resolveConnectTarget(S.db as any, u, null)).toBeNull();
+
+      // The portal still shows them their flower (it is their meal wave) and
+      // asks for the answer.
+      const mine = await hackathonAs(u).myDiscord({ hackathonId: h.id });
+      expect(mine).toMatchObject({
+        eligible: false,
+        awaitingConfirmation: true,
+        roles: { hacker: false, judge: false, volunteer: false },
+        linked: false,
+      });
+      expect(mine.foodGroup?.key).toBe((await row(p.id)).foodGroup);
+      expect(await linkRow(u)).toBeUndefined();
+    });
+
+    it("saying they are coming opens the step, and the metadata says accepted with their flower", async () => {
+      const h = await makeHackathon("rsvp-yes");
+      const u = await makeUser("rsvp-yes");
+      const p = await makeParticipant(h.id, u, { attendanceConfirmedAt: null });
+      expect((await hackathonAs(u).myDiscord({ hackathonId: h.id })).eligible).toBe(false);
+
+      await hackathonAs(u).confirmAttendance({ hackathonId: h.id });
+      expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+        eligible: true,
+        awaitingConfirmation: false,
+        roles: { hacker: true, judge: false, volunteer: false },
+      });
+
+      const f = discordFetch({ meId: `d-rsvp-${suffix}` });
+      expect(await link(u, h.id, f)).toMatchObject({ ok: true, home: "hackathon" });
+      const number = svc.foodGroupByKey((await row(p.id)).foodGroup)!.number;
+      expect(sent(f)).toEqual({
+        accepted: 1,
+        food_group: number,
+        ramadan: 0,
+        judge: 0,
+        volunteer: 0,
+      });
+    });
+
+    it("a hacker who is already checked in is through the door without the answer", async () => {
+      const h = await makeHackathon("rsvp-door");
+      const u = await makeUser("rsvp-door");
+      await makeParticipant(h.id, u, {
+        registrationStatus: "checked_in",
+        attendanceConfirmedAt: null,
+      });
+      expect(await link(u, h.id, discordFetch({ meId: `d-door-${suffix}` }))).toMatchObject({
+        ok: true,
+      });
+    });
+
+    it("an approved judge with no registration can link and gets judge and no hacker values", async () => {
+      const h = await makeHackathon("judge");
+      const u = await makeUser("judge");
+      await makeJudge(h.id, u);
+      const f = discordFetch({ meId: `d-judge-${suffix}` });
+      expect(await link(u, h.id, f, null, "invite")).toMatchObject({
+        ok: true,
+        then: "invite",
+        home: "judge",
+        username: "ada",
+      });
+      expect(sent(f)).toEqual({ accepted: 0, judge: 1, volunteer: 0 });
+
+      const stored = await linkRow(u);
+      expect(stored).toMatchObject({ discordUserId: `d-judge-${suffix}`, discordUsername: "ada" });
+      expect(JSON.stringify(stored)).not.toContain("tok-user");
+      const participants = await S.db!
+        .select()
+        .from(S.hackathonParticipants)
+        .where(ops.eq(S.hackathonParticipants.userId, u));
+      expect(participants).toHaveLength(0);
+
+      expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+        eligible: true,
+        roles: { hacker: false, judge: true, volunteer: false },
+        linked: true,
+        username: "ada",
+        foodGroup: null,
+        fasting: false,
+      });
+      // Updating roles again keeps the one row.
+      expect(await link(u, h.id, discordFetch({ meId: `d-judge-${suffix}` }))).toMatchObject({ ok: true });
+      const again = await S.db!
+        .select()
+        .from(S.discordLinks)
+        .where(ops.eq(S.discordLinks.userId, u));
+      expect(again).toHaveLength(1);
+
+      await hackathonAs(u).unlinkDiscord({ hackathonId: h.id });
+      expect(await linkRow(u)).toBeUndefined();
+      expect((await hackathonAs(u).myDiscord({ hackathonId: h.id })).linked).toBe(false);
+    });
+
+    it("a judge who is not approved cannot link", async () => {
+      const h = await makeHackathon("judge-no");
+      const u = await makeUser("judge-no");
+      await makeJudge(h.id, u, false);
+      const f = discordFetch();
+      expect(await link(u, h.id, f)).toEqual({ ok: false, reason: "not_accepted" });
+      expect(f.calls).toHaveLength(0);
+      expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+        eligible: false,
+        roles: { judge: false },
+      });
+    });
+
+    it("a volunteer links while an edition is open or live, with volunteer set", async () => {
+      const h = await makeHackathon("vol");
+      const u = await makeUser("vol");
+      await makeVolunteer(u);
+      const f = discordFetch({ meId: `d-vol-${suffix}` });
+      expect(await link(u, h.id, f)).toMatchObject({ ok: true, home: "scan" });
+      expect(sent(f)).toEqual({ accepted: 0, judge: 0, volunteer: 1 });
+      expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+        eligible: true,
+        roles: { hacker: false, judge: false, volunteer: true },
+        linked: true,
+      });
+    });
+
+    it("a volunteer has no step on an edition that is not open or live", async () => {
+      const u = await makeUser("vol-status");
+      await makeVolunteer(u);
+      for (const status of ["draft", "announced", "completed", "cancelled"]) {
+        const h = await makeHackathon(`vol-${status}`, { status });
+        expect(await svc.resolveConnectTarget(S.db as any, u, h.id)).toBeNull();
+      }
+      for (const status of ["open", "closed", "in_progress"]) {
+        const h = await makeHackathon(`vol-${status}`, { status });
+        expect((await svc.resolveConnectTarget(S.db as any, u, h.id))?.roles.volunteer).toBe(true);
+      }
+    });
+
+    it("an inactive or expired volunteer, and full staff, are not volunteers", async () => {
+      const h = await makeHackathon("vol-no");
+      const inactive = await makeUser("vol-inactive");
+      await makeVolunteer(inactive, { isActive: false });
+      const expired = await makeUser("vol-expired");
+      await makeVolunteer(expired, { expiresAt: new Date(Date.now() - 60_000) });
+      const staff = await makeUser("vol-staff");
+      await S.db!.insert(S.admins).values({ userId: staff, role: "admin" });
+      for (const u of [inactive, expired, staff]) {
+        expect(await svc.resolveConnectTarget(S.db as any, u, h.id)).toBeNull();
+      }
+    });
+
+    it("the default edition for a volunteer is the newest one that is open or live", async () => {
+      const u = await makeUser("vol-default");
+      await makeVolunteer(u);
+      await makeHackathon("vd-old", {
+        status: "completed",
+        startDate: new Date("2026-02-01T00:00:00Z"),
+        endDate: new Date("2026-02-03T00:00:00Z"),
+      });
+      const live = await makeHackathon("vd-live", {
+        startDate: new Date("2033-02-01T00:00:00Z"),
+        endDate: new Date("2033-02-03T00:00:00Z"),
+      });
+      await makeHackathon("vd-next", {
+        status: "announced",
+        startDate: new Date("2034-02-01T00:00:00Z"),
+        endDate: new Date("2034-02-03T00:00:00Z"),
+      });
+      expect((await svc.resolveConnectTarget(S.db as any, u, null))?.hackathon.id).toBe(live.id);
+      const mine = await hackathonAs(u).myDiscord({});
+      expect(mine.hackathon?.id).toBe(live.id);
+      expect(mine.roles.volunteer).toBe(true);
+    });
+
+    it("a judge who is also a confirmed hacker gets both, and both stores hold the link", async () => {
+      const h = await makeHackathon("both");
+      const u = await makeUser("both");
+      const p = await makeParticipant(h.id, u);
+      await makeJudge(h.id, u);
+      const f = discordFetch({ meId: `d-both-${suffix}` });
+      expect(await link(u, h.id, f, 1)).toMatchObject({ ok: true, home: "hackathon" });
+      const number = svc.foodGroupByKey((await row(p.id)).foodGroup)!.number;
+      expect(sent(f)).toEqual({
+        accepted: 1,
+        food_group: number,
+        ramadan: 1,
+        judge: 1,
+        volunteer: 0,
+      });
+      expect(await row(p.id)).toMatchObject({ discordUserId: `d-both-${suffix}`, ramadanRoleOptIn: true });
+      expect(await linkRow(u)).toMatchObject({ discordUserId: `d-both-${suffix}` });
+    });
+
+    it("a judge who is an accepted hacker not yet confirmed gets judge only, and the card asks for the answer", async () => {
+      const h = await makeHackathon("judge-unconfirmed");
+      const u = await makeUser("judge-unconfirmed");
+      const p = await makeParticipant(h.id, u, { attendanceConfirmedAt: null });
+      await makeJudge(h.id, u);
+      const f = discordFetch({ meId: `d-ju-${suffix}` });
+      expect(await link(u, h.id, f)).toMatchObject({ ok: true, home: "judge" });
+      expect(sent(f)).toEqual({ accepted: 0, judge: 1, volunteer: 0 });
+      // The registration is left alone: no flower role, no mirrored link.
+      expect((await row(p.id)).discordUserId).toBeNull();
+      expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+        eligible: true,
+        awaitingConfirmation: true,
+        linked: true,
+      });
+    });
+
+    it("a judge and a volunteer at once get both", async () => {
+      const h = await makeHackathon("jv");
+      const u = await makeUser("jv");
+      await makeJudge(h.id, u);
+      await makeVolunteer(u);
+      const f = discordFetch({ meId: `d-jv-${suffix}` });
+      expect(await link(u, h.id, f)).toMatchObject({ ok: true });
+      expect(sent(f)).toEqual({ accepted: 0, judge: 1, volunteer: 1 });
+    });
+
+    it("un-confirming or withdrawing leaves an existing link in place", async () => {
+      const h = await makeHackathon("keeplink");
+      const u = await makeUser("keeplink");
+      const p = await makeParticipant(h.id, u);
+      expect(await link(u, h.id, discordFetch({ meId: `d-keep2-${suffix}` }))).toMatchObject({ ok: true });
+
+      await S.db!
+        .update(S.hackathonParticipants)
+        .set({ attendanceConfirmedAt: null })
+        .where(ops.eq(S.hackathonParticipants.id, p.id));
+      const after = await hackathonAs(u).myDiscord({ hackathonId: h.id });
+      expect(after).toMatchObject({
+        eligible: false,
+        awaitingConfirmation: true,
+        linked: true,
+        username: "ada",
+      });
+      expect(await row(p.id)).toMatchObject({ discordUserId: `d-keep2-${suffix}` });
+
+      await S.db!
+        .delete(S.hackathonParticipants)
+        .where(ops.eq(S.hackathonParticipants.id, p.id));
+      expect(await linkRow(u)).toMatchObject({ discordUserId: `d-keep2-${suffix}` });
+    });
+
+    it("a hacker linked before the confirmation step keeps the link", async () => {
+      const h = await makeHackathon("legacy");
+      const u = await makeUser("legacy");
+      await makeParticipant(h.id, u, {
+        attendanceConfirmedAt: null,
+        discordUserId: `d-legacy-${suffix}`,
+        discordUsername: "old",
+        discordLinkedAt: new Date(),
+      });
+      expect(await hackathonAs(u).myDiscord({ hackathonId: h.id })).toMatchObject({
+        eligible: false,
+        awaitingConfirmation: true,
+        linked: true,
+        username: "old",
+      });
+    });
+
+    it("refuses a Discord account another person already holds, whichever store holds it", async () => {
+      const h = await makeHackathon("held");
+      const judgeA = await makeUser("held-a");
+      const judgeB = await makeUser("held-b");
+      await makeJudge(h.id, judgeA);
+      await makeJudge(h.id, judgeB);
+      const shared = `d-held-${suffix}`;
+      expect(await link(judgeA, h.id, discordFetch({ meId: shared }))).toMatchObject({ ok: true });
+      const f = discordFetch({ meId: shared });
+      expect(await link(judgeB, h.id, f)).toMatchObject({ ok: false, reason: "already_linked" });
+      expect(f.calls).toHaveLength(2);
+      expect(await linkRow(judgeB)).toBeUndefined();
+
+      // A hacker linked before this table existed holds the account on the
+      // registration alone.
+      const hackerAccount = `d-held-hacker-${suffix}`;
+      const hacker = await makeUser("held-h");
+      await makeParticipant(h.id, hacker, {
+        discordUserId: hackerAccount,
+        discordUsername: "old",
+        discordLinkedAt: new Date(),
+      });
+      const judgeC = await makeUser("held-c");
+      await makeJudge(h.id, judgeC);
+      expect(await link(judgeC, h.id, discordFetch({ meId: hackerAccount }))).toMatchObject({
+        ok: false,
+        reason: "already_linked",
+      });
+      expect(await linkRow(judgeC)).toBeUndefined();
+    });
+
+    it("rolls back a first link, and restores a previous one, when Discord refuses the roles", async () => {
+      const h = await makeHackathon("rollback");
+      const u = await makeUser("rollback");
+      await makeJudge(h.id, u);
+      expect(await link(u, h.id, discordFetch({ meId: `d-rb1-${suffix}`, put: 500 }))).toMatchObject({
+        ok: false,
+        reason: "discord_error",
+        home: "judge",
+      });
+      expect(await linkRow(u)).toBeUndefined();
+
+      expect(await link(u, h.id, discordFetch({ meId: `d-rb1-${suffix}` }))).toMatchObject({ ok: true });
+      expect(await link(u, h.id, discordFetch({ meId: `d-rb2-${suffix}`, put: 403 }))).toMatchObject({
+        ok: false,
+        reason: "discord_denied",
+      });
+      expect(await linkRow(u)).toMatchObject({ discordUserId: `d-rb1-${suffix}` });
+    });
+
+    it("the signed state stays bound to the user it was made for", () => {
+      const secret = "s".repeat(40);
+      const token = svc.signState({ u: "judge-1", h: "hack-1", r: null, t: "portal" }, secret);
+      expect(svc.verifyState(token, secret, { userId: "judge-1" })).toMatchObject({ u: "judge-1" });
+      expect(svc.verifyState(token, secret, { userId: "judge-2" })).toBeNull();
     });
   });
 
@@ -331,7 +689,7 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     await makeParticipant(current.id, u);
     await makeParticipant(pending.id, u, { registrationStatus: "pending" });
     const target = await svc.resolveConnectTarget(S.db as any, u, null);
-    expect(target?.hackathon?.id).toBe(current.id);
+    expect(target?.hackathon.id).toBe(current.id);
     expect(await svc.resolveConnectTarget(S.db as any, u, pending.id)).toBeNull();
   });
 
@@ -346,9 +704,12 @@ describe.skipIf(!URL)("discord link against a real database", () => {
     expect(before.foodGroup?.name).toBeTruthy();
     expect(before.fasting).toBe(true);
     expect((await row(p.id)).foodGroup).toBe(before.foodGroup?.key);
-    expect(
-      await hackathonAs(stranger).myDiscord({ hackathonId: h.id }),
-    ).toEqual({ eligible: false });
+    expect(await hackathonAs(stranger).myDiscord({ hackathonId: h.id })).toMatchObject({
+      eligible: false,
+      awaitingConfirmation: false,
+      foodGroup: null,
+      linked: false,
+    });
 
     await link(u, h.id, discordFetch({ meId: `d-my-${suffix}` }), 1);
     const linked = await hackathonAs(u).myDiscord({ hackathonId: h.id });

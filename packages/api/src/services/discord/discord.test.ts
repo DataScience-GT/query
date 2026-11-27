@@ -2,6 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import { discordConfig, FOOD_GROUPS, foodGroupByKey } from "./config";
 import { autoAssignFoodGroups, pickFoodGroup } from "./food-group";
 import { ramadanFlag } from "./link";
+import {
+  hasDiscordRole,
+  isConfirmedHacker,
+  NO_ROLES,
+  roleMetadata,
+  rolesFor,
+} from "./roles";
 import { signState, verifyState, STATE_TTL_MS } from "./state";
 
 const SECRET = "x".repeat(40);
@@ -97,6 +104,78 @@ describe("ramadanFlag and config", () => {
       clientId: "1",
       clientSecret: "s",
       inviteUrl: "https://discord.gg/abc",
+    });
+  });
+});
+
+describe("discord roles", () => {
+  const at = new Date("2027-02-01T00:00:00Z");
+  const hacker = (registrationStatus: string, attendanceConfirmedAt: Date | null) => ({
+    registrationStatus,
+    attendanceConfirmedAt,
+  });
+
+  it("makes a hacker eligible only once they said they are coming, or are checked in", () => {
+    expect(isConfirmedHacker(hacker("approved", null))).toBe(false);
+    expect(isConfirmedHacker(hacker("approved", at))).toBe(true);
+    expect(isConfirmedHacker(hacker("checked_in", null))).toBe(true);
+    for (const status of ["pending", "waitlisted", "rejected"]) {
+      expect(isConfirmedHacker(hacker(status, at))).toBe(false);
+    }
+  });
+
+  it("holds each role independently, and any combination", () => {
+    const base = { participant: null, judge: false, volunteer: false, hackathonStatus: "open" };
+    expect(rolesFor(base)).toEqual(NO_ROLES);
+    expect(rolesFor({ ...base, judge: true })).toEqual({ ...NO_ROLES, judge: true });
+    expect(rolesFor({ ...base, volunteer: true })).toEqual({ ...NO_ROLES, volunteer: true });
+    expect(
+      rolesFor({ ...base, participant: hacker("approved", at), judge: true, volunteer: true }),
+    ).toEqual({ hacker: true, judge: true, volunteer: true });
+    expect(
+      rolesFor({ ...base, participant: hacker("approved", null), judge: true }),
+    ).toEqual({ hacker: false, judge: true, volunteer: false });
+  });
+
+  it("gives volunteers a role only while the edition is open or live", () => {
+    const volunteerIn = (hackathonStatus: string) =>
+      rolesFor({ participant: null, judge: false, volunteer: true, hackathonStatus }).volunteer;
+    for (const status of ["open", "closed", "in_progress"]) expect(volunteerIn(status)).toBe(true);
+    for (const status of ["draft", "announced", "completed", "cancelled"]) {
+      expect(volunteerIn(status)).toBe(false);
+    }
+  });
+
+  it("reports whether anyone holds a role", () => {
+    expect(hasDiscordRole(NO_ROLES)).toBe(false);
+    expect(hasDiscordRole({ ...NO_ROLES, volunteer: true })).toBe(true);
+  });
+
+  it("sends accepted, the flower and Ramadan to hackers only, and judge and volunteer always", () => {
+    const flower = { foodGroup: 4, ramadan: 1 as const };
+    expect(roleMetadata({ hacker: true, judge: false, volunteer: false }, flower)).toEqual({
+      accepted: 1,
+      food_group: 4,
+      ramadan: 1,
+      judge: 0,
+      volunteer: 0,
+    });
+    expect(roleMetadata({ hacker: false, judge: true, volunteer: false }, null)).toEqual({
+      accepted: 0,
+      judge: 1,
+      volunteer: 0,
+    });
+    expect(roleMetadata({ hacker: false, judge: false, volunteer: true }, null)).toEqual({
+      accepted: 0,
+      judge: 0,
+      volunteer: 1,
+    });
+    expect(roleMetadata({ hacker: true, judge: true, volunteer: true }, flower)).toEqual({
+      accepted: 1,
+      food_group: 4,
+      ramadan: 1,
+      judge: 1,
+      volunteer: 1,
     });
   });
 });
