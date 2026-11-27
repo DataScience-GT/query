@@ -102,10 +102,6 @@ export function useEventCheckIn() {
     }
   };
 
-  const handleError = (error: unknown) => {
-    console.error("Scanner error:", error);
-  };
-
   const modals = (
     <>
       {showScanner && (
@@ -115,7 +111,7 @@ export function useEventCheckIn() {
             setIsPaused(false);
           }}
           onScan={handleScan}
-          onError={handleError}
+          onError={(error) => console.error("Scanner error:", error)}
           isProcessing={isProcessing}
           isPaused={isPaused}
         />

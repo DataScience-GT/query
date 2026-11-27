@@ -9,7 +9,7 @@ import type { Bucket, Day } from "@/lib/status";
 // Hand-built SVG. The chart width is measured, not scaled from a viewBox, so
 // axis text stays 11px on a 390px phone instead of shrinking with the plot.
 
-export const COLORS = {
+const COLORS = {
   accent: "#00a8a8",
   good: "#00a8a8",
   warn: "#d1d5db",
@@ -20,12 +20,10 @@ export const COLORS = {
   text: "#9ca3af",
 } as const;
 
-const TIME_ZONE = VENUE_TZ;
-
 const hourLabel = (t: number) =>
   new Date(t).toLocaleString("en-US", {
     hour: "numeric",
-    timeZone: TIME_ZONE,
+    timeZone: VENUE_TZ,
   });
 
 const stampLabel = (t: number) =>
@@ -33,7 +31,7 @@ const stampLabel = (t: number) =>
     weekday: "short",
     hour: "numeric",
     minute: "2-digit",
-    timeZone: TIME_ZONE,
+    timeZone: VENUE_TZ,
   });
 
 const dayLabel = (day: string) =>
@@ -402,7 +400,7 @@ function XAxis({
       new Date(t).toLocaleString("en-US", {
         hour: "numeric",
         hour12: false,
-        timeZone: TIME_ZONE,
+        timeZone: VENUE_TZ,
       }),
     );
     if (hour % 6 === 0) ticks.push({ i, label: hourLabel(t) });

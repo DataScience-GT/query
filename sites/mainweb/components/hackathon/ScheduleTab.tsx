@@ -22,22 +22,16 @@ import {
 import {
   pointsLabel,
   venueDayTime,
+  venueTime,
 } from "@/components/hackathon/points/format";
 
 // The event runs in Atlanta; pinning the zone keeps every viewer, and the
 // server render, on the venue's clock rather than the browser's.
-const EVENT_TZ = VENUE_TZ;
-
 const dayFmt = new Intl.DateTimeFormat("en-US", {
-  timeZone: EVENT_TZ,
+  timeZone: VENUE_TZ,
   weekday: "short",
   month: "short",
   day: "numeric",
-});
-const timeFmt = new Intl.DateTimeFormat("en-US", {
-  timeZone: EVENT_TZ,
-  hour: "numeric",
-  minute: "2-digit",
 });
 
 // Types whose name does not already say what they are.
@@ -53,8 +47,8 @@ function formatEventTime(start: Date | string, end: Date | string) {
   const endDay = dayFmt.format(e);
   return {
     day: startDay,
-    start: timeFmt.format(s),
-    end: endDay === startDay ? timeFmt.format(e) : venueDayTime(e),
+    start: venueTime(s),
+    end: endDay === startDay ? venueTime(e) : venueDayTime(e),
   };
 }
 
@@ -65,9 +59,6 @@ function subscribeMinute(onChange: () => void) {
   const id = setInterval(onChange, 60_000);
   return () => clearInterval(id);
 }
-
-// Day granularity, on the venue's calendar: the last day counts all day.
-const startOfDay = venueDayNumber;
 
 export function ScheduleTab({
   hackathonId,
@@ -100,10 +91,11 @@ export function ScheduleTab({
         // An accepted hacker is waiting on the door scan. While the event
         // runs, re-read so the pass flips to checked in without a reload.
         refetchInterval: (query) => {
-          const today = startOfDay(new Date());
+          // Day granularity, on the venue's calendar: the last day counts all day.
+          const today = venueDayNumber(new Date());
           return query.state.data?.registrationStatus === "approved" &&
-            startOfDay(startDate) <= today &&
-            today <= startOfDay(endDate)
+            venueDayNumber(startDate) <= today &&
+            today <= venueDayNumber(endDate)
             ? 30_000
             : false;
         },
