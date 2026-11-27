@@ -9,6 +9,7 @@ import {
   resolveConnectTarget,
   signState,
 } from "@query/api/discord";
+import { isUuid } from "@/lib/is-uuid";
 import { safeCallback } from "@/lib/safe-callback";
 import {
   authSecret,
@@ -19,8 +20,6 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Starts the Discord link. Also the "Linked Roles Verification URL" in the
@@ -59,7 +58,7 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const rawHackathon = params.get("hackathon");
   const hackathonId =
-    rawHackathon && UUID.test(rawHackathon) ? rawHackathon : null;
+    rawHackathon && isUuid(rawHackathon) ? rawHackathon : null;
   const target = await resolveConnectTarget(
     db as DrizzleDB,
     userId,

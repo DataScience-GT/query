@@ -5,6 +5,7 @@ import type { DrizzleDB } from "@query/db";
 import { eq } from "drizzle-orm";
 import { BURST_LIMITS, rateLimitShared } from "@query/api";
 import { bootcampCaller } from "@/lib/bootcamp-access";
+import { isUuid } from "@/lib/is-uuid";
 import {
   bootcampBucketName,
   bootcampStorageKey,
@@ -14,9 +15,6 @@ import {
 /** Workshop deletion owns both its database row and deterministic objects. */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const isUuid = (value: string) =>
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
 export async function DELETE(
   _request: NextRequest,

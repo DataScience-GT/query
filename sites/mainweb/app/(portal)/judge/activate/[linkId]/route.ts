@@ -8,6 +8,7 @@ import {
   activateRoomLink,
   guestCookieOptions,
 } from "@query/api/judging-access";
+import { isUuid } from "@/lib/is-uuid";
 
 /**
  * Where a judging room's QR code lands. A signed-in judge is seated in the
@@ -18,8 +19,6 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 const DEAD_LINK = "/judge/guest/invalid-link";
 
 export async function GET(
@@ -29,7 +28,7 @@ export async function GET(
   const { linkId } = await params;
   const sig = request.nextUrl.searchParams.get("sig");
   // The id goes into a uuid column; anything else is a mistyped link, not a 500.
-  if (!sig || !UUID.test(linkId)) redirect(DEAD_LINK);
+  if (!sig || !isUuid(linkId)) redirect(DEAD_LINK);
 
   if (!db) {
     return new Response(

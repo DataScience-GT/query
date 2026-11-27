@@ -9,6 +9,7 @@ import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { BootcampAddOn } from "@/components/portal/BootcampAddOn";
 import { BootcampMaterialsTable } from "@/components/portal/BootcampMaterialsTable";
 import { trpc } from "@/lib/trpc";
+import { termLabel } from "@/lib/public-events";
 import { loginHref } from "@/lib/safe-callback";
 import {
   BOOTCAMP_MEETING_TIME,
@@ -37,13 +38,6 @@ import {
   sectionTitle,
   status,
 } from "@query/ui/classes";
-
-/** `2026-fall` is how it is stored; nobody should have to read it that way. */
-function termLabel(term: string) {
-  const [year, season] = term.split("-");
-  if (!year || !season) return term;
-  return `${season.charAt(0).toUpperCase()}${season.slice(1)} ${year}`;
-}
 
 /** Where and when it meets — the thing somebody checks walking to class. */
 function MeetingCard() {
