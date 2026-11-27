@@ -7,6 +7,7 @@ import { CONTACT_EMAIL } from "@query/core";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
+import { DiscordCard } from "@/components/hackathon/DiscordCard";
 import { HackathonUnavailable } from "@/components/hackathon/HackathonUnavailable";
 import { VolunteerForm } from "@/components/volunteer/VolunteerForm";
 import { VolunteerStatusView } from "@/components/volunteer/VolunteerStatusView";
@@ -138,6 +139,7 @@ export default function VolunteerPage() {
           accepting={accepting}
           canEdit={canEdit}
           eventHref={eventHref}
+          discordCard={<DiscordCard hackathonId={hackathon.id} />}
           contactEmail={contactEmail}
           busy={withdraw.isPending}
           onEdit={() => {

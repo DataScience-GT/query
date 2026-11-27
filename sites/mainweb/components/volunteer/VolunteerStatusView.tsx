@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import type { VolunteerAnswers, VolunteerStatus } from "@query/db/constants";
 import {
@@ -20,8 +21,10 @@ type Props = {
   accepting: boolean;
   /** Whether a pending application can still be corrected. */
   canEdit: boolean;
-  /** The event page, where the Discord step lives. */
+  /** The event page. */
   eventHref: string;
+  /** The Discord step, shown to an approved volunteer. */
+  discordCard?: ReactNode;
   contactEmail: string;
   busy: boolean;
   onEdit: () => void;
@@ -43,6 +46,7 @@ export function VolunteerStatusView({
   accepting,
   canEdit,
   eventHref,
+  discordCard,
   contactEmail,
   busy,
   onEdit,
@@ -94,13 +98,14 @@ export function VolunteerStatusView({
           <ol className={`mt-4 max-w-xl list-decimal space-y-2 pl-5 ${body}`}>
             <li>
               Join {discord}. It&apos;s required for volunteers, and{" "}
-              {discordFor}. The link is on the event page.
+              {discordFor}. Link your account below.
             </li>
             <li>
               Check the times below. If your plans change, withdraw so
               organizers can plan around you.
             </li>
           </ol>
+          {discordCard && <div className="mt-6">{discordCard}</div>}
           <Link href={eventHref} className={`mt-6 ${btnPrimary}`}>
             Open the event page
           </Link>

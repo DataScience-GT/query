@@ -16,6 +16,11 @@ import { recordAdminAction } from "../../middleware/audit";
 import { CacheKeys, VOLATILE_TTL } from "../../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { seatedCounts, withSeatedCounts } from "../../services/derived-counts";
+import {
+  isOverEdition,
+  markEditionRolesPending,
+  syncDiscordRolesFor,
+} from "../../services/discord";
 
 // Every hackathon read below returns currentParticipants counted from the
 // participant rows (one grouped query per call). The stored column is retired:
@@ -475,9 +480,14 @@ export const hackathonCrudRouter = createTRPCRouter({
         });
       }
 
-      let updatedHackathon;
-      try {
-        [updatedHackathon] = await (ctx.db as DrizzleDB)
+      // An edition that ends takes its Discord roles with it, and one that is
+      // reopened gives them back. Everyone linked who held one is marked pending
+      // in the same transaction as the status.
+      const flips =
+        !!updateData.status &&
+        isOverEdition(updateData.status) !== isOverEdition(existing.status);
+      const write = (db: DrizzleDB) =>
+        db
           .update(hackathons)
           .set({
             ...updateData,
@@ -485,6 +495,21 @@ export const hackathonCrudRouter = createTRPCRouter({
           })
           .where(eq(hackathons.id, id))
           .returning();
+      let updatedHackathon;
+      let owed: string[] = [];
+      try {
+        if (flips) {
+          [updatedHackathon] = await (ctx.db as DrizzleDB).transaction(
+            async (tx) => {
+              const db = tx as unknown as DrizzleDB;
+              const rows = await write(db);
+              owed = await markEditionRolesPending(db, id);
+              return rows;
+            },
+          );
+        } else {
+          [updatedHackathon] = await write(ctx.db as DrizzleDB);
+        }
       } catch (error) {
         if (isUniqueViolation(error)) {
           throw new TRPCError({
@@ -494,6 +519,10 @@ export const hackathonCrudRouter = createTRPCRouter({
         }
         throw error;
       }
+
+      // As many as one request has time for are cleared now; the daily job
+      // takes the rest.
+      await syncDiscordRolesFor(ctx.db as DrizzleDB, owed);
 
       ctx.cache.delete(CacheKeys.hackathon(id));
       ctx.cache.deletePattern("hackathons:*");

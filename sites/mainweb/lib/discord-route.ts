@@ -33,7 +33,8 @@ export async function overLimit(
 /**
  * Back to the page the person's Discord card lives on, with a Discord outcome:
  * the hackathon page for a hacker, the judge page for a judge, the check-in
- * desk for a volunteer. The dashboard when no edition is known.
+ * desk for a volunteer on the staff tier, the application page for one who
+ * was approved without it. The dashboard when no edition is known.
  */
 export function backToPortal(
   hackathon: { id: string; name: string } | null,
@@ -46,7 +47,7 @@ export function backToPortal(
       ? "/judge"
       : home === "scan"
         ? "/scan"
-        : `/hackathons/${hackathonPathSegment(hackathon.name, hackathon.id)}`;
+        : `/hackathons/${hackathonPathSegment(hackathon.name, hackathon.id)}${home === "volunteer" ? "/volunteer" : ""}`;
   const url = new URL(path, siteOrigin());
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   return NextResponse.redirect(url);
