@@ -73,6 +73,3 @@ export const hackathonVolunteerApplications = pgTable(
     ),
   ],
 );
-
-export type HackathonVolunteerApplication =
-  typeof hackathonVolunteerApplications.$inferSelect;

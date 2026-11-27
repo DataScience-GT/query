@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type * as DiscordSync from "../services/discord/sync";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
+import { testCtx } from "./_caller";
 import {
   db,
   events,
@@ -44,6 +45,7 @@ vi.mock("../services/discord/sync", async (importOriginal) => ({
 
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");
+  const { updateStub, deleteStub, bootcampWorkshopColumns, eventColumns } = await import("./_fake-db");
 
   /**
    * Applies a relational query's `columns` allow-list, recursing through
@@ -144,24 +146,8 @@ vi.mock("@query/db", async () => {
           });
         },
       }),
-      update: (...updateArgs: any[]) => ({
-        set: (...setArgs: any[]) => ({
-          where: (...wArgs: any[]) => {
-            const val = mockUpdate("update", updateArgs, setArgs, wArgs);
-            return Object.assign(Promise.resolve(val), {
-              returning: vi.fn().mockResolvedValue(val),
-            });
-          },
-        }),
-      }),
-      delete: (...deleteArgs: any[]) => ({
-        where: (...wArgs: any[]) => {
-          const val = mockDelete("delete", deleteArgs, wArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-          });
-        },
-      }),
+      update: updateStub((...a) => mockUpdate(...a)),
+      delete: deleteStub((...a) => mockDelete(...a)),
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation(() => ({
           // `.for("update")` row-locks before a recount, so the where node has
@@ -224,30 +210,8 @@ vi.mock("@query/db", async () => {
       attempts: "attempts",
     },
     members: { id: "id", userId: "user_id", hackathonId: "hackathon_id" },
-    events: {
-      id: "id",
-      title: "title",
-      qrCode: "qr_code",
-      checkInEnabled: "check_in_enabled",
-      eventDate: "event_date",
-      currentCheckIns: "current_check_ins",
-    },
-    bootcampWorkshops: {
-      id: "id",
-      term: "term",
-      week: "week",
-      title: "title",
-      materialsKey: "materials_key",
-      materialsFileName: "materials_file_name",
-      materialsSizeBytes: "materials_size_bytes",
-      solutionKey: "solution_key",
-      solutionFileName: "solution_file_name",
-      solutionSizeBytes: "solution_size_bytes",
-      recordingUrl: "recording_url",
-      isPublished: "is_published",
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-    },
+    events: eventColumns,
+    bootcampWorkshops: bootcampWorkshopColumns,
     eventCheckIns: { id: "id", eventId: "event_id", userId: "user_id" },
   };
 });
@@ -286,7 +250,6 @@ const whereStrings = (node: unknown, out: string[] = []): string[] => {
 };
 const sqlHas = (node: unknown, value: string) =>
   whereStrings(node).includes(value);
-const whereHas = (args: any, value: string) => sqlHas(args?.where, value);
 
 /** Forces real interleaving between two in-flight callers. */
 const io = <T,>(value: T): Promise<T> =>
@@ -304,15 +267,7 @@ describe("QR check-in", () => {
     mockEarlierAttendance.mockReturnValue([]);
   });
 
-  const createMockCtx = (userId?: string) =>
-    ({
-      db,
-      session: userId ? { user: { id: userId } } : null,
-      userId: userId || undefined,
-      cache,
-      clientIp: "127.0.0.1",
-      req: { headers: { get: () => null } },
-    }) as any;
+  const createMockCtx = (userId?: string) => testCtx(db, userId);
 
   const ADMIN_ROW = {
     userId: "admin_user_id",
@@ -549,7 +504,7 @@ describe("QR check-in", () => {
         if (table === "admins") return ADMIN_ROW;
         // Only the code currently stored on the row resolves to the event.
         if (table === "events")
-          return whereHas(args, row.qrCode) ? { ...row } : undefined;
+          return sqlHas(args?.where, row.qrCode) ? { ...row } : undefined;
         if (table === "hackathons") return { id: HACK_A };
         if (table === "members") return activeMember;
         return undefined;

@@ -7,15 +7,11 @@ import {
   dayFromBuckets,
   deriveStatus,
   fillBuckets,
-  fillDays
-  
-  
-  
-  
+  fillDays,
 } from "@/lib/status";
-import type {Bucket, Day, Live, StatusSummary} from "@/lib/status";
+import type { Bucket, Day, Live, StatusSummary } from "@/lib/status";
 
-export type StatusData = {
+type StatusData = {
   generatedAt: number;
   live: Live;
   summary: StatusSummary;
@@ -132,13 +128,6 @@ async function queryDays(todayStart: number): Promise<Day[]> {
   }));
 }
 
-// A thrown error is never cached, so a failed read is retried on the next
-// render. The key carries the UTC day, so the entry rolls over at midnight.
-const completedDays = (todayStart: number) =>
-  unstable_cache(queryDays, ["status-days", String(todayStart)], {
-    revalidate: DAILY_REVALIDATE_S,
-  })(todayStart);
-
 async function loadHistory(now: number) {
   if (!db) throw new Error("no database");
   const lastBucket = now - (now % BUCKET_MS);
@@ -149,7 +138,11 @@ async function loadHistory(now: number) {
     withTimeout(
       db.execute<BucketRow>(sql`${perBucket(since24h)} order by bucket_start`),
     ),
-    completedDays(todayStart),
+    // A thrown error is never cached, so a failed read is retried on the next
+    // render. The key carries the UTC day, so the entry rolls over at midnight.
+    unstable_cache(queryDays, ["status-days", String(todayStart)], {
+      revalidate: DAILY_REVALIDATE_S,
+    })(todayStart),
   ]);
 
   const hours: Bucket[] = recent.rows.map((row) => ({

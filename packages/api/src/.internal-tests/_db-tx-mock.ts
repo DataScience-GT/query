@@ -52,7 +52,6 @@ export interface TxMockHooks {
   base: () => unknown;
   insert?: Mock;
   update?: Mock;
-  delete?: Mock;
   /**
    * Backs `tx.select(...).from(...).where(...)`. Only wired when supplied, so
    * files that do not exercise a locking read keep their existing select stub.
@@ -64,7 +63,6 @@ export const createTransactionMock = ({
   base,
   insert,
   update,
-  delete: del,
   select,
 }: TxMockHooks) =>
   vi.fn().mockImplementation(async (callback: (tx: any) => unknown) => {
@@ -131,18 +129,6 @@ export const createTransactionMock = ({
         },
       });
     }
-
-    if (del) {
-      tx.delete = (...deleteArgs: any[]) => ({
-        where: (...wArgs: any[]) => {
-          const ran = acquire(deleteArgs[0]).then(() =>
-            withUndos(() => del("delete", deleteArgs, wArgs)),
-          );
-          return Object.assign(ran, { returning: () => ran });
-        },
-      });
-    }
-
 
     if (select) {
       tx.select = (...selectArgs: any[]) => ({

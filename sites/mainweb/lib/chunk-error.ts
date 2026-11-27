@@ -8,7 +8,7 @@ import { useEffect } from "react";
  * an error boundary's reset() cannot fix it — re-rendering requests the same
  * dead URL. Only a full document reload picks up the new build.
  */
-export function isChunkLoadError(error: unknown): boolean {
+function isChunkLoadError(error: unknown): boolean {
   if (!error) return false;
   const err = error as { name?: string; message?: string };
   const message = err.message ?? "";

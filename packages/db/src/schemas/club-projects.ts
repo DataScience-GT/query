@@ -55,5 +55,3 @@ export const clubProjects = pgTable(
     index("club_project_published_idx").on(table.isPublished),
   ],
 );
-
-export type ClubProject = typeof clubProjects.$inferSelect;

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 import { hackathonInterest } from "@query/db";
 
@@ -24,7 +24,8 @@ vi.mock("@query/auth/email", () => ({
     mockSendRegistrationOpen(...args),
 }));
 
-vi.mock("@query/db", () => {
+vi.mock("@query/db", async () => {
+  const { updateStub, deleteStub, bootcampWorkshopColumns, eventColumns } = await import("./_fake-db");
   const selectChain = () => {
     const node: any = {
       from: () => node,
@@ -68,24 +69,8 @@ vi.mock("@query/db", () => {
           });
         },
       }),
-      delete: (...deleteArgs: any[]) => ({
-        where: (...wArgs: any[]) => {
-          const val = mockDelete("delete", deleteArgs, wArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-          });
-        },
-      }),
-      update: (...updateArgs: any[]) => ({
-        set: (...setArgs: any[]) => ({
-          where: (...wArgs: any[]) => {
-            const val = mockUpdate("update", updateArgs, setArgs, wArgs);
-            return Object.assign(Promise.resolve(val), {
-              returning: vi.fn().mockResolvedValue(val),
-            });
-          },
-        }),
-      }),
+      delete: deleteStub((...a) => mockDelete(...a)),
+      update: updateStub((...a) => mockUpdate(...a)),
     },
     admins: { userId: "user_id", isActive: "is_active", role: "role" },
     users: { id: "id", name: "name", email: "email" },
@@ -95,30 +80,8 @@ vi.mock("@query/db", () => {
       isPublic: "is_public",
       startDate: "start_date",
     },
-    bootcampWorkshops: {
-      id: "id",
-      term: "term",
-      week: "week",
-      title: "title",
-      materialsKey: "materials_key",
-      materialsFileName: "materials_file_name",
-      materialsSizeBytes: "materials_size_bytes",
-      solutionKey: "solution_key",
-      solutionFileName: "solution_file_name",
-      solutionSizeBytes: "solution_size_bytes",
-      recordingUrl: "recording_url",
-      isPublished: "is_published",
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-    },
-    events: {
-      id: "id",
-      title: "title",
-      qrCode: "qr_code",
-      checkInEnabled: "check_in_enabled",
-      eventDate: "event_date",
-      currentCheckIns: "current_check_ins",
-    },
+    bootcampWorkshops: bootcampWorkshopColumns,
+    events: eventColumns,
     members: { userId: "user_id", hackathonId: "hackathon_id" },
     projectLeaders: { userId: "user_id", isActive: "is_active" },
     judges: { userId: "user_id", isActive: "is_active" },
@@ -141,15 +104,7 @@ const HACK = "22222222-2222-4222-8222-222222222222";
 const VISITOR = "user_visitor";
 const ADMIN = "user_admin";
 
-const callerFor = (userId?: string) =>
-  appRouter.createCaller({
-    db,
-    session: userId ? { user: { id: userId } } : null,
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as never);
+const callerFor = (userId?: string) => testCaller(db, userId);
 
 /**
  * Deliberately a made-up edition. Real names, dates and themes belong in the

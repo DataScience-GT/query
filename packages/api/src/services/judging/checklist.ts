@@ -37,7 +37,7 @@ export type ChecklistFacts = {
   itineraryPublished: boolean;
 };
 
-export type ChecklistItem = {
+type ChecklistItem = {
   key:
     | "projects"
     | "rubric"
@@ -55,7 +55,7 @@ export type ChecklistItem = {
 const plural = (n: number, one: string, many = `${one}s`) =>
   `${n} ${n === 1 ? one : many}`;
 
-export type JudgingState = ChecklistFacts["state"];
+type JudgingState = ChecklistFacts["state"];
 
 /**
  * Why judging cannot move from `from` to `to`, or null when it can. Draft

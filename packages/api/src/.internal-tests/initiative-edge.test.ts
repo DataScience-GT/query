@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 import {
   initiatives,
@@ -29,30 +29,12 @@ let onSelect: (table: unknown) => unknown[] = () => [];
 
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");
+  const { tableSelectChain, insertStub, updateStub, deleteStub, bootcampWorkshopColumns, eventColumns } = await import("./_fake-db");
 
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
     findMany: async () => [],
   });
-
-  // Mirrors drizzle's builder closely enough for the chains this router uses:
-  // .from().innerJoin().where().orderBy().limit(), .where().groupBy(), an
-  // awaited .where(), and .where().for("update").
-  const selectChain = () => {
-    let from: unknown;
-    const rows = () => Promise.resolve(onSelectRef.current(from));
-    const node: any = {
-      from: (t: unknown) => ((from = t), node),
-      innerJoin: () => node,
-      where: () => node,
-      orderBy: () => node,
-      groupBy: () => rows(),
-      limit: () => rows(),
-      for: () => rows(),
-      then: (ok: any, err: any) => rows().then(ok, err),
-    };
-    return node;
-  };
 
   return {
     db: {
@@ -71,61 +53,16 @@ vi.mock("@query/db", async () => {
         initiatives: table("initiatives"),
         initiativeApplications: table("initiativeApplications"),
       },
-      select: selectChain,
-      insert: (...insertArgs: any[]) => ({
-        values: (...valArgs: any[]) => {
-          const val = mockInsert("insert", insertArgs, valArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-          });
-        },
-      }),
-      update: (...updateArgs: any[]) => ({
-        set: (...setArgs: any[]) => ({
-          where: (...wArgs: any[]) => {
-            const val = mockUpdate("update", updateArgs, setArgs, wArgs);
-            return Object.assign(Promise.resolve(val), {
-              returning: vi.fn().mockResolvedValue(val),
-            });
-          },
-        }),
-      }),
-      delete: (...deleteArgs: any[]) => ({
-        where: (...wArgs: any[]) => {
-          const val = mockDelete("delete", deleteArgs, wArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-          });
-        },
-      }),
+      select: tableSelectChain((table) => onSelectRef.current(table)),
+      insert: insertStub((...a) => mockInsert(...a)),
+      update: updateStub((...a) => mockUpdate(...a)),
+      delete: deleteStub((...a) => mockDelete(...a)),
     },
     admins: { userId: "user_id", isActive: "is_active", role: "role" },
     users: { id: "id", name: "name", email: "email", image: "image" },
     hackathons: { id: "id", status: "status", startDate: "start_date", endDate: "end_date" },
-    bootcampWorkshops: {
-      id: "id",
-      term: "term",
-      week: "week",
-      title: "title",
-      materialsKey: "materials_key",
-      materialsFileName: "materials_file_name",
-      materialsSizeBytes: "materials_size_bytes",
-      solutionKey: "solution_key",
-      solutionFileName: "solution_file_name",
-      solutionSizeBytes: "solution_size_bytes",
-      recordingUrl: "recording_url",
-      isPublished: "is_published",
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-    },
-    events: {
-      id: "id",
-      title: "title",
-      qrCode: "qr_code",
-      checkInEnabled: "check_in_enabled",
-      eventDate: "event_date",
-      currentCheckIns: "current_check_ins",
-    },
+    bootcampWorkshops: bootcampWorkshopColumns,
+    events: eventColumns,
     members: { userId: "user_id", hackathonId: "hackathon_id" },
     projectLeaders: {
       id: "id",
@@ -173,14 +110,7 @@ const INITIATIVE = "11111111-1111-4111-8111-111111111111";
 const DAY = 24 * 60 * 60 * 1000;
 
 const callerFor = (userId: string) =>
-  appRouter.createCaller({
-    db,
-    session: { user: { id: userId } },
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: undefined,
-  } as never);
+  testCaller(db, userId, { req: undefined });
 
 /** An initiative open to applications, led by LEADER. */
 const openInitiative = (overrides: Record<string, any> = {}) => ({

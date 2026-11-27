@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
 import { cache } from "../middleware/cache";
 import { subteams, subteamApplications } from "@query/db";
 
@@ -22,32 +22,12 @@ vi.mock("@query/auth/email", () => ({
 
 vi.mock("@query/db", async () => {
   const { createTransactionMock } = await import("./_db-tx-mock");
+  const { tableSelectChain, insertStub, updateStub, bootcampWorkshopColumns } = await import("./_fake-db");
 
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
     findMany: async () => [],
   });
-
-  const selectChain = () => {
-    let from: unknown;
-    const rows = () => Promise.resolve(onSelectRef.current(from));
-    const node: any = {
-      from: (t: unknown) => ((from = t), node),
-      innerJoin: () => node,
-      where: () => node,
-      orderBy: () => node,
-      groupBy: () => rows(),
-      limit: () => rows(),
-      for: () => rows(),
-      then: (ok: any, err: any) => rows().then(ok, err),
-    };
-    return node;
-  };
-
-  const writeResult = (val: unknown) =>
-    Object.assign(Promise.resolve(val), {
-      returning: vi.fn().mockResolvedValue(val),
-    });
 
   return {
     db: {
@@ -64,38 +44,15 @@ vi.mock("@query/db", async () => {
         subteams: table("subteams"),
         subteamApplications: table("subteamApplications"),
       },
-      select: selectChain,
-      insert: (...insertArgs: any[]) => ({
-        values: (...valArgs: any[]) =>
-          writeResult(mockInsert("insert", insertArgs, valArgs)),
-      }),
-      update: (...updateArgs: any[]) => ({
-        set: (...setArgs: any[]) => ({
-          where: (...wArgs: any[]) =>
-            writeResult(mockUpdate("update", updateArgs, setArgs, wArgs)),
-        }),
-      }),
+      select: tableSelectChain((table) => onSelectRef.current(table)),
+      insert: insertStub((...a) => mockInsert(...a)),
+      update: updateStub((...a) => mockUpdate(...a)),
     },
     admins: { userId: "user_id", isActive: "is_active", role: "role" },
     users: { id: "id", name: "name", email: "email" },
     members: { userId: "user_id" },
     // Read at module scope by other routers that load with the root.
-    bootcampWorkshops: {
-      id: "id",
-      term: "term",
-      week: "week",
-      title: "title",
-      materialsKey: "materials_key",
-      materialsFileName: "materials_file_name",
-      materialsSizeBytes: "materials_size_bytes",
-      solutionKey: "solution_key",
-      solutionFileName: "solution_file_name",
-      solutionSizeBytes: "solution_size_bytes",
-      recordingUrl: "recording_url",
-      isPublished: "is_published",
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-    },
+    bootcampWorkshops: bootcampWorkshopColumns,
     events: { id: "id", eventDate: "event_date", location: "location" },
     subteams: {
       id: "id",
@@ -138,14 +95,7 @@ const APPLICATION = "33333333-3333-4333-8333-333333333333";
 const DAY = 24 * 60 * 60 * 1000;
 
 const callerFor = (userId: string) =>
-  appRouter.createCaller({
-    db,
-    session: { user: { id: userId } },
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: undefined,
-  } as never);
+  testCaller(db, userId, { req: undefined });
 
 const openSubteam = (overrides: Record<string, any> = {}) => ({
   id: SUBTEAM,

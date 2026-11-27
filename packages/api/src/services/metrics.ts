@@ -47,16 +47,6 @@ export const registry = new Registry();
 // that says anything about the runtime itself.
 collectDefaultMetrics({ register: registry, prefix: "dsgt_" });
 
-/** Where a membership grant came from. Each is a separate failure mode. */
-export type GrantSource =
-  | "confirm"
-  | "webhook_intent"
-  | "webhook_checkout"
-  | "reconcile"
-  | "autolink"
-  | "link"
-  | "verify_email";
-
 export const paymentIntents = new Counter({
   name: "dsgt_payment_intents_total",
   help: "Payment intents this app minted, by what was being bought.",
@@ -225,7 +215,7 @@ const hackathonJudgingActive = new Gauge({
   registers: [registry],
 });
 
-export type LiveHackathon = {
+type LiveHackathon = {
   edition: string;
   phase: string;
   judgingActive: boolean;
@@ -258,9 +248,8 @@ const countByEdition = (
 // has to be able to show the same counts when nothing is scraping.
 export async function readLiveHackathons(
   db: DrizzleDB,
-  now = new Date(),
 ): Promise<LiveHackathon[]> {
-  const startOfToday = startOfEasternDay(now);
+  const startOfToday = startOfEasternDay(new Date());
 
   const editions = await db
     .select({
@@ -420,12 +409,12 @@ function planFromMetadata(metadata: string | null) {
   return typeof parsed.plan === "string" && parsed.plan ? parsed.plan : "annual";
 }
 
-const currentTermLabel = (now = new Date()) => {
+const currentTermLabel = () => {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: VENUE_TZ,
     year: "numeric",
     month: "numeric",
-  }).formatToParts(now);
+  }).formatToParts(new Date());
   const year = parts.find((p) => p.type === "year")?.value;
   const month = Number(parts.find((p) => p.type === "month")?.value);
   return month <= 5 ? `${year}-spring` : `${year}-fall`;

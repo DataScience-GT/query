@@ -3,5 +3,4 @@ export { authConfig } from "./config";
 export { adapter } from "./adapter";
 export { discordLoginEnabled } from "./discord";
 export { runCodeRequest } from "./sign-in-attempt";
-export { getSession, requireAuth, getCurrentUserId } from "./utils";
 export { sendAcceptanceEmail } from "./email";

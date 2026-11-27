@@ -1,7 +1,6 @@
 // A judge's private shortlist: sections of projects with notes.
 
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import {
   judgingDeliberationEntries,
@@ -24,6 +23,7 @@ import {
   nextOrder,
 } from "../../../services/judging/deliberation";
 import { judgeProcedure, uuid, sectionTitle } from "./shared";
+import { conflict, notFound, preconditionFailed } from "../../errors";
 
 /** Runs a deliberation write: judging open, the judge still seated. */
 function deliberationWrite<T>(
@@ -52,10 +52,7 @@ async function ownedSection(tx: Tx, judgeId: string, sectionId: string) {
     .for("update")
     .limit(1);
   if (!section) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "That section is gone. Reload your shortlist.",
-    });
+    throw notFound("That section is gone. Reload your shortlist.");
   }
   return section;
 }
@@ -81,10 +78,7 @@ async function ownedRow(tx: Tx, judgeId: string, rowId: string) {
     .for("update", { of: judgingDeliberationEntries })
     .limit(1);
   if (!row) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "That project is no longer on your shortlist. Reload it.",
-    });
+    throw notFound("That project is no longer on your shortlist. Reload it.");
   }
   return row;
 }
@@ -220,11 +214,9 @@ export const deliberationRouter = createTRPCRouter({
             input.sectionIds,
           )
         ) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "Your sections changed in another window. Reload, then reorder again.",
-          });
+          throw conflict(
+            "Your sections changed in another window. Reload, then reorder again.",
+          );
         }
         for (const [index, id] of input.sectionIds.entries()) {
           await tx
@@ -270,11 +262,9 @@ export const deliberationRouter = createTRPCRouter({
           )
           .limit(1);
         if (!finished) {
-          throw new TRPCError({
-            code: "PRECONDITION_FAILED",
-            message:
-              "Finish judging this project before you add it to your shortlist.",
-          });
+          throw preconditionFailed(
+            "Finish judging this project before you add it to your shortlist.",
+          );
         }
 
         const [row] = await tx
@@ -293,7 +283,7 @@ export const deliberationRouter = createTRPCRouter({
           })
           .returning({ id: judgingDeliberationEntries.id });
         if (!row) {
-          throw new TRPCError({ code: "CONFLICT", message: ALREADY_LISTED });
+          throw conflict(ALREADY_LISTED);
         }
         return row;
       }),
@@ -334,7 +324,7 @@ export const deliberationRouter = createTRPCRouter({
           )
           .limit(1);
         if (clash) {
-          throw new TRPCError({ code: "CONFLICT", message: ALREADY_LISTED });
+          throw conflict(ALREADY_LISTED);
         }
         await tx
           .update(judgingDeliberationEntries)
@@ -367,11 +357,9 @@ export const deliberationRouter = createTRPCRouter({
             input.rowIds,
           )
         ) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "This section changed in another window. Reload, then reorder again.",
-          });
+          throw conflict(
+            "This section changed in another window. Reload, then reorder again.",
+          );
         }
         for (const [index, id] of input.rowIds.entries()) {
           await tx

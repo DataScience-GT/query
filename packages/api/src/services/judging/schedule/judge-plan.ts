@@ -18,7 +18,7 @@ export type JudgeRow = {
 };
 
 /** A guest's session: the room they scanned in at. */
-export type GuestSeat = { judgeId: string; roomId: string; createdAt: Date };
+type GuestSeat = { judgeId: string; roomId: string; createdAt: Date };
 
 export type Roster = {
   /** Judges who can be given presentations: members, and guests with a room. */
@@ -198,7 +198,7 @@ export function judgeChanges(
     });
 }
 
-export type JudgeChoice = {
+type JudgeChoice = {
   judgeId: string;
   /** The appointment of theirs in the same slot, if they are already booked. */
   bookedWith: string | null;

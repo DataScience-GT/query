@@ -21,7 +21,7 @@ export const ROOT = resolve(
 
 export const read = (file: string) => readFileSync(file, "utf8");
 
-export interface Stamp {
+interface Stamp {
   mtime: number;
   size: number;
 }
@@ -159,7 +159,7 @@ export function findClose(text: string, open: number): number {
   return -1;
 }
 
-export interface Piece {
+interface Piece {
   text: string;
   /** Offset of the piece in the string that was split. */
   start: number;

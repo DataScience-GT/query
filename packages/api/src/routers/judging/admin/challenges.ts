@@ -1,7 +1,6 @@
 // Challenges (tracks and prizes) and their grouping.
 
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { and, count, eq, isNull, max, sql } from "drizzle-orm";
 import {
   judgingAppointments,
@@ -29,9 +28,9 @@ import {
   hackathonInput,
   label,
   challengeMode,
-  refuse,
   lockChallenge,
 } from "./shared";
+import { badRequest, conflict, preconditionFailed } from "../../errors";
 
 export const challengeProcedures = {
   listChallenges: isAdmin
@@ -123,16 +122,12 @@ export const challengeProcedures = {
             (c) => c.isGroup === input.isGroup && sameLabel(c.label, input.label),
           )
         ) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `A ${input.isGroup ? "group" : "challenge"} called ${input.label} already exists.`,
-          });
+          throw conflict(
+            `A ${input.isGroup ? "group" : "challenge"} called ${input.label} already exists.`,
+          );
         }
         if (input.importLabelMatch && !input.isGroup) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Only a group collects imported labels.",
-          });
+          throw badRequest("Only a group collects imported labels.");
         }
         const problem = groupingProblem(
           challenges,
@@ -140,7 +135,7 @@ export const challengeProcedures = {
           input.parentId,
         );
         if (problem) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: problem });
+          throw badRequest(problem);
         }
 
         const [order] = await tx
@@ -227,16 +222,12 @@ export const challengeProcedures = {
               sameLabel(c.label, next.label),
           )
         ) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `A ${challenge.isGroup ? "group" : "challenge"} called ${next.label} already exists.`,
-          });
+          throw conflict(
+            `A ${challenge.isGroup ? "group" : "challenge"} called ${next.label} already exists.`,
+          );
         }
         if (next.importLabelMatch && !challenge.isGroup) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Only a group collects imported labels.",
-          });
+          throw badRequest("Only a group collects imported labels.");
         }
         const problem = groupingProblem(
           challenges,
@@ -248,7 +239,7 @@ export const challengeProcedures = {
           next.parentId,
         );
         if (problem) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: problem });
+          throw badRequest(problem);
         }
         if (next.parentId && !challenge.parentId) {
           const [room] = await tx
@@ -262,7 +253,7 @@ export const challengeProcedures = {
             )
             .limit(1);
           if (room) {
-            throw refuse(
+            throw preconditionFailed(
               `${room.name} judges ${challenge.label} directly. Point the room at the group or archive it before moving the challenge in.`,
             );
           }
@@ -351,7 +342,7 @@ export const challengeProcedures = {
         ] as const;
         const inUse = uses.filter(([n]) => n > 0);
         if (inUse.length > 0) {
-          throw refuse(
+          throw preconditionFailed(
             `${challenge.label} is still in use: ${inUse
               .map(([n, one, many]) => `${n} ${n === 1 ? one : many}`)
               .join(", ")}.`,
@@ -372,6 +363,4 @@ export const challengeProcedures = {
       });
       return { deleted: true };
     }),
-
-  // ---------------------------------------------------------------------,
 };

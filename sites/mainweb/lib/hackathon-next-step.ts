@@ -13,7 +13,7 @@ import { eventDay, eventMoment } from "../components/hackathon/judging/event-tim
  * have nothing to act on, so they read as a status line.
  */
 
-export type NextStepKind =
+type NextStepKind =
   | "register"
   | "review"
   | "confirm"
@@ -44,7 +44,7 @@ export type NextStepHackathon = {
 };
 
 /** The parts of a judging itinerary appointment the strip reads. */
-export type NextStepAppointment = {
+type NextStepAppointment = {
   startsAt: DateLike;
   endsAt: DateLike;
   room: string | null;

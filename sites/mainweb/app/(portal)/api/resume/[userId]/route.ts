@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@query/db";
-import { loadResume, resumeCaller } from "@/lib/resume-access";
+import { loadResume } from "@/lib/resume-access";
+import { staffCaller } from "@/lib/staff-caller";
 import { resumeContentDisposition } from "@/lib/resume-file";
 import { readResume } from "@/lib/resume-storage";
 
@@ -13,7 +14,7 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> },
 ) {
   const { userId: requested } = await params;
-  const caller = await resumeCaller();
+  const caller = await staffCaller();
 
   if (!caller.userId || !db) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });

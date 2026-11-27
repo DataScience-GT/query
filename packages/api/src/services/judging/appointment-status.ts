@@ -22,7 +22,7 @@ export type AppointmentStatus =
   | "pending"
   | "future";
 
-export type AppointmentStatusInput = {
+type AppointmentStatusInput = {
   startsAt: Date;
   deadlineAt: Date;
   /** Evaluations of this appointment's project for its challenge. */

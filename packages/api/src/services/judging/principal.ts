@@ -43,7 +43,7 @@ export const GUEST_NOT_ADMITTED = "Waiting for an organizer to let you in.";
 export const GUEST_SESSION_ENDED =
   "Your guest judging session has ended. Scan the QR code at your room or table again to keep judging.";
 
-export type MemberJudge = {
+type MemberJudge = {
   kind: "member";
   hackathonId: string;
   userId: string;
@@ -75,7 +75,7 @@ export type GuestJudge = {
   accountIds: readonly string[];
 };
 
-export type DeskPrincipal = MemberJudge | GuestJudge;
+type DeskPrincipal = MemberJudge | GuestJudge;
 
 /** A principal who can judge: any member, or a guest who has given a name. */
 export type Judge =
@@ -113,7 +113,7 @@ export function readCookie(
  * How long after a guest session ends a scan of another room's code still
  * recognises the judge who held it.
  */
-export const GUEST_CARRY_OVER_SECONDS = 4 * 3600;
+const GUEST_CARRY_OVER_SECONDS = 4 * 3600;
 
 /**
  * Options for the guest session cookie, set by the room-link route handler.
@@ -225,7 +225,7 @@ export async function resolveMemberJudge(
 }
 
 /** The live guest session a raw cookie token belongs to, or null. */
-export async function resolveGuestSession(
+async function resolveGuestSession(
   db: JudgingDb,
   token: string,
   now = new Date(),
@@ -436,7 +436,7 @@ export async function nameGuest(
   });
 }
 
-export type RoomLinkActivation =
+type RoomLinkActivation =
   /** Bad signature, revoked link or archived room. */
   | { kind: "invalid" }
   /** A member judge, now seated in the room. */

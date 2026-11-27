@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { db } from "@query/db";
-import type { DrizzleDB } from "@query/db";
 import { auth } from "@query/auth";
 import { siteOrigin } from "@query/core/server";
 import { completeLink, discordConfig, verifyState } from "@query/api/discord";
@@ -51,7 +50,7 @@ export async function GET(request: NextRequest) {
   let result;
   try {
     result = await completeLink({
-      db: db as DrizzleDB,
+      db,
       config,
       secret,
       state,

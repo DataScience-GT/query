@@ -16,6 +16,7 @@ import { isBugTesterRole } from "../types/portal-context";
 import { escapeLike } from "./judging/admin/shared";
 import { recordAdminAction } from "../middleware/audit";
 import { splitName } from "@query/db/services/membership";
+import { badRequest, forbidden, notFound } from "./errors";
 
 // Letters from every script, plus the combining marks, spaces, hyphens and
 // apostrophes (straight and typographic) that real names are written with.
@@ -30,6 +31,24 @@ const phoneSchema = z
   .regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number")
   .optional();
 
+// What the staff directory shows of a member. Everything else, the phone
+// number included, stays out.
+const directoryEntry = {
+  with: { user: { columns: { id: true, name: true, image: true } } },
+  columns: {
+    id: true,
+    firstName: true,
+    lastName: true,
+    school: true,
+    major: true,
+    skills: true,
+    interests: true,
+    joinedAt: true,
+    memberType: true,
+    phoneNumber: false,
+  },
+} as const;
+
 export const memberRouter = createTRPCRouter({
   me: protectedProcedure.query(async ({ ctx }) => {
     // getOrSet, so "no member row" caches too. Through get() it read as a miss,
@@ -38,7 +57,7 @@ export const memberRouter = createTRPCRouter({
       `member:me:${ctx.userId}`,
       async () =>
         (await (ctx.db as DrizzleDB).query.members.findFirst({
-          where: { userId: ctx.userId! },
+          where: { userId: ctx.userId },
         })) ?? null,
       60,
     );
@@ -72,14 +91,11 @@ export const memberRouter = createTRPCRouter({
       const existingMember = await (
         ctx.db as DrizzleDB
       ).query.members.findFirst({
-        where: { userId: ctx.userId! },
+        where: { userId: ctx.userId },
       });
 
       if (existingMember) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "You already have a member profile",
-        });
+        throw badRequest("You already have a member profile");
       }
 
       // This writes a PROFILE, not a membership. It used to stamp
@@ -92,7 +108,7 @@ export const memberRouter = createTRPCRouter({
       const result = await (ctx.db as DrizzleDB)
         .insert(members)
         .values({
-          userId: ctx.userId!,
+          userId: ctx.userId,
           memberType: "new",
           firstName: input.firstName,
           lastName: input.lastName,
@@ -123,7 +139,7 @@ export const memberRouter = createTRPCRouter({
       // No membershipHistory "joined" row either: nothing was joined until a
       // payment lands, and createOrUpdateMembership records that.
 
-      invalidatePortalContext(ctx.userId!);
+      invalidatePortalContext(ctx.userId);
 
       return newMember;
     }),
@@ -161,14 +177,11 @@ export const memberRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-        where: { userId: ctx.userId! },
+        where: { userId: ctx.userId },
       });
 
       if (!member) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Member not found",
-        });
+        throw notFound("Member not found");
       }
 
       const result = await (ctx.db as DrizzleDB)
@@ -191,7 +204,7 @@ export const memberRouter = createTRPCRouter({
 
       // `me` caches for 60s; without this the form saves and re-reads the old
       // values, which is indistinguishable from the save having failed.
-      clearMembershipCaches(ctx.userId!);
+      clearMembershipCaches(ctx.userId);
 
       return updatedMember;
     }),
@@ -219,27 +232,7 @@ export const memberRouter = createTRPCRouter({
         },
         limit: input.limit,
         offset: input.offset,
-        with: {
-          user: {
-            columns: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-        },
-        columns: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          school: true,
-          major: true,
-          skills: true,
-          interests: true,
-          joinedAt: true,
-          memberType: true,
-          phoneNumber: false,
-        },
+        ...directoryEntry,
       });
 
       ctx.cache.set(cacheKey, allMembers, 60);
@@ -253,34 +246,11 @@ export const memberRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const member = await (ctx.db as DrizzleDB).query.members.findFirst({
         where: { id: input.id },
-        with: {
-          user: {
-            columns: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-        },
-        columns: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          school: true,
-          major: true,
-          skills: true,
-          interests: true,
-          joinedAt: true,
-          memberType: true,
-          phoneNumber: false,
-        },
+        ...directoryEntry,
       });
 
       if (!member) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Member not found",
-        });
+        throw notFound("Member not found");
       }
 
       return member;
@@ -293,7 +263,7 @@ export const memberRouter = createTRPCRouter({
       `member:history:${ctx.userId}`,
       async () => {
         const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-          where: { userId: ctx.userId! },
+          where: { userId: ctx.userId },
           columns: { id: true },
           with: {
             membershipHistory: {
@@ -309,7 +279,7 @@ export const memberRouter = createTRPCRouter({
     );
 
     if (!history) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+      throw notFound("Member not found");
     }
 
     return history;
@@ -318,7 +288,7 @@ export const memberRouter = createTRPCRouter({
   /** The caller's own pass, for the QR an officer scans at the door. */
   myPass: protectedProcedure.query(async ({ ctx }) => {
     const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-      where: { userId: ctx.userId as string },
+      where: { userId: ctx.userId },
       columns: { passCode: true, firstName: true, lastName: true },
     });
 
@@ -330,14 +300,11 @@ export const memberRouter = createTRPCRouter({
     const [updated] = await (ctx.db as DrizzleDB)
       .update(members)
       .set({ passCode: sql`gen_random_uuid()`, updatedAt: new Date() })
-      .where(eq(members.userId, ctx.userId as string))
+      .where(eq(members.userId, ctx.userId))
       .returning({ passCode: members.passCode });
 
     if (!updated) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "You do not have a member profile yet.",
-      });
+      throw notFound("You do not have a member profile yet.");
     }
 
     return updated;
@@ -357,7 +324,7 @@ export const memberRouter = createTRPCRouter({
     if (cached) return cached;
 
     const member = await (ctx.db as DrizzleDB).query.members.findFirst({
-      where: { userId: ctx.userId! },
+      where: { userId: ctx.userId },
     });
 
     if (!member) {
@@ -418,10 +385,7 @@ export const memberRouter = createTRPCRouter({
       // Same rule as admin.findUserByEmail: searching by address confirms that
       // an account exists, which a read-only QA account has no need to do.
       if (isBugTesterRole(ctx.admin.role)) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Admin access required",
-        });
+        throw forbidden("Admin access required");
       }
 
       // A literal search: a pasted % or _ must not turn into a wildcard.
@@ -502,7 +466,7 @@ export const memberRouter = createTRPCRouter({
       });
 
       if (!user) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        throw notFound("User not found");
       }
 
       // One transaction, behind a lock on the member row. The update and its
@@ -556,10 +520,7 @@ export const memberRouter = createTRPCRouter({
         }
 
         if (input.months < 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "That person has no membership to shorten.",
-          });
+          throw badRequest("That person has no membership to shorten.");
         }
 
         const { firstName, lastName } = splitName(user.name);
@@ -637,10 +598,7 @@ export const memberRouter = createTRPCRouter({
           .for("update");
 
         if (!locked) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "That person has no membership.",
-          });
+          throw notFound("That person has no membership.");
         }
 
         const now = new Date();

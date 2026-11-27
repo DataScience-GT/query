@@ -48,7 +48,7 @@ export function ApplicationChip({
 }
 
 /** Archived is a timestamp, not a status, but it outranks the other three. */
-export type InitiativeState = InitiativeStatus | "archived";
+type InitiativeState = InitiativeStatus | "archived";
 
 const initiativeTones: Record<
   InitiativeState,

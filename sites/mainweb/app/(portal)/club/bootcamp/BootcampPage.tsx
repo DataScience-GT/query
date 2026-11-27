@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ExternalLink } from "lucide-react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { BootcampAddOn } from "@/components/portal/BootcampAddOn";
 import { BootcampMaterialsTable } from "@/components/portal/BootcampMaterialsTable";
 import { trpc } from "@/lib/trpc";
-import { loginHref } from "@/lib/safe-callback";
+import { termLabel } from "@/lib/public-events";
+import { useLoginRedirect } from "@/lib/use-login-redirect";
 import {
   BOOTCAMP_MEETING_TIME,
   BOOTCAMP_ROOM,
@@ -37,13 +36,6 @@ import {
   sectionTitle,
   status,
 } from "@query/ui/classes";
-
-/** `2026-fall` is how it is stored; nobody should have to read it that way. */
-function termLabel(term: string) {
-  const [year, season] = term.split("-");
-  if (!year || !season) return term;
-  return `${season.charAt(0).toUpperCase()}${season.slice(1)} ${year}`;
-}
 
 /** Where and when it meets — the thing somebody checks walking to class. */
 function MeetingCard() {
@@ -116,12 +108,9 @@ function NotEnrolled({ term }: { term: string }) {
 
 export default function BootcampPortalPage() {
   const { data: session, status: sessionStatus } = useSession();
-  const router = useRouter();
   // Queries wait on the session, so a signed-out visitor otherwise sits on
   // the loading screen forever.
-  useEffect(() => {
-    if (sessionStatus === "unauthenticated") router.push(loginHref());
-  }, [sessionStatus, router]);
+  useLoginRedirect(sessionStatus);
   const progress = trpc.bootcamp.myProgress.useQuery(undefined, {
     enabled: !!session,
   });

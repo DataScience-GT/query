@@ -27,6 +27,7 @@ import {
 import { isAdmin, notHackathonBanned } from "../../middleware/procedures";
 import { rateLimitShared } from "../../middleware/security";
 import { VOLATILE_TTL } from "../../middleware/cache";
+import { badRequest, notFound } from "../errors";
 
 // The interest list for an edition announced but not yet taking
 // registrations. Its own table rather than a participant row with a new
@@ -178,10 +179,7 @@ export const hackathonInterestRouter = createTRPCRouter({
       // A draft edition is not public, so it answers the way a made-up id does
       // rather than confirming that staff are planning something.
       if (!target || !target.isPublic || target.status === "draft") {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "That hackathon is not accepting interest.",
-        });
+        throw notFound("That hackathon is not accepting interest.");
       }
 
       if (target.status !== "announced") {
@@ -280,21 +278,16 @@ export const hackathonInterestRouter = createTRPCRouter({
       });
 
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       // Telling the list to go and register while registration is shut is the one
       // failure this message cannot recover from — everyone who acts on it lands on
       // a closed page.
       if (hackathon.status !== "open" && hackathon.status !== "in_progress") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Registration is not open for this hackathon yet, so there is nothing to announce.",
-        });
+        throw badRequest(
+          "Registration is not open for this hackathon yet, so there is nothing to announce.",
+        );
       }
 
       // Claim before sending, exactly as announce.ts does. Reading the pending rows

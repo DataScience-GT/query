@@ -32,7 +32,7 @@ export function parseNamedImports(
 }
 
 /** What a string value stands for in source: the import it came from, and the expression that reads it. */
-export interface Reference {
+interface Reference {
   expression: string;
   binding: Imported;
 }

@@ -7,6 +7,7 @@ import { CacheKeys } from "../middleware/cache";
 import type { DrizzleDB } from "@query/db";
 import { fetchPortalContext } from "../services/portal-context";
 import { readImageDimensions } from "../services/image-dimensions";
+import { badRequest, conflict, notFound } from "./errors";
 
 // z.string().url() is backed by new URL(), which accepts any scheme, so a
 // stored data: or javascript: URI is handed straight to whoever renders it.
@@ -55,12 +56,12 @@ export const userRouter = createTRPCRouter({
     // getOrSet: the layout and the page both ask for this, so a cold key ran
     // the query twice.
     ctx.cache.getOrSet(
-      CacheKeys.userProfile(ctx.userId as string),
+      CacheKeys.userProfile(ctx.userId),
       async () => {
         const user = await (
           ctx.db as NonNullable<typeof ctx.db>
         ).query.users.findFirst({
-          where: { id: ctx.userId as string },
+          where: { id: ctx.userId },
           columns: { id: true, email: true, name: true, image: true },
           with: {
             profile: {
@@ -75,7 +76,7 @@ export const userRouter = createTRPCRouter({
         });
 
         if (!user) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+          throw notFound("User not found");
         }
 
         return {
@@ -94,13 +95,10 @@ export const userRouter = createTRPCRouter({
   ),
 
   getPortalContext: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.userId as string;
+    const userId = ctx.userId;
 
     if (!ctx.db) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Service unavailable. Try again later.",
-      });
+      throw notFound("Service unavailable. Try again later.");
     }
     const db = ctx.db as DrizzleDB;
 
@@ -169,7 +167,7 @@ export const userRouter = createTRPCRouter({
           (ctx.db as NonNullable<typeof ctx.db>)
             .update(users)
             .set({ name, image })
-            .where(eq(users.id, ctx.userId as string)),
+            .where(eq(users.id, ctx.userId)),
         );
       }
 
@@ -184,7 +182,7 @@ export const userRouter = createTRPCRouter({
           (ctx.db as NonNullable<typeof ctx.db>)
             .insert(userProfiles)
             .values({
-              userId: ctx.userId as string,
+              userId: ctx.userId,
               bio,
               website,
               location,
@@ -212,15 +210,14 @@ export const userRouter = createTRPCRouter({
         // typed it either owns it or is claiming it, and both need to know the save
         // did not happen.
         if (isDuplicateGtEmail(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "That Georgia Tech email is already on another account.",
-          });
+          throw conflict(
+            "That Georgia Tech email is already on another account.",
+          );
         }
         throw error;
       }
 
-      ctx.cache.deletePattern(`user:${ctx.userId as string}*`);
+      ctx.cache.deletePattern(`user:${ctx.userId}*`);
 
       return { success: true };
     }),
@@ -240,10 +237,7 @@ export const userRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const base64Data = input.base64Image.split(",")[1];
       if (!base64Data) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid base64 payload",
-        });
+        throw badRequest("Invalid base64 payload");
       }
 
       const buffer = Buffer.from(base64Data, "base64");
@@ -251,40 +245,32 @@ export const userRouter = createTRPCRouter({
       try {
         const dimensions = readImageDimensions(buffer);
         if (!dimensions?.width || !dimensions.height) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Invalid image dimensions. File may be corrupt.",
-          });
+          throw badRequest("Invalid image dimensions. File may be corrupt.");
         }
         if (dimensions.width > 2000 || dimensions.height > 2000) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "Image dimensions exceed the maximum allowed size of 2000x2000 pixels.",
-          });
+          throw badRequest(
+            "Image dimensions exceed the maximum allowed size of 2000x2000 pixels.",
+          );
         }
         const allowedTypes = ["jpeg", "png", "webp"];
         if (!allowedTypes.includes(dimensions.type)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "Malicious payload detected: File signature does not match expected image formats.",
-          });
+          throw badRequest(
+            "Malicious payload detected: File signature does not match expected image formats.",
+          );
         }
       } catch (err) {
         if (err instanceof TRPCError) throw err;
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Could not parse image. File may be corrupt or malicious.",
-        });
+        throw badRequest(
+          "Could not parse image. File may be corrupt or malicious.",
+        );
       }
 
       await (ctx.db as NonNullable<typeof ctx.db>)
         .update(users)
         .set({ image: input.base64Image })
-        .where(eq(users.id, ctx.userId as string));
+        .where(eq(users.id, ctx.userId));
 
-      ctx.cache.deletePattern(`user:${ctx.userId as string}*`);
+      ctx.cache.deletePattern(`user:${ctx.userId}*`);
 
       return { success: true };
     }),

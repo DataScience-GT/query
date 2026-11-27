@@ -17,6 +17,7 @@ import {
   status,
 } from "@query/ui/classes";
 import { ErrorLine, plural } from "@/components/admin/judging/shared";
+import { downloadBlob } from "@/components/admin/download-blob";
 import type { CpsatPreview, ScheduleBoard, Timing } from "./format";
 import {
   PreviewFigures,
@@ -101,17 +102,10 @@ export function CpsatPanel({
         { hackathonId, timing },
         { staleTime: 0 },
       );
-      const url = URL.createObjectURL(
+      downloadBlob(
         new Blob([problem.contents], { type: "application/json" }),
+        problem.fileName,
       );
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = problem.fileName;
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
       setDownload({ command: problem.command, hinted: problem.hinted });
     } catch (error) {
       setDownloadError(

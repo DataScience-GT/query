@@ -14,7 +14,6 @@
  * and what the router makes of the rows it is given.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PgDialect } from "drizzle-orm/pg-core";
 import {
   hackathonParticipants,
   hackathons,
@@ -28,7 +27,8 @@ import {
   judgingEvaluations,
   judgingRooms,
 } from "@query/db";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
+import { render } from "./_fake-db";
 import { cache } from "../middleware/cache";
 import type * as Store from "../services/judging/evaluation-store";
 import type * as RepoCheck from "../services/judging/repo-check";
@@ -53,8 +53,6 @@ const SLOT = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1";
 const EVAL_1 = "ffffffff-ffff-4fff-8fff-fffffffffff1";
 const EVAL_2 = "ffffffff-ffff-4fff-8fff-fffffffffff2";
 
-const dialect = new PgDialect();
-const render = (condition: unknown) => dialect.sqlToQuery(condition as never);
 /** The SQL with its spacing and parameter numbers evened out. */
 const flat = (condition: unknown) =>
   render(condition)
@@ -121,15 +119,7 @@ const fakeDb: any = {
   transaction: async (callback: (tx: unknown) => unknown) => callback(fakeDb),
 };
 
-const callerAs = (userId: string) =>
-  appRouter.createCaller({
-    db: fakeDb,
-    session: { user: { id: userId } },
-    userId,
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as any);
+const callerAs = (userId: string) => testCaller(fakeDb, userId);
 const admin = () => callerAs("admin_user");
 const hacker = () => callerAs("hacker_user");
 

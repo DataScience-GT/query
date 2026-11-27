@@ -9,8 +9,8 @@ import type { JudgingDraftRatings, JudgingDraftResponses } from "@query/db";
 // responses are always shown to the team; a guest's follow the item's guest
 // visibility, where "optional" lets the guest choose.
 
-export type Visibility = "public" | "optional" | "private";
-export type JudgeKind = "member" | "guest";
+type Visibility = "public" | "optional" | "private";
+type JudgeKind = "member" | "guest";
 
 /** The columns these checks need from a judging_rubric_item row. */
 export type RubricItem = {
@@ -35,7 +35,7 @@ export type CheckedAnswers = {
   missing: string[];
 };
 
-export type AnswerCheck =
+type AnswerCheck =
   { ok: true; answers: CheckedAnswers } | { ok: false; message: string };
 
 /** Who may read a judge's response to `item`. */

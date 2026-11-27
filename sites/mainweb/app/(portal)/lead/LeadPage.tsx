@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { Alert } from "@query/ui/Alert";
@@ -33,7 +32,7 @@ import {
 } from "@query/ui/classes";
 import { EmptyState } from "@query/ui/EmptyState";
 import { trpc } from "@/lib/trpc";
-import { loginHref } from "@/lib/safe-callback";
+import { useLoginRedirect } from "@/lib/use-login-redirect";
 import type { RouterOutputs } from "@query/api";
 
 type LeadInitiative = RouterOutputs["initiative"]["listMine"][number];
@@ -256,12 +255,9 @@ function InitiativeRow({ initiative }: { initiative: LeadInitiative }) {
 
 export default function LeadPage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   // Queries wait on the session, so a signed-out visitor otherwise sits on
   // the loading screen forever.
-  useEffect(() => {
-    if (status === "unauthenticated") router.push(loginHref());
-  }, [status, router]);
+  useLoginRedirect(status);
   const [creating, setCreating] = useState(false);
 
   const listing = trpc.initiative.listMine.useQuery(undefined, {

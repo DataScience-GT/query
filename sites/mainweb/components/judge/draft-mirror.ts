@@ -8,7 +8,7 @@ import type { Answer } from "./answers";
 
 type Stored = { key: string; at: number };
 
-export type MirroredAnswers = {
+type MirroredAnswers = {
   ratings: Record<string, number>;
   responses: Record<string, Answer>;
 };

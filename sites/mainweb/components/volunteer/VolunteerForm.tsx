@@ -13,7 +13,12 @@ import {
   FormErrorAlert,
   FormNavigation,
 } from "@/components/hackathon/FormComponents";
-import { DIETARY_OPTIONS } from "@/components/hackathon/constants";
+import {
+  DIETARY_OPTIONS,
+  DIETARY_OTHER,
+  DIETARY_OTHER_PREFIX,
+  splitDietary,
+} from "@/components/hackathon/constants";
 import {
   VOLUNTEER_AFFILIATIONS,
   VOLUNTEER_ROLES,
@@ -37,19 +42,6 @@ import {
 } from "@/lib/volunteer-blocks";
 import { volunteerVenue } from "@/lib/volunteer-venue";
 import { isHacklyticsName } from "@/lib/hackathon-slug";
-
-// "Other" is stored in the same list as the chips, as "Other: <what they
-// typed>", the way the hacker form keeps it.
-const DIETARY_OTHER = "Other";
-const DIETARY_OTHER_PREFIX = "Other: ";
-
-const splitDietary = (saved: readonly string[]) => ({
-  chips: saved.map((d) => (d.startsWith(DIETARY_OTHER_PREFIX) ? DIETARY_OTHER : d)),
-  other:
-    saved
-      .find((d) => d.startsWith(DIETARY_OTHER_PREFIX))
-      ?.slice(DIETARY_OTHER_PREFIX.length) ?? "",
-});
 
 const PHONE_SHAPE = /^[0-9+().\s-]*$/;
 

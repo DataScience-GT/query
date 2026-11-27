@@ -152,7 +152,7 @@ export function groupForLabel(
   );
 }
 
-export type LabelPlan = {
+type LabelPlan = {
   /** Labels that name a challenge already there, by label key. */
   reuse: Map<string, string>;
   /** Labels to insert, each once, with the group they belong under. */

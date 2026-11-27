@@ -25,7 +25,6 @@
   },
   "dependencies": {
     "@query/core": "workspace:*",
-    "@t3-oss/env-nextjs": "0.13.11",
     "drizzle-orm": "catalog:",
     "next-auth": "catalog:",
     "pg": "8.23.0",

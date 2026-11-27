@@ -18,6 +18,7 @@ import {
   recordEventAttendance,
   selfCheckInWindow,
 } from "../../services/points";
+import { badRequest, forbidden, notFound } from "../errors";
 
 const scope = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -37,10 +38,7 @@ async function myParticipant(
   });
 
   if (!participant) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "You are not registered for this hackathon.",
-    });
+    throw notFound("You are not registered for this hackathon.");
   }
 
   return participant;
@@ -52,10 +50,7 @@ function assertAccepted(participant: { registrationStatus: string }) {
     participant.registrationStatus !== "approved" &&
     participant.registrationStatus !== "checked_in"
   ) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Points open once your registration is accepted.",
-    });
+    throw forbidden("Points open once your registration is accepted.");
   }
 }
 
@@ -147,10 +142,7 @@ export const pointsMeRouter = createTRPCRouter({
     });
 
     if (!hackathon) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Hackathon not found",
-      });
+      throw notFound("Hackathon not found");
     }
 
     const checkedIn = participant.registrationStatus === "checked_in";
@@ -226,11 +218,9 @@ export const pointsMeRouter = createTRPCRouter({
 
       const code = normalizeCheckInCode(input.code);
       if (!code) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Event codes are 6 letters and numbers. Check the code on the screen and try again.",
-        });
+        throw badRequest(
+          "Event codes are 6 letters and numbers. Check the code on the screen and try again.",
+        );
       }
 
       const db = ctx.db as DrizzleDB;
@@ -266,32 +256,27 @@ export const pointsMeRouter = createTRPCRouter({
       });
 
       if (!event) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message:
-            "No event here uses that code. Check the code on the screen and try again.",
-        });
+        throw notFound(
+          "No event here uses that code. Check the code on the screen and try again.",
+        );
       }
 
       if (!event.selfCheckIn) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `${event.name} is not taking codes right now. Ask staff at the door to check you in.`,
-        });
+        throw forbidden(
+          `${event.name} is not taking codes right now. Ask staff at the door to check you in.`,
+        );
       }
 
       const window = selfCheckInWindow(event, new Date());
       if (window === "early") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `Check-in for ${event.name} opens 15 minutes before it starts.`,
-        });
+        throw forbidden(
+          `Check-in for ${event.name} opens 15 minutes before it starts.`,
+        );
       }
       if (window === "ended") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `${event.name} has ended, so its code no longer works.`,
-        });
+        throw forbidden(
+          `${event.name} has ended, so its code no longer works.`,
+        );
       }
 
       // A refusal for the check-in rules is recorded for organisers, on the

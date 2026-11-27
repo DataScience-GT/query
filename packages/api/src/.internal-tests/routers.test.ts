@@ -6,6 +6,7 @@ import { appRouter } from "../root";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { cache } from "../middleware/cache";
+import { testCtx } from "./_caller";
 import { db } from "@query/db";
 import { errorFormatter } from "../trpc";
 import { scrubMarkup } from "../trpc";
@@ -45,7 +46,8 @@ vi.mock("../services/discord/sync", async (importOriginal) => ({
   syncDiscordRolesFor: vi.fn(async () => {}),
 }));
 
-vi.mock("@query/db", () => {
+vi.mock("@query/db", async () => {
+  const { updateStub, deleteStub, bootcampWorkshopColumns, eventColumns } = await import("./_fake-db");
   return {
     db: {
       transaction: vi.fn().mockImplementation((callback) => callback(db)),
@@ -173,24 +175,8 @@ vi.mock("@query/db", () => {
           });
         },
       }),
-      update: (...updateArgs: any[]) => ({
-        set: (...setArgs: any[]) => ({
-          where: (...wArgs: any[]) => {
-            const val = mockUpdate("update", updateArgs, setArgs, wArgs);
-            return Object.assign(Promise.resolve(val), {
-              returning: vi.fn().mockResolvedValue(val),
-            });
-          },
-        }),
-      }),
-      delete: (...deleteArgs: any[]) => ({
-        where: (...wArgs: any[]) => {
-          const val = mockDelete("delete", deleteArgs, wArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-          });
-        },
-      }),
+      update: updateStub((...a) => mockUpdate(...a)),
+      delete: deleteStub((...a) => mockDelete(...a)),
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation(() => ({
           // `.for("update")` row-locks before a recount, so the where node has
@@ -272,30 +258,8 @@ vi.mock("@query/db", () => {
       id: "id",
       memberId: "member_id",
     },
-    events: {
-      id: "id",
-      title: "title",
-      qrCode: "qr_code",
-      checkInEnabled: "check_in_enabled",
-      eventDate: "event_date",
-      currentCheckIns: "current_check_ins",
-    },
-    bootcampWorkshops: {
-      id: "id",
-      term: "term",
-      week: "week",
-      title: "title",
-      materialsKey: "materials_key",
-      materialsFileName: "materials_file_name",
-      materialsSizeBytes: "materials_size_bytes",
-      solutionKey: "solution_key",
-      solutionFileName: "solution_file_name",
-      solutionSizeBytes: "solution_size_bytes",
-      recordingUrl: "recording_url",
-      isPublished: "is_published",
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-    },
+    events: eventColumns,
+    bootcampWorkshops: bootcampWorkshopColumns,
     eventCheckIns: {
       id: "id",
       eventId: "event_id",
@@ -365,21 +329,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
     userId?: string,
     extra: Record<string, any> = {},
     headers: Record<string, string> = {},
-  ) => {
-    return {
-      db,
-      session: userId ? { user: { id: userId } } : null,
-      userId: userId || undefined,
-      cache: cache,
-      clientIp: "127.0.0.1",
-      req: {
-        headers: {
-          get: (name: string) => headers[name.toLowerCase()] || null,
-        },
-      },
-      ...extra,
-    } as any;
-  };
+  ) => testCtx(db, userId, extra, headers);
 
   describe("1. Admin Permissions and Role Restrictons", () => {
     it("should query the database on cache miss and verify admin status", async () => {
@@ -900,7 +850,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       const hackathonId = "00000000-0000-4000-8000-000000000001";
       const teamId = "00000000-0000-4000-8000-000000000002";
 
-      const recentStartDate = new Date(Date.now() - 11 * 60 * 60 * 1000); // 11 hours ago
+      const recentStartDate = new Date(Date.now() - 11 * 60 * 60 * 1000);
 
       mockFindFirst.mockImplementation((table) => {
         if (table === "hackathonParticipants") {
@@ -945,7 +895,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       const hackathonId = "00000000-0000-4000-8000-000000000001";
       const teamId = "00000000-0000-4000-8000-000000000002";
 
-      const startDate35hAgo = new Date(Date.now() - 35 * 60 * 60 * 1000); // 35 hours ago
+      const startDate35hAgo = new Date(Date.now() - 35 * 60 * 60 * 1000);
 
       mockFindFirst.mockImplementation((table) => {
         if (table === "hackathonParticipants") {
@@ -1055,7 +1005,7 @@ describe("Router Integration and Access Control Verification Suite", () => {
       const hackathonId = "00000000-0000-4000-8000-000000000001";
       const teamId = "00000000-0000-4000-8000-000000000002";
 
-      const pastStartDate = new Date(Date.now() - 37 * 60 * 60 * 1000); // 37 hours ago
+      const pastStartDate = new Date(Date.now() - 37 * 60 * 60 * 1000);
 
       mockFindFirst.mockImplementation((table) => {
         if (table === "hackathonParticipants") {

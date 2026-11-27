@@ -86,7 +86,7 @@ export function cpsatAvailable(): boolean {
   return cpsatCommand() !== null;
 }
 
-export type CpsatRun =
+type CpsatRun =
   | {
       /**
        * How cpsat.py exited: 0 a schedule, 2 proof that none exists, 3 out of

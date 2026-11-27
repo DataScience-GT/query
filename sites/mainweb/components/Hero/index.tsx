@@ -1,4 +1,3 @@
-// src/components/Hero.tsx
 import Image from "next/image";
 import Link from "next/link";
 import { VERIFIED_MEMBERS_LABEL } from "@query/core";

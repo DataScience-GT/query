@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import { page, pageDek, pageTitle, textLink } from "@query/ui/classes";
 

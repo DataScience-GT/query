@@ -25,7 +25,7 @@ export const MAX_CONSECUTIVE = 4;
  * The day is cut into this many equal parts when asking whether a judge's
  * presentations are spread across it. cpsat.py cuts it the same way.
  */
-export const DAY_PARTS = 4;
+const DAY_PARTS = 4;
 
 export type JudgeInput = {
   id: string;
@@ -364,28 +364,6 @@ function compareVectors(a: readonly number[], b: readonly number[]): number {
   return 0;
 }
 
-/** Lower is better, compared as the fields are listed in JudgeMetrics. */
-export function compareJudgeMetrics(a: JudgeMetrics, b: JudgeMetrics): number {
-  return compareVectors(
-    [
-      a.unassigned,
-      a.memberOnSponsor,
-      a.maxLoad,
-      a.loadSpread,
-      a.repeats,
-      -a.dayPartsCovered,
-    ],
-    [
-      b.unassigned,
-      b.memberOnSponsor,
-      b.maxLoad,
-      b.loadSpread,
-      b.repeats,
-      -b.dayPartsCovered,
-    ],
-  );
-}
-
 /** A state holding `assignment`, skipping rows that name nothing known. */
 function stateOf(context: Context, assignment: readonly JudgeAssignment[]) {
   const state = new State(context);
@@ -543,7 +521,7 @@ export function roomsJudgesCanStaff(
 }
 
 /** A slot where some presentations of one challenge have no judge. */
-export type JudgeShortfall = {
+type JudgeShortfall = {
   slot: number;
   challengeId: string;
   presentations: number;
@@ -627,7 +605,7 @@ export function judgeShortfalls(
   );
 }
 
-export type JudgeAssignmentResult = {
+type JudgeAssignmentResult = {
   /** Every presentation that has a judge, the kept ones included. */
   assignment: JudgeAssignment[];
   metrics: JudgeMetrics;
@@ -811,11 +789,13 @@ export function assignJudges(
       for (const to of order(item.index)) {
         if (evaluations >= MAX_EVALUATIONS) break;
         if (to === from) continue;
-        if (!state.slots[to]!.has(item.slot) && state.fits(to, item)) {
-          if (tryMove(item.index, to, current)) {
-            improved = true;
-            break;
-          }
+        if (
+          !state.slots[to]!.has(item.slot) &&
+          state.fits(to, item) &&
+          tryMove(item.index, to, current)
+        ) {
+          improved = true;
+          break;
         }
         let swapped = false;
         for (const q of [...state.slots[to]!.values()]) {

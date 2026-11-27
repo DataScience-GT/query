@@ -16,6 +16,7 @@ import { isAdmin } from "../middleware/procedures";
 import { isBugTesterRole } from "../types/portal-context";
 import { isUniqueViolation } from "../middleware/db-errors";
 import { withCheckInCounts } from "../services/derived-counts";
+import { badRequest, conflict, notFound } from "./errors";
 
 // Sessions remain events and attendance remains `event_check_in`. Workshop
 // rows hold only the material officers publish beside those sessions.
@@ -165,7 +166,7 @@ export const bootcampRouter = createTRPCRouter({
     const term = currentTerm();
 
     const member = await db.query.members.findFirst({
-      where: { userId: ctx.userId as string },
+      where: { userId: ctx.userId },
       columns: { bootcampTerm: true },
     });
 
@@ -189,7 +190,7 @@ export const bootcampRouter = createTRPCRouter({
           .from(eventCheckIns)
           .where(
             and(
-              eq(eventCheckIns.userId, ctx.userId as string),
+              eq(eventCheckIns.userId, ctx.userId),
               inArray(
                 eventCheckIns.eventId,
                 sessions.map((session) => session.id),
@@ -224,7 +225,7 @@ export const bootcampRouter = createTRPCRouter({
   workshops: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
     const member = await db.query.members.findFirst({
-      where: { userId: ctx.userId as string },
+      where: { userId: ctx.userId },
       columns: { bootcampTerm: true },
     });
 
@@ -278,10 +279,7 @@ export const bootcampRouter = createTRPCRouter({
               .limit(1);
 
         if (!knownEvent) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `No bootcamp ran in ${workshopTerm}.`,
-          });
+          throw badRequest(`No bootcamp ran in ${workshopTerm}.`);
         }
       }
 
@@ -291,10 +289,9 @@ export const bootcampRouter = createTRPCRouter({
         .returning()
         .catch((error: unknown) => {
           if (isUniqueViolation(error)) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: `Week ${input.week} of this bootcamp already has workshop material. Edit that row instead.`,
-            });
+            throw conflict(
+              `Week ${input.week} of this bootcamp already has workshop material. Edit that row instead.`,
+            );
           }
           throw error;
         });
@@ -327,19 +324,13 @@ export const bootcampRouter = createTRPCRouter({
         .returning()
         .catch((error: unknown) => {
           if (isUniqueViolation(error)) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: "Another workshop row already uses that week.",
-            });
+            throw conflict("Another workshop row already uses that week.");
           }
           throw error;
         });
 
       if (!updated) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Workshop not found",
-        });
+        throw notFound("Workshop not found");
       }
       return updated;
     }),
@@ -362,7 +353,7 @@ export const bootcampRouter = createTRPCRouter({
         columns: { term: true, week: true, title: true },
       });
       if (!workshop) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Workshop not found" });
+        throw notFound("Workshop not found");
       }
       const { term, week } = workshop;
       // Omitted means untouched: a title or room set on the events screen
@@ -397,7 +388,7 @@ export const bootcampRouter = createTRPCRouter({
           location: input.location || null,
           eventDate: input.sessionDate,
           qrCode: randomUUID(),
-          createdById: ctx.userId as string,
+          createdById: ctx.userId,
           bootcampWeek: week,
           bootcampTerm: term,
           bootcampOnly: true,
@@ -438,10 +429,7 @@ export const bootcampRouter = createTRPCRouter({
         .returning();
 
       if (!updated) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Workshop not found",
-        });
+        throw notFound("Workshop not found");
       }
       return updated;
     }),

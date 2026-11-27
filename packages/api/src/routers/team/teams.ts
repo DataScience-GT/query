@@ -13,6 +13,7 @@ import { eq, and, isNull, count } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
 import { checkTeamEditWindow } from "./windows";
 import { checkAdmitted, assertNoLiveSoloSubmission } from "./guards";
+import { conflict, forbidden, notFound } from "../errors";
 
 // Roster size is the participant rows pointing at the team. hackathonTeams.currentMembers
 // is a retired counter that drifted when a user or team deletion nulled or cascaded
@@ -49,25 +50,19 @@ export const teamProcedures = {
             const participant = await tx.query.hackathonParticipants.findFirst({
               where: {
                 hackathonId: input.hackathonId,
-                userId: ctx.userId as string,
+                userId: ctx.userId,
               },
             });
 
             if (!participant) {
-              throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "You are not registered for this hackathon.",
-              });
+              throw notFound("You are not registered for this hackathon.");
             }
 
             checkAdmitted(participant.registrationStatus);
 
             // 2. Check if user is already in a team
             if (participant.teamId) {
-              throw new TRPCError({
-                code: "CONFLICT",
-                message: "You are already in a team for this hackathon.",
-              });
+              throw conflict("You are already in a team for this hackathon.");
             }
 
             await assertNoLiveSoloSubmission(
@@ -83,7 +78,7 @@ export const teamProcedures = {
                 hackathonId: input.hackathonId,
                 name: input.name,
                 description: input.description,
-                captainId: ctx.userId as string,
+                captainId: ctx.userId,
                 maxMembers: input.maxMembers,
               })
               .returning();
@@ -102,10 +97,7 @@ export const teamProcedures = {
                 );
 
               if (claimed.rowCount === 0) {
-                throw new TRPCError({
-                  code: "CONFLICT",
-                  message: "You are already in a team for this hackathon.",
-                });
+                throw conflict("You are already in a team for this hackathon.");
               }
             }
 
@@ -140,25 +132,19 @@ export const teamProcedures = {
             const participant = await tx.query.hackathonParticipants.findFirst({
               where: {
                 hackathonId: input.hackathonId,
-                userId: ctx.userId as string,
+                userId: ctx.userId,
               },
             });
 
             if (!participant) {
-              throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "You are not registered for this hackathon.",
-              });
+              throw notFound("You are not registered for this hackathon.");
             }
 
             checkAdmitted(participant.registrationStatus);
 
             // 2. Check if already in a team
             if (participant.teamId) {
-              throw new TRPCError({
-                code: "CONFLICT",
-                message: "You are already in a team.",
-              });
+              throw conflict("You are already in a team.");
             }
 
             await assertNoLiveSoloSubmission(
@@ -173,17 +159,11 @@ export const teamProcedures = {
             });
 
             if (!team) {
-              throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "Team not found.",
-              });
+              throw notFound("Team not found.");
             }
 
             if (!team.isOpen) {
-              throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "This team is closed.",
-              });
+              throw forbidden("This team is closed.");
             }
 
             // Locked so two joiners cannot both count the last seat as free.
@@ -194,10 +174,7 @@ export const teamProcedures = {
               .for("update");
 
             if ((await countMembers(tx, team.id)) >= team.maxMembers) {
-              throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "This team is full.",
-              });
+              throw forbidden("This team is full.");
             }
 
             // 4. Join. `teamId is null` carries the check above into the write, so a
@@ -213,10 +190,7 @@ export const teamProcedures = {
               );
 
             if (joined.rowCount === 0) {
-              throw new TRPCError({
-                code: "CONFLICT",
-                message: "You are already in a team.",
-              });
+              throw conflict("You are already in a team.");
             }
 
             return { success: true };
@@ -245,11 +219,9 @@ export const teamProcedures = {
       );
 
       if (!window.canLeave) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message:
-            "Teams are locked. You cannot leave a team within 12 hours of the project deadline.",
-        });
+        throw forbidden(
+          "Teams are locked. You cannot leave a team within 12 hours of the project deadline.",
+        );
       }
 
       const participant = await (
@@ -257,15 +229,12 @@ export const teamProcedures = {
       ).query.hackathonParticipants.findFirst({
         where: {
           hackathonId: input.hackathonId,
-          userId: ctx.userId as string,
+          userId: ctx.userId,
         },
       });
 
       if (!participant || !participant.teamId) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You are not in a team.",
-        });
+        throw notFound("You are not in a team.");
       }
 
       try {
@@ -281,13 +250,10 @@ export const teamProcedures = {
               .for("update");
 
             if (!team)
-              throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "Team not found.",
-              });
+              throw notFound("Team not found.");
 
             // If captain is the only one left, they can "leave" which deletes the team
-            if (team.captainId === (ctx.userId as string)) {
+            if (team.captainId === (ctx.userId)) {
               if ((await countMembers(tx, team.id)) <= 1) {
                 const project = await tx.query.hackathonProjects.findFirst({
                   where: { teamId: team.id },
@@ -296,18 +262,15 @@ export const teamProcedures = {
                 // Disbanding takes the team's project with it, so a submission has to be
                 // withdrawn deliberately, not as a side effect.
                 if (project && project.status !== "draft") {
-                  throw new TRPCError({
-                    code: "FORBIDDEN",
-                    message:
-                      "Your team has a submitted project. It must be withdrawn before you can leave.",
-                  });
+                  throw forbidden(
+                    "Your team has a submitted project. It must be withdrawn before you can leave.",
+                  );
                 }
 
                 // Delete team projects first
                 await tx
                   .delete(hackathonProjects)
                   .where(eq(hackathonProjects.teamId, team.id));
-                // Delete team
                 await tx
                   .delete(hackathonTeams)
                   .where(eq(hackathonTeams.id, team.id));
@@ -321,11 +284,9 @@ export const teamProcedures = {
 
               // Names only what exists. There is no ownership transfer, and telling a stuck
               // captain to do something the product cannot do leaves them no move.
-              throw new TRPCError({
-                code: "FORBIDDEN",
-                message:
-                  "The captain cannot leave a team that still has other members. Disband the team, or ask a teammate to leave first.",
-              });
+              throw forbidden(
+                "The captain cannot leave a team that still has other members. Disband the team, or ask a teammate to leave first.",
+              );
             }
 
             // Give up the seat. A second Leave matches no row and is a no-op.
@@ -368,11 +329,9 @@ export const teamProcedures = {
       // Disbanding empties a roster just as leaving does, so it shuts at the same
       // lock.
       if (!window.canLeave) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message:
-            "Teams are locked. You cannot disband a team within 12 hours of the project deadline.",
-        });
+        throw forbidden(
+          "Teams are locked. You cannot disband a team within 12 hours of the project deadline.",
+        );
       }
 
       const team = await (
@@ -382,12 +341,9 @@ export const teamProcedures = {
       });
 
       if (!team)
-        throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
-      if (team.captainId !== (ctx.userId as string)) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only the captain can disband the team.",
-        });
+        throw notFound("Team not found.");
+      if (team.captainId !== (ctx.userId)) {
+        throw forbidden("Only the captain can disband the team.");
       }
 
       try {
@@ -408,11 +364,9 @@ export const teamProcedures = {
             // Disbanding takes the team's project with it, so a submission has to be
             // withdrawn deliberately, not as a side effect.
             if (project && project.status !== "draft") {
-              throw new TRPCError({
-                code: "FORBIDDEN",
-                message:
-                  "Your team has a submitted project. It must be withdrawn before you can disband the team.",
-              });
+              throw forbidden(
+                "Your team has a submitted project. It must be withdrawn before you can disband the team.",
+              );
             }
 
             // 1. Remove all members
@@ -463,12 +417,9 @@ export const teamProcedures = {
       });
 
       if (!team)
-        throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
-      if (team.captainId !== (ctx.userId as string)) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only the captain can open or close the team.",
-        });
+        throw notFound("Team not found.");
+      if (team.captainId !== (ctx.userId)) {
+        throw forbidden("Only the captain can open or close the team.");
       }
 
       await db

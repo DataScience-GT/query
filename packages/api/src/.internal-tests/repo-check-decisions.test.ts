@@ -7,7 +7,6 @@
  * queue, the judge itinerary and the judge assigner already leave out.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PgDialect } from "drizzle-orm/pg-core";
 import {
   auditLogs,
   hackathonProjects,
@@ -16,7 +15,8 @@ import {
   judgingEntries,
   judgingRepoChecks,
 } from "@query/db";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
+import { id, render } from "./_fake-db";
 import { cache } from "../middleware/cache";
 import type * as Challenges from "../services/judging/challenges";
 import { repoCheckThrottle } from "../services/judging/repo-check";
@@ -26,14 +26,9 @@ vi.mock("../services/judging/challenges", async (importActual) => ({
   lockEdition: async () => undefined,
 }));
 
-const id = (n: number) =>
-  `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const HACK = id(1);
 const OTHER = id(2);
 const [LATE, DEVPOST, FORGOTTEN, ELSEWHERE, WITHDRAWN] = [10, 11, 12, 13, 14].map(id);
-
-const dialect = new PgDialect();
-const render = (condition: unknown) => dialect.sqlToQuery(condition as never);
 
 type Row = Record<string, any>;
 
@@ -126,15 +121,7 @@ const fakeDb: any = {
   },
 };
 
-const admin = () =>
-  appRouter.createCaller({
-    db: fakeDb,
-    session: { user: { id: "admin_user" } },
-    userId: "admin_user",
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as any);
+const admin = () => testCaller(fakeDb, "admin_user");
 
 const entry = (entryId: string, over: Row = {}): Row => ({
   id: entryId,

@@ -21,11 +21,9 @@ import {
 export function VolunteerSummary({
   answers,
   startDate,
-  showPhone = true,
 }: {
   answers: VolunteerAnswers;
   startDate: Date | string;
-  showPhone?: boolean;
 }) {
   const rows: [string, string][] = [
     [
@@ -81,7 +79,7 @@ export function VolunteerSummary({
     );
   }
 
-  if (showPhone) rows.push(["Phone", answers.phone || "Not given"]);
+  rows.push(["Phone", answers.phone || "Not given"]);
 
   return (
     <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">

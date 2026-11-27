@@ -36,9 +36,7 @@ const LOCAL_HOSTS = new Set([
 const OVERRIDE = "ALLOW_NON_LOCAL_SERVICES";
 const LIVE_KEY = /^(sk|rk|pk)_live_/;
 
-export type Check = "db" | "stripe" | "email";
-/** A reason a run must be refused. */
-export type Violation = string;
+type Check = "db" | "stripe" | "email";
 type Env = Record<string, string | undefined>;
 
 const hostOf = (value: string) => {
@@ -53,8 +51,8 @@ const hostOf = (value: string) => {
 export function violations(
   env: Env,
   checks: Check[] = ["db", "stripe", "email"],
-): Violation[] {
-  const problems: Violation[] = [];
+): string[] {
+  const problems: string[] = [];
   const overridden = env[OVERRIDE] === "1";
 
   if (checks.includes("db") && env.DATABASE_URL && !overridden) {

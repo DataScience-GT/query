@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { Spinner } from "@query/ui/Spinner";
 
 interface LoadingScreenProps {

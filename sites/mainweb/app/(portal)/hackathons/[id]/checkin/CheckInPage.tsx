@@ -2,11 +2,11 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { RouterOutputs } from "@query/api";
 import { trpc } from "@/lib/trpc";
-import { loginHref } from "@/lib/safe-callback";
+import { useLoginRedirect } from "@/lib/use-login-redirect";
 import { trpcErrorMessage } from "@/lib/trpc-error";
 import { decodeHackathonParam } from "@/lib/hackathon-slug";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
@@ -39,7 +39,6 @@ export default function EventCodeCheckInPage() {
 
 function EventCodeCheckIn() {
   const { status: authStatus } = useSession();
-  const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
 
@@ -49,9 +48,7 @@ function EventCodeCheckIn() {
   );
   const code = searchParams.get("code")?.trim() ?? "";
 
-  useEffect(() => {
-    if (authStatus === "unauthenticated") router.push(loginHref());
-  }, [authStatus, router]);
+  useLoginRedirect(authStatus);
 
   const hackathon = trpc.hackathon.getById.useQuery(
     { id: hackathonParam },

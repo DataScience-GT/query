@@ -18,13 +18,13 @@ export type MemberContext = {
 // already imports from the portal-context service — putting it there closes a
 // cycle. An allow-list, not "anything but volunteer": a role added later must
 // not become full staff by default.
-export const STAFF_ROLES = ["super_admin", "admin", "moderator"] as const;
+const STAFF_ROLES = ["super_admin", "admin", "moderator"] as const;
 
 export const isStaffRole = (role: string | null | undefined) =>
   !!role && (STAFF_ROLES as readonly string[]).includes(role);
 
 // Read-only QA. Sees what staff see; every write is refused server-side.
-export const BUG_TESTER_ROLE = "bug_tester";
+const BUG_TESTER_ROLE = "bug_tester";
 
 export const isBugTesterRole = (role: string | null | undefined) =>
   role === BUG_TESTER_ROLE;

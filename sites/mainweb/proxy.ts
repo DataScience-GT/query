@@ -89,14 +89,14 @@ function getCacheControl(pathname: string): string {
 // SAMEORIGIN, not DENY: this runs after next.config.mjs and overwrote its
 // SAMEORIGIN, so every same-origin frame — QR, print, resume preview — died
 // with "refused to connect". The two lists have to agree.
-const securityHeaders: string[] = [
-  "X-Content-Type-Options: nosniff",
+const securityHeaders = {
+  "X-Content-Type-Options": "nosniff",
   // SAMEORIGIN, not DENY: /settings and /admin/resumes frame the member's
   // resume PDF from /api/resume. DENY makes Chrome report "Failed to load PDF
   // document" on a file that downloaded fine.
-  "X-Frame-Options: SAMEORIGIN",
-  "X-XSS-Protection: 0",
-];
+  "X-Frame-Options": "SAMEORIGIN",
+  "X-XSS-Protection": "0",
+};
 
 export const config = {
   matcher: [
@@ -105,7 +105,7 @@ export const config = {
   headers: true,
 };
 
-export async function proxy(req: NextRequest): Promise<Response> {
+export function proxy(req: NextRequest): Response {
   // Scanner traffic (/.env, *.php, wp-*): answer before any render, and let
   // the CDN keep the answer so a repeat probe never reaches Cloud Run.
   if (isProbePath(req.nextUrl.pathname)) {
@@ -124,10 +124,9 @@ export async function proxy(req: NextRequest): Promise<Response> {
   response.headers.set("Cache-Control", getCacheControl(req.nextUrl.pathname));
   response.headers.set("Vary", "Accept-Encoding, Cookie, Authorization");
 
-  securityHeaders.forEach((header) => {
-    const [key, value] = header.split(": ");
+  for (const [key, value] of Object.entries(securityHeaders)) {
     response.headers.set(key, value);
-  });
+  }
 
   return response;
 }

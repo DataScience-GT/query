@@ -7,7 +7,6 @@
  * can be seen to leave every room as it was.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PgDialect } from "drizzle-orm/pg-core";
 import {
   auditLogs,
   judgingAnnouncements,
@@ -16,7 +15,8 @@ import {
   judgingRoomLinks,
   judgingRooms,
 } from "@query/db";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
+import { id, render } from "./_fake-db";
 import { cache } from "../middleware/cache";
 import type * as Challenges from "../services/judging/challenges";
 
@@ -26,14 +26,9 @@ vi.mock("../services/judging/challenges", async (importActual) => ({
   lockEdition: async () => undefined,
 }));
 
-const id = (n: number) =>
-  `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const HACK = id(1);
 const OTHER = id(2);
 const [T1, T2, T3, BUSY, FOREIGN, DONE] = [10, 11, 12, 13, 14, 15].map(id);
-
-const dialect = new PgDialect();
-const render = (condition: unknown) => dialect.sqlToQuery(condition as never);
 
 type Row = Record<string, any>;
 
@@ -42,10 +37,6 @@ let rooms: Row[] = [];
 let appointments: Row[] = [];
 let updates: { table: unknown; values: Row; params: unknown[] }[] = [];
 let audits: Row[] = [];
-
-/** The room ids a where of `id in (...)` or `id = x` names, from its params. */
-const idsIn = (where: unknown) =>
-  render(where).params.filter((p) => typeof p === "string");
 
 const fakeDb: any = {
   query: { admins: { findFirst: async () => adminRow } },
@@ -59,7 +50,8 @@ const fakeDb: any = {
           const hit = appointments.filter((a) => a.roomId === params[0]);
           return Promise.resolve([{ value: hit.length }]).then(ok, err);
         }
-        const wanted = idsIn(where);
+        // The room ids a where of `id in (...)` or `id = x` names, from its params.
+        const wanted = render(where).params.filter((p) => typeof p === "string");
         const hit = rooms
           .filter((r) => wanted.includes(r.id) && wanted.includes(r.hackathonId))
           .map((r) => ({ ...r }));
@@ -116,15 +108,7 @@ const fakeDb: any = {
   },
 };
 
-const admin = () =>
-  appRouter.createCaller({
-    db: fakeDb,
-    session: { user: { id: "admin_user" } },
-    userId: "admin_user",
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as any);
+const admin = () => testCaller(fakeDb, "admin_user");
 
 const room = (roomId: string, name: string, over: Row = {}): Row => ({
   id: roomId,

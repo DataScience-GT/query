@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_CONSECUTIVE,
   assignJudges,
-  compareJudgeMetrics,
   describeShortfall,
   judgeShortfalls,
   mayGrade,
@@ -250,19 +249,6 @@ describe("scoreJudgeAssignment", () => {
     });
     // m1: g1; m2: g2, s1; g: s1.
     expect(metrics.avgDistinctRooms).toBeCloseTo(4 / 3);
-  });
-
-  it("ranks fewer left out ahead of everything else", () => {
-    const judges = [member("m1"), member("m2")];
-    const some = scoreJudgeAssignment(inputs, placements, judges, [
-      row("a", "general", "m1"),
-    ]);
-    const more = scoreJudgeAssignment(inputs, placements, judges, [
-      row("a", "general", "m1"),
-      row("c", "general", "m1"),
-    ]);
-    expect(compareJudgeMetrics(more, some)).toBeLessThan(0);
-    expect(compareJudgeMetrics(some, some)).toBe(0);
   });
 });
 

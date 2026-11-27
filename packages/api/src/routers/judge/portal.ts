@@ -7,6 +7,7 @@ import { CacheKeys } from "../../middleware/cache";
 import { notHackathonBanned } from "../../middleware/procedures";
 import { resolveHackathonId } from "../../services/portal-context";
 import type { DrizzleDB } from "@query/db";
+import { badRequest, conflict, notFound } from "../errors";
 
 // The track a judge would like, as the edition spells it. Organisers read it
 // when seating judges, so a free-text value that matches none of the edition's
@@ -58,10 +59,9 @@ async function assertEditionNotOver(db: DrizzleDB, hackathonId: string) {
     !["announced", "open", "closed", "in_progress"].includes(hackathon.status) ||
     (hackathon.endDate && new Date() > new Date(hackathon.endDate))
   ) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "This hackathon is over, so applications can't be edited.",
-    });
+    throw badRequest(
+      "This hackathon is over, so applications can't be edited.",
+    );
   }
 }
 
@@ -106,7 +106,7 @@ export const judgePortalRouter = createTRPCRouter({
         };
       }
 
-      const cacheKey = `${CacheKeys.judge(ctx.userId as string)}:${hackathonId}`;
+      const cacheKey = `${CacheKeys.judge(ctx.userId)}:${hackathonId}`;
       const cached = ctx.cache.get<{
         isJudge: boolean;
         judgeId: string | null;
@@ -117,7 +117,7 @@ export const judgePortalRouter = createTRPCRouter({
 
       const judge = await (ctx.db as DrizzleDB).query.judges.findFirst({
         where: {
-          userId: ctx.userId as string,
+          userId: ctx.userId,
           hackathonId,
           isActive: true,
         },
@@ -141,7 +141,7 @@ export const judgePortalRouter = createTRPCRouter({
     const db = ctx.db as DrizzleDB;
 
     const myJudges = await db.query.judges.findMany({
-      where: { userId: ctx.userId as string },
+      where: { userId: ctx.userId },
       columns: {
         id: true,
         hackathonId: true,
@@ -208,29 +208,22 @@ export const judgePortalRouter = createTRPCRouter({
             hackathon.status,
           )
         ) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "That hackathon is not taking judge applications.",
-          });
+          throw notFound("That hackathon is not taking judge applications.");
         }
 
-        // Check if user is registered as a participant for this hackathon
         const participant = await tx.query.hackathonParticipants.findFirst({
           where: {
             hackathonId: input.hackathonId,
-            userId: ctx.userId as string,
+            userId: ctx.userId,
           },
         });
 
         if (participant) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message:
-              "You cannot apply to be a judge because you are registered as a participant for this hackathon.",
-          });
+          throw badRequest(
+            "You cannot apply to be a judge because you are registered as a participant for this hackathon.",
+          );
         }
 
-        // Find existing judge profile or create one for this hackathon
         let judge = await tx.query.judges.findFirst({
           where: { userId: ctx.userId, hackathonId: input.hackathonId },
         });
@@ -292,10 +285,7 @@ export const judgePortalRouter = createTRPCRouter({
         });
 
         if (existingAssignment) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "You have already applied to judge this hackathon.",
-          });
+          throw conflict("You have already applied to judge this hackathon.");
         }
 
         const track = await assertTrackExists(
@@ -321,7 +311,7 @@ export const judgePortalRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
       const judge = await db.query.judges.findFirst({
-        where: { userId: ctx.userId as string, hackathonId: input.hackathonId },
+        where: { userId: ctx.userId, hackathonId: input.hackathonId },
       });
       if (!judge) return null;
       const assignment = await db.query.judgeAssignments.findFirst({
@@ -354,14 +344,11 @@ export const judgePortalRouter = createTRPCRouter({
         await assertEditionNotOver(tx as unknown as DrizzleDB, input.hackathonId);
 
         const judge = await tx.query.judges.findFirst({
-          where: { userId: ctx.userId as string, hackathonId: input.hackathonId },
+          where: { userId: ctx.userId, hackathonId: input.hackathonId },
           columns: { id: true },
         });
         if (!judge) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "You have not applied to judge this hackathon.",
-          });
+          throw notFound("You have not applied to judge this hackathon.");
         }
 
         const track = await assertTrackExists(
@@ -420,16 +407,13 @@ export const judgePortalRouter = createTRPCRouter({
         .set({ canAttendInPerson: input.canAttendInPerson })
         .where(
           and(
-            eq(judges.userId, ctx.userId as string),
+            eq(judges.userId, ctx.userId),
             eq(judges.hackathonId, input.hackathonId),
           ),
         )
         .returning({ id: judges.id });
       if (updated.length === 0) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You have not applied to judge this hackathon.",
-        });
+        throw notFound("You have not applied to judge this hackathon.");
       }
       return { success: true };
     }),

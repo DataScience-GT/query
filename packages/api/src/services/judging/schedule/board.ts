@@ -5,7 +5,7 @@ import type { AppointmentStatus } from "../appointment-status";
 // which rooms have someone in them right now.
 
 /** A room counts as staffed while a judge's heartbeat is this recent. */
-export const STAFFED_WITHIN_MS = 15 * 60_000;
+const STAFFED_WITHIN_MS = 15 * 60_000;
 
 export type BoardEvaluation = {
   judgeId: string;

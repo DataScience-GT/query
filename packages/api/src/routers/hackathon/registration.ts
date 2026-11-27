@@ -26,6 +26,7 @@ import {
   syncDiscordRoles,
 } from "../../services/discord";
 import { rateLimitShared } from "../../middleware/security";
+import { badRequest, conflict, forbidden, notFound } from "../errors";
 
 // Postgres unique_violation on hackathon_participant_hackathon_user_idx — a second
 // submission of the same form. Drizzle wraps every driver error in a
@@ -154,10 +155,7 @@ async function assertHasResume(
     .where(eq(memberResumes.userId, userId))
     .limit(1);
   if (!onFile) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Upload your resume or paste a link to it.",
-    });
+    throw badRequest("Upload your resume or paste a link to it.");
   }
 }
 
@@ -167,7 +165,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       await assertHasResume(
         ctx.db as DrizzleDB,
-        ctx.userId as string,
+        ctx.userId,
         input.resumeUrl,
       );
       try {
@@ -179,42 +177,30 @@ export const hackathonRegistrationRouter = createTRPCRouter({
           });
 
           if (!hackathon) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Hackathon not found",
-            });
+            throw notFound("Hackathon not found");
           }
 
           if (hackathon.status !== "open") {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Registration is not open for this hackathon",
-            });
+            throw badRequest("Registration is not open for this hackathon");
           }
 
           if (
             hackathon.registrationDeadline &&
             new Date() > hackathon.registrationDeadline
           ) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Registration deadline has passed",
-            });
+            throw badRequest("Registration deadline has passed");
           }
 
           const existingParticipant =
             await tx.query.hackathonParticipants.findFirst({
               where: {
                 hackathonId: input.hackathonId,
-                userId: ctx.userId as string,
+                userId: ctx.userId,
               },
             });
 
           if (existingParticipant) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "You are already registered for this hackathon",
-            });
+            throw badRequest("You are already registered for this hackathon");
           }
 
           // The mirror of judge/portal.ts refusing applicants who registered:
@@ -222,16 +208,14 @@ export const hackathonRegistrationRouter = createTRPCRouter({
           const judgeRow = await tx.query.judges.findFirst({
             where: {
               hackathonId: input.hackathonId,
-              userId: ctx.userId as string,
+              userId: ctx.userId,
             },
             columns: { id: true },
           });
           if (judgeRow) {
-            throw new TRPCError({
-              code: "FORBIDDEN",
-              message:
-                "You are a judge for this hackathon, so you can't register as a hacker.",
-            });
+            throw forbidden(
+              "You are a judge for this hackathon, so you can't register as a hacker.",
+            );
           }
 
           // No seat is claimed here: capacity counts accepted people, not
@@ -241,14 +225,14 @@ export const hackathonRegistrationRouter = createTRPCRouter({
           // person alone; the edition clause used to be here and made a paying member
           // read as a non-member the moment a new edition opened.
           const member = await tx.query.members.findFirst({
-            where: { userId: ctx.userId as string },
+            where: { userId: ctx.userId },
           });
 
           const [participant] = await tx
             .insert(hackathonParticipants)
             .values({
               hackathonId: input.hackathonId,
-              userId: ctx.userId as string,
+              userId: ctx.userId,
               memberId: member?.id,
               // Personal
               firstName: input.firstName,
@@ -313,7 +297,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
             .delete(hackathonApplicationDrafts)
             .where(
               and(
-                eq(hackathonApplicationDrafts.userId, ctx.userId as string),
+                eq(hackathonApplicationDrafts.userId, ctx.userId),
                 eq(hackathonApplicationDrafts.hackathonId, input.hackathonId),
               ),
             );
@@ -328,16 +312,13 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         ctx.cache.delete(CacheKeys.hackathon(input.hackathonId));
         ctx.cache.delete(CacheKeys.hackathon(hackathonName));
         ctx.cache.delete(`hackathon:${input.hackathonId}:participants`);
-        ctx.cache.delete(`hackathon:registrations:${ctx.userId as string}`);
+        ctx.cache.delete(`hackathon:registrations:${ctx.userId}`);
 
         return participant;
       } catch (error: unknown) {
         if (error instanceof TRPCError) throw error;
         if (isDuplicateRegistration(error)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "You are already registered for this hackathon",
-          });
+          throw badRequest("You are already registered for this hackathon");
         }
         // Unexpected error during registration
         throw new TRPCError({
@@ -362,7 +343,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         .from(hackathonApplicationDrafts)
         .where(
           and(
-            eq(hackathonApplicationDrafts.userId, ctx.userId as string),
+            eq(hackathonApplicationDrafts.userId, ctx.userId),
             eq(hackathonApplicationDrafts.hackathonId, input.hackathonId),
           ),
         )
@@ -378,7 +359,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     .input(saveDraftInput)
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
 
       // The form saves a moment after each pause in typing, so a long sitting
       // is dozens of saves. Per user, since the row is keyed that way and an
@@ -401,20 +382,14 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         columns: { status: true, registrationDeadline: true },
       });
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
       if (
         hackathon.status !== "open" ||
         (hackathon.registrationDeadline &&
           new Date() > hackathon.registrationDeadline)
       ) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Registration is not open for this hackathon",
-        });
+        throw badRequest("Registration is not open for this hackathon");
       }
 
       const applied = await db.query.hackathonParticipants.findFirst({
@@ -422,10 +397,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         columns: { id: true },
       });
       if (applied) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "You are already registered for this hackathon",
-        });
+        throw badRequest("You are already registered for this hackathon");
       }
 
       const savedAt = new Date();
@@ -460,16 +432,13 @@ export const hackathonRegistrationRouter = createTRPCRouter({
       const participant = await db.query.hackathonParticipants.findFirst({
         where: {
           hackathonId: input.hackathonId,
-          userId: ctx.userId as string,
+          userId: ctx.userId,
         },
         columns: { id: true, teamId: true, registrationStatus: true },
       });
 
       if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You are not registered for this hackathon.",
-        });
+        throw notFound("You are not registered for this hackathon.");
       }
 
       // A finished event's registrations are its record of who took part.
@@ -481,18 +450,15 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         hackathon?.status === "completed" ||
         hackathon?.status === "cancelled"
       ) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "This hackathon is over, so registrations can't be withdrawn.",
-        });
+        throw forbidden(
+          "This hackathon is over, so registrations can't be withdrawn.",
+        );
       }
 
       if (participant.registrationStatus === "checked_in") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message:
-            "You have already checked in. Ask an organizer if you need to leave the event.",
-        });
+        throw forbidden(
+          "You have already checked in. Ask an organizer if you need to leave the event.",
+        );
       }
       // Withdrawing deletes the row, and registering again makes a fresh
       // `pending` one that acceptWave would take. That is a way round a
@@ -501,17 +467,12 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         participant.registrationStatus === "rejected" ||
         participant.registrationStatus === "waitlisted"
       ) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message:
-            "Your application has been decided, so it can't be withdrawn. Email hello@hacklytics.io if you need help.",
-        });
+        throw forbidden(
+          "Your application has been decided, so it can't be withdrawn. Email hello@hacklytics.io if you need help.",
+        );
       }
       if (participant.teamId) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Leave your team first, then withdraw.",
-        });
+        throw forbidden("Leave your team first, then withdraw.");
       }
 
       const project = await db.query.hackathonProjects.findFirst({
@@ -522,10 +483,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         columns: { id: true },
       });
       if (project) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Withdraw your project first, then your registration.",
-        });
+        throw forbidden("Withdraw your project first, then your registration.");
       }
 
       // The checks above are a read; a badge scan or a team join can land
@@ -549,23 +507,21 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         // attempt below does not reach Discord.
         if (deleted.length > 0) {
           await markDiscordRolesPending(tx as unknown as DrizzleDB, [
-            ctx.userId as string,
+            ctx.userId,
           ]);
         }
         return deleted;
       });
       if (removed.length === 0) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message:
-            "Your registration changed just now. Refresh the page and try again.",
-        });
+        throw conflict(
+          "Your registration changed just now. Refresh the page and try again.",
+        );
       }
 
       evictParticipantCaches(ctx.cache, input.hackathonId, [
-        ctx.userId as string,
+        ctx.userId,
       ]);
-      await syncDiscordRoles(db, ctx.userId as string);
+      await syncDiscordRoles(db, ctx.userId);
 
       return { success: true };
     }),
@@ -584,7 +540,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
       await assertHasResume(db, userId, input.resumeUrl);
 
       const hackathon = await db.query.hackathons.findFirst({
@@ -592,20 +548,16 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         columns: { status: true, registrationDeadline: true },
       });
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
       if (
         hackathon.status !== "open" ||
         (hackathon.registrationDeadline &&
           new Date() > hackathon.registrationDeadline)
       ) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Registration has closed, so applications can't be edited.",
-        });
+        throw badRequest(
+          "Registration has closed, so applications can't be edited.",
+        );
       }
 
       const participant = await db.query.hackathonParticipants.findFirst({
@@ -613,16 +565,12 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         columns: { id: true, registrationStatus: true },
       });
       if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You are not registered for this hackathon.",
-        });
+        throw notFound("You are not registered for this hackathon.");
       }
       if (participant.registrationStatus !== "pending") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Your application has been reviewed, so it can't be edited.",
-        });
+        throw forbidden(
+          "Your application has been reviewed, so it can't be edited.",
+        );
       }
 
       // The answers are replaced whole, as the form resubmits every field, so an
@@ -687,11 +635,9 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         )
         .returning({ id: hackathonParticipants.id });
       if (updated.length === 0) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message:
-            "Your application was reviewed just now, so it can't be edited. Refresh the page.",
-        });
+        throw conflict(
+          "Your application was reviewed just now, so it can't be edited. Refresh the page.",
+        );
       }
 
       // Only this person's own list carries these answers; the public roster
@@ -709,7 +655,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     .input(z.object({ hackathonId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const db = ctx.db as DrizzleDB;
-      const userId = ctx.userId as string;
+      const userId = ctx.userId;
 
       const participant = await db.query.hackathonParticipants.findFirst({
         where: { hackathonId: input.hackathonId, userId },
@@ -720,10 +666,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         },
       });
       if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You are not registered for this hackathon.",
-        });
+        throw notFound("You are not registered for this hackathon.");
       }
 
       // checked_in is accepted too: a door scan landing before a stale tab's
@@ -732,10 +675,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         participant.registrationStatus !== "approved" &&
         participant.registrationStatus !== "checked_in"
       ) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only accepted hackers can confirm they are coming.",
-        });
+        throw forbidden("Only accepted hackers can confirm they are coming.");
       }
       if (participant.attendanceConfirmedAt) {
         return { confirmedAt: participant.attendanceConfirmedAt };
@@ -757,11 +697,9 @@ export const hackathonRegistrationRouter = createTRPCRouter({
         )
         .returning({ id: hackathonParticipants.id });
       if (updated.length === 0) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message:
-            "Your registration changed just now. Refresh the page and try again.",
-        });
+        throw conflict(
+          "Your registration changed just now. Refresh the page and try again.",
+        );
       }
 
       // The stamp shows on this person's own registration list and on the
@@ -773,7 +711,7 @@ export const hackathonRegistrationRouter = createTRPCRouter({
     }),
 
   myRegistrations: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.userId as string;
+    const userId = ctx.userId;
 
     // getOrSet: the portal layout and the page both prefetch this, so on a cold
     // key two reads were in flight at once and each ran the query.

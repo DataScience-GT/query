@@ -245,7 +245,6 @@ export async function loadEdition(db: DrizzleDB, hackathonId: string) {
 export async function assertTakingApplications(
   db: DrizzleDB,
   hackathonId: string,
-  now: Date = new Date(),
 ) {
   const edition = await loadEdition(db, hackathonId);
   if (!edition || !edition.isPublic || edition.status === "draft") {
@@ -254,7 +253,7 @@ export async function assertTakingApplications(
       message: "That hackathon is not taking volunteer applications.",
     });
   }
-  if (!takesNewApplications(edition, now)) {
+  if (!takesNewApplications(edition, new Date())) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Volunteer applications for this hackathon are closed.",
@@ -292,7 +291,7 @@ export const volunteerFilter = z.object({
   /** An online hour block, Eastern time. */
   onlineBlock: z.enum(onlineBlockIds).optional(),
 });
-export type VolunteerFilter = z.infer<typeof volunteerFilter>;
+type VolunteerFilter = z.infer<typeof volunteerFilter>;
 
 type RosterRow = {
   status: VolunteerStatus;

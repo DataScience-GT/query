@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useId, useState } from "react";
+import { useId, useState } from "react";
 import type { RouterOutputs } from "@query/api";
 import { trpc } from "@/lib/trpc";
 import { trpcErrorMessage } from "@/lib/trpc-error";

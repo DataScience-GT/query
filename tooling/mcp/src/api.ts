@@ -21,7 +21,7 @@ import {
 const ROOT_FILE = resolve(ROOT, "packages/api/src/root.ts");
 const ROOT_EXPORT = "appRouter";
 
-export interface Procedure {
+interface Procedure {
   path: string;
   type: "query" | "mutation" | "subscription";
   /** The procedure the call starts from, then the procedures it is built on. */
@@ -293,7 +293,7 @@ export function procedures(rootFile = ROOT_FILE): Procedure[] {
   return out;
 }
 
-export function formatProcedure(p: Procedure): string {
+function formatProcedure(p: Procedure): string {
   const use = p.use.length ? `  +use(${p.use.join(", ")})` : "";
   return `${p.path}  ${p.type}  ${p.kind.join(" > ")}${use}  ${p.file}:${p.line}`;
 }

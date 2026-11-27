@@ -130,7 +130,7 @@ export const hackathonBansRouter = createTRPCRouter({
           .update(hackathonVolunteerApplications)
           .set({
             status: "declined",
-            reviewedById: ctx.userId as string,
+            reviewedById: ctx.userId,
             reviewedAt: new Date(),
             updatedAt: new Date(),
           })

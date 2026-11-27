@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import { Alert } from "@query/ui/Alert";
@@ -34,7 +33,7 @@ import {
   sectionTitle,
 } from "@query/ui/classes";
 import { trpc } from "@/lib/trpc";
-import { loginHref } from "@/lib/safe-callback";
+import { useLoginRedirect } from "@/lib/use-login-redirect";
 import type { RouterOutputs } from "@query/api";
 
 type OpenInitiative = RouterOutputs["initiative"]["list"][number];
@@ -480,12 +479,9 @@ function ApplicationRow({ application }: { application: MyApplication }) {
 
 export default function InitiativesPage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   // Queries wait on the session, so a signed-out visitor otherwise sits on
   // the loading screen forever.
-  useEffect(() => {
-    if (status === "unauthenticated") router.push(loginHref());
-  }, [status, router]);
+  useLoginRedirect(status);
 
   const open = trpc.initiative.list.useQuery(undefined, { enabled: !!session });
   const mine = trpc.initiative.myApplications.useQuery(undefined, {

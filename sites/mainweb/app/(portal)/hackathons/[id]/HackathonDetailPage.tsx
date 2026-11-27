@@ -8,10 +8,10 @@ import React, {
   useRef,
   startTransition,
 } from "react";
-import { loginHref } from "@/lib/safe-callback";
+import { useLoginRedirect } from "@/lib/use-login-redirect";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -35,13 +35,7 @@ import { HackathonUnavailable } from "@/components/hackathon/HackathonUnavailabl
 import { HackerAnnouncements } from "@/components/hackathon/HackerAnnouncements";
 import { NextStepStrip } from "@/components/hackathon/NextStepStrip";
 import { decodeHackathonParam, isHacklyticsName } from "@/lib/hackathon-slug";
-import {
-  discordStep,
-  hackathonNextStep,
-  isAdmitted,
-  nextStepQueries,
-  projectSubmitted,
-} from "@/lib/hackathon-next-step";
+import { useNextStep } from "@/lib/use-next-step";
 
 // Only the open tab is needed to draw, so the others stay out of the first
 // load. They are fetched once the browser is idle, so a click finds them ready.
@@ -107,7 +101,6 @@ const startOfDay = venueDayNumber;
 
 export default function HackathonDetailPage() {
   const { data: session, status: authStatus } = useSession();
-  const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const rawId = params.id;
@@ -181,47 +174,15 @@ export default function HackathonDetailPage() {
     return () => clearTimeout(timer);
   }, [justCheckedIn]);
 
-  // The next-step strip reads up to five more queries, each held back until
-  // the step can use it, so only a registered hacker at the right point pays.
   // oxlint-disable-next-line react/purity
   const now = new Date();
-  const needs =
-    hackathon && regStatus
-      ? nextStepQueries({ now, hackathon, registrationStatus: regStatus })
-      : { submission: false, judging: false, results: false };
-  const stepId = hackathon?.id ?? "";
-  const submissionWindow = trpc.team.submissionWindow.useQuery(
-    { hackathonId: stepId },
-    { enabled: needs.submission },
-  );
-  const mySubmission = trpc.team.mySubmission.useQuery(
-    { hackathonId: stepId },
-    { enabled: needs.submission },
-  );
-  const itinerary = trpc.judging.hacker.itinerary.useQuery(
-    { hackathonId: stepId },
-    { enabled: needs.judging },
-  );
-  const discord = trpc.hackathon.myDiscord.useQuery(
-    { hackathonId: stepId },
-    { enabled: isAdmitted(myReg?.registrationStatus) },
-  );
-  const results = trpc.hackathon.getResults.useQuery(
-    { hackathonId: stepId },
-    { enabled: needs.results },
-  );
-  // Held back until they answer, so the strip never shows a step it is about
-  // to take back ("Submit" to somebody who already has).
-  const stepLoading =
-    submissionWindow.isLoading ||
-    mySubmission.isLoading ||
-    itinerary.isLoading ||
-    results.isLoading ||
-    discord.isLoading;
+  const { step: nextStep, discord } = useNextStep({
+    now,
+    hackathon,
+    registration: myReg,
+  });
 
-  useEffect(() => {
-    if (authStatus === "unauthenticated") router.push(loginHref());
-  }, [authStatus, router]);
+  useLoginRedirect(authStatus);
 
   // The strip scrolls sideways on a phone, so a ?tab= link to a later tab
   // would land with it and its accent rule past the right edge. Scroll the
@@ -249,20 +210,6 @@ export default function HackathonDetailPage() {
   if (error || !hackathon) return <HackathonUnavailable message={error?.message} />;
 
   const isRegistered = !!myReg;
-  const nextStep =
-    myReg && !stepLoading
-      ? hackathonNextStep({
-          now,
-          hackathon,
-          registrationStatus: myReg.registrationStatus,
-          hasTeam: !!myReg.teamId,
-          submissionWindow: submissionWindow.data,
-          submitted: projectSubmitted(mySubmission.data),
-          itinerary: itinerary.data,
-          resultsPublished: (results.data?.length ?? 0) > 0,
-          discord: discordStep(discord.data),
-        })
-      : null;
   // The status is moved by hand, so the start date counts too: an edition
   // still marked closed on the weekend itself must not hide Judging.
   const eventLive =
@@ -279,7 +226,7 @@ export default function HackathonDetailPage() {
   // wrapper only re-points the colour and font tokens, so every other
   // hackathon is untouched.
   const bloom = isHacklyticsName(hackathon.name);
-  const foodGroup = discord.data?.foodGroup ?? null;
+  const foodGroup = discord?.foodGroup ?? null;
 
   const content = (
     <main className={page}>

@@ -39,7 +39,7 @@ export default function Navbar() {
 
   type MenuItem = (typeof MENU_ITEMS)[number];
 
-  const renderMenuItem = (item: MenuItem, isMobile: boolean = false) => {
+  const renderMenuItem = (item: MenuItem, isMobile = false) => {
     const current = pathname === item.to || pathname.startsWith(`${item.to}/`);
     /**
      * `min-h-11` is the tap target, not a visual change.

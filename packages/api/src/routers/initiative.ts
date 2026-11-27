@@ -15,19 +15,11 @@ import {
   isProjectLeader,
 } from "../middleware/procedures";
 import { clearProjectLeaderCaches } from "../middleware/cache";
+import { isUniqueViolation } from "../middleware/db-errors";
+import { badRequest, conflict, forbidden } from "./errors";
 
 const notFound = (message = "Project not found") =>
   new TRPCError({ code: "NOT_FOUND", message });
-
-/** Postgres unique_violation. Drizzle wraps driver errors, so walk `.cause`. */
-export function isUniqueViolation(error: unknown) {
-  for (let cursor: unknown = error, depth = 0; cursor && depth < 5; depth++) {
-    if (typeof cursor !== "object") break;
-    if ((cursor as { code?: string }).code === "23505") return true;
-    cursor = (cursor as { cause?: unknown }).cause;
-  }
-  return false;
-}
 
 /** What `db.transaction(async (tx) => …)` hands its callback. */
 type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
@@ -57,10 +49,7 @@ function assertPdf(dataUrl: string) {
   const base64 = dataUrl.split(",")[1] ?? "";
   const header = Buffer.from(base64.slice(0, 8), "base64").toString("latin1");
   if (!header.startsWith("%PDF-")) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "That file is not a PDF.",
-    });
+    throw badRequest("That file is not a PDF.");
   }
   return dataUrl;
 }
@@ -269,10 +258,9 @@ export const initiativeRouter = createTRPCRouter({
 
       if (input.leaderUserId && input.leaderUserId !== ctx.userId) {
         if (!ctx.isPlatformAdmin) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Only an admin can create a project for someone else.",
-          });
+          throw forbidden(
+            "Only an admin can create a project for someone else.",
+          );
         }
 
         const target = await db.query.projectLeaders.findFirst({
@@ -280,20 +268,15 @@ export const initiativeRouter = createTRPCRouter({
           columns: { id: true },
         });
         if (!target) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "That person is not a project leader.",
-          });
+          throw badRequest("That person is not a project leader.");
         }
         leaderUserId = input.leaderUserId;
       } else if (!ctx.projectLeader) {
         // An admin who named nobody would otherwise become the leader by default,
         // which is the bug this branch exists to stop.
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "You are not a project leader. Name the leader this project belongs to.",
-        });
+        throw badRequest(
+          "You are not a project leader. Name the leader this project belongs to.",
+        );
       }
 
       const [created] = await db
@@ -370,10 +353,7 @@ export const initiativeRouter = createTRPCRouter({
 
       // An archived initiative is hidden from members whatever the status says.
       if (initiative.archivedAt !== null) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Restore this project before changing its status.",
-        });
+        throw badRequest("Restore this project before changing its status.");
       }
 
       // A proposal goes live only through reviewProposal. Without this a leader
@@ -382,10 +362,7 @@ export const initiativeRouter = createTRPCRouter({
         initiative.status === "proposed" ||
         initiative.status === "declined"
       ) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This proposal has not been approved yet.",
-        });
+        throw badRequest("This proposal has not been approved yet.");
       }
 
       const [updated] = await db
@@ -492,10 +469,7 @@ export const initiativeRouter = createTRPCRouter({
         if (!application) throw notFound("That member has not applied.");
 
         if (application.status === "withdrawn") {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "They withdrew their application.",
-          });
+          throw badRequest("They withdrew their application.");
         }
 
         // Two leaders clicking the same button: the second is a no-op, so decidedAt
@@ -511,10 +485,7 @@ export const initiativeRouter = createTRPCRouter({
         if (input.decision === "accepted" && initiative.maxMembers !== null) {
           const taken = await acceptedSeats(tx, initiative.id);
           if (taken >= initiative.maxMembers) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "This project is full.",
-            });
+            throw badRequest("This project is full.");
           }
         }
 
@@ -741,17 +712,11 @@ export const initiativeRouter = createTRPCRouter({
         await requireActiveMember(tx, userId);
 
         if (initiative.status !== "open") {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "This project is not taking applications.",
-          });
+          throw badRequest("This project is not taking applications.");
         }
 
         if (initiative.leaderUserId === userId) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "You already lead this project.",
-          });
+          throw badRequest("You already lead this project.");
         }
 
         const existing = await tx.query.initiativeApplications.findFirst({
@@ -775,10 +740,7 @@ export const initiativeRouter = createTRPCRouter({
         if (initiative.maxMembers !== null) {
           const taken = await acceptedSeats(tx, initiative.id);
           if (taken >= initiative.maxMembers) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "This project is full.",
-            });
+            throw badRequest("This project is full.");
           }
         }
 
@@ -811,10 +773,7 @@ export const initiativeRouter = createTRPCRouter({
           // The read above only rules out rows committed before this transaction began;
           // the unique index settles a true double submit.
           if (isUniqueViolation(error)) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: "You have already applied to this project.",
-            });
+            throw conflict("You have already applied to this project.");
           }
           throw error;
         }
@@ -867,11 +826,9 @@ export const initiativeRouter = createTRPCRouter({
         );
 
       if ((waiting?.total ?? 0) >= 3) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "You already have three proposals waiting. Wait for one to be reviewed, or withdraw it.",
-        });
+        throw badRequest(
+          "You already have three proposals waiting. Wait for one to be reviewed, or withdraw it.",
+        );
       }
 
       const [created] = await db
@@ -992,10 +949,7 @@ export const initiativeRouter = createTRPCRouter({
         if (!proposal) throw notFound("Proposal not found.");
 
         if (proposal.status !== "proposed") {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "That proposal has already been reviewed.",
-          });
+          throw badRequest("That proposal has already been reviewed.");
         }
 
         // Status in the WHERE too: two admins deciding at once both pass the
@@ -1018,10 +972,7 @@ export const initiativeRouter = createTRPCRouter({
           .returning({ id: initiatives.id });
 
         if (!reviewed) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "That proposal has already been reviewed.",
-          });
+          throw badRequest("That proposal has already been reviewed.");
         }
 
         if (input.decision === "approve") {
@@ -1121,7 +1072,7 @@ export const initiativeRouter = createTRPCRouter({
         columns: { id: true },
       });
       if (!target) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        throw notFound("User not found");
       }
 
       const existing = await db.query.projectLeaders.findFirst({

@@ -16,7 +16,7 @@ import {
 
 const SCHEMAS = resolve(ROOT, "packages/db/src/schemas");
 
-export interface Column {
+interface Column {
   key: string;
   name: string;
   type: string;
@@ -29,7 +29,7 @@ export interface Column {
   line: number;
 }
 
-export interface Table {
+interface Table {
   variable: string;
   name: string;
   file: string;

@@ -53,7 +53,7 @@ export const applicationDraftData = z.object({
   needsHardware: z.boolean().optional(),
 });
 
-export type ApplicationDraftData = z.infer<typeof applicationDraftData>;
+type ApplicationDraftData = z.infer<typeof applicationDraftData>;
 
 /**
  * The most a saved draft may weigh as JSON. Each field has its own length cap,

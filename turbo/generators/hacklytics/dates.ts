@@ -4,7 +4,7 @@
  * for that depends on whether daylight saving is in force on that date.
  */
 
-export interface Wall {
+interface Wall {
   year: number;
   month: number;
   day: number;
@@ -34,7 +34,7 @@ export function parseDay(
 
 const pad = (n: number, width = 2) => String(n).padStart(width, "0");
 
-export const dayString = ({
+const dayString = ({
   year,
   month,
   day,
@@ -44,7 +44,7 @@ export const dayString = ({
   day: number;
 }) => `${pad(year, 4)}-${pad(month)}-${pad(day)}`;
 
-export function addDays(
+function addDays(
   day: { year: number; month: number; day: number },
   days: number,
 ): { year: number; month: number; day: number } {
@@ -89,7 +89,7 @@ function zoneFormatter(timeZone: string): Intl.DateTimeFormat {
 }
 
 /** The wall clock in `timeZone` at the instant `ms`. */
-export function wallAt(ms: number, timeZone: string): Wall {
+function wallAt(ms: number, timeZone: string): Wall {
   const parts: Record<string, number> = {};
   for (const part of zoneFormatter(timeZone).formatToParts(new Date(ms))) {
     if (part.type !== "literal") parts[part.type] = Number(part.value);
@@ -140,16 +140,8 @@ export function isoAt(wall: Wall, timeZone: string): string {
   return `${dayString(wall)}T${pad(wall.hour)}:${pad(wall.minute)}:00${formatOffset(minutes)}`;
 }
 
-export function clockOf(wall: Wall): string {
+function clockOf(wall: Wall): string {
   return `${pad(wall.hour)}:${pad(wall.minute)}`;
-}
-
-export function withClock(
-  day: { year: number; month: number; day: number },
-  clock: string,
-): Wall {
-  const [hour, minute] = clock.split(":").map(Number);
-  return { ...day, hour, minute };
 }
 
 /** "5:00 PM" for "17:00", the way the schedule board writes a time. */
@@ -212,8 +204,10 @@ export function applyPattern(
   endDay: { year: number; month: number; day: number },
   timeZone: string,
 ): Moments {
-  const at = (day: typeof startDay, clock: string) =>
-    isoAt(withClock(day, clock), timeZone);
+  const at = (day: typeof startDay, clock: string) => {
+    const [hour, minute] = clock.split(":").map(Number);
+    return isoAt({ ...day, hour, minute }, timeZone);
+  };
   return {
     start: at(startDay, pattern.start),
     end: at(endDay, pattern.end),

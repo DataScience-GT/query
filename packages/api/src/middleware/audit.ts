@@ -22,7 +22,7 @@ const cutoff = (days: number) =>
 // Holds the "have we pruned recently" state that decides whether a write also
 // triggers retention. Two loose module flags could be touched by any code in
 // the file; the throttle only works if nothing else can.
-export class AuditRetention {
+class AuditRetention {
   private lastPruneAt = 0;
   private inFlight = false;
 

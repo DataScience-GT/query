@@ -178,7 +178,7 @@ export class SharedRateLimiter {
     private readonly prefix: string,
     private readonly fallback: TokenBucketLimiter,
     /** Epoch ms before which Redis is not used (see redisStartsAt). */
-    private readonly startsAt: number = 0,
+    private readonly startsAt = 0,
   ) {}
 
   async consume(
@@ -248,7 +248,7 @@ const DDOS_CONFIG = {
 };
 
 /** Coarse per-caller flood protection over its own record store. */
-export class FloodGuard {
+class FloodGuard {
   private readonly callers = new Map<string, IPRecord>();
   private readonly sweepTimer: NodeJS.Timeout;
 
@@ -373,7 +373,7 @@ export class FloodGuard {
   }
 }
 
-export type SecurityEvent = {
+type SecurityEvent = {
   type:
     | "rate_limit"
     | "injection_attempt"
@@ -393,7 +393,7 @@ const MAX_QUEUE_SIZE = 500;
 const RATE_LIMIT_LOG_COOLDOWN_MS = 60 * 60 * 1_000;
 
 /** Batches security events to the audit log, with its own queue and timer. */
-export class SecurityEventLog {
+class SecurityEventLog {
   private readonly queue: Omit<SecurityEvent, "timestamp">[] = [];
   /** Last log time per rate_limit identifier, to suppress storms. */
   private readonly cooldowns = new Map<string, number>();
@@ -533,7 +533,7 @@ export class ClientIpResolver {
   private logged = false;
 
   constructor(
-    private readonly trustedProxyHops: number = Number(
+    private readonly trustedProxyHops = Number(
       process.env.TRUSTED_PROXY_HOPS ?? 1,
     ),
   ) {}
@@ -562,8 +562,8 @@ export class ClientIpResolver {
 // One instance each per process. The exported functions below are the API the
 // rest of the codebase calls; they delegate here.
 const ipResolver = new ClientIpResolver();
-export const securityEventLog = new SecurityEventLog();
-export const rateLimiter = new TokenBucketLimiter();
+const securityEventLog = new SecurityEventLog();
+const rateLimiter = new TokenBucketLimiter();
 const floodGuard = new FloodGuard(DDOS_CONFIG, (event) =>
   securityEventLog.record(event),
 );
@@ -575,7 +575,7 @@ export function rateLimit(
   identifier: string,
   maxTokens: number,
   refillRatePerSecond: number,
-  tokensToConsume: number = 1,
+  tokensToConsume = 1,
 ): { allowed: boolean; retryAfter?: number } {
   return rateLimiter.consume(
     identifier,
@@ -585,7 +585,7 @@ export function rateLimit(
   );
 }
 
-export const sharedRateLimiter = new SharedRateLimiter(
+const sharedRateLimiter = new SharedRateLimiter(
   redis,
   redisKeyPrefix(),
   rateLimiter,
@@ -602,7 +602,7 @@ export function rateLimitShared(
   identifier: string,
   maxTokens: number,
   refillRatePerSecond: number,
-  tokensToConsume: number = 1,
+  tokensToConsume = 1,
 ): Promise<{ allowed: boolean; retryAfter?: number }> {
   return sharedRateLimiter.consume(
     identifier,

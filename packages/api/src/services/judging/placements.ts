@@ -16,7 +16,7 @@ import type { ScoredEvaluation } from "./scoring";
 
 /** The placement scope for the ranking across every challenge. */
 export const OVERALL_SCOPE = "overall";
-export const OVERALL_LABEL = "Overall";
+const OVERALL_LABEL = "Overall";
 
 export type PlacementEvaluation = ScoredEvaluation & {
   /** Calibration counts evaluations by this alone. */
@@ -27,7 +27,7 @@ export type PlacementEvaluation = ScoredEvaluation & {
   submittedAt: Date;
 };
 
-export type ComputedPlacement = {
+type ComputedPlacement = {
   /** "overall" or a challenge id. */
   scope: string;
   scopeLabel: string;

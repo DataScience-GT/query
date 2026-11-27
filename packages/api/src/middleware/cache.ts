@@ -31,8 +31,8 @@ export class CacheService {
   private bus: CacheInvalidationBus | null = null;
 
   constructor(
-    private defaultTTL: number = 300,
-    maxCacheSize: number = 10000,
+    private defaultTTL = 300,
+    maxCacheSize = 10000,
     shared?: {
       redis: RedisClient;
       prefix: string;
@@ -241,10 +241,6 @@ export class CacheService {
     this.bus?.stop();
     this.cache.clear();
     this.stats = { hits: 0, misses: 0, size: 0 };
-  }
-
-  exportStats(): CacheStats {
-    return { ...this.stats };
   }
 }
 

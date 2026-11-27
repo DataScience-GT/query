@@ -7,7 +7,7 @@ import { read, rel, ROOT, walk } from "./source.ts";
 
 const MAX_READ = 60_000;
 
-export function docFiles(): string[] {
+function docFiles(): string[] {
   const files = new Set<string>();
   for (const name of ["README.md", ".github/CONTRIBUTING.md"]) {
     if (existsSync(resolve(ROOT, name))) files.add(name);
@@ -82,7 +82,7 @@ export function docsSearch(query: string, limit = 8): string {
 }
 
 /** Resolves `path` to an indexed doc, or throws. Never leaves the repo. */
-export function resolveDoc(path: string): string {
+function resolveDoc(path: string): string {
   const full = resolve(ROOT, path);
   const inside = (candidate: string, base = ROOT) => {
     const diff = relative(base, candidate);

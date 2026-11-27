@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { body, sectionRule, sectionTitle } from "@query/ui/classes";
 import { SaleStation } from "./SaleStation";
 import { StoreItems } from "./StoreItems";

@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import {
   hackathonEvents,
@@ -19,6 +18,7 @@ import {
   readBalance,
   readLedger,
 } from "../../services/points";
+import { notFound } from "../errors";
 
 const participantScope = z.object({
   hackathonId: z.string().uuid("Invalid hackathon ID"),
@@ -66,10 +66,7 @@ export const pointsAdminRouter = createTRPCRouter({
           .for("update");
 
         if (!participant) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "That person is not registered for this hackathon.",
-          });
+          throw notFound("That person is not registered for this hackathon.");
         }
 
         const [adjustment] = await tx
@@ -121,10 +118,7 @@ export const pointsAdminRouter = createTRPCRouter({
     });
 
     if (!participant) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "That person is not registered for this hackathon.",
-      });
+      throw notFound("That person is not registered for this hackathon.");
     }
 
     const ledger = await readLedger(db, participant.id);

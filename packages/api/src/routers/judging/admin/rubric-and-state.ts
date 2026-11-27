@@ -20,7 +20,8 @@ import {
   stateChangeProblem,
 } from "../../../services/judging/checklist";
 import { notifyItineraryPosted } from "../../../services/judging/notify";
-import { hackathonInput, rubricItem, refuse } from "./shared";
+import { hackathonInput, rubricItem } from "./shared";
+import { preconditionFailed } from "../../errors";
 
 export const rubricAndStateProcedures = {
   getRubric: isAdmin.input(hackathonInput).query(async ({ ctx, input }) => {
@@ -62,7 +63,7 @@ export const rubricAndStateProcedures = {
         const { config } = await lockEdition(tx, input.hackathonId);
         const lock = await readSetupLock(tx, input.hackathonId);
         const reason = rubricLockReason({ state: config.state, ...lock });
-        if (reason) throw refuse(reason);
+        if (reason) throw preconditionFailed(reason);
 
         await tx
           .delete(judgingRubricItems)
@@ -128,7 +129,7 @@ export const rubricAndStateProcedures = {
           ratingItems: ratings?.value ?? 0,
           hasEvaluations: lock.hasEvaluations,
         });
-        if (problem) throw refuse(problem);
+        if (problem) throw preconditionFailed(problem);
 
         const now = new Date();
         const [updated] = await tx
@@ -255,6 +256,4 @@ export const rubricAndStateProcedures = {
         emergencyMode: config!.emergencyMode,
       };
     }),
-
-  // ---------------------------------------------------------------------,
 };

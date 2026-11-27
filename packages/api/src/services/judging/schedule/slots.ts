@@ -37,7 +37,7 @@ export function slotCount(timing: ScheduleTiming): number {
 }
 
 /** Empty slots a break needs between two presentations. */
-export function breakSlots(breakMinutes: number, length: number): number {
+function breakSlots(breakMinutes: number, length: number): number {
   return Math.ceil(breakMinutes / length);
 }
 

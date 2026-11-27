@@ -364,7 +364,7 @@ export const judgingBuildings = pgTable(
 // What a judging station is. A room has its own door; a table is one of the
 // numbered tables in a hall (a building), where judges sit and teams come to
 // them at their slot. Both are judged and scheduled the same way.
-export const judgingRoomKinds = ["room", "table"] as const;
+const judgingRoomKinds = ["room", "table"] as const;
 export type JudgingRoomKind = (typeof judgingRoomKinds)[number];
 
 // A room or table judges sit at. Each serves one root challenge (or group).
@@ -816,7 +816,7 @@ export const judgingEvaluationResponses = pgTable(
   ],
 );
 
-export type JudgingEvaluationSnapshot = {
+type JudgingEvaluationSnapshot = {
   ratings: JudgingDraftRatings;
   responses: JudgingDraftResponses;
   isComplete: boolean;

@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 import { Download } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { csvCell } from "@/lib/csv";
+import { downloadBlob } from "@/components/admin/download-blob";
 import { StatTile, StatTileSkeleton } from "@query/ui/StatTile";
 import {
   body,
@@ -206,17 +207,10 @@ export function ClubAttendanceMetrics({
       .map((r) => r.map(csvCell).join(","))
       .join("\n");
 
-    const url = URL.createObjectURL(
+    downloadBlob(
       new Blob([csv], { type: "text/csv;charset=utf-8;" }),
+      `club_attendance_${range}.csv`,
     );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `club_attendance_${range}.csv`;
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const summary = data?.summary;

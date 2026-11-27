@@ -20,7 +20,6 @@
  * result instead of passing unnoticed.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PgDialect } from "drizzle-orm/pg-core";
 import {
   hackathonCheckInFlags,
   hackathonEvents,
@@ -39,14 +38,12 @@ import {
   judgingPlacements,
   judgingRubricItems,
 } from "@query/db";
-import { appRouter } from "../root";
+import { testCaller } from "./_caller";
+import { render } from "./_fake-db";
 import { cache } from "../middleware/cache";
 
 const HACK = "11111111-1111-4111-8111-111111111111";
 const ADMIN_ROW = { userId: "admin_user", isActive: true, role: "admin" };
-
-const render = (condition: unknown) =>
-  new PgDialect().sqlToQuery(condition as never);
 
 type Query = {
   table: unknown;
@@ -120,25 +117,9 @@ const fakeDb: any = {
   }),
 };
 
-const adminCaller = () =>
-  appRouter.createCaller({
-    db: fakeDb,
-    session: { user: { id: "admin_user" } },
-    userId: "admin_user",
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as any);
+const adminCaller = () => testCaller(fakeDb, "admin_user");
 
-const anonCaller = () =>
-  appRouter.createCaller({
-    db: fakeDb,
-    session: null,
-    userId: undefined,
-    cache,
-    clientIp: "127.0.0.1",
-    req: { headers: { get: () => null } },
-  } as any);
+const anonCaller = () => testCaller(fakeDb);
 
 const placementsInserted = () =>
   inserts

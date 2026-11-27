@@ -7,7 +7,7 @@ import type { DrizzleDB } from "@query/db";
 // rules can be tested without Next.
 
 /** The edition the form is for. The hackathon row may not exist yet. */
-export const JUDGE_INTEREST_EDITION = "hacklytics-2027";
+const JUDGE_INTEREST_EDITION = "hacklytics-2027";
 
 /**
  * Origins allowed to post. The production site and Firebase's default hosts for
@@ -78,7 +78,7 @@ export const judgeInterestInput = z.object({
   website: z.string().max(500).optional(),
 });
 
-export type JudgeInterestInput = z.infer<typeof judgeInterestInput>;
+type JudgeInterestInput = z.infer<typeof judgeInterestInput>;
 
 /**
  * Records a submission. The first one for an email on this edition wins: the

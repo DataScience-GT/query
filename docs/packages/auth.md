@@ -12,7 +12,6 @@ Mainweb mounts the handlers at `app/(portal)/api/auth/[...nextauth]/route.ts` (`
 | `authConfig` | `src/config.ts` |
 | `discordLoginEnabled` | `src/discord.ts`. The one answer to "is Discord registered", read by the provider list and by `/login` |
 | `adapter` | `src/adapter.ts` |
-| `getSession`, `requireAuth`, `getCurrentUserId` | `src/utils.ts` |
 | `sendAcceptanceEmail` and the other templates, plus the pooled `Mailer` (not used for sign-in codes) | `src/email.ts` |
 
 ## Session strategy

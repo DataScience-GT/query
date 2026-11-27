@@ -20,15 +20,13 @@ import { isUniqueViolation } from "../middleware/db-errors";
 // through it.
 
 /** A transaction handle from `db.transaction`. */
-export type PointsTx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
+type PointsTx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
 
 /** Either the pool or a transaction. */
 export type PointsDb = DrizzleDB | PointsTx;
 
-export type AttendanceMethod = CheckInMethod;
-
 /** The three sums a balance is made of. */
-export type PointsTotals = {
+type PointsTotals = {
   /** Event points, as copied onto each attendance row. */
   awarded: number;
   /** Staff adjustments, either sign. */
@@ -37,7 +35,7 @@ export type PointsTotals = {
   spent: number;
 };
 
-export type PointsBalance = {
+type PointsBalance = {
   earned: number;
   spent: number;
   available: number;
@@ -94,7 +92,7 @@ export function pointsShort(price: number, available: number): number {
 // ---------------------------------------------------------------------------
 // Names and the leaderboard
 
-export type NameSource = {
+type NameSource = {
   firstName: string | null;
   lastName: string | null;
   /** The account's display name, for registrations without name fields. */
@@ -221,11 +219,7 @@ export async function assignCheckInCode(
   });
 }
 
-// Doors open a little early: people queue before a workshop starts, and the
-// code is on the screen as they walk in.
-export { SELF_CHECK_IN_LEAD_MS };
-
-export type SelfCheckInWindow = "early" | "open" | "ended";
+type SelfCheckInWindow = "early" | "open" | "ended";
 
 /** Self check-in runs from 15 minutes before the start to the end, inclusive. */
 export function selfCheckInWindow(
@@ -260,7 +254,7 @@ export type EarlierAttendance = {
   checkedInAt: Date;
 };
 
-export type AttendanceConflict = {
+type AttendanceConflict = {
   /** overlap: the events run at the same time. too_soon: under the gap. */
   kind: "overlap" | "too_soon";
   /** The earlier check-in that stands in the way. */
@@ -328,7 +322,7 @@ export type CheckInRuleBreakDetails = {
   /** The event they were already in. */
   conflictEventId: string;
   rule: AttendanceConflict["kind"];
-  method: AttendanceMethod;
+  method: CheckInMethod;
   /** The hacker on a code, staff otherwise. */
   actorId: string | null;
   /** The clock the rule was judged on. */
@@ -345,7 +339,7 @@ export class CheckInRuleBreak extends Error implements CheckInRuleBreakDetails {
   readonly eventId: string;
   readonly conflictEventId: string;
   readonly rule: AttendanceConflict["kind"];
-  readonly method: AttendanceMethod;
+  readonly method: CheckInMethod;
   readonly actorId: string | null;
   readonly at: Date;
 
@@ -392,7 +386,7 @@ export async function recordEventAttendance(
       endTime: Date;
     };
     participant: { id: string; name: string };
-    method: AttendanceMethod;
+    method: CheckInMethod;
     actorId: string | null;
   },
 ): Promise<{ pointsAwarded: number }> {
@@ -472,7 +466,7 @@ export async function recordEventAttendance(
 export function alreadyCheckedInMessage(input: {
   event: { name: string };
   participant: { name: string };
-  method: AttendanceMethod;
+  method: CheckInMethod;
 }): string {
   // A code is entered by the hacker themselves; everything else by staff.
   return input.method === "code"
@@ -487,7 +481,7 @@ export function attendanceConflictMessage(
   input: {
     event: { name: string };
     participant: { name: string };
-    method: AttendanceMethod;
+    method: CheckInMethod;
   },
   conflict: AttendanceConflict,
 ): string {

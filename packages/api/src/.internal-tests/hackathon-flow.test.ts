@@ -2,6 +2,7 @@ import { applicationAnswers } from "./_application-answers";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "../root";
 import { cache } from "../middleware/cache";
+import { testCtx } from "./_caller";
 import { db } from "@query/db";
 
 // Fully mock the DB at the file level. vi.mock factories are hoisted and
@@ -14,7 +15,8 @@ const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
 
-vi.mock("@query/db", () => {
+vi.mock("@query/db", async () => {
+  const { insertStub, updateStub, deleteStub, bootcampWorkshopColumns, eventColumns } = await import("./_fake-db");
   const table = (name: string) => ({
     findFirst: (...args: any[]) => mockFindFirst(name, ...args),
     findMany: (...args: any[]) => mockFindMany(name, ...args),
@@ -48,35 +50,9 @@ vi.mock("@query/db", () => {
         userAccountLinks: table("userAccountLinks"),
         auditLogs: table("auditLogs"),
       },
-      insert: (...insertArgs: any[]) => ({
-        values: (...valArgs: any[]) => {
-          const val = mockInsert("insert", insertArgs, valArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-            onConflictDoUpdate: vi.fn().mockImplementation(() => ({
-              returning: vi.fn().mockResolvedValue(val),
-            })),
-          });
-        },
-      }),
-      update: (...updateArgs: any[]) => ({
-        set: (...setArgs: any[]) => ({
-          where: (...wArgs: any[]) => {
-            const val = mockUpdate("update", updateArgs, setArgs, wArgs);
-            return Object.assign(Promise.resolve(val), {
-              returning: vi.fn().mockResolvedValue(val),
-            });
-          },
-        }),
-      }),
-      delete: (...deleteArgs: any[]) => ({
-        where: (...wArgs: any[]) => {
-          const val = mockDelete("delete", deleteArgs, wArgs);
-          return Object.assign(Promise.resolve(val), {
-            returning: vi.fn().mockResolvedValue(val),
-          });
-        },
-      }),
+      insert: insertStub((...a) => mockInsert(...a), { upsert: true }),
+      update: updateStub((...a) => mockUpdate(...a)),
+      delete: deleteStub((...a) => mockDelete(...a)),
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockImplementation(() => ({
           where: vi.fn().mockImplementation(() => ({
@@ -138,30 +114,8 @@ vi.mock("@query/db", () => {
     },
     members: { id: "id", userId: "user_id", hackathonId: "hackathon_id" },
     membershipHistory: { id: "id", memberId: "member_id" },
-    events: {
-      id: "id",
-      title: "title",
-      qrCode: "qr_code",
-      checkInEnabled: "check_in_enabled",
-      eventDate: "event_date",
-      currentCheckIns: "current_check_ins",
-    },
-    bootcampWorkshops: {
-      id: "id",
-      term: "term",
-      week: "week",
-      title: "title",
-      materialsKey: "materials_key",
-      materialsFileName: "materials_file_name",
-      materialsSizeBytes: "materials_size_bytes",
-      solutionKey: "solution_key",
-      solutionFileName: "solution_file_name",
-      solutionSizeBytes: "solution_size_bytes",
-      recordingUrl: "recording_url",
-      isPublished: "is_published",
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-    },
+    events: eventColumns,
+    bootcampWorkshops: bootcampWorkshopColumns,
     eventCheckIns: { id: "id", eventId: "event_id", userId: "user_id" },
     judges: { id: "id", userId: "user_id", hackathonId: "hackathon_id", isActive: "is_active" },
     judgeAssignments: { judgeId: "judge_id", hackathonId: "hackathon_id" },
@@ -201,15 +155,7 @@ describe("Hackathon end-to-end flow", () => {
     cache.clear();
   });
 
-  const createMockCtx = (userId?: string) =>
-    ({
-      db,
-      session: userId ? { user: { id: userId } } : null,
-      userId: userId || undefined,
-      cache,
-      clientIp: "127.0.0.1",
-      req: { headers: { get: () => null } },
-    }) as any;
+  const createMockCtx = (userId?: string) => testCtx(db, userId);
 
   const adminCaller = () => {
     mockFindFirst.mockImplementation((table) =>

@@ -1,10 +1,10 @@
 // Seat counting and the cache keys a participant status change moves.
 
-import { TRPCError } from "@trpc/server";
 import { CacheKeys } from "../../../middleware/cache";
 import { hackathons, hackathonParticipants } from "@query/db";
 import { eq, and, inArray, notInArray, sql } from "drizzle-orm";
 import type { DrizzleDB } from "@query/db";
+import { conflict } from "../../errors";
 
 // A seat belongs to somebody accepted. maxParticipants caps acceptances, not
 // applications: applying is free, so an organiser can take more applications
@@ -53,10 +53,9 @@ export async function assertSeats(
 
   const left = Math.max(hackathon.max - (seated?.n ?? 0), 0);
   if ((adding?.n ?? 0) > left) {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: `Only ${left} seat${left === 1 ? "" : "s"} left of ${hackathon.max}; this would accept ${adding?.n ?? 0}. Raise the capacity or accept fewer.`,
-    });
+    throw conflict(
+      `Only ${left} seat${left === 1 ? "" : "s"} left of ${hackathon.max}; this would accept ${adding?.n ?? 0}. Raise the capacity or accept fewer.`,
+    );
   }
 }
 

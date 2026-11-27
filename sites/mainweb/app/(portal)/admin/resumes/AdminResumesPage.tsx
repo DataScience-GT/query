@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useDebounced } from "@/components/admin/hackathons/points/use-debounced";
 import { ResumePreview } from "@/components/portal/ResumePreview";
 import { venueFormat } from "@/lib/venue-time";
 import {
@@ -37,7 +38,6 @@ function formatSize(bytes: number) {
 export default function AdminResumesPage() {
   const [scope, setScope] = useState<Scope>("members");
   const [search, setSearch] = useState("");
-  const [debounced, setDebounced] = useState("");
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<{
@@ -45,10 +45,7 @@ export default function AdminResumesPage() {
     name: string;
   } | null>(null);
 
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(search.trim()), 250);
-    return () => clearTimeout(t);
-  }, [search]);
+  const debounced = useDebounced(search, 250).trim();
 
   const list = trpc.resume.adminList.useQuery({
     scope,

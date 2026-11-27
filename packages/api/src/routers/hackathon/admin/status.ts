@@ -7,7 +7,6 @@ import {
   emailConcurrency,
   forEachWithConcurrency,
 } from "../../../services/fanout";
-import { TRPCError } from "@trpc/server";
 import { isAdmin } from "../../../middleware/procedures";
 import { recordAdminAction } from "../../../middleware/audit";
 import { MASS_EMAIL_BATCH } from "../../../services/email-limits";
@@ -30,6 +29,7 @@ import {
   assertSeats,
   evictParticipantCaches,
 } from "./seats";
+import { conflict, notFound } from "../../errors";
 
 export const statusProcedures = {
   updateParticipantStatus: isAdmin
@@ -48,10 +48,7 @@ export const statusProcedures = {
       });
 
       if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Participant not found",
-        });
+        throw notFound("Participant not found");
       }
 
       // `checked_in` is reachable from `approved` and nowhere else. Submitting a
@@ -63,10 +60,9 @@ export const statusProcedures = {
         participant.registrationStatus !== "approved" &&
         participant.registrationStatus !== "checked_in"
       ) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: `This applicant is ${participant.registrationStatus}. Accept them first — checking somebody in also lets them submit a project.`,
-        });
+        throw conflict(
+          `This applicant is ${participant.registrationStatus}. Accept them first — checking somebody in also lets them submit a project.`,
+        );
       }
 
       await (ctx.db as DrizzleDB).transaction(async (tx) => {
@@ -102,11 +98,9 @@ export const statusProcedures = {
         // A concurrent waitlist or reject leaves the seated-only WHERE matching
         // nothing; reporting success would wave them through the desk.
         if (updated.length === 0) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "This applicant's status changed just now. Refresh and check again before letting them in.",
-          });
+          throw conflict(
+            "This applicant's status changed just now. Refresh and check again before letting them in.",
+          );
         }
         // A linked Discord account is owed a sync, whatever this request reaches.
         await markDiscordRolesPending(tx as unknown as DrizzleDB, [
@@ -196,10 +190,7 @@ export const statusProcedures = {
       });
 
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       const { wave, picked, full } = await db.transaction(async (tx) => {
@@ -344,10 +335,7 @@ export const statusProcedures = {
       });
 
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found",
-        });
+        throw notFound("Hackathon not found");
       }
 
       // Recipients are scoped to this hackathon, like the UPDATE below: a stale id

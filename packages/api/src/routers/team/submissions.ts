@@ -11,6 +11,7 @@ import type { DrizzleDB, hackathons } from "@query/db";
 import { computeSubmissionWindow, checkWithdrawWindow } from "./windows";
 import type { Tx } from "./windows";
 import { ownProjectWhere, checkCheckedIn } from "./guards";
+import { conflict, forbidden, notFound } from "../errors";
 
 type Hackathon = typeof hackathons.$inferSelect;
 type Project = typeof hackathonProjects.$inferSelect;
@@ -59,19 +60,15 @@ function assertSubmissionsOpen(hackathon: Hackathon, now: Date) {
   const window = computeSubmissionWindow(baseTime, now);
 
   if (window.notYetOpen) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message:
-        "Project submission is not open yet. It starts 12 hours after the hacking begins.",
-    });
+    throw forbidden(
+      "Project submission is not open yet. It starts 12 hours after the hacking begins.",
+    );
   }
 
   if (now > window.closesAt) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message:
-        "Project submission closed. The submission window ended 36 hours after the hacking started.",
-    });
+    throw forbidden(
+      "Project submission closed. The submission window ended 36 hours after the hacking started.",
+    );
   }
 
   return window.editsCloseAt;
@@ -115,18 +112,12 @@ async function assertTeamCaptain(
   });
 
   if (!team) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Team not found for this hackathon.",
-    });
+    throw notFound("Team not found for this hackathon.");
   }
 
   // Verify captain ownership using teamId comparison (not nested object)
   if (team.captainId !== userId) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Only the team captain can submit the project.",
-    });
+    throw forbidden("Only the team captain can submit the project.");
   }
 }
 
@@ -140,16 +131,13 @@ export const submissionProcedures = {
       const participant = await db.query.hackathonParticipants.findFirst({
         where: {
           hackathonId: input.hackathonId,
-          userId: ctx.userId as string,
+          userId: ctx.userId,
         },
         with: { team: true },
       });
 
       if (!participant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "You are not registered for this hackathon.",
-        });
+        throw notFound("You are not registered for this hackathon.");
       }
 
       checkCheckedIn(participant.registrationStatus);
@@ -160,17 +148,11 @@ export const submissionProcedures = {
       });
 
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found.",
-        });
+        throw notFound("Hackathon not found.");
       }
 
       if (hackathon.status === "cancelled") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "This hackathon has been cancelled.",
-        });
+        throw forbidden("This hackathon has been cancelled.");
       }
 
       const tracks = keepOffered(hackathon.tracks, input.tracks);
@@ -194,11 +176,9 @@ export const submissionProcedures = {
           });
 
           if (existingProject && now > editsCloseAt) {
-            throw new TRPCError({
-              code: "FORBIDDEN",
-              message:
-                "Project edits are closed. Submissions must be final 34 hours after the hacking starts.",
-            });
+            throw forbidden(
+              "Project edits are closed. Submissions must be final 34 hours after the hacking starts.",
+            );
           }
 
           if (existingProject) {
@@ -212,7 +192,7 @@ export const submissionProcedures = {
               tx,
               input.hackathonId,
               teamId,
-              ctx.userId as string,
+              ctx.userId,
             );
           }
 
@@ -231,7 +211,6 @@ export const submissionProcedures = {
 
           let finalProject;
           if (existingProject) {
-            // Update existing
             const [updated] = await tx
               .update(hackathonProjects)
               .set({
@@ -251,7 +230,6 @@ export const submissionProcedures = {
               .returning();
             finalProject = updated;
           } else {
-            // Insert new
             const [inserted] = await tx
               .insert(hackathonProjects)
               .values({
@@ -280,10 +258,9 @@ export const submissionProcedures = {
         if (error instanceof TRPCError) throw error;
         // Two first submissions racing (a double click) hit the unique index.
         if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "Your project was already submitted. Refresh to edit it.",
-          });
+          throw conflict(
+            "Your project was already submitted. Refresh to edit it.",
+          );
         }
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -307,15 +284,12 @@ export const submissionProcedures = {
           const participant = await tx.query.hackathonParticipants.findFirst({
             where: {
               hackathonId: input.hackathonId,
-              userId: ctx.userId as string,
+              userId: ctx.userId,
             },
           });
 
           if (!participant) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "You are not registered for this hackathon.",
-            });
+            throw notFound("You are not registered for this hackathon.");
           }
 
           const project = await tx.query.hackathonProjects.findFirst({
@@ -327,10 +301,7 @@ export const submissionProcedures = {
           });
 
           if (!project) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "You do not have a submitted project.",
-            });
+            throw notFound("You do not have a submitted project.");
           }
 
           // Only the captain files or withdraws on a team's behalf, matching the rule
@@ -339,11 +310,10 @@ export const submissionProcedures = {
             const team = await tx.query.hackathonTeams.findFirst({
               where: { id: participant.teamId },
             });
-            if (team && team.captainId !== (ctx.userId as string)) {
-              throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "Only the team captain can withdraw the project.",
-              });
+            if (team && team.captainId !== (ctx.userId)) {
+              throw forbidden(
+                "Only the team captain can withdraw the project.",
+              );
             }
           }
 
@@ -362,11 +332,9 @@ export const submissionProcedures = {
             project.status === "winner" ||
             inJudging
           ) {
-            throw new TRPCError({
-              code: "FORBIDDEN",
-              message:
-                "Judging has started for this project. Ask an organizer if it needs to be pulled.",
-            });
+            throw forbidden(
+              "Judging has started for this project. Ask an organizer if it needs to be pulled.",
+            );
           }
 
           await tx

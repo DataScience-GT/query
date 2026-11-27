@@ -33,13 +33,7 @@ const StripePaymentModal = dynamic(
   { ssr: false },
 );
 
-interface LinkStripeAccountProps {
-  onSuccess?: () => void;
-}
-
-export default function LinkStripeAccount({
-  onSuccess,
-}: LinkStripeAccountProps) {
+export default function LinkStripeAccount() {
   const [showModal, setShowModal] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -72,7 +66,6 @@ export default function LinkStripeAccount({
         setSuccess(true);
         utils.member.checkStatus.invalidate();
         invalidatePortalContext();
-        onSuccess?.();
       }
     },
     onError: () => setIsChecking(false),
@@ -90,7 +83,6 @@ export default function LinkStripeAccount({
         setSuccess(true);
         utils.member.checkStatus.invalidate();
         invalidatePortalContext();
-        onSuccess?.();
       }
     },
   });
@@ -110,7 +102,6 @@ export default function LinkStripeAccount({
   const confirmMutation =
     trpc.stripe.confirmMembershipAfterPayment.useMutation();
 
-  // Create Payment Intent (for modal)
   const createIntentMutation = trpc.stripe.createPaymentIntent.useMutation({
     onSuccess: (data) => {
       setPaymentData(data);
@@ -130,7 +121,6 @@ export default function LinkStripeAccount({
       utils.member.checkStatus.invalidate();
       // Sidebar and dashboard gate on portal context, not checkStatus.
       invalidatePortalContext();
-      onSuccess?.();
     },
     onError: (err) => {
       setError(err.message);
@@ -148,7 +138,6 @@ export default function LinkStripeAccount({
     setSuccess(true);
     invalidatePortalContext();
     utils.member.checkStatus.invalidate();
-    onSuccess?.();
   };
 
   /**

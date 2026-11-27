@@ -11,22 +11,19 @@ import type { Tint } from "./tints";
  * identical data URI once and reuses it — far cheaper than the equivalent SVG
  * DOM.
  */
-export function PixelImage({
+function PixelImage({
   map,
   palette,
   scale = 4,
   className = "",
-  style,
 }: {
   map: SpriteMap;
   palette: Palette;
   /** Pixels per sprite pixel. */
   scale?: number;
   className?: string;
-  style?: React.CSSProperties;
 }) {
-  const { uri, w, h } = spriteToDataUri(map, palette);
-  const src = uri.slice(5, -2); // strip url(" ... ")
+  const { src, w, h } = spriteToDataUri(map, palette);
 
   return (
     <img
@@ -42,14 +39,13 @@ export function PixelImage({
         // sprite pixel stays a whole number of screen pixels.
         width: `calc(${w * scale}px * var(--bed, 1))`,
         height: `calc(${h * scale}px * var(--bed, 1))`,
-        ...style,
       }}
     />
   );
 }
 
 /* Stem pixels grow from the soil; everything else is the head. */
-export const STEM_KEYS = new Set(["g", "G", "d", "r"]);
+export const STEM_KEYS = new Set(["g", "G"]);
 
 type Theme = "dark" | "light";
 
@@ -110,7 +106,6 @@ export function BloomSprite({
   tint = "lotus",
   index = 0,
   flip = false,
-  className = "inline-block",
 }: {
   map: SpriteMap;
   scale?: number;
@@ -121,15 +116,13 @@ export function BloomSprite({
    *  (80ms unless the bed sets it) after the bed blooms. */
   index?: number;
   flip?: boolean;
-  /** Includes the display class (inline-block by default) so a bed can hide it per breakpoint. */
-  className?: string;
 }) {
   // Flip lives on the wrapper: the layers' own transforms are the animation.
   const flipStyle = flip ? { transform: "scaleX(-1)" } : undefined;
 
   if (!blooms) {
     return (
-      <span className={`relative shrink-0 ${className}`} style={flipStyle}>
+      <span className="relative shrink-0 inline-block" style={flipStyle}>
         <BothThemes
           draw={(theme) => (
             <PixelImage map={map} palette={WHOLE[theme][tint]} scale={scale} className="block" />
@@ -158,7 +151,7 @@ export function BloomSprite({
 
   return (
     <span
-      className={`relative shrink-0 ${className}`}
+      className="relative shrink-0 inline-block"
       style={{ ...vars, ...flipStyle }}
     >
       <BothThemes

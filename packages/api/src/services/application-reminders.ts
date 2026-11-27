@@ -23,7 +23,7 @@ import {
 } from "@query/db";
 
 /** How long a draft sits untouched before its owner is nudged. */
-export const REMINDER_AFTER_MS = 3 * DAY;
+const REMINDER_AFTER_MS = 3 * DAY;
 
 /**
  * Most reminders one run sends. The mail account behind this is shared with
@@ -35,7 +35,7 @@ export const REMINDER_BATCH = 100;
 /** Mailed at once. The mailer pools its connections; this keeps a run well inside a request. */
 const SEND_CONCURRENCY = 10;
 
-export type ReminderRun = {
+type ReminderRun = {
   /** Drafts this run took the right to mail. */
   claimed: number;
   sent: number;

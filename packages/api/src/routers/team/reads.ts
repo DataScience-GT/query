@@ -1,7 +1,6 @@
 // Reads: the clock, the team list and a participant's own submission and projects.
 
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc";
 import { hackathonParticipants } from "@query/db";
 import { eq, and, isNull, isNotNull } from "drizzle-orm";
@@ -10,6 +9,7 @@ import type { DrizzleDB } from "@query/db";
 import { assertHackathonVisible } from "../hackathon/visibility";
 import { computeSubmissionWindow, loadTeamWindow } from "./windows";
 import { ownProjectWhere } from "./guards";
+import { notFound } from "../errors";
 
 export const teamReadProcedures = {
   /** Lets the UI disable team actions instead of letting the mutation fail. */
@@ -95,10 +95,7 @@ export const teamReadProcedures = {
       });
 
       if (!hackathon) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Hackathon not found.",
-        });
+        throw notFound("Hackathon not found.");
       }
 
       const baseTime = hackathon.hackingStartTime ?? hackathon.startDate;
@@ -118,7 +115,7 @@ export const teamReadProcedures = {
       const participant = await db.query.hackathonParticipants.findFirst({
         where: {
           hackathonId: input.hackathonId,
-          userId: ctx.userId as string,
+          userId: ctx.userId,
         },
         columns: { id: true, teamId: true },
       });
@@ -155,7 +152,7 @@ export const teamReadProcedures = {
   myProjects: protectedProcedure.query(async ({ ctx }) => {
     const db = ctx.db as DrizzleDB;
 
-    const userId = ctx.userId as string;
+    const userId = ctx.userId;
 
     // One round trip: the caller's team ids and solo registrations are
     // subqueries, not a read of their own first. A caller with no registration

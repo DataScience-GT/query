@@ -83,7 +83,6 @@ export const hackathons = pgTable(
   ],
 );
 
-// Teams for hackathons
 export const hackathonTeams = pgTable(
   "hackathon_team",
   {
@@ -373,8 +372,6 @@ export const hackathonInterest = pgTable(
   ],
 );
 
-export type HackathonInterest = typeof hackathonInterest.$inferSelect;
-
 // An application someone started and has not submitted. Kept on the server so
 // it follows them to another device, and so the reminder job knows who began
 // and stopped. `data` is the form's own answers as typed (strings and chips),
@@ -407,9 +404,6 @@ export const hackathonApplicationDrafts = pgTable(
     ),
   ],
 );
-
-export type HackathonApplicationDraft =
-  typeof hackathonApplicationDrafts.$inferSelect;
 
 // The Discord account of someone who is not (or not only) a hacker. Judges and
 // volunteers have no hackathon_participant row to hold the link, and the
@@ -449,8 +443,6 @@ export const discordLinks = pgTable(
     uniqueIndex("discord_link_discord_user_idx").on(table.discordUserId),
   ],
 );
-
-export type DiscordLink = typeof discordLinks.$inferSelect;
 
 // Event scheduling for hackathons
 export const hackathonEvents = pgTable(

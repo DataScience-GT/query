@@ -47,7 +47,7 @@ export type SourceRoom = {
 };
 
 /** A judging_entry_challenge row whose entry is not deleted. */
-export type SourceMembership = { entryId: string; challengeId: string };
+type SourceMembership = { entryId: string; challengeId: string };
 
 export const taskKey = (entryId: string, challengeId: string) =>
   `${entryId}:${challengeId}`;

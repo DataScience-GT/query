@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { Alert } from "@query/ui/Alert";
@@ -19,35 +19,11 @@ import { FormInput } from "@query/ui/FormInput";
 import { FormTextarea } from "@query/ui/FormTextarea";
 import {
   localTimeZone,
+  splitList,
   toInputDate,
 } from "@/components/admin/hackathons/constants";
-
-const HACKATHON_STATUSES = [
-  "draft",
-  "announced",
-  "open",
-  "closed",
-  "in_progress",
-  "completed",
-  "cancelled",
-] as const;
-
-type HackathonStatus = (typeof HACKATHON_STATUSES)[number];
-
-/**
- * Comma-separated text to the array the API stores, or null when emptied.
- *
- * Judge assignment matches these strings exactly, so entries are trimmed and
- * blanks dropped — a stray ", " would otherwise become a track that no project
- * can ever be matched against.
- */
-const splitList = (value: string): string[] | null => {
-  const items = value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-  return items.length > 0 ? items : null;
-};
+import { HACKATHON_STATUSES } from "@query/db/constants";
+import type { HackathonStatus } from "@query/db/constants";
 
 export function EditHackathonForm({
   hackathonId,
@@ -104,7 +80,7 @@ export function EditHackathonForm({
     setChallenges((hackathon.challenges ?? []).join(", "));
     setRules(hackathon.rules || "");
     setWebsiteUrl(hackathon.websiteUrl || "");
-    setStatus(hackathon.status as HackathonStatus);
+    setStatus(hackathon.status);
     setLoaded(true);
   }
 

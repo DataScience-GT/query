@@ -52,14 +52,13 @@ import {
   roomName,
   roomKind,
   SEATED_WINDOW_MS,
-  notFound,
-  refuse,
   lockRoom,
   archiveLockedRoom,
   assertRoomChallenge,
   assertBuilding,
   roomNameTaken,
 } from "./shared";
+import { badRequest, conflict, notFound, preconditionFailed } from "../../errors";
 
 export const roomProcedures = {
   /** Buildings and every room, archived ones included, with live state. */
@@ -259,10 +258,7 @@ export const roomProcedures = {
         return building!;
       } catch (error) {
         if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `There is already a building called ${input.name}.`,
-          });
+          throw conflict(`There is already a building called ${input.name}.`);
         }
         throw error;
       }
@@ -282,10 +278,7 @@ export const roomProcedures = {
         return building;
       } catch (error) {
         if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `There is already a building called ${input.name}.`,
-          });
+          throw conflict(`There is already a building called ${input.name}.`);
         }
         throw error;
       }
@@ -315,7 +308,7 @@ export const roomProcedures = {
             ),
           );
         if ((rooms?.value ?? 0) > 0) {
-          throw refuse(
+          throw preconditionFailed(
             `${building.name} still has ${rooms!.value} active room${rooms!.value === 1 ? "" : "s"}. Move or archive them first.`,
           );
         }
@@ -409,10 +402,9 @@ export const roomProcedures = {
           const first = input.firstNumber ?? nextTableNumber(stations);
           const last = first + input.count - 1;
           if (last > MAX_TABLE_NUMBER) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `Table numbers stop at ${MAX_TABLE_NUMBER}. Start lower or add fewer tables.`,
-            });
+            throw badRequest(
+              `Table numbers stop at ${MAX_TABLE_NUMBER}. Start lower or add fewer tables.`,
+            );
           }
           const numbers = newTableNumbers(stations, input.count, first);
           if (numbers.length === 0) {
@@ -461,11 +453,9 @@ export const roomProcedures = {
         });
       } catch (error) {
         if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "One of these table numbers was taken in that building just now. Refresh the Rooms tab and try again.",
-          });
+          throw conflict(
+            "One of these table numbers was taken in that building just now. Refresh the Rooms tab and try again.",
+          );
         }
         throw error;
       }
@@ -495,10 +485,7 @@ export const roomProcedures = {
         const result = await db.transaction(async (tx) => {
           const room = await lockRoom(tx, input.roomId);
           if (room.archivedAt) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Unarchive the room before editing it.",
-            });
+            throw badRequest("Unarchive the room before editing it.");
           }
 
           const challengeChanges =
@@ -511,7 +498,7 @@ export const roomProcedures = {
           if (challengeChanges || buildingChanges) {
             const scheduled = await roomAppointmentCount(tx, room.id);
             if (scheduled > 0) {
-              throw refuse(
+              throw preconditionFailed(
                 `${room.name} has ${scheduled} scheduled presentation${scheduled === 1 ? "" : "s"}. Drop the schedule before moving the room to another ${challengeChanges ? "challenge" : "building"}.`,
               );
             }
@@ -537,7 +524,7 @@ export const roomProcedures = {
               .limit(1);
             if (link) {
               if (input.confirmation !== room.name) {
-                throw refuse(
+                throw preconditionFailed(
                   `${room.name} has a live QR link. Changing its challenge retires the link and signs its guest judges out; type ${room.name} to confirm.`,
                 );
               }
@@ -678,10 +665,9 @@ export const roomProcedures = {
         return { room: result.room, signedOut: result.signedOut };
       } catch (error) {
         if (isUniqueViolation(error)) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `Another active room in that building is called ${roomName}. Rename one of them first.`,
-          });
+          throw conflict(
+            `Another active room in that building is called ${roomName}. Rename one of them first.`,
+          );
         }
         throw error;
       }
@@ -745,7 +731,7 @@ export const roomProcedures = {
         const room = await lockRoom(tx, input.roomId);
         const scheduled = await roomAppointmentCount(tx, room.id);
         if (scheduled > 0) {
-          throw refuse(
+          throw preconditionFailed(
             `${room.name} has ${scheduled} scheduled presentation${scheduled === 1 ? "" : "s"}. Drop the schedule before deleting it, or archive it after the presentations move.`,
           );
         }

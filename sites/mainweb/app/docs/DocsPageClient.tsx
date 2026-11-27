@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import type { MouseEvent } from "react";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ChevronDown } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { loginHref } from "@/lib/safe-callback";
+import { useLoginRedirect } from "@/lib/use-login-redirect";
 import { SECTIONS } from "./content";
 import type { DocSection } from "./content";
 import { SECTION_BODY } from "./Sections";
@@ -27,16 +26,11 @@ function toSection(hash: string): DocSection {
 
 export default function DocsPageClient() {
   const { status } = useSession();
-  const router = useRouter();
   const hash = useSyncExternalStore(subscribeToHash, readHash, () => "");
   const active = toSection(hash);
   const articleRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push(loginHref());
-    }
-  }, [status, router]);
+  useLoginRedirect(status);
 
   if (status === "loading" || status === "unauthenticated") {
     return (
