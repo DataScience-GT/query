@@ -613,3 +613,57 @@ export async function sendAcceptanceEmail({
     theme: /^hacklytics/i.test(hackathonName) ? "hacklytics" : undefined,
   });
 }
+
+// A volunteer application was approved. Calm and specific: what is confirmed,
+// what to do next, and where to change plans. Approving does not give
+// check-in scanner access, so the mail does not promise it.
+export async function sendVolunteerApprovedEmail({
+  email,
+  hackathonName,
+  volunteerUrl,
+}: {
+  email: string;
+  hackathonName: string;
+  /** The edition's volunteer page in the portal. */
+  volunteerUrl: string;
+}) {
+  const hacklytics = /^hacklytics/i.test(hackathonName);
+  await sendTransactionalEmail({
+    email,
+    subject: `You're confirmed as a ${hacklytics ? "Hacklytics" : hackathonName} volunteer`,
+    heading: `You're confirmed as a ${hacklytics ? "Hacklytics" : hackathonName} volunteer`,
+    paragraphs: [
+      `An organizer approved your application to volunteer at ${hackathonName}. Thank you for giving the weekend your time.`,
+      `Next, join the ${hacklytics ? "Hacklytics" : "event"} Discord. It is required for volunteers, and it is where shifts, locations and changes are shared during the weekend.`,
+      "Your application stays in the portal with the times and roles you offered. If your plans change, withdraw there so we can cover your shifts.",
+      hacklytics ? "Hacklytics team" : "DS@GT",
+    ],
+    ctaLabel: "Open your volunteer page",
+    ctaUrl: volunteerUrl,
+    theme: hacklytics ? "hacklytics" : undefined,
+  });
+}
+
+// A volunteer application was declined. Short, and without a reason: the
+// roster follows the roles and times the event needs, which is not a verdict
+// on the person.
+export async function sendVolunteerDeclinedEmail({
+  email,
+  hackathonName,
+}: {
+  email: string;
+  hackathonName: string;
+}) {
+  const hacklytics = /^hacklytics/i.test(hackathonName);
+  await sendTransactionalEmail({
+    email,
+    subject: `Your ${hacklytics ? "Hacklytics" : hackathonName} volunteer application`,
+    heading: "About your volunteer application",
+    paragraphs: [
+      `Thank you for offering to volunteer at ${hackathonName}. We can't place you this time.`,
+      "Shifts follow the roles and times the weekend needs, so a decline says little about you.",
+      hacklytics ? "Hacklytics team" : "DS@GT",
+    ],
+    theme: hacklytics ? "hacklytics" : undefined,
+  });
+}

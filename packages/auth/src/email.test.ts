@@ -17,6 +17,8 @@ const {
   sendApplicationReminderEmail,
   sendJudgeAddedEmail,
   sendJudgeApprovedEmail,
+  sendVolunteerApprovedEmail,
+  sendVolunteerDeclinedEmail,
 } = await import("./email");
 
 describe("sendAcceptanceEmail", () => {
@@ -157,5 +159,58 @@ describe("Discord in the acceptance and judge emails", () => {
       expect(message.text).toContain("Open the judge portal: https://datasciencegt.org/judge");
       expect(message.text).not.toContain("!");
     }
+  });
+});
+
+describe("volunteer emails", () => {
+  beforeEach(() => {
+    sent.length = 0;
+  });
+
+  const volunteerUrl =
+    "https://datasciencegt.org/hackathons/hacklytics-digital-bloom/volunteer";
+
+  it("confirms a Hacklytics volunteer, says the Discord is required and links the portal", async () => {
+    await sendVolunteerApprovedEmail({
+      email: "ada@example.com",
+      hackathonName: "Hacklytics: Digital Bloom",
+      volunteerUrl,
+    });
+
+    const [message] = sent;
+    expect(message?.subject).toBe("You're confirmed as a Hacklytics volunteer");
+    expect(message?.text).toContain("It is required for volunteers");
+    expect(message?.text).toContain("Hacklytics Discord");
+    expect(message?.text).toContain(`Open your volunteer page: ${volunteerUrl}`);
+    expect(message?.html).toContain(`href="${volunteerUrl}"`);
+    expect(message?.html).toContain("hacklytics-wordmark.png");
+    // Calm copy: no exclamation marks, no promise of scanner access.
+    expect(message?.text).not.toMatch(/!|scanner/i);
+  });
+
+  it("declines politely and briefly, without a link to anything", async () => {
+    await sendVolunteerDeclinedEmail({
+      email: "ada@example.com",
+      hackathonName: "Hacklytics: Digital Bloom",
+    });
+
+    const [message] = sent;
+    expect(message?.subject).toBe("Your Hacklytics volunteer application");
+    expect(message?.text).toContain("We can't place you this time.");
+    expect(message?.text).not.toMatch(/!/);
+    expect(message?.html).toContain("hacklytics-wordmark.png");
+    expect(message?.html).not.toContain("<a href=\"https://datasciencegt.org/hackathons");
+  });
+
+  it("names another hackathon and keeps the DS@GT look", async () => {
+    await sendVolunteerApprovedEmail({
+      email: "ada@example.com",
+      hackathonName: "Spring Build Jam",
+      volunteerUrl: "https://datasciencegt.org/hackathons/spring-build-jam/volunteer",
+    });
+
+    expect(sent[0]?.subject).toBe("You're confirmed as a Spring Build Jam volunteer");
+    expect(sent[0]?.text).toContain("join the event Discord");
+    expect(sent[0]?.html).toContain("DataScience<span");
   });
 });
