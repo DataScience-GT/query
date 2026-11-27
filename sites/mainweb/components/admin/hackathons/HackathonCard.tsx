@@ -1,7 +1,6 @@
 "use client";
 
 import { venueFormat } from "@/lib/venue-time";
-import React from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import {

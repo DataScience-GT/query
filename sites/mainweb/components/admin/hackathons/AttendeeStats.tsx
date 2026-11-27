@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import type { ParticipantStatus } from "@query/db/constants";
 import { sectionRule, status } from "@query/ui/classes";
 import type { Tone } from "@query/ui/classes";

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useReadOnly } from "@/lib/use-portal-context";
 import { Alert } from "@query/ui/Alert";

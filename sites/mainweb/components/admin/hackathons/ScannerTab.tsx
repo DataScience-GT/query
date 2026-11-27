@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { READ_ONLY_TITLE, useIsAdmin, useReadOnly } from "@/lib/use-portal-context";
