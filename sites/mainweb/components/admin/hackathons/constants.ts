@@ -23,6 +23,21 @@ export function localTimeZone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
+/**
+ * Comma-separated text to the array the API stores, or null when empty.
+ *
+ * Judge assignment matches these strings exactly, so entries are trimmed and
+ * blanks dropped — a stray ", " would otherwise become a track no project can
+ * ever be matched against.
+ */
+export function splitList(value: string): string[] | null {
+  const items = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return items.length > 0 ? items : null;
+}
+
 export function toInputDate(d: Date | string) {
   const dt = new Date(d);
   // Adjust for timezone offset to keep local time in the YYYY-MM-DDTHH:mm format
