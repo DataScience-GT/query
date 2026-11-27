@@ -1,12 +1,11 @@
 "use client";
 
 import { venueFormat } from "@/lib/venue-time";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { loginHref } from "@/lib/safe-callback";
+import { useLoginRedirect } from "@/lib/use-login-redirect";
 import { trpc } from "@/lib/trpc";
 import { FormChipSelect } from "@query/ui/FormChipSelect";
 import { useIsClient } from "@/lib/use-is-client";
@@ -89,7 +88,6 @@ function ApplicationActions({
 
 export default function JudgePage() {
   const { data: session, status: authStatus } = useSession();
-  const router = useRouter();
   const mounted = useIsClient();
 
   // isJudge covers a judge an organiser added by email, who has no application;
@@ -104,9 +102,7 @@ export default function JudgePage() {
   const { data: portal } = usePortalContext();
 
   // The approval email points here, so a signed-out visitor goes to sign in.
-  useEffect(() => {
-    if (authStatus === "unauthenticated") router.push(loginHref());
-  }, [authStatus, router]);
+  useLoginRedirect(authStatus);
 
   if (
     !mounted ||

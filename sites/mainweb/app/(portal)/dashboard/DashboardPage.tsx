@@ -2,7 +2,7 @@
 
 import { venueDayNumber, venueFormat } from "@/lib/venue-time";
 import { useSession, signOut } from "next-auth/react";
-import { loginHref } from "@/lib/safe-callback";
+import { useLoginRedirect } from "@/lib/use-login-redirect";
 import { trpc } from "@/lib/trpc";
 import {
   useInvalidatePortalContext,
@@ -190,9 +190,7 @@ export default function Dashboard() {
     autoLinkFired.current = true;
     attemptAutoLink();
   }, [status, attemptAutoLink]);
-  useEffect(() => {
-    if (status === "unauthenticated") router.push(loginHref());
-  }, [status, router]);
+  useLoginRedirect(status);
   useEffect(() => {
     if (isAdmin) router.replace("/admin");
   }, [isAdmin, router]);

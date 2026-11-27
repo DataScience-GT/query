@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { loginHref } from "@/lib/safe-callback";
+import { useState } from "react";
+import { useLoginRedirect } from "@/lib/use-login-redirect";
 import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Check, LogOut } from "lucide-react";
 import { MembershipTab } from "@/components/portal/MembershipTab";
@@ -42,7 +41,6 @@ const readOnlyInput =
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const { theme, setTheme } = useTheme();
   const mounted = useIsClient();
   const [activeTab, setActiveTab] = useState<
@@ -149,9 +147,7 @@ export default function SettingsPage() {
     gtEmail: "",
   });
 
-  useEffect(() => {
-    if (status === "unauthenticated") router.push(loginHref());
-  }, [status, router]);
+  useLoginRedirect(status);
 
   // Refill the form whenever new user data arrives. Done during render rather
   // than in an effect, so the stale form never paints.

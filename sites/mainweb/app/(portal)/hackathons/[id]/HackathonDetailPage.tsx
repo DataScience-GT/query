@@ -8,10 +8,10 @@ import React, {
   useRef,
   startTransition,
 } from "react";
-import { loginHref } from "@/lib/safe-callback";
+import { useLoginRedirect } from "@/lib/use-login-redirect";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { LoadingScreen } from "@/components/portal/LoadingScreen";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -107,7 +107,6 @@ const startOfDay = venueDayNumber;
 
 export default function HackathonDetailPage() {
   const { data: session, status: authStatus } = useSession();
-  const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const rawId = params.id;
@@ -219,9 +218,7 @@ export default function HackathonDetailPage() {
     results.isLoading ||
     discord.isLoading;
 
-  useEffect(() => {
-    if (authStatus === "unauthenticated") router.push(loginHref());
-  }, [authStatus, router]);
+  useLoginRedirect(authStatus);
 
   // The strip scrolls sideways on a phone, so a ?tab= link to a later tab
   // would land with it and its accent rule past the right edge. Scroll the
