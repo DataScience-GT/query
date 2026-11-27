@@ -3,10 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 
 const run = vi.hoisted(() => vi.fn());
+const sweep = vi.hoisted(() => vi.fn());
 vi.mock("@query/db", () => ({ db: { marker: "db" } }));
 vi.mock("@query/api/application-reminders", () => ({
   sendApplicationReminders: run,
 }));
+vi.mock("@query/api/discord", () => ({ syncExpiredDiscordRoles: sweep }));
 
 const SECRET = "s3cret-token-value";
 
@@ -27,6 +29,8 @@ describe("POST /api/cron/application-reminders", () => {
   beforeEach(() => {
     run.mockReset();
     run.mockResolvedValue({ claimed: 3, sent: 2, failed: 1 });
+    sweep.mockReset();
+    sweep.mockResolvedValue({ checked: 2, synced: 1 });
   });
   afterEach(() => vi.unstubAllEnvs());
 
@@ -58,9 +62,32 @@ describe("POST /api/cron/application-reminders", () => {
     const res = await call({ authorization: `Bearer ${SECRET}` });
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("no-store");
-    expect(await res.json()).toEqual({ claimed: 3, sent: 2, failed: 1 });
+    expect(await res.json()).toEqual({
+      claimed: 3,
+      sent: 2,
+      failed: 1,
+      discord: { checked: 2, synced: 1 },
+    });
     expect(run).toHaveBeenCalledTimes(1);
     expect(run.mock.calls[0]?.[0]).toEqual({ marker: "db" });
+    expect(sweep.mock.calls[0]?.[0]).toEqual({ marker: "db" });
+  });
+
+  it("still sweeps the Discord roles when the reminders fail", async () => {
+    vi.stubEnv("CRON_SECRET", SECRET);
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    run.mockRejectedValue(new Error("mail down"));
+    const res = await call({ authorization: `Bearer ${SECRET}` });
+    expect(res.status).toBe(500);
+    expect(sweep).toHaveBeenCalledTimes(1);
+    log.mockRestore();
+  });
+
+  it("does not run either job without a good token", async () => {
+    vi.stubEnv("CRON_SECRET", SECRET);
+    await call({ authorization: "Bearer wrong" });
+    expect(run).not.toHaveBeenCalled();
+    expect(sweep).not.toHaveBeenCalled();
   });
 
   it("answers 500 without the error text when a run fails", async () => {

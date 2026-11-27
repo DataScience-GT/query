@@ -8,7 +8,7 @@ import { eventDay, eventMoment } from "../components/hackathon/judging/event-tim
  * ones `nextStepQueries` says matter), this decides what they mean.
  *
  * Steps, in the order a hacker meets them:
- *   register -> review -> discord -> pass -> team -> submit -> judging -> results
+ *   register -> review -> confirm -> discord -> pass -> team -> submit -> judging -> results
  * `status` is not a step: waitlisted, rejected, cancelled and "event ended"
  * have nothing to act on, so they read as a status line.
  */
@@ -16,6 +16,7 @@ import { eventDay, eventMoment } from "../components/hackathon/judging/event-tim
 export type NextStepKind =
   | "register"
   | "review"
+  | "confirm"
   | "pass"
   | "discord"
   | "team"
@@ -72,10 +73,12 @@ export type NextStepInput = {
   /** `hackathon.getResults` came back with rows. */
   resultsPublished?: boolean;
   /**
-   * The Discord link, when the feature is on and the viewer can use it
-   * (`hackathon.myDiscord`). Leave out while loading or when it is off.
+   * The hacker's Discord step, when the feature is on (`discordStep` of
+   * `hackathon.myDiscord`). `awaitingConfirmation` is an accepted hacker who has
+   * not said they are coming: the invite waits for that. Leave out while
+   * loading or when it is off.
    */
-  discord?: { linked: boolean } | null;
+  discord?: { linked: boolean; awaitingConfirmation?: boolean } | null;
 };
 
 // Same fields as the submit page prints its deadlines with. Built on first
@@ -268,7 +271,17 @@ export function hackathonNextStep(
       : { step: "status", label: "Event ended", href: tab("INFO") };
   }
 
-  // Accepted and not in the server yet: that is the next thing to do. A
+  // Accepted, but the invite waits until they say they are coming.
+  if (input.discord?.awaitingConfirmation) {
+    return {
+      step: "confirm",
+      label: "Confirm you're coming",
+      detail: "You get the Discord invite once you do.",
+      href: tab("INFO"),
+    };
+  }
+
+  // Confirmed and not in the server yet: that is the next thing to do. A
   // button, not a page, so the href is the connect route itself.
   if (input.discord && !input.discord.linked) {
     return {
@@ -358,12 +371,26 @@ export function hackathonNextStep(
   };
 }
 
-/** `hackathon.myDiscord` as the next-step input: null unless the feature is on. */
+/**
+ * `hackathon.myDiscord` as the next-step input: null unless the feature is on.
+ * It is the hacker's step, so a judge's or volunteer's role does not count
+ * here: only a confirmed hacker is asked to join, and an accepted one who has
+ * not confirmed is asked to confirm.
+ */
 export function discordStep(
   data:
-    | { eligible: false }
-    | { eligible: true; enabled: boolean; linked: boolean }
+    | {
+        enabled: boolean;
+        linked: boolean;
+        awaitingConfirmation: boolean;
+        roles: { hacker: boolean };
+      }
     | undefined,
-): { linked: boolean } | null {
-  return data?.eligible && data.enabled ? { linked: data.linked } : null;
+): { linked: boolean; awaitingConfirmation?: boolean } | null {
+  if (!data?.enabled) return null;
+  if (data.roles.hacker) return { linked: data.linked };
+  if (data.awaitingConfirmation) {
+    return { linked: data.linked, awaitingConfirmation: true };
+  }
+  return null;
 }

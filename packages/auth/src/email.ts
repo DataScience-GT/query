@@ -321,6 +321,7 @@ export async function sendJudgeApprovedEmail({
     heading: "You're confirmed as a judge",
     paragraphs: [
       `Your application to judge ${hackathonName} has been approved.`,
+      "Joining the Hacklytics Discord is required for judges. Schedules and room changes are posted there. Use the Join the Hacklytics Discord step in the judge portal.",
       "Club judges: sign in on your phone before you scan the code at your room or table, so your scores count under your account.",
       "On the day, scan the QR code at your judging room or table to take your seat, then score each project as it presents.",
     ],
@@ -347,6 +348,7 @@ export async function sendJudgeAddedEmail({
     heading: "You've been added as a judge",
     paragraphs: [
       `An organizer added you as a judge for ${hackathonName}. There is nothing to apply for or wait on.`,
+      "Joining the Hacklytics Discord is required for judges. Schedules and room changes are posted there. Use the Join the Hacklytics Discord step in the judge portal.",
       "Sign in on your phone before you scan the code at your room or table, so your scores count under your account.",
       "On the day, scan the QR code at your judging room or table to take your seat, then score each project as it presents.",
     ],
@@ -602,7 +604,7 @@ export async function sendAcceptanceEmail({
     paragraphs: [
       `Congratulations! You have been accepted to participate in ${hackathonName}.`,
       "Head over to the Hackathon Hub to view the event details, find a team, and get ready to build.",
-      "Join the Hacklytics Discord from the Hackathon Hub to get your flower role.",
+      "Confirm you're coming in the Hackathon Hub, then join the Hacklytics Discord to get your flower role.",
     ],
     ctaLabel: "Go to Hackathon Hub",
     ctaUrl: `${host}/hackathons`,

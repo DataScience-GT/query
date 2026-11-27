@@ -6,6 +6,10 @@ import { createTRPCRouter } from "../../trpc";
 import { hackathonBanCacheKey, isAdmin } from "../../middleware/procedures";
 import { recordAdminAction } from "../../middleware/audit";
 import { evictParticipantCaches } from "./admin/seats";
+import {
+  markDiscordRolesPending,
+  syncDiscordRolesFor,
+} from "../../services/discord";
 
 const normalize = (email: string) => email.trim().toLowerCase();
 
@@ -114,6 +118,11 @@ export const hackathonBansRouter = createTRPCRouter({
             userId: hackathonParticipants.userId,
             hackathonId: hackathonParticipants.hackathonId,
           });
+        // Rejected, so a linked Discord account is owed a sync.
+        await markDiscordRolesPending(
+          tx as unknown as DrizzleDB,
+          rejected.map((row) => row.userId),
+        );
 
         return { ban, rejectedUserIds: rejected };
       });
@@ -121,6 +130,11 @@ export const hackathonBansRouter = createTRPCRouter({
       for (const row of rejectedUserIds) {
         evictParticipantCaches(ctx.cache, row.hackathonId, [row.userId]);
       }
+      // Rejected, so any Discord roles they linked come back off.
+      await syncDiscordRolesFor(
+        db,
+        rejectedUserIds.map((row) => row.userId),
+      );
 
       ctx.cache.delete(hackathonBanCacheKey(email));
 

@@ -12,7 +12,12 @@ vi.mock("nodemailer", () => ({
   },
 }));
 
-const { sendAcceptanceEmail, sendApplicationReminderEmail } = await import("./email");
+const {
+  sendAcceptanceEmail,
+  sendApplicationReminderEmail,
+  sendJudgeAddedEmail,
+  sendJudgeApprovedEmail,
+} = await import("./email");
 
 describe("sendAcceptanceEmail", () => {
   beforeEach(() => {
@@ -114,5 +119,43 @@ describe("sendApplicationReminderEmail", () => {
     expect(sent[0]?.text).toContain("DS@GT");
     expect(sent[0]?.html).toContain("DataScience<span");
     expect(sent[0]?.html).not.toContain("hacklytics-wordmark.png");
+  });
+});
+
+describe("Discord in the acceptance and judge emails", () => {
+  beforeEach(() => {
+    sent.length = 0;
+  });
+
+  it("asks an accepted hacker to confirm before joining the Discord", async () => {
+    await sendAcceptanceEmail({
+      email: "ada@example.com",
+      hackathonName: "Hacklytics: Digital Bloom",
+      host: "https://datasciencegt.org",
+    });
+    expect(sent[0]?.text).toContain(
+      "Confirm you're coming in the Hackathon Hub, then join the Hacklytics Discord to get your flower role.",
+    );
+  });
+
+  it("tells an approved or added judge the Discord is required, and points to the portal step", async () => {
+    await sendJudgeApprovedEmail({
+      email: "judge@example.com",
+      hackathonName: "Hacklytics: Digital Bloom",
+      host: "https://datasciencegt.org",
+    });
+    await sendJudgeAddedEmail({
+      email: "judge@example.com",
+      hackathonName: "Hacklytics: Digital Bloom",
+      host: "https://datasciencegt.org",
+    });
+    expect(sent).toHaveLength(2);
+    for (const message of sent) {
+      expect(message.text).toContain(
+        "Joining the Hacklytics Discord is required for judges. Schedules and room changes are posted there.",
+      );
+      expect(message.text).toContain("Open the judge portal: https://datasciencegt.org/judge");
+      expect(message.text).not.toContain("!");
+    }
   });
 });
